@@ -1,4 +1,5 @@
 #version 330 core
+
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
@@ -9,7 +10,8 @@ uniform vec3 lightPosition;  // Ensure you set this from your Python code
 
 out vec4 FragColor;
 
-void main() {
+void main()
+{
     // Normalize the fragment normal
     vec3 normal = normalize(Normal);
 
