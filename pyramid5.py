@@ -25,6 +25,8 @@ class ModelRenderer:
         self.projection = None
         self.diffuseMap = None
         self.normalMap = None
+        self.heightMap = None
+        self.environmentMap = None
 
         self.setup_pygame()
         self.init_shaders()
@@ -71,14 +73,34 @@ class ModelRenderer:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
 
+    def load_cubemap(self, folder_path, texture):
+        """Load and bind a cubemap texture from a folder."""
+        faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
+        glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
+        for i, face in enumerate(faces):
+            surface = pygame.image.load(folder_path + face)
+            img_data = pygame.image.tostring(surface, "RGB", True)
+            width, height = surface.get_size()
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                         img_data)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
+
     def draw_model(self):
         self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / 2000.0, glm.vec3(0, 3, 0))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'model'), 1, GL_FALSE, glm.value_ptr(self.model))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(self.view))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
                            glm.value_ptr(self.projection))
-        glUniform3fv(glGetUniformLocation(self.shader_program, 'lightPosition'), 1,
-                     glm.value_ptr(glm.vec3(0.0, 3.0, 3.0)))
+
+        # Set the light and view positions
+        lightPosition = glm.vec3(6.0, 6.0, 6.0)
+        viewPosition = self.camera_pos
+        glUniform3fv(glGetUniformLocation(self.shader_program, 'lightPosition'), 1, glm.value_ptr(lightPosition))
+        glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
 
         for mesh in self.scene.mesh_list:
             material = self.scene.materials['Material']
@@ -150,25 +172,50 @@ class ModelRenderer:
 
     def setup_camera(self):
         """
-        Set up the camera with a more zoomed out position.
+        Set up the camera with a more zoomed out and elevated position.
         """
-        self.camera_pos = glm.vec3(0, 3, 6)  # Increased distance from the origin for a more zoomed-out view
-        self.view = glm.lookAt(self.camera_pos, glm.vec3(0, 0.8, 0), glm.vec3(0, 1, 0))
+        self.camera_pos = glm.vec3(0, 5, 5)  # Increased y-coordinate to move the camera up
+        self.view = glm.lookAt(self.camera_pos, glm.vec3(0, 0, 0), glm.vec3(0, 1, 0))
         self.projection = glm.perspective(glm.radians(45), self.window_size[0] / self.window_size[1], 0.1, 100)
 
     def load_textures(self):
+        # Load and bind diffuse map
         self.diffuseMap = glGenTextures(1)
-        self.normalMap = glGenTextures(1)
         self.load_texture('textures/diffuse/crystal.png', self.diffuseMap)
+
+        # Load and bind normal map
+        self.normalMap = glGenTextures(1)
         self.load_texture('textures/normals/crystal.png', self.normalMap)
 
+        # Load and bind height map
+        self.heightMap = glGenTextures(1)
+        self.load_texture('textures/height/crystal.png', self.heightMap)
+
+        # Load and bind environment map (assumed to be a cubemap)
+        self.environmentMap = glGenTextures(1)
+        self.load_cubemap('textures/cube/sky_1/', self.environmentMap)
+
+        glUseProgram(self.shader_program)
+
+        # Bind the diffuse texture
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.diffuseMap)
         glUniform1i(glGetUniformLocation(self.shader_program, 'diffuseMap'), 0)
 
+        # Bind the normal map
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, self.normalMap)
         glUniform1i(glGetUniformLocation(self.shader_program, 'normalMap'), 1)
+
+        # Bind the height map
+        glActiveTexture(GL_TEXTURE2)
+        glBindTexture(GL_TEXTURE_2D, self.heightMap)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'heightMap'), 2)
+
+        # Bind the environment map
+        glActiveTexture(GL_TEXTURE3)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 3)
 
 
 if __name__ == "__main__":
