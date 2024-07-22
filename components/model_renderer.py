@@ -15,7 +15,8 @@ class ModelRenderer:
                  lod_level=1.0, window_size=(800, 600), camera_position=(4, 2, 4), camera_target=(0, 0, 0),
                  up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100,
                  light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
-                 anisotropy=16.0, rotation_speed=2000.0, rotation_axis=(0, 3, 0)):
+                 anisotropy=16.0, rotation_speed=2000.0, rotation_axis=(0, 3, 0),
+                 apply_tone_mapping=True, apply_gamma_correction=True):
         self.obj_path = obj_path
         self.vertex_shader_path = vertex_shader_path
         self.fragment_shader_path = fragment_shader_path
@@ -35,6 +36,8 @@ class ModelRenderer:
         self.anisotropy = anisotropy
         self.rotation_speed = rotation_speed
         self.rotation_axis = glm.vec3(*rotation_axis)
+        self.apply_tone_mapping = apply_tone_mapping
+        self.apply_gamma_correction = apply_gamma_correction
         self.scene = None
         self.shader_program = None
         self.vbos = []
@@ -128,6 +131,8 @@ class ModelRenderer:
             glUniform1f(glGetUniformLocation(self.shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
         glUniform1f(glGetUniformLocation(self.shader_program, 'lodLevel'), self.lod_level)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'applyGammaCorrection'), self.apply_gamma_correction)
 
         for mesh in self.scene.mesh_list:
             material = self.scene.materials['Material']

@@ -16,6 +16,8 @@ uniform vec3 lightColors[10];
 uniform vec3 viewPosition;
 uniform float lightStrengths[10];  // Strength for each light
 uniform float lodLevel;
+uniform bool applyToneMapping;  // Enable/disable tone mapping
+uniform bool applyGammaCorrection;  // Enable/disable gamma correction
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -77,11 +79,15 @@ void main()
     // Combine results in HDR
     vec3 result = ambient + diffuse + specular + envColor * height;
 
-    // Apply tone mapping
-    result = toneMapping(result);
+    // Apply tone mapping if enabled
+    if (applyToneMapping) {
+        result = toneMapping(result);
+    }
 
-    // Gamma correction
-    result = pow(result, vec3(1.0 / 2.2));
+    // Apply gamma correction if enabled
+    if (applyGammaCorrection) {
+        result = pow(result, vec3(1.0 / 2.2));
+    }
 
     // Clamp final color to avoid exceeding brightness levels
     result = clamp(result, 0.0, 1.0);
