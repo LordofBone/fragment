@@ -6,12 +6,12 @@ if __name__ == "__main__":
         'normal': 'textures/normals/crystal.png',
         'height': 'textures/height/crystal.png'
     }
-    cubemap_folder = 'textures/cube/mountain_lake/'
-    lod_level = 4.5  # Default level of detail
-    camera_position = (4, 2, 4)  # Camera position
-    camera_target = (0, 0, 0)  # Camera target
+    cubemap_folder = 'textures/cube/night_sky_egypt/'
+    lod_level = 7.0  # Default level of detail
+    camera_position = (3.2, 3.2, 3.2)  # Camera position (closer to the pyramid)
+    camera_target = (0, 0.75, 0)  # Camera target
     up_vector = (0, 1, 0)  # Up vector
-    fov = 45  # Field of view
+    fov = 40  # Field of view (zoomed in)
     near_plane = 0.1  # Near plane
     far_plane = 100  # Far plane
     light_positions = [(3.0, 3.0, 3.0)]  # Light positions
