@@ -11,8 +11,11 @@ from shader_engine import ShaderEngine
 
 
 class ModelRenderer:
-    def __init__(self, obj_path, vertex_shader_path, fragment_shader_path, texture_paths, cubemap_folder, lod_level=1000.5,
-                 window_size=(800, 600)):
+    def __init__(self, obj_path, vertex_shader_path, fragment_shader_path, texture_paths, cubemap_folder,
+                 lod_level=1.0, window_size=(800, 600), camera_position=(4, 2, 4), camera_target=(0, 0, 0),
+                 up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100,
+                 light_position=(3.0, 3.0, 3.0), light_strength=0.8,
+                 anisotropy=16.0, rotation_speed=2000.0, rotation_axis=(0, 3, 0)):
         self.obj_path = obj_path
         self.vertex_shader_path = vertex_shader_path
         self.fragment_shader_path = fragment_shader_path
@@ -20,6 +23,17 @@ class ModelRenderer:
         self.cubemap_folder = cubemap_folder
         self.lod_level = lod_level
         self.window_size = window_size
+        self.camera_position = glm.vec3(*camera_position)
+        self.camera_target = glm.vec3(*camera_target)
+        self.up_vector = glm.vec3(*up_vector)
+        self.fov = fov
+        self.near_plane = near_plane
+        self.far_plane = far_plane
+        self.light_position = glm.vec3(*light_position)
+        self.light_strength = light_strength
+        self.anisotropy = anisotropy
+        self.rotation_speed = rotation_speed
+        self.rotation_axis = glm.vec3(*rotation_axis)
         self.scene = None
         self.shader_program = None
         self.vbos = []
@@ -76,7 +90,7 @@ class ModelRenderer:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
 
     def load_cubemap(self, folder_path, texture):
         """Load and bind a cubemap texture from a folder."""
@@ -93,23 +107,21 @@ class ModelRenderer:
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
-        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0)
+        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
 
     def draw_model(self):
-        self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / 2000.0, glm.vec3(0, 3, 0))
+        self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'model'), 1, GL_FALSE, glm.value_ptr(self.model))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(self.view))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
                            glm.value_ptr(self.projection))
 
         # Set the light and view positions
-        lightPosition = glm.vec3(3.0, 3.0, 3.0)
-        lightStrength = 0.8
-        viewPosition = self.camera_pos
-        glUniform3fv(glGetUniformLocation(self.shader_program, 'lightPosition'), 1, glm.value_ptr(lightPosition))
+        viewPosition = self.camera_position
+        glUniform3fv(glGetUniformLocation(self.shader_program, 'lightPosition'), 1, glm.value_ptr(self.light_position))
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'lightStrength'), lightStrength)
+        glUniform1f(glGetUniformLocation(self.shader_program, 'lightStrength'), self.light_strength)
         glUniform1f(glGetUniformLocation(self.shader_program, 'lodLevel'), self.lod_level)
 
         for mesh in self.scene.mesh_list:
@@ -181,9 +193,9 @@ class ModelRenderer:
             glBindVertexArray(0)
 
     def setup_camera(self):
-        self.camera_pos = glm.vec3(4, 2, 4)
-        self.view = glm.lookAt(self.camera_pos, glm.vec3(0, 0, 0), glm.vec3(0, 1, 0))
-        self.projection = glm.perspective(glm.radians(45), self.window_size[0] / self.window_size[1], 0.1, 100)
+        self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
+        self.projection = glm.perspective(glm.radians(self.fov), self.window_size[0] / self.window_size[1],
+                                          self.near_plane, self.far_plane)
 
     def load_textures(self):
         self.diffuseMap = glGenTextures(1)
