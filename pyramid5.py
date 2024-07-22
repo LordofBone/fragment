@@ -4,6 +4,7 @@ import pygame
 import pywavefront
 from OpenGL.GL import *
 from OpenGL.GLUT import *
+from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
 from pygame.locals import QUIT
 
 from path_config import vertex_shader_path, fragment_shader_path
@@ -72,6 +73,7 @@ class ModelRenderer:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0)
 
     def load_cubemap(self, folder_path, texture):
         """Load and bind a cubemap texture from a folder."""
@@ -83,11 +85,13 @@ class ModelRenderer:
             width, height = surface.get_size()
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
                          img_data)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
+        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0)
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
 
     def draw_model(self):
         self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / 2000.0, glm.vec3(0, 3, 0))
@@ -97,10 +101,12 @@ class ModelRenderer:
                            glm.value_ptr(self.projection))
 
         # Set the light and view positions
-        lightPosition = glm.vec3(6.0, 6.0, 6.0)
+        lightPosition = glm.vec3(3.0, 3.0, 3.0)  # New light position
+        lightStrength = 0.8  # Reduce light strength
         viewPosition = self.camera_pos
         glUniform3fv(glGetUniformLocation(self.shader_program, 'lightPosition'), 1, glm.value_ptr(lightPosition))
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
+        glUniform1f(glGetUniformLocation(self.shader_program, 'lightStrength'), lightStrength)
 
         for mesh in self.scene.mesh_list:
             material = self.scene.materials['Material']
@@ -174,7 +180,7 @@ class ModelRenderer:
         """
         Set up the camera with a more zoomed out and elevated position.
         """
-        self.camera_pos = glm.vec3(0, 5, 5)  # Increased y-coordinate to move the camera up
+        self.camera_pos = glm.vec3(4, 2, 4)  # Increased y-coordinate to move the camera up
         self.view = glm.lookAt(self.camera_pos, glm.vec3(0, 0, 0), glm.vec3(0, 1, 0))
         self.projection = glm.perspective(glm.radians(45), self.window_size[0] / self.window_size[1], 0.1, 100)
 
@@ -193,7 +199,7 @@ class ModelRenderer:
 
         # Load and bind environment map (assumed to be a cubemap)
         self.environmentMap = glGenTextures(1)
-        self.load_cubemap('textures/cube/sky_1/', self.environmentMap)
+        self.load_cubemap('textures/cube/mountain_lake/', self.environmentMap)
 
         glUseProgram(self.shader_program)
 
