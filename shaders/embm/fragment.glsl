@@ -11,42 +11,80 @@ uniform sampler2D normalMap;
 uniform sampler2D heightMap;
 uniform samplerCube environmentMap;
 
-uniform vec3 lightPosition;
+uniform vec3 lightPositions[10];  // Support for up to 10 lights
+uniform vec3 lightColors[10];
 uniform vec3 viewPosition;
+uniform float lightStrengths[10];  // Strength for each light
+uniform float lodLevel;
+
+vec3 Uncharted2Tonemap(vec3 x) {
+    float A = 0.15;
+    float B = 0.50;
+    float C = 0.10;
+    float D = 0.20;
+    float E = 0.02;
+    float F = 0.30;
+
+    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+
+vec3 toneMapping(vec3 color) {
+    vec3 curr = Uncharted2Tonemap(color * 2.0); // Pre-exposure
+    vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(11.2));
+    return curr * whiteScale;
+}
 
 void main()
 {
     // Retrieve normal from normal map
     vec3 normal = texture(normalMap, TexCoords).rgb;
-    normal = normalize(normal * 2.0 - 1.0);// Transform normal vector to range [-1, 1]
+    normal = normalize(normal * 2.0 - 1.0); // Transform normal vector to range [-1, 1]
 
     // Retrieve height from height map
     float height = texture(heightMap, TexCoords).r;
 
-    // Calculate view and light directions
+    // Calculate view direction
     vec3 viewDir = normalize(viewPosition - FragPos);
-    vec3 lightDir = normalize(lightPosition - FragPos);
 
     // Calculate the reflection vector
     vec3 reflectDir = reflect(viewDir, normal);
 
-    // Retrieve the environment color
-    vec3 envColor = texture(environmentMap, reflectDir).rgb;
+    // Retrieve the environment color with anisotropic filtering
+    vec3 envColor = textureLod(environmentMap, reflectDir, lodLevel).rgb;
 
     // Calculate ambient lighting
     vec3 ambient = 0.1 * texture(diffuseMap, TexCoords).rgb;
 
-    // Calculate diffuse lighting
-    float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * texture(diffuseMap, TexCoords).rgb;
+    // Initialize diffuse and specular lighting
+    vec3 diffuse = vec3(0.0);
+    vec3 specular = vec3(0.0);
 
-    // Calculate specular lighting
-    vec3 halfwayDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
-    vec3 specular = spec * vec3(1.0);// White specular highlight
+    // Loop through all lights
+    for(int i = 0; i < 10; i++) {
+        // Calculate light direction
+        vec3 lightDir = normalize(lightPositions[i] - FragPos);
 
-    // Combine results with height-based scaling
+        // Calculate diffuse lighting
+        float diff = max(dot(normal, lightDir), 0.0);
+        diffuse += diff * texture(diffuseMap, TexCoords).rgb * lightColors[i] * lightStrengths[i];
+
+        // Calculate specular lighting
+        vec3 halfwayDir = normalize(lightDir + viewDir);
+        float spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
+        specular += spec * lightColors[i] * lightStrengths[i];
+    }
+
+    // Combine results in HDR
     vec3 result = ambient + diffuse + specular + envColor * height;
+
+    // Apply tone mapping
+    result = toneMapping(result);
+
+    // Gamma correction
+    result = pow(result, vec3(1.0 / 2.2));
+
+    // Clamp final color to avoid exceeding brightness levels
+    result = clamp(result, 0.0, 1.0);
 
     FragColor = vec4(result, 1.0);
 }

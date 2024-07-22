@@ -14,7 +14,7 @@ class ModelRenderer:
     def __init__(self, obj_path, vertex_shader_path, fragment_shader_path, texture_paths, cubemap_folder,
                  lod_level=1.0, window_size=(800, 600), camera_position=(4, 2, 4), camera_target=(0, 0, 0),
                  up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100,
-                 light_position=(3.0, 3.0, 3.0), light_strength=0.8,
+                 light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
                  anisotropy=16.0, rotation_speed=2000.0, rotation_axis=(0, 3, 0)):
         self.obj_path = obj_path
         self.vertex_shader_path = vertex_shader_path
@@ -29,8 +29,9 @@ class ModelRenderer:
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.light_position = glm.vec3(*light_position)
-        self.light_strength = light_strength
+        self.light_positions = [glm.vec3(*pos) for pos in light_positions]
+        self.light_colors = [glm.vec3(*col) for col in light_colors]
+        self.light_strengths = light_strengths
         self.anisotropy = anisotropy
         self.rotation_speed = rotation_speed
         self.rotation_axis = glm.vec3(*rotation_axis)
@@ -119,9 +120,13 @@ class ModelRenderer:
 
         # Set the light and view positions
         viewPosition = self.camera_position
-        glUniform3fv(glGetUniformLocation(self.shader_program, 'lightPosition'), 1, glm.value_ptr(self.light_position))
+        for i in range(len(self.light_positions)):
+            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightPositions[{i}]'), 1,
+                         glm.value_ptr(self.light_positions[i]))
+            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightColors[{i}]'), 1,
+                         glm.value_ptr(self.light_colors[i]))
+            glUniform1f(glGetUniformLocation(self.shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'lightStrength'), self.light_strength)
         glUniform1f(glGetUniformLocation(self.shader_program, 'lodLevel'), self.lod_level)
 
         for mesh in self.scene.mesh_list:
