@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import glm
 import pygame
 from OpenGL.GL import *
 from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
@@ -54,9 +55,10 @@ class AbstractRenderer(ABC):
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
 
-    @abstractmethod
     def setup_camera(self):
-        pass
+        aspect_ratio = self.window_size[0] / self.window_size[1]
+        self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
+        self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
     @abstractmethod
     def create_buffers(self):

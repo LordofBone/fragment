@@ -40,11 +40,6 @@ class WaterRenderer(AbstractRenderer):
     def init_shaders(self):
         super().init_shaders()
 
-    def setup_camera(self):
-        aspect_ratio = self.window_size[0] / self.window_size[1]
-        self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
-        self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
-
     def create_buffers(self):
         # Create a simple plane for the water surface
         vertices = [

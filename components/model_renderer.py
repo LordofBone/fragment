@@ -55,11 +55,6 @@ class ModelRenderer(AbstractRenderer):
     def init_shaders(self):
         super().init_shaders()
 
-    def setup_camera(self):
-        self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
-        self.projection = glm.perspective(glm.radians(self.fov), self.window_size[0] / self.window_size[1],
-                                          self.near_plane, self.far_plane)
-
     def create_buffers(self):
         for name, material in self.scene.materials.items():
             self.vertices = material.vertices
