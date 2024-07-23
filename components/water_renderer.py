@@ -2,7 +2,9 @@ import glm
 import numpy as np
 import pygame
 from OpenGL.GL import *
+
 from components.abstract_renderer import AbstractRenderer
+
 
 class WaterRenderer(AbstractRenderer):
     def __init__(self, vertex_shader_path, fragment_shader_path, cubemap_folder, window_size=(800, 600),
