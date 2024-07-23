@@ -3,24 +3,21 @@ import numpy as np
 import pygame
 import pywavefront
 from OpenGL.GL import *
-from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
 
-from components.shader_engine import ShaderEngine
+from components.abstract_renderer import AbstractRenderer
 
 
-class ModelRenderer:
+class ModelRenderer(AbstractRenderer):
     def __init__(self, obj_path, vertex_shader_path, fragment_shader_path, texture_paths, cubemap_folder,
                  window_size=(800, 600), lod_level=1.0, camera_position=(4, 2, 4), camera_target=(0, 0, 0),
                  up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100,
                  light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
                  anisotropy=16.0, rotation_speed=2000.0, rotation_axis=(0, 3, 0),
                  apply_tone_mapping=True, apply_gamma_correction=True):
+        super().__init__(vertex_shader_path, fragment_shader_path, window_size, anisotropy)
         self.obj_path = obj_path
-        self.vertex_shader_path = vertex_shader_path
-        self.fragment_shader_path = fragment_shader_path
         self.texture_paths = texture_paths
         self.cubemap_folder = cubemap_folder
-        self.window_size = window_size
         self.lod_level = lod_level
         self.camera_position = glm.vec3(*camera_position)
         self.camera_target = glm.vec3(*camera_target)
@@ -31,13 +28,11 @@ class ModelRenderer:
         self.light_positions = [glm.vec3(*pos) for pos in light_positions]
         self.light_colors = [glm.vec3(*col) for col in light_colors]
         self.light_strengths = light_strengths
-        self.anisotropy = anisotropy
         self.rotation_speed = rotation_speed
         self.rotation_axis = glm.vec3(*rotation_axis)
         self.apply_tone_mapping = apply_tone_mapping
         self.apply_gamma_correction = apply_gamma_correction
         self.scene = None
-        self.shader_program = None
         self.vbos = []
         self.vaos = []
         self.model = glm.mat4(1)
@@ -50,9 +45,6 @@ class ModelRenderer:
 
         self.scene = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
-        # Initialize shaders now that the OpenGL context is created
-        self.init_shaders()
-
         # Setup camera after shaders are initialized
         self.setup_camera()
 
@@ -61,71 +53,12 @@ class ModelRenderer:
         self.create_buffers()
 
     def init_shaders(self):
-        shader_engine = ShaderEngine(self.vertex_shader_path, self.fragment_shader_path)
-        shader_engine.init_shaders()
-        self.shader_program = shader_engine.shader_program
+        super().init_shaders()
 
-    def load_texture(self, path, texture):
-        surface = pygame.image.load(path)
-        img_data = pygame.image.tostring(surface, "RGB", True)
-        width, height = surface.get_size()
-        glBindTexture(GL_TEXTURE_2D, texture)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
-        glGenerateMipmap(GL_TEXTURE_2D)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
-
-    def load_cubemap(self, folder_path, texture):
-        faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
-        for i, face in enumerate(faces):
-            surface = pygame.image.load(folder_path + face)
-            img_data = pygame.image.tostring(surface, "RGB", True)
-            width, height = surface.get_size()
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
-                         img_data)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
-        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
-        glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
-
-    def draw_model(self):
-        self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'model'), 1, GL_FALSE, glm.value_ptr(self.model))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(self.view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
-                           glm.value_ptr(self.projection))
-
-        # Set the light and view positions
-        viewPosition = self.camera_position
-        for i in range(len(self.light_positions)):
-            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightPositions[{i}]'), 1,
-                         glm.value_ptr(self.light_positions[i]))
-            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightColors[{i}]'), 1,
-                         glm.value_ptr(self.light_colors[i]))
-            glUniform1f(glGetUniformLocation(self.shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
-        glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'lodLevel'), self.lod_level)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'applyGammaCorrection'), self.apply_gamma_correction)
-
-        for mesh in self.scene.mesh_list:
-            material = self.scene.materials['Material']
-            glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, material.diffuse)
-            glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
-            glMaterialf(GL_FRONT, GL_SHININESS, min(128, material.shininess))
-
-            for vao in self.vaos:
-                glBindVertexArray(vao)
-                glDrawArrays(GL_TRIANGLES, 0, len(self.vertices) // 8)
-            glBindVertexArray(0)
+    def setup_camera(self):
+        self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
+        self.projection = glm.perspective(glm.radians(self.fov), self.window_size[0] / self.window_size[1],
+                                          self.near_plane, self.far_plane)
 
     def create_buffers(self):
         for name, material in self.scene.materials.items():
@@ -160,10 +93,37 @@ class ModelRenderer:
             glBindBuffer(GL_ARRAY_BUFFER, 0)
             glBindVertexArray(0)
 
-    def setup_camera(self):
-        self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
-        self.projection = glm.perspective(glm.radians(self.fov), self.window_size[0] / self.window_size[1],
-                                          self.near_plane, self.far_plane)
+    def draw_model(self):
+        self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'model'), 1, GL_FALSE, glm.value_ptr(self.model))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(self.view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
+                           glm.value_ptr(self.projection))
+
+        # Set the light and view positions
+        viewPosition = self.camera_position
+        for i in range(len(self.light_positions)):
+            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightPositions[{i}]'), 1,
+                         glm.value_ptr(self.light_positions[i]))
+            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightColors[{i}]'), 1,
+                         glm.value_ptr(self.light_colors[i]))
+            glUniform1f(glGetUniformLocation(self.shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
+        glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
+        glUniform1f(glGetUniformLocation(self.shader_program, 'lodLevel'), self.lod_level)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'applyGammaCorrection'), self.apply_gamma_correction)
+
+        for mesh in self.scene.mesh_list:
+            material = self.scene.materials['Material']
+            glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, material.diffuse)
+            glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
+            glMaterialf(GL_FRONT, GL_SHININESS, min(128, material.shininess))
+
+            for vao in self.vaos:
+                glBindVertexArray(vao)
+                glDrawArrays(GL_TRIANGLES, 0, len(self.vertices) // 8)
+            glBindVertexArray(0)
 
     def load_textures(self):
         self.diffuseMap = glGenTextures(1)
