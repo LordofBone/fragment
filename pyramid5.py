@@ -26,7 +26,7 @@ if __name__ == "__main__":
     apply_gamma_correction = False  # Apply gamma correction
 
     # Create RenderWindow and initialize OpenGL context
-    render_window = RenderWindow(window_size=window_size, title="Model Renderer")
+    render_window = RenderWindow(window_size=window_size, title="Pyramid 5")
 
     # Initialize ModelRenderer after OpenGL context is created
     model_renderer = ModelRenderer(
