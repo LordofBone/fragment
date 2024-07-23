@@ -3,16 +3,14 @@ import numpy as np
 import pygame
 import pywavefront
 from OpenGL.GL import *
-from OpenGL.GLUT import *
 from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
-from pygame.locals import QUIT
 
-from shader_engine import ShaderEngine
+from components.shader_engine import ShaderEngine
 
 
 class ModelRenderer:
     def __init__(self, obj_path, vertex_shader_path, fragment_shader_path, texture_paths, cubemap_folder,
-                 lod_level=1.0, window_size=(800, 600), camera_position=(4, 2, 4), camera_target=(0, 0, 0),
+                 window_size=(800, 600), lod_level=1.0, camera_position=(4, 2, 4), camera_target=(0, 0, 0),
                  up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100,
                  light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
                  anisotropy=16.0, rotation_speed=2000.0, rotation_axis=(0, 3, 0),
@@ -22,8 +20,8 @@ class ModelRenderer:
         self.fragment_shader_path = fragment_shader_path
         self.texture_paths = texture_paths
         self.cubemap_folder = cubemap_folder
-        self.lod_level = lod_level
         self.window_size = window_size
+        self.lod_level = lod_level
         self.camera_position = glm.vec3(*camera_position)
         self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
@@ -50,40 +48,24 @@ class ModelRenderer:
         self.heightMap = None
         self.environmentMap = None
 
-        self.setup_pygame()
+        self.scene = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
+
+        # Initialize shaders now that the OpenGL context is created
         self.init_shaders()
-        self.load_model()
 
-    def setup_pygame(self):
-        pygame.init()
-        pygame.display.set_mode(self.window_size, pygame.DOUBLEBUF | pygame.OPENGL)
-        pygame.font.init()
-        self.font = pygame.font.Font(None, 36)
+        # Setup camera after shaders are initialized
+        self.setup_camera()
 
-    def draw_fps(self, clock):
-        """Renders the FPS counter at the top right corner."""
-        fps = str(int(clock.get_fps()))
-        fps_surface = self.font.render(fps, True, pygame.Color('white'))
-        fps_data = pygame.image.tostring(fps_surface, "RGBA", True)
-
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
-        glWindowPos2i(self.window_size[0] - fps_surface.get_width() - 10, 20)
-        glDrawPixels(fps_surface.get_width(), fps_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, fps_data)
-
-        glDisable(GL_BLEND)
+        # Load textures and create buffers
+        self.load_textures()
+        self.create_buffers()
 
     def init_shaders(self):
         shader_engine = ShaderEngine(self.vertex_shader_path, self.fragment_shader_path)
         shader_engine.init_shaders()
         self.shader_program = shader_engine.shader_program
 
-    def load_model(self):
-        self.scene = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
-
     def load_texture(self, path, texture):
-        """Load and bind a texture from a file to a texture unit."""
         surface = pygame.image.load(path)
         img_data = pygame.image.tostring(surface, "RGB", True)
         width, height = surface.get_size()
@@ -97,7 +79,6 @@ class ModelRenderer:
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
 
     def load_cubemap(self, folder_path, texture):
-        """Load and bind a cubemap texture from a folder."""
         faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
@@ -145,29 +126,6 @@ class ModelRenderer:
                 glBindVertexArray(vao)
                 glDrawArrays(GL_TRIANGLES, 0, len(self.vertices) // 8)
             glBindVertexArray(0)
-
-    def mainloop(self):
-        clock = pygame.time.Clock()
-        glEnable(GL_DEPTH_TEST)
-        glUseProgram(self.shader_program)
-
-        self.create_buffers()
-        self.setup_camera()
-        self.load_textures()
-
-        while True:
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    pygame.quit()
-                    sys.exit()
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-            self.draw_model()
-            self.draw_fps(clock)
-
-            pygame.display.flip()
-            clock.tick(60)
 
     def create_buffers(self):
         for name, material in self.scene.materials.items():
@@ -237,3 +195,9 @@ class ModelRenderer:
         glActiveTexture(GL_TEXTURE3)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
         glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 3)
+
+    def render(self):
+        glUseProgram(self.shader_program)
+        glEnable(GL_DEPTH_TEST)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        self.draw_model()

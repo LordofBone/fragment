@@ -1,13 +1,15 @@
 from components.model_renderer import ModelRenderer
+from components.render_window import RenderWindow
 
 if __name__ == "__main__":
+    window_size = (800, 600)
     texture_paths = {
         'diffuse': 'textures/diffuse/crystal.png',
         'normal': 'textures/normals/crystal.png',
         'height': 'textures/height/crystal.png'
     }
     cubemap_folder = 'textures/cube/night_sky_egypt/'
-    lod_level = 7.0  # Default level of detail
+    lod_level = 7.5  # Default level of detail
     camera_position = (3.2, 3.2, 3.2)  # Camera position (closer to the pyramid)
     camera_target = (0, 0.75, 0)  # Camera target
     up_vector = (0, 1, 0)  # Up vector
@@ -23,14 +25,18 @@ if __name__ == "__main__":
     apply_tone_mapping = False  # Apply tone mapping
     apply_gamma_correction = False  # Apply gamma correction
 
+    # Create RenderWindow and initialize OpenGL context
+    render_window = RenderWindow(window_size=window_size, title="Model Renderer")
+
+    # Initialize ModelRenderer after OpenGL context is created
     model_renderer = ModelRenderer(
         "models/pyramid.obj",
         "shaders/embm/vertex.glsl",
         "shaders/embm/fragment.glsl",
         texture_paths,
         cubemap_folder,
-        lod_level,
-        window_size=(800, 600),
+        window_size=window_size,
+        lod_level=lod_level,
         camera_position=camera_position,
         camera_target=camera_target,
         up_vector=up_vector,
@@ -46,4 +52,5 @@ if __name__ == "__main__":
         apply_tone_mapping=apply_tone_mapping,
         apply_gamma_correction=apply_gamma_correction
     )
-    model_renderer.mainloop()
+
+    render_window.mainloop(model_renderer.render)
