@@ -9,12 +9,18 @@ from components.shader_engine import ShaderEngine
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, vertex_shader_path, fragment_shader_path, window_size=(800, 600), anisotropy=16.0):
+    def __init__(self, vertex_shader_path, fragment_shader_path, window_size=(800, 600), anisotropy=16.0,
+                 auto_camera=False, width=10.0, height=10.0, height_factor=1.5, distance_factor=2.0):
         self.vertex_shader_path = vertex_shader_path
         self.fragment_shader_path = fragment_shader_path
         self.window_size = window_size
         self.anisotropy = anisotropy
         self.shader_program = None
+        self.auto_camera = auto_camera
+        self.width = width
+        self.height = height
+        self.height_factor = height_factor
+        self.distance_factor = distance_factor
 
         # Initialize shaders now that the OpenGL context is created
         self.init_shaders()
@@ -56,13 +62,24 @@ class AbstractRenderer(ABC):
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
 
     def setup_camera(self):
+        if self.auto_camera:
+            self.camera_position = glm.vec3(*self.calculate_camera_position_for_object_size(
+                self.width, self.height, self.height_factor, self.distance_factor))
         aspect_ratio = self.window_size[0] / self.window_size[1]
         self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
     @staticmethod
-    def calculate_camera_position(original_position, width, height, scale_factor=1.5):
-        distance = max(width, height) * scale_factor
-        original_direction = glm.normalize(glm.vec3(*original_position))
-        new_position = original_direction * distance
-        return new_position
+    def calculate_camera_position_for_object_size(width, height, height_factor=1.5, distance_factor=2.0):
+        """Calculate camera position for a large water surface."""
+        camera_height = max(width, height) * height_factor
+        camera_distance = max(width, height) * distance_factor
+        return camera_distance, camera_height, camera_distance
+
+    @abstractmethod
+    def create_buffers(self):
+        pass
+
+    @abstractmethod
+    def render(self):
+        pass

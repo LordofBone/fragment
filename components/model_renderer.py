@@ -13,8 +13,11 @@ class ModelRenderer(AbstractRenderer):
                  up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100,
                  light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
                  anisotropy=16.0, rotation_speed=2000.0, rotation_axis=(0, 3, 0),
-                 apply_tone_mapping=True, apply_gamma_correction=True):
-        super().__init__(vertex_shader_path, fragment_shader_path, window_size, anisotropy)
+                 apply_tone_mapping=True, apply_gamma_correction=True, width=10.0, height=10.0,
+                 auto_camera=False, height_factor=1.5, distance_factor=2.0):
+        super().__init__(vertex_shader_path, fragment_shader_path, window_size, anisotropy,
+                         auto_camera=auto_camera, width=width, height=height,
+                         height_factor=height_factor, distance_factor=distance_factor)
         self.obj_path = obj_path
         self.texture_paths = texture_paths
         self.cubemap_folder = cubemap_folder

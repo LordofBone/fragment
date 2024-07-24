@@ -6,21 +6,28 @@ if __name__ == "__main__":
     vertex_shader_path = "shaders/water/vertex.glsl"
     fragment_shader_path = "shaders/water/fragment.glsl"
     cubemap_folder = "textures/cube/night_sky_egypt/"
-    camera_position = (3.2, 3.2, 3.2)  # Camera position
-    camera_target = (0, 0.75, 0)  # Camera target
+    water_width = 500.0  # Width of the water surface
+    water_height = 500.0  # Height of the water surface
+    auto_camera = True  # Enable auto camera calculation
+    height_factor = 0.8  # Height factor for camera calculation
+    distance_factor = 0.5  # Distance factor for camera calculation
+
+    # Initial camera parameters (will be updated if auto_camera is enabled)
+    camera_position = (3.2, 3.2, 3.2)
+    camera_target = (0, 0, 0)  # Center of the water surface
     up_vector = (0, 1, 0)  # Up vector
     fov = 40  # Field of view
     near_plane = 0.1  # Near plane
-    far_plane = 1000  # Far plane
-    light_positions = [(3.0, 3.0, 3.0)]  # Light positions
+    far_plane = 5000  # Far plane
+    light_positions = [(30.0, 30.0, 30.0)]  # Light positions
     light_colors = [(1.0, 1.0, 1.0)]  # Light colors
-    light_strengths = [0.8, 0.5]  # Light strengths
+    light_strengths = [0.8]  # Light strengths
     anisotropy = 16.0  # Texture anisotropy
-    wave_speed = 2.0  # Wave speed
+    wave_speed = 10.0  # Wave speed
     wave_amplitude = 0.1  # Wave amplitude
-    randomness = 30.0  # Randomness factor
-    water_width = 150.0  # Width of the water surface
-    water_height = 150.0  # Height of the water surface
+    randomness = 0.8  # Randomness factor
+    tex_coord_frequency = 100.0  # Texture coordinate frequency
+    tex_coord_amplitude = 0.1  # Texture coordinate amplitude
 
     # Create RenderWindow and initialize OpenGL context
     render_window = RenderWindow(window_size=window_size, title="Water Renderer")
@@ -45,7 +52,12 @@ if __name__ == "__main__":
         anisotropy=anisotropy,
         wave_speed=wave_speed,
         wave_amplitude=wave_amplitude,
-        randomness=randomness
+        randomness=randomness,
+        tex_coord_frequency=tex_coord_frequency,
+        tex_coord_amplitude=tex_coord_amplitude,
+        auto_camera=auto_camera,
+        height_factor=height_factor,
+        distance_factor=distance_factor
     )
 
     render_window.mainloop(water_renderer.render)

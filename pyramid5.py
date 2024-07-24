@@ -3,6 +3,9 @@ from components.render_window import RenderWindow
 
 if __name__ == "__main__":
     window_size = (800, 600)
+    obj_path = "models/pyramid.obj"
+    vertex_shader_path = "shaders/embm/vertex.glsl"
+    fragment_shader_path = "shaders/embm/fragment.glsl"
     texture_paths = {
         'diffuse': 'textures/diffuse/crystal.png',
         'normal': 'textures/normals/crystal.png',
@@ -10,7 +13,7 @@ if __name__ == "__main__":
     }
     cubemap_folder = 'textures/cube/night_sky_egypt/'
     lod_level = 7.5  # Default level of detail
-    camera_position = (3.2, 3.2, 3.2)  # Camera position (closer to the pyramid)
+    camera_position = (3.2, 3.2, 3.2)  # Camera position (initial)
     camera_target = (0, 0.75, 0)  # Camera target
     up_vector = (0, 1, 0)  # Up vector
     fov = 40  # Field of view (zoomed in)
@@ -24,15 +27,20 @@ if __name__ == "__main__":
     rotation_axis = (0, 3, 0)  # Model rotation axis
     apply_tone_mapping = False  # Apply tone mapping
     apply_gamma_correction = False  # Apply gamma correction
+    model_width = 10.0  # Width of the model
+    model_height = 10.0  # Height of the model
+    auto_camera = False  # Enable auto camera calculation
+    height_factor = 1.5  # Height factor for camera calculation
+    distance_factor = 2.0  # Distance factor for camera calculation
 
     # Create RenderWindow and initialize OpenGL context
-    render_window = RenderWindow(window_size=window_size, title="Pyramid 5")
+    render_window = RenderWindow(window_size=window_size, title="Model Renderer")
 
     # Initialize ModelRenderer after OpenGL context is created
     model_renderer = ModelRenderer(
-        "models/pyramid.obj",
-        "shaders/embm/vertex.glsl",
-        "shaders/embm/fragment.glsl",
+        obj_path,
+        vertex_shader_path,
+        fragment_shader_path,
         texture_paths,
         cubemap_folder,
         window_size=window_size,
@@ -50,7 +58,12 @@ if __name__ == "__main__":
         rotation_speed=rotation_speed,
         rotation_axis=rotation_axis,
         apply_tone_mapping=apply_tone_mapping,
-        apply_gamma_correction=apply_gamma_correction
+        apply_gamma_correction=apply_gamma_correction,
+        width=model_width,
+        height=model_height,
+        auto_camera=auto_camera,
+        height_factor=height_factor,
+        distance_factor=distance_factor
     )
 
     render_window.mainloop(model_renderer.render)
