@@ -12,6 +12,8 @@ uniform float time;
 uniform float waveSpeed;
 uniform float waveAmplitude;
 uniform float randomness;
+uniform float texCoordFrequency; // New uniform for frequency
+uniform float texCoordAmplitude; // New uniform for amplitude
 
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -22,20 +24,20 @@ float smoothNoise(vec2 p) {
     vec2 f = fract(p);
     f = f * f * (3.0 - 2.0 * f);
     return mix(mix(noise(i + vec2(0.0, 0.0)), noise(i + vec2(1.0, 0.0)), f.x),
-    mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
-    f.y);
+               mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
+               f.y);
 }
 
 void main()
 {
     vec2 waveTexCoords = TexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
-    waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * 100.0 + noiseFactor) * waveAmplitude;
-    waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * 100.0 + noiseFactor) * waveAmplitude;
+    waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+    waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    vec3 normalMap = vec3(0.0, 0.0, 1.0);// Using a constant normal pointing up
+    vec3 normalMap = vec3(0.0, 0.0, 1.0); // Using a constant normal pointing up
     normalMap.xy += waveAmplitude * vec2(sin(waveTexCoords.y * 10.0),
-    cos(waveTexCoords.x * 10.0));
+                                         cos(waveTexCoords.x * 10.0));
     normalMap = normalize(normalMap);
 
     vec3 viewDir = normalize(cameraPos - FragPos);
