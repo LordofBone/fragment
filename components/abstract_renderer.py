@@ -60,10 +60,9 @@ class AbstractRenderer(ABC):
         self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
-    @abstractmethod
-    def create_buffers(self):
-        pass
-
-    @abstractmethod
-    def render(self):
-        pass
+    @staticmethod
+    def calculate_camera_position(original_position, width, height, scale_factor=1.5):
+        distance = max(width, height) * scale_factor
+        original_direction = glm.normalize(glm.vec3(*original_position))
+        new_position = original_direction * distance
+        return new_position

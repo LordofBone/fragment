@@ -11,13 +11,16 @@ if __name__ == "__main__":
     up_vector = (0, 1, 0)  # Up vector
     fov = 40  # Field of view
     near_plane = 0.1  # Near plane
-    far_plane = 100  # Far plane
+    far_plane = 1000  # Far plane
     light_positions = [(3.0, 3.0, 3.0)]  # Light positions
     light_colors = [(1.0, 1.0, 1.0)]  # Light colors
     light_strengths = [0.8, 0.5]  # Light strengths
     anisotropy = 16.0  # Texture anisotropy
-    wave_speed = 0.03  # Wave speed
+    wave_speed = 2.0  # Wave speed
     wave_amplitude = 0.1  # Wave amplitude
+    randomness = 30.0  # Randomness factor
+    water_width = 150.0  # Width of the water surface
+    water_height = 150.0  # Height of the water surface
 
     # Create RenderWindow and initialize OpenGL context
     render_window = RenderWindow(window_size=window_size, title="Water Renderer")
@@ -27,6 +30,8 @@ if __name__ == "__main__":
         vertex_shader_path,
         fragment_shader_path,
         cubemap_folder,
+        width=water_width,
+        height=water_height,
         window_size=window_size,
         camera_position=camera_position,
         camera_target=camera_target,
@@ -39,7 +44,8 @@ if __name__ == "__main__":
         light_strengths=light_strengths,
         anisotropy=anisotropy,
         wave_speed=wave_speed,
-        wave_amplitude=wave_amplitude
+        wave_amplitude=wave_amplitude,
+        randomness=randomness
     )
 
     render_window.mainloop(water_renderer.render)

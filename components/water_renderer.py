@@ -7,14 +7,15 @@ from components.abstract_renderer import AbstractRenderer
 
 
 class WaterRenderer(AbstractRenderer):
-    def __init__(self, vertex_shader_path, fragment_shader_path, cubemap_folder, window_size=(800, 600),
-                 camera_position=(4, 2, 4),
-                 camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100,
+    def __init__(self, vertex_shader_path, fragment_shader_path, cubemap_folder, width, height, window_size=(800, 600),
+                 camera_position=(4, 2, 4), camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1,
+                 far_plane=100,
                  light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
-                 anisotropy=16.0, wave_speed=0.03, wave_amplitude=0.1):
+                 anisotropy=16.0, wave_speed=0.03, wave_amplitude=0.1, randomness=0.5):
         super().__init__(vertex_shader_path, fragment_shader_path, window_size, anisotropy)
         self.cubemap_folder = cubemap_folder
-        self.camera_position = glm.vec3(*camera_position)
+        self.width = width
+        self.height = height
         self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
         self.fov = fov
@@ -25,10 +26,14 @@ class WaterRenderer(AbstractRenderer):
         self.light_strengths = light_strengths
         self.wave_speed = wave_speed
         self.wave_amplitude = wave_amplitude
+        self.randomness = randomness
         self.model = glm.mat4(1)
         self.view = None
         self.projection = None
         self.environmentMap = None
+
+        # Calculate camera position based on the size of the water surface
+        self.camera_position = self.calculate_camera_position(camera_position, width, height)
 
         # Setup camera after shaders are initialized
         self.setup_camera()
@@ -41,12 +46,14 @@ class WaterRenderer(AbstractRenderer):
         super().init_shaders()
 
     def create_buffers(self):
-        # Create a simple plane for the water surface
+        # Create a configurable plane for the water surface
+        hw = self.width / 2.0
+        hh = self.height / 2.0
         vertices = [
-            -1.0, 0.0, -1.0, 0.0, 1.0,
-            1.0, 0.0, -1.0, 1.0, 1.0,
-            1.0, 0.0, 1.0, 1.0, 0.0,
-            -1.0, 0.0, 1.0, 0.0, 0.0
+            -hw, 0.0, -hh, 0.0, 1.0,
+            hw, 0.0, -hh, 1.0, 1.0,
+            hw, 0.0, hh, 1.0, 0.0,
+            -hw, 0.0, hh, 0.0, 0.0
         ]
         indices = [
             0, 1, 2,
@@ -99,6 +106,7 @@ class WaterRenderer(AbstractRenderer):
                            glm.value_ptr(self.projection))
         glUniform1f(glGetUniformLocation(self.shader_program, 'waveSpeed'), self.wave_speed)
         glUniform1f(glGetUniformLocation(self.shader_program, 'waveAmplitude'), self.wave_amplitude)
+        glUniform1f(glGetUniformLocation(self.shader_program, 'randomness'), self.randomness)
 
         # Set camera position
         glUniform3fv(glGetUniformLocation(self.shader_program, 'cameraPos'), 1, glm.value_ptr(self.camera_position))
