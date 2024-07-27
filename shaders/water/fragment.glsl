@@ -15,6 +15,10 @@ uniform float randomness;
 uniform float texCoordFrequency;
 uniform float texCoordAmplitude;
 
+uniform vec3 lightPositions[4];
+uniform vec3 lightColors[4];
+uniform float lightStrengths[4];
+
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -35,9 +39,8 @@ void main()
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    vec3 normalMap = vec3(0.0, 0.0, 1.0);// Using a constant normal pointing up
-    normalMap.xy += waveAmplitude * vec2(sin(waveTexCoords.y * 10.0),
-    cos(waveTexCoords.x * 10.0));
+    vec3 normalMap = vec3(0.0, 0.0, 1.0); // Using a constant normal pointing up
+    normalMap.xy += waveAmplitude * vec2(sin(waveTexCoords.y * 10.0), cos(waveTexCoords.x * 10.0));
     normalMap = normalize(normalMap);
 
     vec3 viewDir = normalize(cameraPos - FragPos);
@@ -50,6 +53,16 @@ void main()
     float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
 
     vec3 color = mix(refraction, reflection, fresnel);
+
+    // Lighting calculations
+    vec3 lighting = vec3(0.0);
+    for (int i = 0; i < 4; ++i) {
+        vec3 lightDir = normalize(lightPositions[i] - FragPos);
+        float diff = max(dot(normalMap, lightDir), 0.0);
+        lighting += lightColors[i] * diff * lightStrengths[i];
+    }
+
+    color *= lighting;
 
     FragColor = vec4(color, 1.0);
 }
