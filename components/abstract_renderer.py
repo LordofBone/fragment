@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod
-
 import glm
 import pygame
 from OpenGL.GL import *
 from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
-
 from components.shader_engine import ShaderEngine
-
 
 class AbstractRenderer(ABC):
     def __init__(self, vertex_shader_path, fragment_shader_path, window_size=(800, 600), anisotropy=16.0,
@@ -21,6 +18,15 @@ class AbstractRenderer(ABC):
         self.height = height
         self.height_factor = height_factor
         self.distance_factor = distance_factor
+        self.camera_position = None
+        self.camera_target = None
+        self.up_vector = None
+        self.fov = None
+        self.near_plane = None
+        self.far_plane = None
+        self.light_positions = []
+        self.light_colors = []
+        self.light_strengths = []
 
         # Initialize shaders now that the OpenGL context is created
         self.init_shaders()
@@ -75,6 +81,15 @@ class AbstractRenderer(ABC):
         camera_height = max(width, height) * height_factor
         camera_distance = max(width, height) * distance_factor
         return camera_distance, camera_height, camera_distance
+
+    def set_light_uniforms(self):
+        glUseProgram(self.shader_program)
+        for i in range(len(self.light_positions)):
+            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightPositions[{i}]'), 1,
+                         glm.value_ptr(self.light_positions[i]))
+            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightColors[{i}]'), 1,
+                         glm.value_ptr(self.light_colors[i]))
+            glUniform1f(glGetUniformLocation(self.shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
 
     @abstractmethod
     def create_buffers(self):

@@ -3,9 +3,7 @@ import numpy as np
 import pygame
 import pywavefront
 from OpenGL.GL import *
-
 from components.abstract_renderer import AbstractRenderer
-
 
 class ModelRenderer(AbstractRenderer):
     def __init__(self, obj_path, vertex_shader_path, fragment_shader_path, texture_paths, cubemap_folder,
@@ -100,12 +98,6 @@ class ModelRenderer(AbstractRenderer):
 
         # Set the light and view positions
         viewPosition = self.camera_position
-        for i in range(len(self.light_positions)):
-            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightPositions[{i}]'), 1,
-                         glm.value_ptr(self.light_positions[i]))
-            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightColors[{i}]'), 1,
-                         glm.value_ptr(self.light_colors[i]))
-            glUniform1f(glGetUniformLocation(self.shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
         glUniform1f(glGetUniformLocation(self.shader_program, 'lodLevel'), self.lod_level)
         glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
@@ -158,4 +150,5 @@ class ModelRenderer(AbstractRenderer):
         glUseProgram(self.shader_program)
         glEnable(GL_DEPTH_TEST)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        self.set_light_uniforms()
         self.draw_model()
