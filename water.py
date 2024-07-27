@@ -34,9 +34,9 @@ if __name__ == "__main__":
 
     # Initialize WaterRenderer after OpenGL context is created
     water_renderer = WaterRenderer(
-        vertex_shader_path,
-        fragment_shader_path,
-        cubemap_folder,
+        vertex_shader_path=vertex_shader_path,
+        fragment_shader_path=fragment_shader_path,
+        cubemap_folder=cubemap_folder,
         width=water_width,
         height=water_height,
         window_size=window_size,

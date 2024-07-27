@@ -38,11 +38,11 @@ if __name__ == "__main__":
 
     # Initialize ModelRenderer after OpenGL context is created
     model_renderer = ModelRenderer(
-        obj_path,
-        vertex_shader_path,
-        fragment_shader_path,
-        texture_paths,
-        cubemap_folder,
+        obj_path=obj_path,
+        vertex_shader_path=vertex_shader_path,
+        fragment_shader_path=fragment_shader_path,
+        texture_paths=texture_paths,
+        cubemap_folder=cubemap_folder,
         window_size=window_size,
         lod_level=lod_level,
         camera_position=camera_position,
