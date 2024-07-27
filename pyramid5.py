@@ -32,9 +32,10 @@ if __name__ == "__main__":
     auto_camera = False  # Enable auto camera calculation
     height_factor = 1.5  # Height factor for camera calculation
     distance_factor = 2.0  # Distance factor for camera calculation
+    msaa_level = 8  # MSAA level (e.g., 2, 4, 8)
 
     # Create RenderWindow and initialize OpenGL context
-    render_window = RenderWindow(window_size=window_size, title="Model Renderer")
+    render_window = RenderWindow(window_size=window_size, title="Model Renderer", msaa_level=msaa_level)
 
     # Initialize ModelRenderer after OpenGL context is created
     model_renderer = ModelRenderer(
