@@ -19,9 +19,9 @@ if __name__ == "__main__":
     fov = 40  # Field of view
     near_plane = 0.1  # Near plane
     far_plane = 5000  # Far plane
-    light_positions = [(30.0, 30.0, 30.0)]  # Light positions
+    light_positions = [(50.0, 200.0, 300.0)]  # Light positions
     light_colors = [(1.0, 1.0, 1.0)]  # Light colors
-    light_strengths = [0.8]  # Light strengths
+    light_strengths = [1.0]  # Light strengths
     anisotropy = 16.0  # Texture anisotropy
     wave_speed = 10.0  # Wave speed
     wave_amplitude = 0.1  # Wave amplitude
