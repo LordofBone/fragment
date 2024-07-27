@@ -125,7 +125,7 @@ class ModelRenderer(AbstractRenderer):
         self.load_texture(self.texture_paths['normal'], self.normalMap)
 
         self.heightMap = glGenTextures(1)
-        self.load_texture(self.texture_paths['height'], self.heightMap)
+        self.load_texture(self.texture_paths['displacement'], self.heightMap)
 
         self.environmentMap = glGenTextures(1)
         self.load_cubemap(self.cubemap_folder, self.environmentMap)
@@ -142,7 +142,7 @@ class ModelRenderer(AbstractRenderer):
 
         glActiveTexture(GL_TEXTURE2)
         glBindTexture(GL_TEXTURE_2D, self.heightMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'heightMap'), 2)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'displacementMap'), 2)
 
         glActiveTexture(GL_TEXTURE3)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)

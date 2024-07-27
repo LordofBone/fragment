@@ -8,8 +8,8 @@ if __name__ == "__main__":
     fragment_shader_path = "shaders/embm/fragment.glsl"
     texture_paths = {
         'diffuse': 'textures/diffuse/crystal.png',
-        'normal': 'textures/normals/crystal.png',
-        'height': 'textures/height/crystal.png'
+        'normal': 'textures/normal/crystal.png',
+        'displacement': 'textures/displacement/crystal.png'
     }
     cubemap_folder = 'textures/cube/night_sky_egypt/'
     lod_level = 7.5  # Default level of detail
