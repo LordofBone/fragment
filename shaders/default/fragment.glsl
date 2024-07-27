@@ -20,13 +20,13 @@ void main()
 
     // Fetch the normal from the normal map and convert it from [0,1] to [-1,1]
     vec3 mapNormal = texture(normalMap, TexCoords).rgb;
-    mapNormal = mapNormal * 2.0 - 1.0; // This assumes the normal map is in tangent space
+    mapNormal = mapNormal * 2.0 - 1.0;// This assumes the normal map is in tangent space
 
     // Adjust the normal using the normal map (this is a simplified version assuming normal map is in world space)
     normal = normalize(normal + mapNormal);
 
     // Compute lighting
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords).rgb;  // Simple ambient lighting
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords).rgb;// Simple ambient lighting
     vec3 lighting = vec3(0.0);
 
     for (int i = 0; i < 4; ++i) {

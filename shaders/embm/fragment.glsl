@@ -8,16 +8,16 @@ out vec4 FragColor;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
-uniform sampler2D heightMap;
+uniform sampler2D displacementMap;
 uniform samplerCube environmentMap;
 
-uniform vec3 lightPositions[10];  // Support for up to 10 lights
+uniform vec3 lightPositions[10];// Support for up to 10 lights
 uniform vec3 lightColors[10];
 uniform vec3 viewPosition;
-uniform float lightStrengths[10];  // Strength for each light
+uniform float lightStrengths[10];// Strength for each light
 uniform float lodLevel;
-uniform bool applyToneMapping;  // Enable/disable tone mapping
-uniform bool applyGammaCorrection;  // Enable/disable gamma correction
+uniform bool applyToneMapping;// Enable/disable tone mapping
+uniform bool applyGammaCorrection;// Enable/disable gamma correction
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -31,7 +31,7 @@ vec3 Uncharted2Tonemap(vec3 x) {
 }
 
 vec3 toneMapping(vec3 color) {
-    vec3 curr = Uncharted2Tonemap(color * 2.0); // Pre-exposure
+    vec3 curr = Uncharted2Tonemap(color * 2.0);// Pre-exposure
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(11.2));
     return curr * whiteScale;
 }
@@ -40,10 +40,10 @@ void main()
 {
     // Retrieve normal from normal map
     vec3 normal = texture(normalMap, TexCoords).rgb;
-    normal = normalize(normal * 2.0 - 1.0); // Transform normal vector to range [-1, 1]
+    normal = normalize(normal * 2.0 - 1.0);// Transform normal vector to range [-1, 1]
 
-    // Retrieve height from height map
-    float height = texture(heightMap, TexCoords).r;
+    // Retrieve height from displacement map
+    float height = texture(displacementMap, TexCoords).r;
 
     // Calculate view direction
     vec3 viewDir = normalize(viewPosition - FragPos);
@@ -62,7 +62,7 @@ void main()
     vec3 specular = vec3(0.0);
 
     // Loop through all lights
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         // Calculate light direction
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
 
