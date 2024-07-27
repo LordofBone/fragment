@@ -6,7 +6,10 @@ in vec3 Normal;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
-uniform vec3 lightPosition;  // Ensure you set this from your Python code
+
+uniform vec3 lightPositions[4];
+uniform vec3 lightColors[4];
+uniform float lightStrengths[4];
 
 out vec4 FragColor;
 
@@ -23,12 +26,18 @@ void main()
     normal = normalize(normal + mapNormal);
 
     // Compute lighting
-    vec3 lightDir = normalize(lightPosition - FragPos);
-    float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * texture(diffuseMap, TexCoords).rgb;
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords).rgb;  // Simple ambient lighting
+    vec3 lighting = vec3(0.0);
+
+    for (int i = 0; i < 4; ++i) {
+        vec3 lightDir = normalize(lightPositions[i] - FragPos);
+        float diff = max(dot(normal, lightDir), 0.0);
+        lighting += lightColors[i] * diff * lightStrengths[i];
+    }
+
+    vec3 diffuse = lighting * texture(diffuseMap, TexCoords).rgb;
 
     // Combine results
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords).rgb;  // Simple ambient lighting
     vec3 result = ambient + diffuse;
     FragColor = vec4(result, 1.0);
 }
