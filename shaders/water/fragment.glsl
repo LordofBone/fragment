@@ -39,7 +39,7 @@ void main()
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    vec3 normalMap = vec3(0.0, 0.0, 1.0); // Using a constant normal pointing up
+    vec3 normalMap = vec3(0.0, 0.0, 1.0);// Using a constant normal pointing up
     normalMap.xy += waveAmplitude * vec2(sin(waveTexCoords.y * 10.0), cos(waveTexCoords.x * 10.0));
     normalMap = normalize(normalMap);
 

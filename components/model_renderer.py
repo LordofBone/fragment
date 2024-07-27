@@ -3,7 +3,9 @@ import numpy as np
 import pygame
 import pywavefront
 from OpenGL.GL import *
+
 from components.abstract_renderer import AbstractRenderer
+
 
 class ModelRenderer(AbstractRenderer):
     def __init__(self, obj_path, vertex_shader_path, fragment_shader_path, texture_paths, cubemap_folder,

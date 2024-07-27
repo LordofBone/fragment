@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
+
 import glm
 import pygame
 from OpenGL.GL import *
 from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
+
 from components.shader_engine import ShaderEngine
+
 
 class AbstractRenderer(ABC):
     def __init__(self, vertex_shader_path, fragment_shader_path, window_size=(800, 600), anisotropy=16.0,
