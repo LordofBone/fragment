@@ -12,6 +12,7 @@ class ModelRenderer(AbstractRenderer):
         self.obj_path = obj_path
         self.texture_paths = texture_paths
         self.shader_name = shader_name
+        self.culling = kwargs.get('culling', True)
         self.scene = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
         self.vbos = []
         self.vaos = []
@@ -104,9 +105,12 @@ class ModelRenderer(AbstractRenderer):
         glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'environmentMap'), 3)
 
     def render(self):
-        glEnable(GL_CULL_FACE)
-        glCullFace(GL_BACK)
-        glFrontFace(GL_CW)
+        if self.culling:
+            glEnable(GL_CULL_FACE)
+            glCullFace(GL_BACK)
+            glFrontFace(GL_CW)
+        else:
+            glDisable(GL_CULL_FACE)
 
         glUseProgram(self.shader_programs[self.shader_name])
         glEnable(GL_DEPTH_TEST)
@@ -140,3 +144,6 @@ class ModelRenderer(AbstractRenderer):
             glBindVertexArray(self.vaos[self.scene.mesh_list.index(mesh)])
             glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
             glBindVertexArray(0)
+
+        if self.culling:
+            glDisable(GL_CULL_FACE)
