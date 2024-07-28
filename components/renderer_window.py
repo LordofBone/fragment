@@ -1,8 +1,9 @@
 import pygame
 from OpenGL.GL import *
+from OpenGL.GLUT import *
 
 
-class RenderWindow:
+class RendererWindow:
     def __init__(self, window_size=(800, 600), title="Render Window", msaa_level=4):
         self.window_size = window_size
         self.title = title
@@ -16,6 +17,7 @@ class RenderWindow:
         pygame.init()
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, self.msaa_level)
+
         pygame.display.set_mode(self.window_size, pygame.DOUBLEBUF | pygame.OPENGL)
         pygame.display.set_caption(self.title)
         pygame.font.init()
