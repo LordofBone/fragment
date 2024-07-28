@@ -1,5 +1,5 @@
-from render_instance import RenderingInstance
-from renderer_config import BaseConfig, ModelConfig
+from components.renderer_config import BaseConfig, ModelConfig
+from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
     shaders = {

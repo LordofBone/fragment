@@ -1,8 +1,12 @@
-from components.renderer_config import BaseConfig, WaterConfig
+from components.renderer_config import BaseConfig, ModelConfig, WaterConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
     shaders = {
+        'default': {
+            'vertex': "shaders/embm/vertex.glsl",
+            'fragment': "shaders/embm/fragment.glsl"
+        },
         'water': {
             'vertex': "shaders/water/vertex.glsl",
             'fragment': "shaders/water/fragment.glsl"
@@ -29,20 +33,25 @@ if __name__ == "__main__":
         msaa_level=8
     )
 
-    water_config = WaterConfig(
-        shader_name='water',
-        wave_speed=10.0,
-        wave_amplitude=0.1,
-        randomness=0.5,
-        tex_coord_frequency=100.0,
-        tex_coord_amplitude=0.1,
-        width=500.0,
-        height=500.0,
-        **base_config.unpack()
-    )
-
     instance = RenderingInstance(base_config)
     instance.setup()
 
+    model_config = ModelConfig(
+        obj_path="models/pyramid.obj",
+        texture_paths={
+            'diffuse': 'textures/diffuse/crystal.png',
+            'normal': 'textures/normal/crystal.png',
+            'displacement': 'textures/displacement/crystal.png'
+        },
+        shader_name='default',
+        **base_config.unpack()
+    )
+
+    water_config = WaterConfig(
+        shader_name='water',
+        **base_config.unpack()
+    )
+
+    instance.add_renderer('model', **model_config.unpack())
     instance.add_renderer('water', **water_config.unpack())
     instance.run()
