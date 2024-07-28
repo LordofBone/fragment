@@ -7,50 +7,40 @@ from components.abstract_renderer import AbstractRenderer
 
 
 class WaterRenderer(AbstractRenderer):
-    def __init__(self, vertex_shader_path, fragment_shader_path, cubemap_folder, window_size=(800, 600),
-                 camera_position=(4, 2, 4), camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1,
-                 far_plane=100, light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)],
-                 light_strengths=[0.8], anisotropy=16.0, wave_speed=0.03, wave_amplitude=0.1, randomness=0.5,
-                 tex_coord_frequency=100.0, tex_coord_amplitude=0.1, width=10.0, height=10.0, auto_camera=False,
-                 height_factor=1.5, distance_factor=2.0):
-        super().__init__(vertex_shader_path, fragment_shader_path, window_size, anisotropy,
-                         auto_camera=auto_camera, width=width, height=height,
-                         height_factor=height_factor, distance_factor=distance_factor)
-        self.cubemap_folder = cubemap_folder
-        self.camera_position = glm.vec3(*camera_position)
-        self.camera_target = glm.vec3(*camera_target)
-        self.up_vector = glm.vec3(*up_vector)
-        self.fov = fov
-        self.near_plane = near_plane
-        self.far_plane = far_plane
-        self.light_positions = [glm.vec3(*pos) for pos in light_positions]
-        self.light_colors = [glm.vec3(*col) for col in light_colors]
-        self.light_strengths = light_strengths
+    def __init__(self, shader_name, wave_speed=0.03, wave_amplitude=0.1, randomness=0.5,
+                 tex_coord_frequency=100.0, tex_coord_amplitude=0.1, **kwargs):
+        self.shader_name = shader_name
         self.wave_speed = wave_speed
         self.wave_amplitude = wave_amplitude
         self.randomness = randomness
         self.tex_coord_frequency = tex_coord_frequency
         self.tex_coord_amplitude = tex_coord_amplitude
         self.model = glm.mat4(1)
-        self.view = None
-        self.projection = None
         self.environmentMap = None
 
-        # Setup camera after shaders are initialized
-        self.setup_camera()
+        # Extract renderer-specific arguments
+        renderer_kwargs = {k: v for k, v in kwargs.items() if k in {
+            'shaders', 'window_size', 'anisotropy', 'auto_camera', 'width', 'height', 'height_factor',
+            'distance_factor', 'cubemap_folder', 'rotation_speed', 'rotation_axis', 'lod_level', 'apply_tone_mapping',
+            'apply_gamma_correction'
+        }}
+        super().__init__(**renderer_kwargs)
 
-        # Create buffers and load textures
+        self.camera_position = glm.vec3(*kwargs.get('camera_position', (0, 0, 0)))
+        self.camera_target = glm.vec3(*kwargs.get('camera_target', (0, 0, 0)))
+        self.up_vector = glm.vec3(*kwargs.get('up_vector', (0, 1, 0)))
+        self.fov = kwargs.get('fov', 45)
+        self.near_plane = kwargs.get('near_plane', 0.1)
+        self.far_plane = kwargs.get('far_plane', 100)
+        self.light_positions = [glm.vec3(*pos) for pos in kwargs.get('light_positions', [(3.0, 3.0, 3.0)])]
+        self.light_colors = [glm.vec3(*col) for col in kwargs.get('light_colors', [(1.0, 1.0, 1.0)])]
+        self.light_strengths = kwargs.get('light_strengths', [0.8])
+
+        self.setup_camera()
         self.create_buffers()
         self.load_textures()
 
-    def init_shaders(self):
-        super().init_shaders()
-
-    def setup_camera(self):
-        super().setup_camera()
-
     def create_buffers(self):
-        # Create a plane for the water surface based on width and height
         half_width = self.width / 2.0
         half_height = self.height / 2.0
         vertices = [
@@ -59,10 +49,7 @@ class WaterRenderer(AbstractRenderer):
             half_width, 0.0, half_height, 1.0, 0.0,
             -half_width, 0.0, half_height, 0.0, 0.0
         ]
-        indices = [
-            0, 1, 2,
-            2, 3, 0
-        ]
+        indices = [0, 1, 2, 2, 3, 0]
         vertices_array = np.array(vertices, dtype=np.float32)
         indices_array = np.array(indices, dtype=np.uint32)
 
@@ -80,8 +67,8 @@ class WaterRenderer(AbstractRenderer):
         float_size = 4
         vertex_stride = 5 * float_size
 
-        position_loc = 0  # location specified in vertex shader
-        tex_coords_loc = 1  # location specified in vertex shader
+        position_loc = 0
+        tex_coords_loc = 1
 
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
@@ -94,47 +81,47 @@ class WaterRenderer(AbstractRenderer):
 
     def load_textures(self):
         self.environmentMap = glGenTextures(1)
-        self.load_cubemap(self.cubemap_folder, self.environmentMap)
+        if self.cubemap_folder:
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
     def render(self):
-        glClearColor(0.2, 0.3, 0.3, 1.0)  # Set clear color to something distinct
+        glClearColor(0.2, 0.3, 0.3, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glUseProgram(self.shader_program)
+        glUseProgram(self.shader_programs[self.shader_name])
         glEnable(GL_DEPTH_TEST)
 
-        # Update uniforms
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'model'), 1, GL_FALSE, glm.value_ptr(self.model))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(self.view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'model'), 1, GL_FALSE,
+                           glm.value_ptr(self.model))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'view'), 1, GL_FALSE,
+                           glm.value_ptr(self.view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'projection'), 1, GL_FALSE,
                            glm.value_ptr(self.projection))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'waveSpeed'), self.wave_speed)
-        glUniform1f(glGetUniformLocation(self.shader_program, 'waveAmplitude'), self.wave_amplitude)
-        glUniform1f(glGetUniformLocation(self.shader_program, 'randomness'), self.randomness)
-        glUniform1f(glGetUniformLocation(self.shader_program, 'texCoordFrequency'), self.tex_coord_frequency)
-        glUniform1f(glGetUniformLocation(self.shader_program, 'texCoordAmplitude'), self.tex_coord_amplitude)
-
-        # Set camera position
-        glUniform3fv(glGetUniformLocation(self.shader_program, 'cameraPos'), 1, glm.value_ptr(self.camera_position))
-
-        # Set time uniform
-        time_value = pygame.time.get_ticks() / 1000.0
-        glUniform1f(glGetUniformLocation(self.shader_program, 'time'), time_value)
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'waveSpeed'), self.wave_speed)
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'waveAmplitude'), self.wave_amplitude)
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'randomness'), self.randomness)
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'texCoordFrequency'),
+                    self.tex_coord_frequency)
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'texCoordAmplitude'),
+                    self.tex_coord_amplitude)
+        glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'cameraPos'), 1,
+                     glm.value_ptr(self.camera_position))
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'time'),
+                    pygame.time.get_ticks() / 1000.0)
 
         for i in range(len(self.light_positions)):
-            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightPositions[{i}]'), 1,
+            glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], f'lightPositions[{i}]'), 1,
                          glm.value_ptr(self.light_positions[i]))
-            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightColors[{i}]'), 1,
+            glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], f'lightColors[{i}]'), 1,
                          glm.value_ptr(self.light_colors[i]))
-            glUniform1f(glGetUniformLocation(self.shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
+            glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], f'lightStrengths[{i}]'),
+                        self.light_strengths[i])
 
-        # Bind environment map texture
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 0)
+        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'environmentMap'), 0)
 
-        # Draw the water surface
         glBindVertexArray(self.vao)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)  # Ensure EBO is bound
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
         glBindVertexArray(0)

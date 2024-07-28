@@ -8,55 +8,35 @@ from components.abstract_renderer import AbstractRenderer
 
 
 class ModelRenderer(AbstractRenderer):
-    def __init__(self, obj_path, vertex_shader_path, fragment_shader_path, texture_paths, cubemap_folder,
-                 window_size=(800, 600), lod_level=1.0, camera_position=(4, 2, 4), camera_target=(0, 0, 0),
-                 up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100,
-                 light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
-                 anisotropy=16.0, rotation_speed=2000.0, rotation_axis=(0, 3, 0),
-                 apply_tone_mapping=True, apply_gamma_correction=True, width=10.0, height=10.0,
-                 auto_camera=False, height_factor=1.5, distance_factor=2.0):
-        super().__init__(vertex_shader_path, fragment_shader_path, window_size, anisotropy,
-                         auto_camera=auto_camera, width=width, height=height,
-                         height_factor=height_factor, distance_factor=distance_factor)
+    def __init__(self, obj_path, texture_paths, shader_name, **kwargs):
         self.obj_path = obj_path
         self.texture_paths = texture_paths
-        self.cubemap_folder = cubemap_folder
-        self.lod_level = lod_level
-        self.camera_position = glm.vec3(*camera_position)
-        self.camera_target = glm.vec3(*camera_target)
-        self.up_vector = glm.vec3(*up_vector)
-        self.fov = fov
-        self.near_plane = near_plane
-        self.far_plane = far_plane
-        self.light_positions = [glm.vec3(*pos) for pos in light_positions]
-        self.light_colors = [glm.vec3(*col) for col in light_colors]
-        self.light_strengths = light_strengths
-        self.rotation_speed = rotation_speed
-        self.rotation_axis = glm.vec3(*rotation_axis)
-        self.apply_tone_mapping = apply_tone_mapping
-        self.apply_gamma_correction = apply_gamma_correction
-        self.scene = None
+        self.shader_name = shader_name
+        self.scene = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
         self.vbos = []
         self.vaos = []
         self.model = glm.mat4(1)
-        self.view = None
-        self.projection = None
-        self.diffuseMap = None
-        self.normalMap = None
-        self.heightMap = None
-        self.environmentMap = None
 
-        self.scene = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
+        renderer_kwargs = {k: v for k, v in kwargs.items() if k in {
+            'shaders', 'window_size', 'anisotropy', 'auto_camera', 'width', 'height', 'height_factor',
+            'distance_factor', 'cubemap_folder', 'rotation_speed', 'rotation_axis', 'lod_level', 'apply_tone_mapping',
+            'apply_gamma_correction'
+        }}
+        super().__init__(**renderer_kwargs)
 
-        # Setup camera after shaders are initialized
+        self.camera_position = glm.vec3(*kwargs.get('camera_position', (0, 0, 0)))
+        self.camera_target = glm.vec3(*kwargs.get('camera_target', (0, 0, 0)))
+        self.up_vector = glm.vec3(*kwargs.get('up_vector', (0, 1, 0)))
+        self.fov = kwargs.get('fov', 45)
+        self.near_plane = kwargs.get('near_plane', 0.1)
+        self.far_plane = kwargs.get('far_plane', 100)
+        self.light_positions = [glm.vec3(*pos) for pos in kwargs.get('light_positions', [(3.0, 3.0, 3.0)])]
+        self.light_colors = [glm.vec3(*col) for col in kwargs.get('light_colors', [(1.0, 1.0, 1.0)])]
+        self.light_strengths = kwargs.get('light_strengths', [0.8])
+
         self.setup_camera()
-
-        # Load textures and create buffers
         self.load_textures()
         self.create_buffers()
-
-    def init_shaders(self):
-        super().init_shaders()
 
     def create_buffers(self):
         for name, material in self.scene.materials.items():
@@ -74,9 +54,9 @@ class ModelRenderer(AbstractRenderer):
             float_size = 4
             vertex_stride = 8 * float_size
 
-            position_loc = glGetAttribLocation(self.shader_program, "position")
-            tex_coords_loc = glGetAttribLocation(self.shader_program, "textureCoords")
-            normal_loc = glGetAttribLocation(self.shader_program, "normal")
+            position_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "position")
+            tex_coords_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "textureCoords")
+            normal_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "normal")
 
             glEnableVertexAttribArray(position_loc)
             glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(5 * float_size))
@@ -91,19 +71,64 @@ class ModelRenderer(AbstractRenderer):
             glBindBuffer(GL_ARRAY_BUFFER, 0)
             glBindVertexArray(0)
 
-    def draw_model(self):
+    def load_textures(self):
+        self.diffuseMap = glGenTextures(1)
+        self.load_texture(self.texture_paths['diffuse'], self.diffuseMap)
+
+        self.normalMap = glGenTextures(1)
+        self.load_texture(self.texture_paths['normal'], self.normalMap)
+
+        self.displacementMap = glGenTextures(1)
+        self.load_texture(self.texture_paths['displacement'], self.displacementMap)
+
+        self.environmentMap = glGenTextures(1)
+        if self.cubemap_folder:
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
+
+        glUseProgram(self.shader_programs[self.shader_name])
+
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, self.diffuseMap)
+        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'diffuseMap'), 0)
+
+        glActiveTexture(GL_TEXTURE1)
+        glBindTexture(GL_TEXTURE_2D, self.normalMap)
+        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'normalMap'), 1)
+
+        glActiveTexture(GL_TEXTURE2)
+        glBindTexture(GL_TEXTURE_2D, self.displacementMap)
+        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'displacementMap'), 2)
+
+        glActiveTexture(GL_TEXTURE3)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
+        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'environmentMap'), 3)
+
+    def render(self):
+        glEnable(GL_CULL_FACE)
+        glCullFace(GL_BACK)
+        glFrontFace(GL_CW)
+
+        glUseProgram(self.shader_programs[self.shader_name])
+        glEnable(GL_DEPTH_TEST)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        self.set_light_uniforms(self.shader_programs[self.shader_name])
+
         self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'model'), 1, GL_FALSE, glm.value_ptr(self.model))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(self.view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'model'), 1, GL_FALSE,
+                           glm.value_ptr(self.model))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'view'), 1, GL_FALSE,
+                           glm.value_ptr(self.view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'projection'), 1, GL_FALSE,
                            glm.value_ptr(self.projection))
 
-        # Set the light and view positions
         viewPosition = self.camera_position
-        glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'lodLevel'), self.lod_level)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'applyGammaCorrection'), self.apply_gamma_correction)
+        glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'viewPosition'), 1,
+                     glm.value_ptr(viewPosition))
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'lodLevel'), self.lod_level)
+        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyToneMapping'),
+                    self.apply_tone_mapping)
+        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyGammaCorrection'),
+                    self.apply_gamma_correction)
 
         for mesh in self.scene.mesh_list:
             material = self.scene.materials['Material']
@@ -112,45 +137,6 @@ class ModelRenderer(AbstractRenderer):
             glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
             glMaterialf(GL_FRONT, GL_SHININESS, min(128, material.shininess))
 
-            for vao in self.vaos:
-                glBindVertexArray(vao)
-                glDrawArrays(GL_TRIANGLES, 0, len(self.vertices) // 8)
+            glBindVertexArray(self.vaos[self.scene.mesh_list.index(mesh)])
+            glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
             glBindVertexArray(0)
-
-    def load_textures(self):
-        self.diffuseMap = glGenTextures(1)
-        self.load_texture(self.texture_paths['diffuse'], self.diffuseMap)
-
-        self.normalMap = glGenTextures(1)
-        self.load_texture(self.texture_paths['normal'], self.normalMap)
-
-        self.heightMap = glGenTextures(1)
-        self.load_texture(self.texture_paths['displacement'], self.heightMap)
-
-        self.environmentMap = glGenTextures(1)
-        self.load_cubemap(self.cubemap_folder, self.environmentMap)
-
-        glUseProgram(self.shader_program)
-
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, self.diffuseMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'diffuseMap'), 0)
-
-        glActiveTexture(GL_TEXTURE1)
-        glBindTexture(GL_TEXTURE_2D, self.normalMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'normalMap'), 1)
-
-        glActiveTexture(GL_TEXTURE2)
-        glBindTexture(GL_TEXTURE_2D, self.heightMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'displacementMap'), 2)
-
-        glActiveTexture(GL_TEXTURE3)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 3)
-
-    def render(self):
-        glUseProgram(self.shader_program)
-        glEnable(GL_DEPTH_TEST)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        self.set_light_uniforms()
-        self.draw_model()

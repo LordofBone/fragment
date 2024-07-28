@@ -9,13 +9,14 @@ from components.shader_engine import ShaderEngine
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, vertex_shader_path, fragment_shader_path, window_size=(800, 600), anisotropy=16.0,
-                 auto_camera=False, width=10.0, height=10.0, height_factor=1.5, distance_factor=2.0):
-        self.vertex_shader_path = vertex_shader_path
-        self.fragment_shader_path = fragment_shader_path
+    def __init__(self, shaders, window_size=(800, 600), anisotropy=16.0,
+                 auto_camera=False, width=10.0, height=10.0, height_factor=1.5, distance_factor=2.0,
+                 cubemap_folder=None, rotation_speed=2000.0, rotation_axis=(0, 1, 0),
+                 lod_level=1.0, apply_tone_mapping=False, apply_gamma_correction=False):
+        self.shaders = shaders
         self.window_size = window_size
         self.anisotropy = anisotropy
-        self.shader_program = None
+        self.shader_programs = {}
         self.auto_camera = auto_camera
         self.width = width
         self.height = height
@@ -30,15 +31,21 @@ class AbstractRenderer(ABC):
         self.light_positions = []
         self.light_colors = []
         self.light_strengths = []
+        self.cubemap_folder = cubemap_folder
+        self.rotation_speed = rotation_speed
+        self.rotation_axis = glm.vec3(*rotation_axis)
+        self.lod_level = lod_level
+        self.apply_tone_mapping = apply_tone_mapping
+        self.apply_gamma_correction = apply_gamma_correction
 
         # Initialize shaders now that the OpenGL context is created
         self.init_shaders()
 
-    @abstractmethod
     def init_shaders(self):
-        shader_engine = ShaderEngine(self.vertex_shader_path, self.fragment_shader_path)
-        shader_engine.init_shaders()
-        self.shader_program = shader_engine.shader_program
+        for name, paths in self.shaders.items():
+            shader_engine = ShaderEngine(paths['vertex'], paths['fragment'])
+            shader_engine.init_shaders()
+            self.shader_programs[name] = shader_engine.shader_program
 
     def load_texture(self, path, texture):
         surface = pygame.image.load(path)
@@ -85,14 +92,14 @@ class AbstractRenderer(ABC):
         camera_distance = max(width, height) * distance_factor
         return camera_distance, camera_height, camera_distance
 
-    def set_light_uniforms(self):
-        glUseProgram(self.shader_program)
+    def set_light_uniforms(self, shader_program):
+        glUseProgram(shader_program)
         for i in range(len(self.light_positions)):
-            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightPositions[{i}]'), 1,
+            glUniform3fv(glGetUniformLocation(shader_program, f'lightPositions[{i}]'), 1,
                          glm.value_ptr(self.light_positions[i]))
-            glUniform3fv(glGetUniformLocation(self.shader_program, f'lightColors[{i}]'), 1,
+            glUniform3fv(glGetUniformLocation(shader_program, f'lightColors[{i}]'), 1,
                          glm.value_ptr(self.light_colors[i]))
-            glUniform1f(glGetUniformLocation(self.shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
+            glUniform1f(glGetUniformLocation(shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
 
     @abstractmethod
     def create_buffers(self):
