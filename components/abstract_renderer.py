@@ -9,13 +9,15 @@ from components.shader_engine import ShaderEngine
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, shaders, window_size=(800, 600), anisotropy=16.0,
+    def __init__(self, shaders, window_size=(800, 600), anisotropy=16.0, texture_lod_bias=0.0, env_map_lod_bias=0.0,
                  auto_camera=False, width=10.0, height=10.0, height_factor=1.5, distance_factor=2.0,
                  cubemap_folder=None, rotation_speed=2000.0, rotation_axis=(0, 1, 0),
                  lod_level=1.0, apply_tone_mapping=False, apply_gamma_correction=False):
         self.shaders = shaders
         self.window_size = window_size
         self.anisotropy = anisotropy
+        self.texture_lod_bias = texture_lod_bias
+        self.env_map_lod_bias = env_map_lod_bias
         self.shader_programs = {}
         self.auto_camera = auto_camera
         self.width = width
@@ -59,7 +61,7 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.lod_level)  # Set LOD bias
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.texture_lod_bias)  # Set texture LOD bias
 
     def load_cubemap(self, folder_path, texture):
         faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
@@ -76,7 +78,7 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
-        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, self.lod_level)  # Set LOD bias
+        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, self.env_map_lod_bias)  # Set env map LOD bias
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
 
     def setup_camera(self):

@@ -21,7 +21,7 @@ class ModelRenderer(AbstractRenderer):
         renderer_kwargs = {k: v for k, v in kwargs.items() if k in {
             'shaders', 'window_size', 'anisotropy', 'auto_camera', 'width', 'height', 'height_factor',
             'distance_factor', 'cubemap_folder', 'rotation_speed', 'rotation_axis', 'lod_level', 'apply_tone_mapping',
-            'apply_gamma_correction'
+            'apply_gamma_correction', 'texture_lod_bias', 'env_map_lod_bias'
         }}
         super().__init__(**renderer_kwargs)
 
