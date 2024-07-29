@@ -19,6 +19,7 @@ uniform float lightStrengths[10];
 uniform float lodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
+uniform float envSpecularStrength;// Configurable environment specular strength
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -39,17 +40,17 @@ vec3 toneMapping(vec3 color) {
 
 void main()
 {
-    vec3 normal = texture(normalMap, TexCoords).rgb;
+    vec3 normal = texture(normalMap, TexCoords, lodLevel).rgb;
     normal = normalize(normal * 2.0 - 1.0);
 
-    float height = texture(displacementMap, TexCoords).r;
+    float height = texture(displacementMap, TexCoords, lodLevel).r;
 
     vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
     vec3 reflectDir = reflect(viewDir, normal);
 
     vec3 envColor = textureLod(environmentMap, reflectDir, lodLevel).rgb;
 
-    vec3 ambient = 0.05 * texture(diffuseMap, TexCoords).rgb;// Darker ambient
+    vec3 ambient = 0.05 * texture(diffuseMap, TexCoords, lodLevel).rgb;// Darker ambient
 
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
@@ -60,14 +61,14 @@ void main()
         vec3 lightDir = normalize(TangentLightPos[i] - TangentFragPos);
 
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * texture(diffuseMap, TexCoords).rgb * lightColors[i] * lightStrengths[i] * 0.5;// Darker diffuse
+        diffuse += diff * texture(diffuseMap, TexCoords, lodLevel).rgb * lightColors[i] * lightStrengths[i] * 0.5;// Darker diffuse
 
         vec3 halfwayDir = normalize(lightDir + viewDir);
         float spec = pow(max(dot(normal, halfwayDir), 0.0), 16.0 * (1.0 - roughness));
         specular += spec * lightColors[i] * lightStrengths[i];
     }
 
-    vec3 result = ambient + diffuse + specular * 0.1 + envColor * height;
+    vec3 result = ambient + diffuse + specular * 0.1 + envColor * height * envSpecularStrength;// Adjust env specular with configurable strength
 
     if (applyToneMapping) {
         result = toneMapping(result);

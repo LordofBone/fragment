@@ -39,11 +39,11 @@ vec3 toneMapping(vec3 color) {
 void main()
 {
     // Retrieve normal from normal map
-    vec3 normal = texture(normalMap, TexCoords).rgb;
+    vec3 normal = texture(normalMap, TexCoords, lodLevel).rgb;
     normal = normalize(normal * 2.0 - 1.0);// Transform normal vector to range [-1, 1]
 
     // Retrieve height from displacement map
-    float height = texture(displacementMap, TexCoords).r;
+    float height = texture(displacementMap, TexCoords, lodLevel).r;
 
     // Calculate view direction
     vec3 viewDir = normalize(viewPosition - FragPos);
@@ -55,7 +55,7 @@ void main()
     vec3 envColor = textureLod(environmentMap, reflectDir, lodLevel).rgb;
 
     // Calculate ambient lighting
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords).rgb;
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, lodLevel).rgb;
 
     // Initialize diffuse and specular lighting
     vec3 diffuse = vec3(0.0);
@@ -68,7 +68,7 @@ void main()
 
         // Calculate diffuse lighting
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * texture(diffuseMap, TexCoords).rgb * lightColors[i] * lightStrengths[i];
+        diffuse += diff * texture(diffuseMap, TexCoords, lodLevel).rgb * lightColors[i] * lightStrengths[i];
 
         // Calculate specular lighting
         vec3 halfwayDir = normalize(lightDir + viewDir);
