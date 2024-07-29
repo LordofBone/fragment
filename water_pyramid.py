@@ -30,7 +30,10 @@ if __name__ == "__main__":
         auto_camera=True,
         height_factor=0.8,  # Height factor for camera calculation
         distance_factor=0.5,  # Distance factor for camera calculation
-        msaa_level=8
+        msaa_level=8,
+        culling=True,
+        texture_lod_bias=-0.5,  # Set texture LOD bias here
+        env_map_lod_bias=-0.3  # Set environment map LOD bias here
     )
 
     instance = RenderingInstance(base_config)
