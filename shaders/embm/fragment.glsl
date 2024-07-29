@@ -15,7 +15,8 @@ uniform vec3 lightPositions[10];// Support for up to 10 lights
 uniform vec3 lightColors[10];
 uniform vec3 viewPosition;
 uniform float lightStrengths[10];// Strength for each light
-uniform float lodLevel;
+uniform float textureLodLevel; // LOD level for textures
+uniform float envMapLodLevel; // LOD level for environment map
 uniform bool applyToneMapping;// Enable/disable tone mapping
 uniform bool applyGammaCorrection;// Enable/disable gamma correction
 
@@ -39,11 +40,11 @@ vec3 toneMapping(vec3 color) {
 void main()
 {
     // Retrieve normal from normal map
-    vec3 normal = texture(normalMap, TexCoords, lodLevel).rgb;
+    vec3 normal = texture(normalMap, TexCoords, textureLodLevel).rgb;
     normal = normalize(normal * 2.0 - 1.0);// Transform normal vector to range [-1, 1]
 
     // Retrieve height from displacement map
-    float height = texture(displacementMap, TexCoords, lodLevel).r;
+    float height = texture(displacementMap, TexCoords, textureLodLevel).r;
 
     // Calculate view direction
     vec3 viewDir = normalize(viewPosition - FragPos);
@@ -52,10 +53,10 @@ void main()
     vec3 reflectDir = reflect(viewDir, normal);
 
     // Retrieve the environment color with anisotropic filtering
-    vec3 envColor = textureLod(environmentMap, reflectDir, lodLevel).rgb;
+    vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
     // Calculate ambient lighting
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, lodLevel).rgb;
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
 
     // Initialize diffuse and specular lighting
     vec3 diffuse = vec3(0.0);
@@ -68,7 +69,7 @@ void main()
 
         // Calculate diffuse lighting
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * texture(diffuseMap, TexCoords, lodLevel).rgb * lightColors[i] * lightStrengths[i];
+        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
 
         // Calculate specular lighting
         vec3 halfwayDir = normalize(lightDir + viewDir);
