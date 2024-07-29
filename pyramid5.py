@@ -26,7 +26,10 @@ if __name__ == "__main__":
         auto_camera=False,
         height_factor=1.5,
         distance_factor=2.0,
-        msaa_level=8
+        msaa_level=8,
+        culling=True,
+        texture_lod_bias=1.65,  # Set texture LOD bias here
+        env_map_lod_bias=2.0  # Set environment map LOD bias here
     )
 
     model_config = ModelConfig(
@@ -37,7 +40,6 @@ if __name__ == "__main__":
             'displacement': 'textures/displacement/crystal.png'
         },
         shader_name='default',
-        lod_level=7.5,
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
