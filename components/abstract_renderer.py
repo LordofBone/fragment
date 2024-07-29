@@ -59,6 +59,7 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.lod_level)  # Set LOD bias
 
     def load_cubemap(self, folder_path, texture):
         faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
@@ -75,6 +76,7 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
+        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, self.lod_level)  # Set LOD bias
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
 
     def setup_camera(self):

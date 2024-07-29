@@ -3,7 +3,7 @@ class BaseConfig:
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=40, near_plane=0.1, far_plane=1000,
                  light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
                  anisotropy=16.0, auto_camera=False, height_factor=1.5, distance_factor=2.0, msaa_level=8,
-                 culling=True):
+                 culling=True, lod_level=0.0):
         self.window_size = window_size
         self.shaders = shaders
         self.cubemap_folder = cubemap_folder
@@ -22,6 +22,7 @@ class BaseConfig:
         self.distance_factor = distance_factor
         self.msaa_level = msaa_level
         self.culling = culling
+        self.lod_level = lod_level
 
     def unpack(self):
         return self.__dict__
