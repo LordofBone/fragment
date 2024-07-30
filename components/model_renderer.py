@@ -35,10 +35,6 @@ class ModelRenderer(AbstractRenderer):
         self.light_colors = [glm.vec3(*col) for col in kwargs.get('light_colors', [(1.0, 1.0, 1.0)])]
         self.light_strengths = kwargs.get('light_strengths', [0.8])
 
-        self.setup_camera()
-        self.load_textures()
-        self.create_buffers()
-
     def create_buffers(self):
         for name, material in self.scene.materials.items():
             self.vertices = material.vertices
@@ -114,7 +110,6 @@ class ModelRenderer(AbstractRenderer):
 
         glUseProgram(self.shader_programs[self.shader_name])
         glEnable(GL_DEPTH_TEST)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.set_light_uniforms(self.shader_programs[self.shader_name])
 
         self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)

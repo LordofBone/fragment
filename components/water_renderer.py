@@ -36,10 +36,6 @@ class WaterRenderer(AbstractRenderer):
         self.light_colors = [glm.vec3(*col) for col in kwargs.get('light_colors', [(1.0, 1.0, 1.0)])]
         self.light_strengths = kwargs.get('light_strengths', [0.8])
 
-        self.setup_camera()
-        self.create_buffers()
-        self.load_textures()
-
     def create_buffers(self):
         half_width = self.width / 2.0
         half_height = self.height / 2.0
@@ -85,9 +81,6 @@ class WaterRenderer(AbstractRenderer):
             self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
     def render(self):
-        glClearColor(0.2, 0.3, 0.3, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
         glUseProgram(self.shader_programs[self.shader_name])
         glEnable(GL_DEPTH_TEST)
 

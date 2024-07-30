@@ -40,8 +40,12 @@ class AbstractRenderer(ABC):
         self.apply_tone_mapping = apply_tone_mapping
         self.apply_gamma_correction = apply_gamma_correction
 
-        # Initialize shaders now that the OpenGL context is created
+    def setup(self):
+        """Setup resources and initialize the renderer."""
         self.init_shaders()
+        self.create_buffers()
+        self.load_textures()
+        self.setup_camera()
 
     def init_shaders(self):
         for name, paths in self.shaders.items():

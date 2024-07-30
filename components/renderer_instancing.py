@@ -1,5 +1,6 @@
 from components.model_renderer import ModelRenderer
 from components.renderer_window import RendererWindow
+from components.scene import Scene
 from components.water_renderer import WaterRenderer
 
 
@@ -7,7 +8,7 @@ class RenderingInstance:
     def __init__(self, config):
         self.config = config
         self.render_window = None
-        self.renderers = []
+        self.scene = Scene()
 
     def setup(self):
         self.render_window = RendererWindow(window_size=self.config.window_size, title="Renderer",
@@ -20,11 +21,13 @@ class RenderingInstance:
             renderer = WaterRenderer(**params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
-        self.renderers.append(renderer)
+        self.scene.add_renderer(renderer)
 
     def run(self):
+        for renderer in self.scene.renderers:
+            renderer.setup()
+
         def render_callback():
-            for renderer in self.renderers:
-                renderer.render()
+            self.scene.render()
 
         self.render_window.mainloop(render_callback)
