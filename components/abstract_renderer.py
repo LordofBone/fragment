@@ -39,6 +39,8 @@ class AbstractRenderer(ABC):
         self.lod_level = lod_level
         self.apply_tone_mapping = apply_tone_mapping
         self.apply_gamma_correction = apply_gamma_correction
+        self.model_matrix = glm.mat4(1)
+        self.manual_transformations = glm.mat4(1)
 
     def setup(self):
         """Setup resources and initialize the renderer."""
@@ -108,6 +110,22 @@ class AbstractRenderer(ABC):
             glUniform3fv(glGetUniformLocation(shader_program, f'lightColors[{i}]'), 1,
                          glm.value_ptr(self.light_colors[i]))
             glUniform1f(glGetUniformLocation(shader_program, f'lightStrengths[{i}]'), self.light_strengths[i])
+
+    def set_model_matrix(self, matrix):
+        self.model_matrix = matrix
+
+    def translate(self, position):
+        self.manual_transformations = glm.translate(self.manual_transformations, glm.vec3(*position))
+
+    def rotate(self, angle, axis):
+        self.manual_transformations = glm.rotate(self.manual_transformations, glm.radians(angle), glm.vec3(*axis))
+
+    def scale(self, scale):
+        self.manual_transformations = glm.scale(self.manual_transformations, glm.vec3(*scale))
+
+    def apply_transformations(self):
+        rotation_matrix = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
+        self.model_matrix = self.manual_transformations * rotation_matrix
 
     @abstractmethod
     def create_buffers(self):

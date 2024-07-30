@@ -45,4 +45,10 @@ if __name__ == "__main__":
 
     instance.add_renderer('model', **model_config.unpack())
     instance.add_renderer('water', **water_config.unpack())
+
+    # Example transformations
+    instance.scene.translate_renderer(0, (0, 1, 0))  # Translate model
+    instance.scene.rotate_renderer(0, 45, (0, 1, 0))  # Rotate model
+    instance.scene.scale_renderer(0, (1, 2, 1))  # Scale model
+
     instance.run()

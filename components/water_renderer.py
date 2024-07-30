@@ -84,8 +84,10 @@ class WaterRenderer(AbstractRenderer):
         glUseProgram(self.shader_programs[self.shader_name])
         glEnable(GL_DEPTH_TEST)
 
+        self.apply_transformations()
+
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'model'), 1, GL_FALSE,
-                           glm.value_ptr(self.model))
+                           glm.value_ptr(self.model_matrix))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'view'), 1, GL_FALSE,
                            glm.value_ptr(self.view))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'projection'), 1, GL_FALSE,
