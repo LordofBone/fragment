@@ -2,16 +2,8 @@ from components.renderer_config import BaseConfig, ModelConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
-    shaders = {
-        'default': {
-            'vertex': "shaders/embm/vertex.glsl",
-            'fragment': "shaders/embm/fragment.glsl"
-        }
-    }
-
     base_config = BaseConfig(
         window_size=(800, 600),
-        shaders=shaders,
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_position=(3.2, 3.2, 3.2),
         camera_target=(0, 0.75, 0),
@@ -39,7 +31,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='default',
+        shader_name='embm',
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,

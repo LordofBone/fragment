@@ -2,16 +2,8 @@ from components.renderer_config import BaseConfig, ModelConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
-    shaders = {
-        'default': {
-            'vertex': "shaders/rubber/vertex.glsl",
-            'fragment': "shaders/rubber/fragment.glsl"
-        }
-    }
-
     base_config = BaseConfig(
         window_size=(800, 600),
-        shaders=shaders,
         cubemap_folder="textures/cube/mountain_lake/",
         camera_position=(6.2, 6.2, 6.2),
         camera_target=(0, 0, 0),

@@ -2,20 +2,8 @@ from components.renderer_config import BaseConfig, ModelConfig, WaterConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
-    shaders = {
-        'default': {
-            'vertex': "shaders/embm/vertex.glsl",
-            'fragment': "shaders/embm/fragment.glsl"
-        },
-        'water': {
-            'vertex': "shaders/water/vertex.glsl",
-            'fragment': "shaders/water/fragment.glsl"
-        }
-    }
-
     base_config = BaseConfig(
         window_size=(800, 600),
-        shaders=shaders,
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_position=(3.2, 3.2, 3.2),
         camera_target=(0, 0, 0),  # Center of the water surface
