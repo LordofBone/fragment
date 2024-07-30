@@ -30,3 +30,7 @@ class Scene:
     def scale_renderer(self, index, scale):
         if index < len(self.renderers):
             self.renderers[index].scale(scale)
+
+    def set_auto_rotation(self, index, enabled):
+        if index < len(self.renderers):
+            self.renderers[index].enable_auto_rotation(enabled)

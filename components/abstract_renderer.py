@@ -41,6 +41,10 @@ class AbstractRenderer(ABC):
         self.apply_gamma_correction = apply_gamma_correction
         self.model_matrix = glm.mat4(1)
         self.manual_transformations = glm.mat4(1)
+        self.translation = glm.vec3(0.0)
+        self.rotation = glm.vec3(0.0)
+        self.scaling = glm.vec3(1.0)
+        self.auto_rotation_enabled = True
 
     def setup(self):
         """Setup resources and initialize the renderer."""
@@ -115,17 +119,33 @@ class AbstractRenderer(ABC):
         self.model_matrix = matrix
 
     def translate(self, position):
-        self.manual_transformations = glm.translate(self.manual_transformations, glm.vec3(*position))
+        self.translation = glm.vec3(*position)
+        self.update_model_matrix()
 
     def rotate(self, angle, axis):
-        self.manual_transformations = glm.rotate(self.manual_transformations, glm.radians(angle), glm.vec3(*axis))
+        self.rotation = glm.vec3(*axis) * glm.radians(angle)
+        self.update_model_matrix()
 
     def scale(self, scale):
-        self.manual_transformations = glm.scale(self.manual_transformations, glm.vec3(*scale))
+        self.scaling = glm.vec3(*scale)
+        self.update_model_matrix()
+
+    def update_model_matrix(self):
+        self.manual_transformations = glm.translate(glm.mat4(1), self.translation)
+        self.manual_transformations = glm.rotate(self.manual_transformations, self.rotation.x, glm.vec3(1, 0, 0))
+        self.manual_transformations = glm.rotate(self.manual_transformations, self.rotation.y, glm.vec3(0, 1, 0))
+        self.manual_transformations = glm.rotate(self.manual_transformations, self.rotation.z, glm.vec3(0, 0, 1))
+        self.manual_transformations = glm.scale(self.manual_transformations, self.scaling)
 
     def apply_transformations(self):
-        rotation_matrix = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
-        self.model_matrix = self.manual_transformations * rotation_matrix
+        if self.auto_rotation_enabled:
+            rotation_matrix = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
+            self.model_matrix = self.manual_transformations * rotation_matrix
+        else:
+            self.model_matrix = self.manual_transformations
+
+    def enable_auto_rotation(self, enabled):
+        self.auto_rotation_enabled = enabled
 
     @abstractmethod
     def create_buffers(self):

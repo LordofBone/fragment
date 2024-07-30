@@ -27,7 +27,18 @@ if __name__ == "__main__":
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    model_config = ModelConfig(
+    model_config1 = ModelConfig(
+        obj_path="models/pyramid.obj",
+        texture_paths={
+            'diffuse': 'textures/diffuse/crystal.png',
+            'normal': 'textures/normal/crystal.png',
+            'displacement': 'textures/displacement/crystal.png'
+        },
+        shader_name='default',
+        **base_config.unpack()
+    )
+
+    model_config2 = ModelConfig(
         obj_path="models/pyramid.obj",
         texture_paths={
             'diffuse': 'textures/diffuse/crystal.png',
@@ -43,12 +54,16 @@ if __name__ == "__main__":
         **base_config.unpack()
     )
 
-    instance.add_renderer('model', **model_config.unpack())
+    instance.add_renderer('model', **model_config1.unpack())
+    instance.add_renderer('model', **model_config2.unpack())
     instance.add_renderer('water', **water_config.unpack())
 
     # Example transformations
-    instance.scene.translate_renderer(0, (0, 1, 0))  # Translate model
-    instance.scene.rotate_renderer(0, 45, (0, 1, 0))  # Rotate model
-    instance.scene.scale_renderer(0, (1, 2, 1))  # Scale model
+    instance.scene.translate_renderer(0, (0, 1, 0))  # Translate first model
+    instance.scene.rotate_renderer(0, 45, (0, 1, 0))  # Rotate first model
+    instance.scene.scale_renderer(0, (1, 2, 1))  # Scale first model
+
+    instance.scene.translate_renderer(1, (2, 0, 0))  # Translate second model
+    instance.scene.set_auto_rotation(1, False)  # Disable auto-rotation for second model
 
     instance.run()
