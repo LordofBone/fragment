@@ -1,4 +1,4 @@
-from components.renderer_config import BaseConfig, WaterConfig
+from components.renderer_config import BaseConfig, ModelConfig, WaterConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
@@ -18,23 +18,31 @@ if __name__ == "__main__":
         auto_camera=True,
         height_factor=0.8,  # Height factor for camera calculation
         distance_factor=0.5,  # Distance factor for camera calculation
-        msaa_level=8
-    )
-
-    water_config = WaterConfig(
-        shader_name='water',
-        wave_speed=10.0,
-        wave_amplitude=0.1,
-        randomness=0.5,
-        tex_coord_frequency=100.0,
-        tex_coord_amplitude=0.1,
-        width=500.0,
-        height=500.0,
-        **base_config.unpack()
+        msaa_level=8,
+        culling=True,
+        texture_lod_bias=-0.5,  # Set texture LOD bias here
+        env_map_lod_bias=-0.3  # Set environment map LOD bias here
     )
 
     instance = RenderingInstance(base_config)
     instance.setup()
 
+    model_config = ModelConfig(
+        obj_path="models/pyramid.obj",
+        texture_paths={
+            'diffuse': 'textures/diffuse/crystal.png',
+            'normal': 'textures/normal/crystal.png',
+            'displacement': 'textures/displacement/crystal.png'
+        },
+        shader_name='default',
+        **base_config.unpack()
+    )
+
+    water_config = WaterConfig(
+        shader_name='water',
+        **base_config.unpack()
+    )
+
+    instance.add_renderer('model', **model_config.unpack())
     instance.add_renderer('water', **water_config.unpack())
     instance.run()

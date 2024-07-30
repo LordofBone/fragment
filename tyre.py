@@ -4,34 +4,34 @@ from components.renderer_instancing import RenderingInstance
 if __name__ == "__main__":
     base_config = BaseConfig(
         window_size=(800, 600),
-        cubemap_folder="textures/cube/night_sky_egypt/",
-        camera_position=(3.2, 3.2, 3.2),
-        camera_target=(0, 0.75, 0),
+        cubemap_folder="textures/cube/mountain_lake/",
+        camera_position=(6.2, 6.2, 6.2),
+        camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.1,
-        far_plane=100,
-        light_positions=[(3.0, 3.0, 3.0)],
+        far_plane=1000,
+        light_positions=[(-5.0, 0.0, 5.0)],
         light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[0.8, 0.5],
+        light_strengths=[1.0],
         anisotropy=16.0,
         auto_camera=False,
         height_factor=1.5,
         distance_factor=2.0,
         msaa_level=8,
-        culling=True,
-        texture_lod_bias=1.65,  # Set texture LOD bias here
-        env_map_lod_bias=2.0  # Set environment map LOD bias here
+        culling=False,
+        texture_lod_bias=1.0,  # Set texture LOD bias here
+        env_map_lod_bias=0.0  # Set environment map LOD bias here
     )
 
     model_config = ModelConfig(
-        obj_path="models/pyramid.obj",
+        obj_path="models/tyre.obj",
         texture_paths={
-            'diffuse': 'textures/diffuse/crystal.png',
-            'normal': 'textures/normal/crystal.png',
-            'displacement': 'textures/displacement/crystal.png'
+            'diffuse': 'textures/diffuse/rubber_1.png',
+            'normal': 'textures/normal/rubber_1.png',
+            'displacement': 'textures/displacement/rubber_1.png'
         },
-        shader_name='embm',
+        shader_name='rubber',
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
