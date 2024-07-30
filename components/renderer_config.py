@@ -1,3 +1,6 @@
+import os
+
+
 class BaseConfig:
     def __init__(self, window_size=(800, 600), shaders=None, cubemap_folder=None, camera_position=(3.2, 3.2, 3.2),
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=40, near_plane=0.1, far_plane=1000,
@@ -24,6 +27,25 @@ class BaseConfig:
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
+        self.shaders = {}
+
+        self.discover_shaders()
+
+    def discover_shaders(self):
+        shader_root = os.path.abspath(os.path.join('shaders'))
+        if not os.path.exists(shader_root):
+            raise FileNotFoundError(f"The shader root directory '{shader_root}' does not exist.")
+
+        for shader_dir in os.listdir(shader_root):
+            dir_path = os.path.join(shader_root, shader_dir)
+            if os.path.isdir(dir_path):
+                vertex_shader_path = os.path.join(dir_path, 'vertex.glsl')
+                fragment_shader_path = os.path.join(dir_path, 'fragment.glsl')
+                if os.path.exists(vertex_shader_path) and os.path.exists(fragment_shader_path):
+                    self.shaders[shader_dir] = {
+                        'vertex': vertex_shader_path,
+                        'fragment': fragment_shader_path
+                    }
 
     def unpack(self):
         return self.__dict__
