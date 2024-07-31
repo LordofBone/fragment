@@ -12,7 +12,7 @@ class ModelRenderer(AbstractRenderer):
         self.texture_paths = texture_paths
         self.shader_name = shader_name
         self.culling = kwargs.get('culling', True)
-        self.scene = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
+        self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
         self.vbos = []
         self.vaos = []
         self.model = glm.mat4(1)
@@ -35,7 +35,7 @@ class ModelRenderer(AbstractRenderer):
         self.light_strengths = kwargs.get('light_strengths', [0.8])
 
     def create_buffers(self):
-        for name, material in self.scene.materials.items():
+        for name, material in self.object.materials.items():
             self.vertices = material.vertices
             vertices_array = np.array(self.vertices, dtype=np.float32)
 
@@ -129,14 +129,14 @@ class ModelRenderer(AbstractRenderer):
         glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyGammaCorrection'),
                     self.apply_gamma_correction)
 
-        for mesh in self.scene.mesh_list:
-            material = self.scene.materials['Material']
+        for mesh in self.object.mesh_list:
+            material = self.object.materials['Material']
             glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
             glMaterialfv(GL_FRONT, GL_DIFFUSE, material.diffuse)
             glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
             glMaterialf(GL_FRONT, GL_SHININESS, min(128, material.shininess))
 
-            glBindVertexArray(self.vaos[self.scene.mesh_list.index(mesh)])
+            glBindVertexArray(self.vaos[self.object.mesh_list.index(mesh)])
             glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
             glBindVertexArray(0)
 
