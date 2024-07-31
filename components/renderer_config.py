@@ -4,9 +4,15 @@ import os
 class BaseConfig:
     def __init__(self, window_size=(800, 600), shaders=None, cubemap_folder=None, camera_position=(3.2, 3.2, 3.2),
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=40, near_plane=0.1, far_plane=1000,
-                 light_positions=[(3.0, 3.0, 3.0)], light_colors=[(1.0, 1.0, 1.0)], light_strengths=[0.8],
+                 light_positions=None, light_colors=None, light_strengths=None,
                  anisotropy=16.0, auto_camera=False, height_factor=1.5, distance_factor=2.0, msaa_level=8,
                  culling=True, texture_lod_bias=0.0, env_map_lod_bias=0.0):
+        if light_strengths is None:
+            light_strengths = [0.8]
+        if light_colors is None:
+            light_colors = [(1.0, 1.0, 1.0)]
+        if light_positions is None:
+            light_positions = [(3.0, 3.0, 3.0)]
         self.window_size = window_size
         self.shaders = shaders
         self.cubemap_folder = cubemap_folder
