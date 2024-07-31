@@ -101,7 +101,7 @@ class AbstractRenderer(ABC):
 
     @staticmethod
     def calculate_camera_position_for_object_size(width, height, height_factor=1.5, distance_factor=2.0):
-        """Calculate camera position for a large water surface."""
+        """Calculate camera position for a large surface."""
         camera_height = max(width, height) * height_factor
         camera_distance = max(width, height) * distance_factor
         return camera_distance, camera_height, camera_distance

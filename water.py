@@ -6,7 +6,7 @@ if __name__ == "__main__":
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_position=(3.2, 3.2, 3.2),
-        camera_target=(0, 0, 0),  # Center of the water surface
+        camera_target=(0, 0, 0),  # Center of the surface
         up_vector=(0, 1, 0),  # Up vector
         fov=40,  # Field of view
         near_plane=0.1,
@@ -21,7 +21,7 @@ if __name__ == "__main__":
         msaa_level=8
     )
 
-    water_config = SurfaceConfig(
+    surface_config = SurfaceConfig(
         shader_name='water',
         wave_speed=10.0,
         wave_amplitude=0.1,
@@ -36,5 +36,5 @@ if __name__ == "__main__":
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    instance.add_renderer('water', **water_config.unpack())
+    instance.add_renderer('surface', **surface_config.unpack())
     instance.run()

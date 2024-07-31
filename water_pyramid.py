@@ -6,7 +6,7 @@ if __name__ == "__main__":
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_position=(3.2, 3.2, 3.2),
-        camera_target=(0, 0, 0),  # Center of the water surface
+        camera_target=(0, 0, 0),  # Center of the surface
         up_vector=(0, 1, 0),  # Up vector
         fov=40,  # Field of view
         near_plane=0.1,
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     instance.add_renderer('model', **model_config1.unpack())
     instance.add_renderer('model', **model_config2.unpack())
-    instance.add_renderer('water', **water_config.unpack())
+    instance.add_renderer('surface', **surface_config.unpack())
 
     # Example transformations
     instance.scene.translate_renderer(0, (0, 1, 0))  # Translate first model

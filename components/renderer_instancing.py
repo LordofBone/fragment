@@ -17,7 +17,7 @@ class RenderingInstance:
     def add_renderer(self, renderer_type, **params):
         if renderer_type == 'model':
             renderer = ModelRenderer(**params)
-        elif renderer_type == 'water':
+        elif renderer_type == 'surface':
             renderer = SurfaceRenderer(**params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
