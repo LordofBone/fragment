@@ -6,7 +6,7 @@ from OpenGL.GL import *
 from components.abstract_renderer import AbstractRenderer
 
 
-class WaterRenderer(AbstractRenderer):
+class SurfaceRenderer(AbstractRenderer):
     def __init__(self, shader_name, wave_speed=0.03, wave_amplitude=0.1, randomness=0.5,
                  tex_coord_frequency=100.0, tex_coord_amplitude=0.1, **kwargs):
         self.shader_name = shader_name

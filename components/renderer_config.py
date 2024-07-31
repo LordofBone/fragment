@@ -68,7 +68,7 @@ class ModelConfig(BaseConfig):
         self.height = height
 
 
-class WaterConfig(BaseConfig):
+class SurfaceConfig(BaseConfig):
     def __init__(self, shader_name='default', wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
                  tex_coord_frequency=100.0, tex_coord_amplitude=0.1, width=500.0, height=500.0, **kwargs):
         super().__init__(**kwargs)
