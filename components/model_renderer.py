@@ -1,6 +1,5 @@
 import glm
 import numpy as np
-import pygame
 import pywavefront
 from OpenGL.GL import *
 
@@ -112,9 +111,10 @@ class ModelRenderer(AbstractRenderer):
         glEnable(GL_DEPTH_TEST)
         self.set_light_uniforms(self.shader_programs[self.shader_name])
 
-        self.model = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
+        self.apply_transformations()
+
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'model'), 1, GL_FALSE,
-                           glm.value_ptr(self.model))
+                           glm.value_ptr(self.model_matrix))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'view'), 1, GL_FALSE,
                            glm.value_ptr(self.view))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'projection'), 1, GL_FALSE,

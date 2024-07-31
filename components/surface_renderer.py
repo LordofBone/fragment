@@ -6,7 +6,7 @@ from OpenGL.GL import *
 from components.abstract_renderer import AbstractRenderer
 
 
-class WaterRenderer(AbstractRenderer):
+class SurfaceRenderer(AbstractRenderer):
     def __init__(self, shader_name, wave_speed=0.03, wave_amplitude=0.1, randomness=0.5,
                  tex_coord_frequency=100.0, tex_coord_amplitude=0.1, **kwargs):
         self.shader_name = shader_name
@@ -84,8 +84,10 @@ class WaterRenderer(AbstractRenderer):
         glUseProgram(self.shader_programs[self.shader_name])
         glEnable(GL_DEPTH_TEST)
 
+        self.apply_transformations()
+
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'model'), 1, GL_FALSE,
-                           glm.value_ptr(self.model))
+                           glm.value_ptr(self.model_matrix))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'view'), 1, GL_FALSE,
                            glm.value_ptr(self.view))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'projection'), 1, GL_FALSE,

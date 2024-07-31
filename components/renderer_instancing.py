@@ -1,7 +1,7 @@
 from components.model_renderer import ModelRenderer
 from components.renderer_window import RendererWindow
 from components.scene import Scene
-from components.water_renderer import WaterRenderer
+from components.surface_renderer import SurfaceRenderer
 
 
 class RenderingInstance:
@@ -18,7 +18,7 @@ class RenderingInstance:
         if renderer_type == 'model':
             renderer = ModelRenderer(**params)
         elif renderer_type == 'water':
-            renderer = WaterRenderer(**params)
+            renderer = SurfaceRenderer(**params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
         self.scene.add_renderer(renderer)
