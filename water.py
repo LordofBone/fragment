@@ -1,4 +1,4 @@
-from components.renderer_config import BaseConfig, WaterConfig
+from components.renderer_config import BaseConfig, SurfaceConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
@@ -21,7 +21,7 @@ if __name__ == "__main__":
         msaa_level=8
     )
 
-    water_config = WaterConfig(
+    water_config = SurfaceConfig(
         shader_name='water',
         wave_speed=10.0,
         wave_amplitude=0.1,
