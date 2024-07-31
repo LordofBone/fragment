@@ -24,7 +24,7 @@ if __name__ == "__main__":
         env_map_lod_bias=2.0  # Set environment map LOD bias here
     )
 
-    model_config = ModelConfig(
+    sphere_config = ModelConfig(
         obj_path="models/sphere.obj",
         texture_paths={
             'diffuse': 'textures/diffuse/crystal.png',
@@ -44,5 +44,5 @@ if __name__ == "__main__":
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    instance.add_renderer('model', **model_config.unpack())
+    instance.add_renderer('model', **sphere_config.unpack())
     instance.run()

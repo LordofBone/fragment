@@ -21,7 +21,7 @@ if __name__ == "__main__":
         msaa_level=8
     )
 
-    surface_config = SurfaceConfig(
+    water_config = SurfaceConfig(
         shader_name='water',
         wave_speed=10.0,
         wave_amplitude=0.1,
@@ -36,5 +36,5 @@ if __name__ == "__main__":
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    instance.add_renderer('surface', **surface_config.unpack())
+    instance.add_renderer('surface', **water_config.unpack())
     instance.run()
