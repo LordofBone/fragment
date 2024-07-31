@@ -11,7 +11,7 @@ from components.shader_engine import ShaderEngine
 class AbstractRenderer(ABC):
     def __init__(self, shaders, window_size=(800, 600), anisotropy=16.0, texture_lod_bias=0.0, env_map_lod_bias=0.0,
                  auto_camera=False, width=10.0, height=10.0, height_factor=1.5, distance_factor=2.0,
-                 cubemap_folder=None, rotation_speed=2000.0, rotation_axis=(0, 1, 0),
+                 cubemap_folder=None, rotation_speed=0.0, rotation_axis=(0, 1, 0),
                  lod_level=1.0, apply_tone_mapping=False, apply_gamma_correction=False):
         self.shaders = shaders
         self.window_size = window_size
@@ -44,7 +44,7 @@ class AbstractRenderer(ABC):
         self.translation = glm.vec3(0.0)
         self.rotation = glm.vec3(0.0)
         self.scaling = glm.vec3(1.0)
-        self.auto_rotation_enabled = True
+        self.auto_rotation_enabled = False if rotation_speed == 0.0 else True
 
     def setup(self):
         """Setup resources and initialize the renderer."""
@@ -139,8 +139,13 @@ class AbstractRenderer(ABC):
 
     def apply_transformations(self):
         if self.auto_rotation_enabled:
-            rotation_matrix = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis)
-            self.model_matrix = self.manual_transformations * rotation_matrix
+            if self.rotation_speed != 0.0:
+                rotation_matrix = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed,
+                                             self.rotation_axis)
+                self.model_matrix = self.manual_transformations * rotation_matrix
+            else:
+                self.auto_rotation_enabled = False
+                self.model_matrix = self.manual_transformations
         else:
             self.model_matrix = self.manual_transformations
 
