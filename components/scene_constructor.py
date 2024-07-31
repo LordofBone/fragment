@@ -3,7 +3,7 @@ from OpenGL.GL import *
 from components.abstract_renderer import AbstractRenderer
 
 
-class Scene:
+class SceneConstructor:
     def __init__(self):
         self.renderers = []
 
