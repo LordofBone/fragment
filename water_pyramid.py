@@ -1,4 +1,4 @@
-from components.renderer_config import BaseConfig, ModelConfig, WaterConfig
+from components.renderer_config import BaseConfig, ModelConfig, SurfaceConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
@@ -20,8 +20,8 @@ if __name__ == "__main__":
         distance_factor=0.5,  # Distance factor for camera calculation
         msaa_level=8,
         culling=True,
-        texture_lod_bias=-0.5,  # Set texture LOD bias here
-        env_map_lod_bias=-0.3  # Set environment map LOD bias here
+        texture_lod_bias=1.0,  # Set texture LOD bias here
+        env_map_lod_bias=1.5  # Set environment map LOD bias here
     )
 
     instance = RenderingInstance(base_config)
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='default',
+        shader_name='embm',
         **base_config.unpack()
     )
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         **base_config.unpack()
     )
 
-    water_config = WaterConfig(
+    water_config = SurfaceConfig(
         shader_name='water',
         **base_config.unpack()
     )
@@ -64,6 +64,6 @@ if __name__ == "__main__":
     instance.scene.scale_renderer(0, (1, 2, 1))  # Scale first model
 
     instance.scene.translate_renderer(1, (2, 0, 0))  # Translate second model
-    instance.scene.set_auto_rotation(1, False)  # Disable auto-rotation for second model
+    instance.scene.set_auto_rotation(1, True)  # Enable auto-rotation for second model
 
     instance.run()
