@@ -45,6 +45,11 @@ class AbstractRenderer(ABC):
         self.rotation = glm.vec3(0.0)
         self.scaling = glm.vec3(1.0)
         self.auto_rotation_enabled = False if rotation_speed == 0.0 else True
+        self.wave_speed = 0.0
+        self.wave_amplitude = 0.0
+        self.randomness = 0.0
+        self.tex_coord_frequency = 0.0
+        self.tex_coord_amplitude = 0.0
 
     def setup(self):
         """Setup resources and initialize the renderer."""
@@ -151,6 +156,26 @@ class AbstractRenderer(ABC):
 
     def enable_auto_rotation(self, enabled):
         self.auto_rotation_enabled = enabled
+
+    def set_shader_uniforms(self, shader_name):
+        glUseProgram(self.shader_programs[shader_name])
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'model'), 1, GL_FALSE,
+                           glm.value_ptr(self.model_matrix))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'view'), 1, GL_FALSE,
+                           glm.value_ptr(self.view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'projection'), 1, GL_FALSE,
+                           glm.value_ptr(self.projection))
+        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'waveSpeed'), self.wave_speed)
+        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'waveAmplitude'), self.wave_amplitude)
+        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'randomness'), self.randomness)
+        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'texCoordFrequency'),
+                    self.tex_coord_frequency)
+        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'texCoordAmplitude'),
+                    self.tex_coord_amplitude)
+        glUniform3fv(glGetUniformLocation(self.shader_programs[shader_name], 'cameraPos'), 1,
+                     glm.value_ptr(self.camera_position))
+        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'time'),
+                    pygame.time.get_ticks() / 1000.0)
 
     @abstractmethod
     def create_buffers(self):

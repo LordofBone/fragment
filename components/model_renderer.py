@@ -112,13 +112,7 @@ class ModelRenderer(AbstractRenderer):
         self.set_light_uniforms(self.shader_programs[self.shader_name])
 
         self.apply_transformations()
-
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'model'), 1, GL_FALSE,
-                           glm.value_ptr(self.model_matrix))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'view'), 1, GL_FALSE,
-                           glm.value_ptr(self.view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'projection'), 1, GL_FALSE,
-                           glm.value_ptr(self.projection))
+        self.set_shader_uniforms(self.shader_name)
 
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'viewPosition'), 1,

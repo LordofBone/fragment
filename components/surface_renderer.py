@@ -1,6 +1,5 @@
 import glm
 import numpy as np
-import pygame
 from OpenGL.GL import *
 
 from components.abstract_renderer import AbstractRenderer
@@ -63,8 +62,8 @@ class SurfaceRenderer(AbstractRenderer):
         float_size = 4
         vertex_stride = 5 * float_size
 
-        position_loc = 0
-        tex_coords_loc = 1
+        position_loc = 2
+        tex_coords_loc = 0
 
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
@@ -85,24 +84,7 @@ class SurfaceRenderer(AbstractRenderer):
         glEnable(GL_DEPTH_TEST)
 
         self.apply_transformations()
-
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'model'), 1, GL_FALSE,
-                           glm.value_ptr(self.model_matrix))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'view'), 1, GL_FALSE,
-                           glm.value_ptr(self.view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'projection'), 1, GL_FALSE,
-                           glm.value_ptr(self.projection))
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'waveSpeed'), self.wave_speed)
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'waveAmplitude'), self.wave_amplitude)
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'randomness'), self.randomness)
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'texCoordFrequency'),
-                    self.tex_coord_frequency)
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'texCoordAmplitude'),
-                    self.tex_coord_amplitude)
-        glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'cameraPos'), 1,
-                     glm.value_ptr(self.camera_position))
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'time'),
-                    pygame.time.get_ticks() / 1000.0)
+        self.set_shader_uniforms(self.shader_name)
 
         for i in range(len(self.light_positions)):
             glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], f'lightPositions[{i}]'), 1,
