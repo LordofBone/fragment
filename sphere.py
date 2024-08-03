@@ -1,8 +1,8 @@
-from components.renderer_config import BaseConfig, ModelConfig
+from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
-    base_config = BaseConfig(
+    base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_position=(150.2, 150.2, 150.2),
@@ -24,7 +24,10 @@ if __name__ == "__main__":
         env_map_lod_bias=2.0  # Set environment map LOD bias here
     )
 
-    sphere_config = ModelConfig(
+    instance = RenderingInstance(base_config)
+    instance.setup()
+
+    sphere_config = base_config.add_model(
         obj_path="models/sphere.obj",
         texture_paths={
             'diffuse': 'textures/diffuse/crystal.png',
@@ -37,12 +40,8 @@ if __name__ == "__main__":
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         width=10.0,
-        height=10.0,
-        **base_config.unpack()
+        height=10.0
     )
 
-    instance = RenderingInstance(base_config)
-    instance.setup()
-
-    instance.add_renderer('model', **sphere_config.unpack())
+    instance.add_renderer('model', **sphere_config)
     instance.run()

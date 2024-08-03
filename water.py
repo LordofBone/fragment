@@ -1,8 +1,8 @@
-from components.renderer_config import BaseConfig, SurfaceConfig
+from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
-    base_config = BaseConfig(
+    base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_position=(3.2, 3.2, 3.2),
@@ -21,7 +21,10 @@ if __name__ == "__main__":
         msaa_level=8
     )
 
-    water_config = SurfaceConfig(
+    instance = RenderingInstance(base_config)
+    instance.setup()
+
+    water_config = base_config.add_surface(
         shader_name='water',
         wave_speed=10.0,
         wave_amplitude=0.1,
@@ -29,12 +32,8 @@ if __name__ == "__main__":
         tex_coord_frequency=100.0,
         tex_coord_amplitude=0.1,
         width=500.0,
-        height=500.0,
-        **base_config.unpack()
+        height=500.0
     )
 
-    instance = RenderingInstance(base_config)
-    instance.setup()
-
-    instance.add_renderer('surface', **water_config.unpack())
+    instance.add_renderer('surface', **water_config)
     instance.run()

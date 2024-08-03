@@ -1,8 +1,8 @@
-from components.renderer_config import BaseConfig, ModelConfig, SurfaceConfig
+from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
-    base_config = BaseConfig(
+    base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_position=(3.2, 3.2, 3.2),
@@ -27,36 +27,33 @@ if __name__ == "__main__":
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    stretched_pyramid_config = ModelConfig(
+    stretched_pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
         texture_paths={
             'diffuse': 'textures/diffuse/crystal.png',
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='embm',
-        **base_config.unpack()
+        shader_name='embm'
     )
 
-    rotating_pyramid_config = ModelConfig(
+    rotating_pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
         texture_paths={
             'diffuse': 'textures/diffuse/crystal.png',
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='default',
-        **base_config.unpack()
+        shader_name='default'
     )
 
-    water_config = SurfaceConfig(
-        shader_name='water',
-        **base_config.unpack()
+    water_config = base_config.add_surface(
+        shader_name='water'
     )
 
-    instance.add_renderer('model', **stretched_pyramid_config.unpack())
-    instance.add_renderer('model', **rotating_pyramid_config.unpack())
-    instance.add_renderer('surface', **water_config.unpack())
+    instance.add_renderer('model', **stretched_pyramid_config)
+    instance.add_renderer('model', **rotating_pyramid_config)
+    instance.add_renderer('surface', **water_config)
 
     # Example transformations
     instance.scene_construct.translate_renderer(0, (0, 1, 0))  # Translate first model
