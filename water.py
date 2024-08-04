@@ -15,7 +15,7 @@ if __name__ == "__main__":
         light_colors=[(1.0, 1.0, 1.0)],  # Light colors
         light_strengths=[1.0],  # Light strengths
         anisotropy=16.0,
-        auto_camera=True,
+        auto_camera=False,
         height_factor=0.8,  # Height factor for camera calculation
         distance_factor=0.5,  # Distance factor for camera calculation
         msaa_level=8
@@ -26,13 +26,13 @@ if __name__ == "__main__":
 
     water_config = base_config.add_surface(
         shader_name='water',
-        wave_speed=10.0,
-        wave_amplitude=0.1,
-        randomness=0.5,
-        tex_coord_frequency=100.0,
-        tex_coord_amplitude=0.1,
-        width=500.0,
-        height=500.0
+        wave_speed=6.0,
+        wave_amplitude=0.8,
+        randomness=400.0,
+        tex_coord_frequency=400.0,
+        tex_coord_amplitude=0.085,
+        width=50.0,
+        height=50.0,
     )
 
     instance.add_renderer('surface', **water_config)
