@@ -8,6 +8,7 @@ from components.abstract_renderer import AbstractRenderer
 
 class ModelRenderer(AbstractRenderer):
     def __init__(self, obj_path, texture_paths, shader_name, **kwargs):
+        super().__init__(**kwargs)
         self.obj_path = obj_path
         self.texture_paths = texture_paths
         self.shader_name = shader_name
@@ -16,13 +17,6 @@ class ModelRenderer(AbstractRenderer):
         self.vbos = []
         self.vaos = []
         self.model = glm.mat4(1)
-
-        renderer_kwargs = {k: v for k, v in kwargs.items() if k in {
-            'shaders', 'window_size', 'anisotropy', 'auto_camera', 'width', 'height', 'height_factor',
-            'distance_factor', 'cubemap_folder', 'rotation_speed', 'rotation_axis', 'lod_level', 'apply_tone_mapping',
-            'apply_gamma_correction', 'texture_lod_bias', 'env_map_lod_bias'
-        }}
-        super().__init__(**renderer_kwargs)
 
         self.camera_position = glm.vec3(*kwargs.get('camera_position', (0, 0, 0)))
         self.camera_target = glm.vec3(*kwargs.get('camera_target', (0, 0, 0)))
@@ -78,8 +72,8 @@ class ModelRenderer(AbstractRenderer):
         self.load_texture(self.texture_paths['displacement'], self.displacementMap)
 
         self.environmentMap = glGenTextures(1)
-        if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap)
+        if self.dynamic_attrs['cubemap_folder']:
+            self.load_cubemap(self.dynamic_attrs['cubemap_folder'], self.environmentMap)
 
         glUseProgram(self.shader_programs[self.shader_name])
 
@@ -117,7 +111,10 @@ class ModelRenderer(AbstractRenderer):
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'viewPosition'), 1,
                      glm.value_ptr(viewPosition))
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'lodLevel'), self.lod_level)
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'textureLodLevel'),
+                    self.dynamic_attrs['texture_lod_bias'])
+        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'envMapLodLevel'),
+                    self.dynamic_attrs['env_map_lod_bias'])
         glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyToneMapping'),
                     self.apply_tone_mapping)
         glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyGammaCorrection'),
