@@ -20,8 +20,8 @@ if __name__ == "__main__":
         distance_factor=2.0,
         msaa_level=8,
         culling=True,
-        texture_lod_bias=1.65,  # Set texture LOD bias here
-        env_map_lod_bias=2.0  # Set environment map LOD bias here
+        texture_lod_bias=0.75,  # Set texture LOD bias here
+        env_map_lod_bias=2.5  # Set environment map LOD bias here
     )
 
     instance = RenderingInstance(base_config)
@@ -35,13 +35,12 @@ if __name__ == "__main__":
             'displacement': 'textures/displacement/crystal.png'
         },
         shader_name='embm',
-        rotation_speed=2000.0,
+        rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        width=10.0,
-        height=10.0
     )
 
     instance.add_renderer('model', **pyramid_config)
+    instance.scene_construct.set_auto_rotation(0, True)  # Enable auto-rotation for second model
     instance.run()
