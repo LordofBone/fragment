@@ -6,38 +6,16 @@ from components.abstract_renderer import AbstractRenderer
 
 
 class SurfaceRenderer(AbstractRenderer):
-    def __init__(self, shader_name, wave_speed=0.03, wave_amplitude=0.1, randomness=0.5,
-                 tex_coord_frequency=100.0, tex_coord_amplitude=0.1, **kwargs):
-        self.shader_name = shader_name
-        self.wave_speed = wave_speed
-        self.wave_amplitude = wave_amplitude
-        self.randomness = randomness
-        self.tex_coord_frequency = tex_coord_frequency
-        self.tex_coord_amplitude = tex_coord_amplitude
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.shader_name = kwargs.get('shader_name')
         self.model = glm.mat4(1)
         self.environmentMap = None
 
-        # Extract renderer-specific arguments
-        renderer_kwargs = {k: v for k, v in kwargs.items() if k in {
-            'shaders', 'window_size', 'anisotropy', 'auto_camera', 'width', 'height', 'height_factor',
-            'distance_factor', 'cubemap_folder', 'rotation_speed', 'rotation_axis', 'lod_level', 'apply_tone_mapping',
-            'apply_gamma_correction'
-        }}
-        super().__init__(**renderer_kwargs)
-
-        self.camera_position = glm.vec3(*kwargs.get('camera_position', (0, 0, 0)))
-        self.camera_target = glm.vec3(*kwargs.get('camera_target', (0, 0, 0)))
-        self.up_vector = glm.vec3(*kwargs.get('up_vector', (0, 1, 0)))
-        self.fov = kwargs.get('fov', 45)
-        self.near_plane = kwargs.get('near_plane', 0.1)
-        self.far_plane = kwargs.get('far_plane', 100)
-        self.light_positions = [glm.vec3(*pos) for pos in kwargs.get('light_positions', [(3.0, 3.0, 3.0)])]
-        self.light_colors = [glm.vec3(*col) for col in kwargs.get('light_colors', [(1.0, 1.0, 1.0)])]
-        self.light_strengths = kwargs.get('light_strengths', [0.8])
-
     def create_buffers(self):
-        half_width = self.width / 2.0
-        half_height = self.height / 2.0
+        half_width = self.dynamic_attrs['width'] / 2.0
+        half_height = self.dynamic_attrs['height'] / 2.0
         vertices = [
             -half_width, 0.0, -half_height, 0.0, 1.0,
             half_width, 0.0, -half_height, 1.0, 1.0,
@@ -76,8 +54,8 @@ class SurfaceRenderer(AbstractRenderer):
 
     def load_textures(self):
         self.environmentMap = glGenTextures(1)
-        if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap)
+        if self.dynamic_attrs['cubemap_folder']:
+            self.load_cubemap(self.dynamic_attrs['cubemap_folder'], self.environmentMap)
 
     def render(self):
         glUseProgram(self.shader_programs[self.shader_name])
