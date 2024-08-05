@@ -63,14 +63,7 @@ class SurfaceRenderer(AbstractRenderer):
 
         self.apply_transformations()
         self.set_shader_uniforms(self.shader_name)
-
-        for i in range(len(self.light_positions)):
-            glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], f'lightPositions[{i}]'), 1,
-                         glm.value_ptr(self.light_positions[i]))
-            glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], f'lightColors[{i}]'), 1,
-                         glm.value_ptr(self.light_colors[i]))
-            glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], f'lightStrengths[{i}]'),
-                        self.light_strengths[i])
+        self.set_light_uniforms(self.shader_programs[self.shader_name])
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
