@@ -20,8 +20,8 @@ if __name__ == "__main__":
         distance_factor=2.0,
         msaa_level=8,
         culling=True,
-        texture_lod_bias=0.75,  # Set texture LOD bias here
-        env_map_lod_bias=2.5  # Set environment map LOD bias here
+        texture_lod_bias=0.85,
+        env_map_lod_bias=2.5,
     )
 
     instance = RenderingInstance(base_config)
