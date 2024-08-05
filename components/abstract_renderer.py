@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import glm
 import pygame
@@ -8,7 +8,19 @@ from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTRO
 from components.shader_engine import ShaderEngine
 
 
-class AbstractRenderer:
+def common_funcs(func):
+    def wrapper(self, *args, **kwargs):
+        glUseProgram(self.shader_programs[self.shader_name])
+        glEnable(GL_DEPTH_TEST)
+        self.apply_transformations()
+        self.set_shader_uniforms(self.shader_name)
+        self.set_light_uniforms(self.shader_programs[self.shader_name])
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
+class AbstractRenderer(ABC):
     def __init__(self, **kwargs):
         # Dynamically set attributes from kwargs
         self.dynamic_attrs = kwargs
