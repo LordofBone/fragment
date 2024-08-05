@@ -20,8 +20,8 @@ if __name__ == "__main__":
         distance_factor=0.5,  # Distance factor for camera calculation
         msaa_level=8,
         culling=True,
-        texture_lod_bias=1.0,  # Set texture LOD bias here
-        env_map_lod_bias=1.5  # Set environment map LOD bias here
+        texture_lod_bias=0.2,
+        env_map_lod_bias=1.5,
     )
 
     instance = RenderingInstance(base_config)
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='embm'
+        shader_name='embm',
     )
 
     rotating_pyramid_config = base_config.add_model(
@@ -44,11 +44,19 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='default'
+        shader_name='default',
+        rotation_speed=2000.0,
     )
 
     water_config = base_config.add_surface(
-        shader_name='water'
+        shader_name='water',
+        wave_speed=6.0,
+        wave_amplitude=0.8,
+        randomness=400.0,
+        tex_coord_frequency=400.0,
+        tex_coord_amplitude=0.085,
+        width=50.0,
+        height=50.0,
     )
 
     instance.add_renderer('model', **stretched_pyramid_config)
@@ -56,11 +64,12 @@ if __name__ == "__main__":
     instance.add_renderer('surface', **water_config)
 
     # Example transformations
-    instance.scene_construct.translate_renderer(0, (0, 1, 0))  # Translate first model
+    instance.scene_construct.translate_renderer(0, (-3, -3, 0))  # Translate first model
     instance.scene_construct.rotate_renderer(0, 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer(0, (1, 2, 1))  # Scale first model
 
     instance.scene_construct.translate_renderer(1, (2, 0, 0))  # Translate second model
+    instance.scene_construct.scale_renderer(1, (1, 2, 1))  # Scale first model
     instance.scene_construct.set_auto_rotation(1, True)  # Enable auto-rotation for second model
 
     instance.run()
