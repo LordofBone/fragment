@@ -2,7 +2,7 @@ import glm
 import numpy as np
 from OpenGL.GL import *
 
-from components.abstract_renderer import AbstractRenderer
+from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class SurfaceRenderer(AbstractRenderer):
@@ -57,14 +57,8 @@ class SurfaceRenderer(AbstractRenderer):
         if self.dynamic_attrs['cubemap_folder']:
             self.load_cubemap(self.dynamic_attrs['cubemap_folder'], self.environmentMap)
 
+    @common_funcs
     def render(self):
-        glUseProgram(self.shader_programs[self.shader_name])
-        glEnable(GL_DEPTH_TEST)
-
-        self.apply_transformations()
-        self.set_shader_uniforms(self.shader_name)
-        self.set_light_uniforms(self.shader_programs[self.shader_name])
-
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
         glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'environmentMap'), 0)

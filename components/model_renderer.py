@@ -3,7 +3,7 @@ import numpy as np
 import pywavefront
 from OpenGL.GL import *
 
-from components.abstract_renderer import AbstractRenderer
+from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ModelRenderer(AbstractRenderer):
@@ -93,6 +93,7 @@ class ModelRenderer(AbstractRenderer):
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
         glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'environmentMap'), 3)
 
+    @common_funcs
     def render(self):
         if self.culling:
             glEnable(GL_CULL_FACE)
@@ -100,13 +101,6 @@ class ModelRenderer(AbstractRenderer):
             glFrontFace(GL_CW)
         else:
             glDisable(GL_CULL_FACE)
-
-        glUseProgram(self.shader_programs[self.shader_name])
-        glEnable(GL_DEPTH_TEST)
-        self.set_light_uniforms(self.shader_programs[self.shader_name])
-
-        self.apply_transformations()
-        self.set_shader_uniforms(self.shader_name)
 
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'viewPosition'), 1,
