@@ -6,7 +6,7 @@ if __name__ == "__main__":
     base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
-        camera_position=(150.2, 150.2, 150.2),
+        camera_positions=[(150.2, 150.2, 150.2)],
         camera_target=(0, 0.75, 0),
         up_vector=(0, 1, 0),
         fov=40,
@@ -17,8 +17,6 @@ if __name__ == "__main__":
         light_strengths=[0.8, 0.5],
         anisotropy=16.0,
         auto_camera=False,
-        height_factor=1.5,
-        distance_factor=2.0,
         msaa_level=8,
         culling=False,
         texture_lod_bias=1.0,
@@ -42,8 +40,6 @@ if __name__ == "__main__":
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        width=10.0,
-        height=10.0
     )
 
     # Add the sphere renderer to the instance

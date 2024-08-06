@@ -28,8 +28,8 @@ float smoothNoise(vec2 p) {
     vec2 f = fract(p);
     f = f * f * (3.0 - 2.0 * f);
     return mix(mix(noise(i + vec2(0.0, 0.0)), noise(i + vec2(1.0, 0.0)), f.x),
-               mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
-               f.y);
+    mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
+    f.y);
 }
 
 void main()
@@ -39,7 +39,7 @@ void main()
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    vec3 normalMap = vec3(0.0, 0.0, 1.0); // Using a constant normal pointing up
+    vec3 normalMap = vec3(0.0, 0.0, 1.0);// Using a constant normal pointing up
     normalMap.xy += waveAmplitude * vec2(sin(waveTexCoords.y * 10.0), cos(waveTexCoords.x * 10.0));
     normalMap = normalize(normalMap);
 
@@ -50,13 +50,13 @@ void main()
 
     float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
 
-    vec3 baseColor = vec3(1.0, 0.3, 0.0); // Lava base color
-    vec3 brightColor = vec3(1.0, 0.7, 0.0); // Highlight color
+    vec3 baseColor = vec3(1.0, 0.3, 0.0);// Lava base color
+    vec3 brightColor = vec3(1.0, 0.7, 0.0);// Highlight color
 
     float noiseValue = smoothNoise(TexCoords * 5.0 + time * 0.5);
     vec3 color = mix(baseColor, brightColor, noiseValue);
 
-    color = mix(color, reflection, fresnel * 0.2); // Reduced reflectivity
+    color = mix(color, reflection, fresnel * 0.2);// Reduced reflectivity
 
     // Lighting calculations
     vec3 lighting = vec3(0.0);

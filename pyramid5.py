@@ -6,7 +6,7 @@ if __name__ == "__main__":
     base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
-        camera_position=(3.2, 3.2, 3.2),
+        camera_positions=[(3.2, 3.2, 3.2)],
         camera_target=(0, 0.75, 0),
         up_vector=(0, 1, 0),
         fov=40,
@@ -17,8 +17,6 @@ if __name__ == "__main__":
         light_strengths=[0.8, 0.5],
         anisotropy=16.0,
         auto_camera=False,
-        height_factor=1.5,
-        distance_factor=2.0,
         msaa_level=8,
         culling=True,
         texture_lod_bias=0.85,

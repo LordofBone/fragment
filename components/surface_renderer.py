@@ -10,8 +10,8 @@ class SurfaceRenderer(AbstractRenderer):
 
     def create_buffers(self):
         """Create buffers for the surface."""
-        half_width = self.width / 2.0
-        half_height = self.height / 2.0
+        half_width = self.dynamic_attrs['width'] / 2.0
+        half_height = self.dynamic_attrs['height'] / 2.0
         vertices = [
             -half_width, 0.0, -half_height, 0.0, 1.0,
             half_width, 0.0, -half_height, 1.0, 1.0,

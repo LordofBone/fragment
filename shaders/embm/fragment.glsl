@@ -15,8 +15,8 @@ uniform vec3 lightPositions[10];// Support for up to 10 lights
 uniform vec3 lightColors[10];
 uniform vec3 viewPosition;
 uniform float lightStrengths[10];// Strength for each light
-uniform float textureLodLevel; // LOD level for textures
-uniform float envMapLodLevel; // LOD level for environment map
+uniform float textureLodLevel;// LOD level for textures
+uniform float envMapLodLevel;// LOD level for environment map
 uniform bool applyToneMapping;// Enable/disable tone mapping
 uniform bool applyGammaCorrection;// Enable/disable gamma correction
 
