@@ -18,7 +18,7 @@ if __name__ == "__main__":
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
-        culling=False,
+        culling=True,
         texture_lod_bias=1.0,
         env_map_lod_bias=2.0
     )
