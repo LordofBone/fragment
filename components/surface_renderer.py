@@ -14,8 +14,8 @@ class SurfaceRenderer(AbstractRenderer):
         self.environmentMap = None
 
     def create_buffers(self):
-        half_width = self.dynamic_attrs['width'] / 2.0
-        half_height = self.dynamic_attrs['height'] / 2.0
+        half_width = self.width / 2.0
+        half_height = self.height / 2.0
         vertices = [
             -half_width, 0.0, -half_height, 0.0, 1.0,
             half_width, 0.0, -half_height, 1.0, 1.0,
@@ -54,8 +54,8 @@ class SurfaceRenderer(AbstractRenderer):
 
     def load_textures(self):
         self.environmentMap = glGenTextures(1)
-        if self.dynamic_attrs['cubemap_folder']:
-            self.load_cubemap(self.dynamic_attrs['cubemap_folder'], self.environmentMap)
+        if self.cubemap_folder:
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
     @common_funcs
     def render(self):

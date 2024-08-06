@@ -72,8 +72,8 @@ class ModelRenderer(AbstractRenderer):
         self.load_texture(self.texture_paths['displacement'], self.displacementMap)
 
         self.environmentMap = glGenTextures(1)
-        if self.dynamic_attrs['cubemap_folder']:
-            self.load_cubemap(self.dynamic_attrs['cubemap_folder'], self.environmentMap)
+        if self.cubemap_folder:
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
         glUseProgram(self.shader_programs[self.shader_name])
 
@@ -95,20 +95,13 @@ class ModelRenderer(AbstractRenderer):
 
     @common_funcs
     def render(self):
-        if self.culling:
-            glEnable(GL_CULL_FACE)
-            glCullFace(GL_BACK)
-            glFrontFace(GL_CW)
-        else:
-            glDisable(GL_CULL_FACE)
-
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'viewPosition'), 1,
                      glm.value_ptr(viewPosition))
         glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'textureLodLevel'),
-                    self.dynamic_attrs['texture_lod_bias'])
+                    self.texture_lod_bias)
         glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'envMapLodLevel'),
-                    self.dynamic_attrs['env_map_lod_bias'])
+                    self.env_map_lod_bias)
         glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyToneMapping'),
                     self.apply_tone_mapping)
         glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyGammaCorrection'),
@@ -124,6 +117,3 @@ class ModelRenderer(AbstractRenderer):
             glBindVertexArray(self.vaos[self.object.mesh_list.index(mesh)])
             glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
             glBindVertexArray(0)
-
-        if self.culling:
-            glDisable(GL_CULL_FACE)
