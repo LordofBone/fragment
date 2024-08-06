@@ -110,6 +110,9 @@ class AbstractRenderer(ABC):
         self.auto_camera = auto_camera
         self.window_size = window_size
 
+        self.vbos = []
+        self.vaos = []
+
     def setup(self):
         """Setup resources and initialize the renderer."""
         self.init_shaders()
