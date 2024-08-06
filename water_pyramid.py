@@ -7,10 +7,13 @@ if __name__ == "__main__":
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_positions=[
-            (6.0, 6.0, 6.0),
-            (2, 5.2, 5.2),
-            (5.2, 2, 5.2),
-            (5.2, 5.2, 2),
+            (10.0, 10.0, 10.0),  # Initial position
+            (6.0, 6.0, 6.0),  # Zoom in
+            (4.0, 4.0, 10.0),  # Rotate around
+            (0.0, 6.0, 6.0),  # Rotate around
+            (4.0, 10.0, 4.0),  # Rotate around
+            (6.0, 6.0, 6.0),  # Zoom out to origin
+            (10.0, 10.0, 10.0),  # Back to initial
         ],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
