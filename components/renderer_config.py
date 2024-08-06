@@ -4,10 +4,9 @@ import os
 class RendererConfig:
     def __init__(self, window_size=(800, 600), cubemap_folder=None, camera_position=(3.2, 3.2, 3.2),
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), rotation_axis=(0, 3, 0), fov=40, near_plane=0.1,
-                 far_plane=1000,
-                 light_positions=None, light_colors=None, light_strengths=None,
-                 anisotropy=16.0, auto_camera=False, height_factor=1.5, distance_factor=2.0, msaa_level=8,
-                 culling=True, texture_lod_bias=0.0, env_map_lod_bias=0.0, shaders=None):
+                 far_plane=1000, light_positions=None, light_colors=None, light_strengths=None, anisotropy=16.0,
+                 auto_camera=False, height_factor=1.5, distance_factor=2.0, msaa_level=8, culling=True,
+                 texture_lod_bias=0.0, env_map_lod_bias=0.0, shaders=None):
         if light_strengths is None:
             light_strengths = [0.8]
         if light_colors is None:
@@ -40,6 +39,7 @@ class RendererConfig:
         self.discover_shaders()
 
     def discover_shaders(self):
+        """Discover shaders in the shaders directory."""
         shader_root = os.path.abspath(os.path.join('shaders'))
         if not os.path.exists(shader_root):
             raise FileNotFoundError(f"The shader root directory '{shader_root}' does not exist.")
@@ -56,12 +56,13 @@ class RendererConfig:
                     }
 
     def unpack(self):
+        """Unpack the configuration into a dictionary."""
         return self.__dict__
 
-    def add_model(self, obj_path, texture_paths, shader_name='default', rotation_speed=0.0,
-                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, width=10.0,
-                  height=10.0, wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
-                  tex_coord_frequency=100.0, tex_coord_amplitude=0.1, **kwargs):
+    def add_model(self, obj_path, texture_paths, shader_name='default', rotation_speed=0.0, rotation_axis=(0, 3, 0),
+                  apply_tone_mapping=False, apply_gamma_correction=False, width=10.0, height=10.0, wave_speed=10.0,
+                  wave_amplitude=0.1, randomness=0.8, tex_coord_frequency=100.0, tex_coord_amplitude=0.1, **kwargs):
+        """Add a model to the configuration."""
         model_config = {
             'obj_path': obj_path,
             'texture_paths': texture_paths,
@@ -83,8 +84,10 @@ class RendererConfig:
         return model_config
 
     def add_surface(self, shader_name='default', wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
-                    rotation_speed=0.0, apply_tone_mapping=False, apply_gamma_correction=False,
-                    tex_coord_frequency=100.0, tex_coord_amplitude=0.1, width=500.0, height=500.0, **kwargs):
+                    rotation_speed=0.0,
+                    apply_tone_mapping=False, apply_gamma_correction=False, tex_coord_frequency=100.0,
+                    tex_coord_amplitude=0.1, width=500.0, height=500.0, **kwargs):
+        """Add a surface to the configuration."""
         surface_config = {
             'shader_name': shader_name,
             'rotation_speed': rotation_speed,

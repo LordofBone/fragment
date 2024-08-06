@@ -9,6 +9,7 @@ class SurfaceRenderer(AbstractRenderer):
         super().__init__(shader_name=shader_name, **kwargs)
 
     def create_buffers(self):
+        """Create buffers for the surface."""
         half_width = self.width / 2.0
         half_height = self.height / 2.0
         vertices = [
@@ -48,12 +49,14 @@ class SurfaceRenderer(AbstractRenderer):
         glBindVertexArray(0)
 
     def load_textures(self):
+        """Load textures for the surface."""
         self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
             self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
     @common_funcs
     def render(self):
+        """Render the surface."""
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
         glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 0)

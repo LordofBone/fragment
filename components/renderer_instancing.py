@@ -11,10 +11,12 @@ class RenderingInstance:
         self.scene_construct = SceneConstructor()
 
     def setup(self):
+        """Setup the rendering window."""
         self.render_window = RendererWindow(window_size=self.config.window_size, title="Renderer",
                                             msaa_level=self.config.msaa_level)
 
     def add_renderer(self, renderer_type, **params):
+        """Add a renderer to the instance."""
         if renderer_type == 'model':
             renderer = ModelRenderer(**params)
         elif renderer_type == 'surface':
@@ -24,6 +26,7 @@ class RenderingInstance:
         self.scene_construct.add_renderer(renderer)
 
     def run(self):
+        """Run the rendering loop."""
         for renderer in self.scene_construct.renderers:
             renderer.setup()
 

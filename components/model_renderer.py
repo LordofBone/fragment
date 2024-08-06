@@ -14,6 +14,7 @@ class ModelRenderer(AbstractRenderer):
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
     def create_buffers(self):
+        """Create buffers for the model."""
         for name, material in self.object.materials.items():
             self.vertices = material.vertices
             vertices_array = np.array(self.vertices, dtype=np.float32)
@@ -47,6 +48,7 @@ class ModelRenderer(AbstractRenderer):
             glBindVertexArray(0)
 
     def load_textures(self):
+        """Load textures for the model."""
         self.diffuseMap = glGenTextures(1)
         self.load_texture(self.texture_paths['diffuse'], self.diffuseMap)
 
@@ -80,6 +82,7 @@ class ModelRenderer(AbstractRenderer):
 
     @common_funcs
     def render(self):
+        """Render the model."""
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
 
