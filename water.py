@@ -18,7 +18,7 @@ if __name__ == "__main__":
         auto_camera=False,
         height_factor=0.8,  # Height factor for camera calculation
         distance_factor=0.5,  # Distance factor for camera calculation
-        msaa_level=8
+        msaa_level=8,
     )
 
     instance = RenderingInstance(base_config)

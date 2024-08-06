@@ -21,7 +21,7 @@ if __name__ == "__main__":
         msaa_level=8,
         culling=False,
         texture_lod_bias=1.0,  # Set texture LOD bias here
-        env_map_lod_bias=0.0  # Set environment map LOD bias here
+        env_map_lod_bias=0.0,  # Set environment map LOD bias here
     )
 
     instance = RenderingInstance(base_config)
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         width=10.0,
-        height=10.0
+        height=10.0,
     )
 
     instance.add_renderer('model', **tyre_config)
