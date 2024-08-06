@@ -12,21 +12,7 @@ class ModelRenderer(AbstractRenderer):
         self.obj_path = obj_path
         self.texture_paths = texture_paths
         self.shader_name = shader_name
-        self.culling = kwargs.get('culling', True)
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
-        self.vbos = []
-        self.vaos = []
-        self.model = glm.mat4(1)
-
-        self.camera_position = glm.vec3(*kwargs.get('camera_position', (0, 0, 0)))
-        self.camera_target = glm.vec3(*kwargs.get('camera_target', (0, 0, 0)))
-        self.up_vector = glm.vec3(*kwargs.get('up_vector', (0, 1, 0)))
-        self.fov = kwargs.get('fov', 45)
-        self.near_plane = kwargs.get('near_plane', 0.1)
-        self.far_plane = kwargs.get('far_plane', 100)
-        self.light_positions = [glm.vec3(*pos) for pos in kwargs.get('light_positions', [(3.0, 3.0, 3.0)])]
-        self.light_colors = [glm.vec3(*col) for col in kwargs.get('light_colors', [(1.0, 1.0, 1.0)])]
-        self.light_strengths = kwargs.get('light_strengths', [0.8])
 
     def create_buffers(self):
         for name, material in self.object.materials.items():

@@ -1,4 +1,3 @@
-import glm
 import numpy as np
 from OpenGL.GL import *
 
@@ -10,8 +9,6 @@ class SurfaceRenderer(AbstractRenderer):
         super().__init__(**kwargs)
 
         self.shader_name = kwargs.get('shader_name')
-        self.model = glm.mat4(1)
-        self.environmentMap = None
 
     def create_buffers(self):
         half_width = self.width / 2.0
