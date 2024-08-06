@@ -49,11 +49,17 @@ class RendererConfig:
             if os.path.isdir(dir_path):
                 vertex_shader_path = os.path.join(dir_path, 'vertex.glsl')
                 fragment_shader_path = os.path.join(dir_path, 'fragment.glsl')
+                tess_control_shader_path = os.path.join(dir_path, 'tess_control.glsl')
+                tess_eval_shader_path = os.path.join(dir_path, 'tess_eval.glsl')
+
+                shader_paths = {'vertex': vertex_shader_path, 'fragment': fragment_shader_path}
+                if os.path.exists(tess_control_shader_path):
+                    shader_paths['tess_control'] = tess_control_shader_path
+                if os.path.exists(tess_eval_shader_path):
+                    shader_paths['tess_eval'] = tess_eval_shader_path
+
                 if os.path.exists(vertex_shader_path) and os.path.exists(fragment_shader_path):
-                    self.shaders[shader_dir] = {
-                        'vertex': vertex_shader_path,
-                        'fragment': fragment_shader_path
-                    }
+                    self.shaders[shader_dir] = shader_paths
 
     def unpack(self):
         """Unpack the configuration into a dictionary."""
