@@ -22,7 +22,7 @@ if __name__ == "__main__":
         light_strengths=[1.0],
         anisotropy=16.0,
         auto_camera=True,
-        move_speed=0.4,
+        move_speed=0.2,
         loop=True,
         msaa_level=8,
         culling=True,
