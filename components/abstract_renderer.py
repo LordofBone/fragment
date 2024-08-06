@@ -5,6 +5,7 @@ import pygame
 from OpenGL.GL import *
 from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
 
+from components.camera_control import CameraController
 from components.shader_engine import ShaderEngine
 
 
@@ -38,12 +39,11 @@ def common_funcs(func):
 
 class AbstractRenderer(ABC):
     def __init__(self, shader_name, shaders=None, cubemap_folder='textures/cube/night_sky_egypt/',
-                 camera_position=(0, 0, 0), camera_target=(0, 0, 0), up_vector=(0, 1, 0),
-                 fov=45, near_plane=0.1, far_plane=100, light_positions=None, light_colors=None,
-                 light_strengths=None, rotation_speed=2000.0, rotation_axis=(0, 3, 0), apply_tone_mapping=False,
-                 apply_gamma_correction=False, texture_lod_bias=0.0, env_map_lod_bias=0.0, culling=True, msaa_level=8,
-                 anisotropy=16.0, width=10.0, height=10.0, height_factor=1.5, distance_factor=2.0, auto_camera=False,
-                 window_size=(800, 600), **kwargs):
+                 camera_positions=None, camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1,
+                 far_plane=100, light_positions=None, light_colors=None, light_strengths=None, rotation_speed=2000.0,
+                 rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, texture_lod_bias=0.0,
+                 env_map_lod_bias=0.0, culling=True, msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0,
+                 loop=True, window_size=(800, 600), **kwargs):
 
         if light_strengths is None:
             light_strengths = [0.8]
@@ -57,7 +57,7 @@ class AbstractRenderer(ABC):
         self.shader_name = shader_name
         self.shaders = shaders or {}
         self.cubemap_folder = cubemap_folder
-        self.camera_position = glm.vec3(*camera_position)
+        self.camera_positions = camera_positions or [(0, 0, 0)]
         self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
         self.fov = fov
@@ -81,17 +81,20 @@ class AbstractRenderer(ABC):
         self.culling = culling
         self.msaa_level = msaa_level
         self.anisotropy = anisotropy
-        self.width = width
-        self.height = height
-        self.height_factor = height_factor
-        self.distance_factor = distance_factor
         self.auto_camera = auto_camera
+        self.move_speed = move_speed
+        self.loop = loop
         self.window_size = window_size
 
         self.vbos = []
         self.vaos = []
 
         self.shader_program = None
+
+        if self.auto_camera:
+            self.camera_controller = CameraController(self.camera_positions, self.move_speed, self.loop)
+        else:
+            self.camera_position = glm.vec3(*self.camera_positions[0])
 
     def setup(self):
         """Setup resources and initialize the renderer."""
@@ -148,18 +151,11 @@ class AbstractRenderer(ABC):
     def setup_camera(self):
         """Setup the camera view and projection matrices."""
         if self.auto_camera:
-            self.camera_position = glm.vec3(*self.calculate_camera_position_for_object_size(
-                self.width, self.height, self.height_factor, self.distance_factor))
+            self.camera_position = self.camera_controller.update(0)  # Initialize the first camera position
+            self.camera_target = self.camera_controller.get_current_target()
         aspect_ratio = self.window_size[0] / self.window_size[1]
         self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
-
-    @staticmethod
-    def calculate_camera_position_for_object_size(width, height, height_factor=1.5, distance_factor=2.0):
-        """Calculate camera position for a large surface."""
-        camera_height = max(width, height) * height_factor
-        camera_distance = max(width, height) * distance_factor
-        return camera_distance, camera_height, camera_distance
 
     def set_light_uniforms(self, shader_program):
         """Set light uniforms for the shader program."""
@@ -240,6 +236,12 @@ class AbstractRenderer(ABC):
                     self.dynamic_attrs.get('tex_coord_amplitude', 0.1))
         glUniform3fv(glGetUniformLocation(self.shader_program, 'cameraPos'), 1, glm.value_ptr(self.camera_position))
         glUniform1f(glGetUniformLocation(self.shader_program, 'time'), pygame.time.get_ticks() / 1000.0)
+
+    def update_camera(self, delta_time):
+        if self.auto_camera:
+            self.camera_position = self.camera_controller.update(delta_time)
+            self.camera_target = self.camera_controller.get_current_target()
+        self.setup_camera()
 
     @abstractmethod
     def create_buffers(self):
