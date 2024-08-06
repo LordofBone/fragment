@@ -82,10 +82,6 @@ class ModelRenderer(AbstractRenderer):
     def render(self):
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'textureLodLevel'), self.texture_lod_bias)
-        glUniform1f(glGetUniformLocation(self.shader_program, 'envMapLodLevel'), self.env_map_lod_bias)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'applyGammaCorrection'), self.apply_gamma_correction)
 
         for mesh in self.object.mesh_list:
             material = self.object.materials['Material']

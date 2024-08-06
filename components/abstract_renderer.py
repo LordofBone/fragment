@@ -122,6 +122,7 @@ class AbstractRenderer(ABC):
         self.create_buffers()
         self.load_textures()
         self.setup_camera()
+        self.set_constant_uniforms()
 
     def init_shaders(self):
         if self.shader_name in self.shaders:
@@ -224,6 +225,13 @@ class AbstractRenderer(ABC):
 
     def enable_auto_rotation(self, enabled):
         self.auto_rotation_enabled = enabled
+
+    def set_constant_uniforms(self):
+        glUseProgram(self.shader_program)
+        glUniform1f(glGetUniformLocation(self.shader_program, 'textureLodLevel'), self.texture_lod_bias)
+        glUniform1f(glGetUniformLocation(self.shader_program, 'envMapLodLevel'), self.env_map_lod_bias)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'applyGammaCorrection'), self.apply_gamma_correction)
 
     def set_shader_uniforms(self):
         glUseProgram(self.shader_program)
