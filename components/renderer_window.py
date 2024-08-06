@@ -14,6 +14,7 @@ class RendererWindow:
         self.clock = pygame.time.Clock()
 
     def setup_pygame(self):
+        """Setup Pygame for OpenGL rendering."""
         pygame.init()
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, self.msaa_level)
@@ -25,6 +26,7 @@ class RendererWindow:
         glEnable(GL_MULTISAMPLE)
 
     def draw_fps(self):
+        """Draw the FPS on the screen."""
         fps = str(int(self.clock.get_fps()))
         fps_surface = self.font.render(fps, True, pygame.Color('white'))
         fps_data = pygame.image.tostring(fps_surface, "RGBA", True)
@@ -38,6 +40,7 @@ class RendererWindow:
         glDisable(GL_BLEND)
 
     def mainloop(self, render_callback):
+        """Main rendering loop."""
         glEnable(GL_DEPTH_TEST)
         while True:
             for event in pygame.event.get():
