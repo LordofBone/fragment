@@ -15,11 +15,11 @@ uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform vec3 viewPosition;
 uniform float lightStrengths[10];
-uniform float textureLodLevel; // LOD level for textures
-uniform float envMapLodLevel; // LOD level for environment map
+uniform float textureLodLevel;// LOD level for textures
+uniform float envMapLodLevel;// LOD level for environment map
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform float transparency; // Configurable transparency
+uniform float transparency;// Configurable transparency
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -33,7 +33,7 @@ vec3 Uncharted2Tonemap(vec3 x) {
 }
 
 vec3 toneMapping(vec3 color) {
-    vec3 curr = Uncharted2Tonemap(color * 2.0); // Pre-exposure
+    vec3 curr = Uncharted2Tonemap(color * 2.0);// Pre-exposure
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(11.2));
     return curr * whiteScale;
 }
@@ -47,7 +47,7 @@ void main()
 
     vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 reflectDir = reflect(viewDir, normal);
-    vec3 refractDir = refract(viewDir, normal, 1.0 / 1.33); // Refractive index for stealth effect
+    vec3 refractDir = refract(viewDir, normal, 1.0 / 1.33);// Refractive index for stealth effect
 
     vec3 envColorReflect = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
     vec3 envColorRefract = textureLod(environmentMap, refractDir, envMapLodLevel).rgb;
@@ -68,7 +68,7 @@ void main()
         specular += spec * lightColors[i] * lightStrengths[i];
     }
 
-    vec3 result = mix(envColorRefract, envColorReflect, 0.5) * 0.6 + diffuse + specular * 0.1; // Blend reflection and refraction for stealth effect
+    vec3 result = mix(envColorRefract, envColorReflect, 0.5) * 0.6 + diffuse + specular * 0.1;// Blend reflection and refraction for stealth effect
 
     if (applyToneMapping) {
         result = toneMapping(result);
@@ -80,5 +80,5 @@ void main()
 
     result = clamp(result, 0.0, 1.0);
 
-    FragColor = vec4(result, transparency); // Use configurable transparency
+    FragColor = vec4(result, transparency);// Use configurable transparency
 }
