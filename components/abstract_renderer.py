@@ -12,40 +12,103 @@ def common_funcs(func):
     def wrapper(self, *args, **kwargs):
         glUseProgram(self.shader_programs[self.shader_name])
         glEnable(GL_DEPTH_TEST)
+
+        # Culling setup
+        if self.culling:
+            glEnable(GL_CULL_FACE)
+            glCullFace(GL_BACK)
+            glFrontFace(GL_CW)
+        else:
+            glDisable(GL_CULL_FACE)
+
         self.apply_transformations()
         self.set_shader_uniforms(self.shader_name)
         self.set_light_uniforms(self.shader_programs[self.shader_name])
-        return func(self, *args, **kwargs)
+
+        result = func(self, *args, **kwargs)
+
+        # Culling teardown
+        if self.culling:
+            glDisable(GL_CULL_FACE)
+
+        return result
 
     return wrapper
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, **kwargs):
-        # Dynamically set attributes from kwargs
+    def __init__(
+            self,
+            shaders=None,
+            cubemap_folder='textures/cube/night_sky_egypt/',
+            camera_position=(0, 0, 0),
+            camera_target=(0, 0, 0),
+            up_vector=(0, 1, 0),
+            fov=45,
+            near_plane=0.1,
+            far_plane=100,
+            light_positions=None,
+            light_colors=None,
+            light_strengths=None,
+            rotation_speed=2000.0,
+            rotation_axis=(0, 3, 0),
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
+            texture_lod_bias=0.0,
+            env_map_lod_bias=0.0,
+            culling=True,
+            msaa_level=8,
+            anisotropy=16.0,
+            width=10.0,
+            height=10.0,
+            height_factor=1.5,
+            distance_factor=2.0,
+            auto_camera=False,
+            window_size=(800, 600),
+            **kwargs):
+
+        if light_strengths is None:
+            light_strengths = [0.8]
+        if light_colors is None:
+            light_colors = [(1.0, 1.0, 1.0)]
+        if light_positions is None:
+            light_positions = [(3.0, 3.0, 3.0)]
+
         self.dynamic_attrs = kwargs
 
         self.shader_programs = {}
-        self.camera_position = glm.vec3(*kwargs.get('camera_position', (0, 0, 0)))
-        self.camera_target = glm.vec3(*kwargs.get('camera_target', (0, 0, 0)))
-        self.up_vector = glm.vec3(*kwargs.get('up_vector', (0, 1, 0)))
-        self.fov = kwargs.get('fov', 45)
-        self.near_plane = kwargs.get('near_plane', 0.1)
-        self.far_plane = kwargs.get('far_plane', 100)
-        self.light_positions = [glm.vec3(*pos) for pos in kwargs.get('light_positions', [(3.0, 3.0, 3.0)])]
-        self.light_colors = [glm.vec3(*col) for col in kwargs.get('light_colors', [(1.0, 1.0, 1.0)])]
-        self.light_strengths = kwargs.get('light_strengths', [0.8])
-        self.rotation = glm.vec3(0.0)
-        self.rotation_speed = self.dynamic_attrs['rotation_speed']
-        self.rotation_axis = glm.vec3(*self.dynamic_attrs['rotation_axis'])
-        self.apply_tone_mapping = self.dynamic_attrs['apply_tone_mapping']
-        self.apply_gamma_correction = self.dynamic_attrs['apply_gamma_correction']
+        self.shaders = shaders or {}
+        self.cubemap_folder = cubemap_folder
+        self.camera_position = glm.vec3(*camera_position)
+        self.camera_target = glm.vec3(*camera_target)
+        self.up_vector = glm.vec3(*up_vector)
+        self.fov = fov
+        self.near_plane = near_plane
+        self.far_plane = far_plane
+        self.light_positions = [glm.vec3(*pos) for pos in light_positions]
+        self.light_colors = [glm.vec3(*col) for col in light_colors]
+        self.light_strengths = light_strengths
+        self.rotation_speed = rotation_speed
+        self.rotation_axis = glm.vec3(*rotation_axis)
+        self.apply_tone_mapping = apply_tone_mapping
+        self.apply_gamma_correction = apply_gamma_correction
         self.model_matrix = glm.mat4(1)
         self.manual_transformations = glm.mat4(1)
         self.translation = glm.vec3(0.0)
         self.rotation = glm.vec3(0.0)
         self.scaling = glm.vec3(1.0)
-        self.auto_rotation_enabled = False if self.dynamic_attrs['rotation_speed'] == 0.0 else True
+        self.auto_rotation_enabled = False if rotation_speed == 0.0 else True
+        self.texture_lod_bias = texture_lod_bias
+        self.env_map_lod_bias = env_map_lod_bias
+        self.culling = culling
+        self.msaa_level = msaa_level
+        self.anisotropy = anisotropy
+        self.width = width
+        self.height = height
+        self.height_factor = height_factor
+        self.distance_factor = distance_factor
+        self.auto_camera = auto_camera
+        self.window_size = window_size
 
     def setup(self):
         """Setup resources and initialize the renderer."""
@@ -55,7 +118,7 @@ class AbstractRenderer(ABC):
         self.setup_camera()
 
     def init_shaders(self):
-        for name, paths in self.dynamic_attrs['shaders'].items():
+        for name, paths in self.shaders.items():
             shader_engine = ShaderEngine(paths['vertex'], paths['fragment'])
             shader_engine.init_shaders()
             self.shader_programs[name] = shader_engine.shader_program
@@ -71,9 +134,9 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.dynamic_attrs['anisotropy'])
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS,
-                        self.dynamic_attrs['texture_lod_bias'])  # Set texture LOD bias
+                        self.texture_lod_bias)  # Set texture LOD bias
 
     def load_cubemap(self, folder_path, texture):
         faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
@@ -89,20 +152,20 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
-        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.dynamic_attrs['anisotropy'])
+        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS,
-                        self.dynamic_attrs['env_map_lod_bias'])  # Set env map LOD bias
+                        self.env_map_lod_bias)  # Set env map LOD bias
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
 
     def setup_camera(self):
-        if self.dynamic_attrs['auto_camera']:
+        if self.auto_camera:
             self.camera_position = glm.vec3(*self.calculate_camera_position_for_object_size(
-                self.dynamic_attrs['width'], self.dynamic_attrs['height'], self.dynamic_attrs['height_factor'],
-                self.dynamic_attrs['distance_factor']))
-        aspect_ratio = self.dynamic_attrs['window_size'][0] / self.dynamic_attrs['window_size'][1]
-        self.dynamic_attrs['view'] = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
-        self.dynamic_attrs['projection'] = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane,
-                                                           self.far_plane)
+                self.width, self.height, self.height_factor,
+                self.distance_factor))
+        aspect_ratio = self.window_size[0] / self.window_size[1]
+        self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
+        self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane,
+                                          self.far_plane)
 
     @staticmethod
     def calculate_camera_position_for_object_size(width, height, height_factor=1.5, distance_factor=2.0):
@@ -144,10 +207,10 @@ class AbstractRenderer(ABC):
 
     def apply_transformations(self):
         if self.auto_rotation_enabled:
-            if self.dynamic_attrs['rotation_speed'] != 0.0:
+            if self.rotation_speed != 0.0:
                 rotation_matrix = glm.rotate(glm.mat4(1),
-                                             pygame.time.get_ticks() / self.dynamic_attrs['rotation_speed'],
-                                             self.dynamic_attrs['rotation_axis'])
+                                             pygame.time.get_ticks() / self.rotation_speed,
+                                             self.rotation_axis)
                 self.model_matrix = self.manual_transformations * rotation_matrix
             else:
                 self.auto_rotation_enabled = False
@@ -163,9 +226,9 @@ class AbstractRenderer(ABC):
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'model'), 1, GL_FALSE,
                            glm.value_ptr(self.model_matrix))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'view'), 1, GL_FALSE,
-                           glm.value_ptr(self.dynamic_attrs['view']))
+                           glm.value_ptr(self.view))
         glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'projection'), 1, GL_FALSE,
-                           glm.value_ptr(self.dynamic_attrs['projection']))
+                           glm.value_ptr(self.projection))
         glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'waveSpeed'),
                     self.dynamic_attrs['wave_speed'])
         glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'waveAmplitude'),
