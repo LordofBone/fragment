@@ -2,6 +2,7 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
+    # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
@@ -24,9 +25,11 @@ if __name__ == "__main__":
         env_map_lod_bias=2.5,
     )
 
+    # Create the rendering instance with the base configuration
     instance = RenderingInstance(base_config)
     instance.setup()
 
+    # Define the configuration for the pyramid model
     pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
         texture_paths={
@@ -41,6 +44,11 @@ if __name__ == "__main__":
         apply_gamma_correction=False,
     )
 
+    # Add the pyramid renderer to the instance
     instance.add_renderer('model', **pyramid_config)
-    instance.scene_construct.set_auto_rotation(0, True)  # Enable auto-rotation for second model
+
+    # Enable auto-rotation for the pyramid model
+    instance.scene_construct.set_auto_rotation(0, True)
+
+    # Run the rendering instance
     instance.run()

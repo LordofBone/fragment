@@ -2,6 +2,7 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 if __name__ == "__main__":
+    # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
@@ -20,13 +21,15 @@ if __name__ == "__main__":
         distance_factor=2.0,
         msaa_level=8,
         culling=False,
-        texture_lod_bias=1.0,  # Set texture LOD bias here
-        env_map_lod_bias=2.0  # Set environment map LOD bias here
+        texture_lod_bias=1.0,
+        env_map_lod_bias=2.0
     )
 
+    # Create the rendering instance with the base configuration
     instance = RenderingInstance(base_config)
     instance.setup()
 
+    # Define the configuration for the sphere model
     sphere_config = base_config.add_model(
         obj_path="models/sphere.obj",
         texture_paths={
@@ -43,5 +46,8 @@ if __name__ == "__main__":
         height=10.0
     )
 
+    # Add the sphere renderer to the instance
     instance.add_renderer('model', **sphere_config)
+
+    # Run the rendering instance
     instance.run()
