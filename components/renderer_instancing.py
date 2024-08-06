@@ -30,7 +30,9 @@ class RenderingInstance:
         for renderer in self.scene_construct.renderers:
             renderer.setup()
 
-        def render_callback():
+        def render_callback(delta_time):
+            for renderer in self.scene_construct.renderers:
+                renderer.update_camera(delta_time)
             self.scene_construct.render()
 
         self.render_window.mainloop(render_callback)
