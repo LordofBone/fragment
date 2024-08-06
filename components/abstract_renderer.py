@@ -10,7 +10,7 @@ from components.shader_engine import ShaderEngine
 
 def common_funcs(func):
     def wrapper(self, *args, **kwargs):
-        glUseProgram(self.shader_programs[self.shader_name])
+        glUseProgram(self.shader_program)
         glEnable(GL_DEPTH_TEST)
 
         # Culling setup
@@ -22,8 +22,8 @@ def common_funcs(func):
             glDisable(GL_CULL_FACE)
 
         self.apply_transformations()
-        self.set_shader_uniforms(self.shader_name)
-        self.set_light_uniforms(self.shader_programs[self.shader_name])
+        self.set_shader_uniforms()
+        self.set_light_uniforms(self.shader_program)
 
         result = func(self, *args, **kwargs)
 
@@ -78,7 +78,6 @@ class AbstractRenderer(ABC):
         self.dynamic_attrs = kwargs
 
         self.shader_name = shader_name
-        self.shader_programs = {}
         self.shaders = shaders or {}
         self.cubemap_folder = cubemap_folder
         self.camera_position = glm.vec3(*camera_position)
@@ -115,6 +114,8 @@ class AbstractRenderer(ABC):
         self.vbos = []
         self.vaos = []
 
+        self.shader_program = None
+
     def setup(self):
         """Setup resources and initialize the renderer."""
         self.init_shaders()
@@ -123,10 +124,13 @@ class AbstractRenderer(ABC):
         self.setup_camera()
 
     def init_shaders(self):
-        for name, paths in self.shaders.items():
+        if self.shader_name in self.shaders:
+            paths = self.shaders[self.shader_name]
             shader_engine = ShaderEngine(paths['vertex'], paths['fragment'])
             shader_engine.init_shaders()
-            self.shader_programs[name] = shader_engine.shader_program
+            self.shader_program = shader_engine.shader_program
+        else:
+            raise RuntimeError(f"Shader '{self.shader_name}' not found in provided shaders.")
 
     def load_texture(self, path, texture):
         surface = pygame.image.load(path)
@@ -221,27 +225,23 @@ class AbstractRenderer(ABC):
     def enable_auto_rotation(self, enabled):
         self.auto_rotation_enabled = enabled
 
-    def set_shader_uniforms(self, shader_name):
-        glUseProgram(self.shader_programs[shader_name])
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'model'), 1, GL_FALSE,
+    def set_shader_uniforms(self):
+        glUseProgram(self.shader_program)
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'model'), 1, GL_FALSE,
                            glm.value_ptr(self.model_matrix))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'view'), 1, GL_FALSE,
-                           glm.value_ptr(self.view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_programs[shader_name], 'projection'), 1, GL_FALSE,
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(self.view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
                            glm.value_ptr(self.projection))
-        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'waveSpeed'),
-                    self.dynamic_attrs['wave_speed'])
-        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'waveAmplitude'),
-                    self.dynamic_attrs['wave_amplitude'])
-        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'randomness'),
-                    self.dynamic_attrs['randomness'])
-        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'texCoordFrequency'),
-                    self.dynamic_attrs['tex_coord_frequency'])
-        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'texCoordAmplitude'),
-                    self.dynamic_attrs['tex_coord_amplitude'])
-        glUniform3fv(glGetUniformLocation(self.shader_programs[shader_name], 'cameraPos'), 1,
-                     glm.value_ptr(self.camera_position))
-        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'time'), pygame.time.get_ticks() / 1000.0)
+        glUniform1f(glGetUniformLocation(self.shader_program, 'waveSpeed'), self.dynamic_attrs.get('wave_speed', 10.0))
+        glUniform1f(glGetUniformLocation(self.shader_program, 'waveAmplitude'),
+                    self.dynamic_attrs.get('wave_amplitude', 0.1))
+        glUniform1f(glGetUniformLocation(self.shader_program, 'randomness'), self.dynamic_attrs.get('randomness', 0.8))
+        glUniform1f(glGetUniformLocation(self.shader_program, 'texCoordFrequency'),
+                    self.dynamic_attrs.get('tex_coord_frequency', 100.0))
+        glUniform1f(glGetUniformLocation(self.shader_program, 'texCoordAmplitude'),
+                    self.dynamic_attrs.get('tex_coord_amplitude', 0.1))
+        glUniform3fv(glGetUniformLocation(self.shader_program, 'cameraPos'), 1, glm.value_ptr(self.camera_position))
+        glUniform1f(glGetUniformLocation(self.shader_program, 'time'), pygame.time.get_ticks() / 1000.0)
 
     @abstractmethod
     def create_buffers(self):

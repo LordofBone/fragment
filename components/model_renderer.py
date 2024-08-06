@@ -29,9 +29,9 @@ class ModelRenderer(AbstractRenderer):
             float_size = 4
             vertex_stride = 8 * float_size
 
-            position_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "position")
-            tex_coords_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "textureCoords")
-            normal_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "normal")
+            position_loc = glGetAttribLocation(self.shader_program, "position")
+            tex_coords_loc = glGetAttribLocation(self.shader_program, "textureCoords")
+            normal_loc = glGetAttribLocation(self.shader_program, "normal")
 
             glEnableVertexAttribArray(position_loc)
             glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(5 * float_size))
@@ -60,37 +60,32 @@ class ModelRenderer(AbstractRenderer):
         if self.cubemap_folder:
             self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
-        glUseProgram(self.shader_programs[self.shader_name])
+        glUseProgram(self.shader_program)
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.diffuseMap)
-        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'diffuseMap'), 0)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'diffuseMap'), 0)
 
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, self.normalMap)
-        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'normalMap'), 1)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'normalMap'), 1)
 
         glActiveTexture(GL_TEXTURE2)
         glBindTexture(GL_TEXTURE_2D, self.displacementMap)
-        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'displacementMap'), 2)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'displacementMap'), 2)
 
         glActiveTexture(GL_TEXTURE3)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'environmentMap'), 3)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 3)
 
     @common_funcs
     def render(self):
         viewPosition = self.camera_position
-        glUniform3fv(glGetUniformLocation(self.shader_programs[self.shader_name], 'viewPosition'), 1,
-                     glm.value_ptr(viewPosition))
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'textureLodLevel'),
-                    self.texture_lod_bias)
-        glUniform1f(glGetUniformLocation(self.shader_programs[self.shader_name], 'envMapLodLevel'),
-                    self.env_map_lod_bias)
-        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyToneMapping'),
-                    self.apply_tone_mapping)
-        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'applyGammaCorrection'),
-                    self.apply_gamma_correction)
+        glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
+        glUniform1f(glGetUniformLocation(self.shader_program, 'textureLodLevel'), self.texture_lod_bias)
+        glUniform1f(glGetUniformLocation(self.shader_program, 'envMapLodLevel'), self.env_map_lod_bias)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'applyGammaCorrection'), self.apply_gamma_correction)
 
         for mesh in self.object.mesh_list:
             material = self.object.materials['Material']

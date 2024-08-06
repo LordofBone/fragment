@@ -35,8 +35,8 @@ class SurfaceRenderer(AbstractRenderer):
         float_size = 4
         vertex_stride = 5 * float_size
 
-        position_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "position")
-        tex_coords_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "textureCoords")
+        position_loc = glGetAttribLocation(self.shader_program, "position")
+        tex_coords_loc = glGetAttribLocation(self.shader_program, "textureCoords")
 
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
@@ -56,7 +56,7 @@ class SurfaceRenderer(AbstractRenderer):
     def render(self):
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_programs[self.shader_name], 'environmentMap'), 0)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 0)
 
         glBindVertexArray(self.vao)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)
