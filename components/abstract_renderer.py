@@ -39,6 +39,7 @@ def common_funcs(func):
 class AbstractRenderer(ABC):
     def __init__(
             self,
+            shader_name,
             shaders=None,
             cubemap_folder='textures/cube/night_sky_egypt/',
             camera_position=(0, 0, 0),
@@ -76,6 +77,7 @@ class AbstractRenderer(ABC):
 
         self.dynamic_attrs = kwargs
 
+        self.shader_name = shader_name
         self.shader_programs = {}
         self.shaders = shaders or {}
         self.cubemap_folder = cubemap_folder
@@ -138,8 +140,7 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS,
-                        self.texture_lod_bias)  # Set texture LOD bias
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.texture_lod_bias)  # Set texture LOD bias
 
     def load_cubemap(self, folder_path, texture):
         faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
@@ -156,19 +157,16 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE)
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
-        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS,
-                        self.env_map_lod_bias)  # Set env map LOD bias
+        glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, self.env_map_lod_bias)  # Set env map LOD bias
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
 
     def setup_camera(self):
         if self.auto_camera:
             self.camera_position = glm.vec3(*self.calculate_camera_position_for_object_size(
-                self.width, self.height, self.height_factor,
-                self.distance_factor))
+                self.width, self.height, self.height_factor, self.distance_factor))
         aspect_ratio = self.window_size[0] / self.window_size[1]
         self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
-        self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane,
-                                          self.far_plane)
+        self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
     @staticmethod
     def calculate_camera_position_for_object_size(width, height, height_factor=1.5, distance_factor=2.0):
@@ -211,8 +209,7 @@ class AbstractRenderer(ABC):
     def apply_transformations(self):
         if self.auto_rotation_enabled:
             if self.rotation_speed != 0.0:
-                rotation_matrix = glm.rotate(glm.mat4(1),
-                                             pygame.time.get_ticks() / self.rotation_speed,
+                rotation_matrix = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed,
                                              self.rotation_axis)
                 self.model_matrix = self.manual_transformations * rotation_matrix
             else:
@@ -244,8 +241,7 @@ class AbstractRenderer(ABC):
                     self.dynamic_attrs['tex_coord_amplitude'])
         glUniform3fv(glGetUniformLocation(self.shader_programs[shader_name], 'cameraPos'), 1,
                      glm.value_ptr(self.camera_position))
-        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'time'),
-                    pygame.time.get_ticks() / 1000.0)
+        glUniform1f(glGetUniformLocation(self.shader_programs[shader_name], 'time'), pygame.time.get_ticks() / 1000.0)
 
     @abstractmethod
     def create_buffers(self):

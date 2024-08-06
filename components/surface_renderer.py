@@ -5,10 +5,8 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class SurfaceRenderer(AbstractRenderer):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self.shader_name = kwargs.get('shader_name')
+    def __init__(self, shader_name, **kwargs):
+        super().__init__(shader_name=shader_name, **kwargs)
 
     def create_buffers(self):
         half_width = self.width / 2.0
@@ -37,8 +35,8 @@ class SurfaceRenderer(AbstractRenderer):
         float_size = 4
         vertex_stride = 5 * float_size
 
-        position_loc = 2
-        tex_coords_loc = 0
+        position_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "position")
+        tex_coords_loc = glGetAttribLocation(self.shader_programs[self.shader_name], "textureCoords")
 
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
