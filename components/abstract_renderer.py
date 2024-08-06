@@ -18,7 +18,7 @@ def common_funcs(func):
         if self.culling:
             glEnable(GL_CULL_FACE)
             glCullFace(GL_BACK)
-            glFrontFace(GL_CW)
+            glFrontFace(GL_CCW)
         else:
             glDisable(GL_CULL_FACE)
 
