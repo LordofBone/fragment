@@ -19,6 +19,9 @@ uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
 
+uniform bool applyToneMapping;
+uniform bool applyGammaCorrection;
+
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -30,6 +33,23 @@ float smoothNoise(vec2 p) {
     return mix(mix(noise(i + vec2(0.0, 0.0)), noise(i + vec2(1.0, 0.0)), f.x),
     mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
     f.y);
+}
+
+vec3 Uncharted2Tonemap(vec3 x) {
+    float A = 0.15;
+    float B = 0.50;
+    float C = 0.10;
+    float D = 0.20;
+    float E = 0.02;
+    float F = 0.30;
+
+    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+
+vec3 toneMapping(vec3 color) {
+    vec3 curr = Uncharted2Tonemap(color * 2.0);
+    vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(11.2));
+    return curr * whiteScale;
 }
 
 void main()
@@ -62,5 +82,15 @@ void main()
     }
 
     color *= lighting;
+
+    if (applyToneMapping) {
+        color = toneMapping(color);
+    }
+
+    if (applyGammaCorrection) {
+        color = pow(color, vec3(1.0 / 2.2));
+    }
+
+    color = clamp(color, 0.0, 1.0);
     FragColor = vec4(color, 1.0);
 }
