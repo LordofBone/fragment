@@ -18,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.x'  # specify your Python version
 
       - name: Install dependencies
         run: |
@@ -26,8 +26,15 @@ jobs:
           pip install flake8
 
       - name: Run flake8
+        id: flake8-lint
+        continue-on-error: true
         run: |
-          flake8 .
+          flake8 . | tee flake8_output.txt
+
+      - name: Annotate Python lint errors
+        if: failure()
+        run: |
+          cat flake8_output.txt | python -m flake8 --format=github | tee flake8_annotations.txt
 
   glsl-lint:
     runs-on: ubuntu-latest
@@ -42,7 +49,24 @@ jobs:
           sudo apt-get install -y glslang-tools
 
       - name: Run glslangValidator
+        continue-on-error: true
         run: |
           for file in $(find . -name "*.glsl"); do
-            glslangValidator -V $file;
+            glslangValidator -V "$file" || exit_code=$? && echo "$file failed with exit code $exit_code" >> glsl_errors.txt;
           done
+
+      - name: Annotate GLSL errors
+        if: failure()
+        run: |
+          while read -r line; do
+            echo "::error file=$line"
+          done < glsl_errors.txt
+
+  notify-failure:
+    needs: [ python-lint, glsl-lint ]
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Notify about the failure
+        run: echo "One or more jobs failed. Please check the annotations and logs for details."
