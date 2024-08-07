@@ -4,6 +4,7 @@ from OpenGL.GL import *
 from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
+# diff comment added
 class SurfaceRenderer(AbstractRenderer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
