@@ -14,20 +14,18 @@ out vec3 TangentLightPos[10];
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-
 uniform vec3 viewPosition;
 uniform vec3 lightPositions[10];
 
 void main()
 {
     FragPos = vec3(model * vec4(position, 1.0));
-    Normal = mat3(transpose(inverse(model))) * normal;
+    Normal = normalize(mat3(transpose(inverse(model))) * normal);
     TexCoords = textureCoords;
 
-    mat3 normalMatrix = mat3(transpose(inverse(model)));
-    vec3 T = normalize(normalMatrix * vec3(1.0, 0.0, 0.0));
-    vec3 B = normalize(normalMatrix * vec3(0.0, 1.0, 0.0));
-    vec3 N = normalize(normalMatrix * normal);
+    vec3 T = normalize(mat3(model) * vec3(1.0, 0.0, 0.0));
+    vec3 B = normalize(mat3(model) * vec3(0.0, 1.0, 0.0));
+    vec3 N = normalize(Normal);
 
     mat3 TBN = mat3(T, B, N);
 

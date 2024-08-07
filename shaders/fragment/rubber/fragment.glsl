@@ -3,6 +3,9 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
+in vec3 TangentFragPos;
+in vec3 TangentViewPos;
+in vec3 TangentLightPos[10];
 
 out vec4 FragColor;
 
@@ -11,15 +14,13 @@ uniform sampler2D normalMap;
 uniform sampler2D displacementMap;
 uniform samplerCube environmentMap;
 
-uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
-uniform vec3 viewPosition;
 uniform float lightStrengths[10];
-uniform float textureLodLevel;// LOD level for textures
-uniform float envMapLodLevel;// LOD level for environment map
+uniform float textureLodLevel;
+uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform float transparency;// Configurable transparency
+uniform float envSpecularStrength;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -33,42 +34,37 @@ vec3 Uncharted2Tonemap(vec3 x) {
 }
 
 vec3 toneMapping(vec3 color) {
-    vec3 curr = Uncharted2Tonemap(color * 2.0);// Pre-exposure
+    vec3 curr = Uncharted2Tonemap(color * 2.0);
     vec3 whiteScale = 1.0 / Uncharted2Tonemap(vec3(11.2));
     return curr * whiteScale;
 }
 
 void main()
 {
-    vec3 normal = texture(normalMap, TexCoords, textureLodLevel).rgb;
-    normal = normalize(normal * 2.0 - 1.0);
-
+    vec3 normal = normalize(Normal + texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0);
     float height = texture(displacementMap, TexCoords, textureLodLevel).r;
 
-    vec3 viewDir = normalize(viewPosition - FragPos);
+    vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
     vec3 reflectDir = reflect(viewDir, normal);
-    vec3 refractDir = refract(viewDir, normal, 1.0 / 1.33);// Refractive index for stealth effect
 
-    vec3 envColorReflect = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-    vec3 envColorRefract = textureLod(environmentMap, refractDir, envMapLodLevel).rgb;
-
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
+    vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+    vec3 ambient = 0.05 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
 
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
+    float roughness = 0.8;
 
     for (int i = 0; i < 10; i++) {
-        vec3 lightDir = normalize(lightPositions[i] - FragPos);
-
+        vec3 lightDir = normalize(TangentLightPos[i] - TangentFragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
+        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i] * 0.5;
 
         vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
+        float spec = pow(max(dot(normal, halfwayDir), 0.0), 16.0 * (1.0 - roughness));
         specular += spec * lightColors[i] * lightStrengths[i];
     }
 
-    vec3 result = mix(envColorRefract, envColorReflect, 0.5) * 0.6 + diffuse + specular * 0.1;// Blend reflection and refraction for stealth effect
+    vec3 result = ambient + diffuse + specular * 0.1 + envColor * height * envSpecularStrength;
 
     if (applyToneMapping) {
         result = toneMapping(result);
@@ -79,6 +75,5 @@ void main()
     }
 
     result = clamp(result, 0.0, 1.0);
-
-    FragColor = vec4(result, transparency);// Use configurable transparency
+    FragColor = vec4(result, 1.0);
 }
