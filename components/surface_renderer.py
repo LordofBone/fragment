@@ -5,20 +5,20 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class SurfaceRenderer(AbstractRenderer):
-    def __init__(self, shader_name, **kwargs):
-        super().__init__(shader_name=shader_name, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def create_buffers(self):
         """Create buffers for the surface."""
         half_width = self.dynamic_attrs['width'] / 2.0
         half_height = self.dynamic_attrs['height'] / 2.0
         vertices = [
-            -half_width, 0.0, -half_height, 0.0, 1.0,
-            half_width, 0.0, -half_height, 1.0, 1.0,
-            half_width, 0.0, half_height, 1.0, 0.0,
-            -half_width, 0.0, half_height, 0.0, 0.0
+            -half_width, 0.0, half_height, 0.0, 1.0,  # Top-left
+            half_width, 0.0, half_height, 1.0, 1.0,  # Top-right
+            half_width, 0.0, -half_height, 1.0, 0.0,  # Bottom-right
+            - half_width, 0.0, -half_height, 0.0, 0.0,  # Bottom-left
         ]
-        indices = [0, 1, 2, 2, 3, 0]
+        indices = [0, 1, 2, 2, 3, 0]  # Two triangles forming the quad
         vertices_array = np.array(vertices, dtype=np.float32)
         indices_array = np.array(indices, dtype=np.uint32)
 

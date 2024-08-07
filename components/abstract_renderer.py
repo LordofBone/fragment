@@ -18,7 +18,8 @@ def common_funcs(func):
         if self.culling:
             glEnable(GL_CULL_FACE)
             glCullFace(GL_BACK)
-            glFrontFace(GL_CW)
+            # Set front face winding based on the attribute
+            glFrontFace(self.front_face_winding)
         else:
             glDisable(GL_CULL_FACE)
 
@@ -38,12 +39,12 @@ def common_funcs(func):
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, shader_name, shaders=None, cubemap_folder='textures/cube/night_sky_egypt/',
+    def __init__(self, shader_names, shaders=None, cubemap_folder='textures/cube/night_sky_egypt/',
                  camera_positions=None, camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1,
                  far_plane=100, light_positions=None, light_colors=None, light_strengths=None, rotation_speed=2000.0,
                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, texture_lod_bias=0.0,
                  env_map_lod_bias=0.0, culling=True, msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0,
-                 loop=True, window_size=(800, 600), **kwargs):
+                 loop=True, front_face_winding="CCW", window_size=(800, 600), **kwargs):
 
         if light_strengths is None:
             light_strengths = [0.8]
@@ -54,7 +55,7 @@ class AbstractRenderer(ABC):
 
         self.dynamic_attrs = kwargs
 
-        self.shader_name = shader_name
+        self.shader_names = shader_names  # Expecting a tuple (vertex_shader_name, fragment_shader_name)
         self.shaders = shaders or {}
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions or [(0, 0, 0)]
@@ -84,6 +85,7 @@ class AbstractRenderer(ABC):
         self.auto_camera = auto_camera
         self.move_speed = move_speed
         self.loop = loop
+        self.front_face_winding = self.get_winding_constant(front_face_winding)
         self.window_size = window_size
 
         self.vbos = []
@@ -96,6 +98,16 @@ class AbstractRenderer(ABC):
         else:
             self.camera_position = glm.vec3(*self.camera_positions[0])
 
+    def get_winding_constant(self, winding):
+        """Convert winding string to OpenGL constant."""
+        winding_options = {
+            "CW": GL_CW,
+            "CCW": GL_CCW
+        }
+        if winding not in winding_options:
+            raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
+        return winding_options[winding]
+
     def setup(self):
         """Setup resources and initialize the renderer."""
         self.init_shaders()
@@ -106,13 +118,11 @@ class AbstractRenderer(ABC):
 
     def init_shaders(self):
         """Initialize shaders from provided shader paths."""
-        if self.shader_name in self.shaders:
-            paths = self.shaders[self.shader_name]
-            shader_engine = ShaderEngine(paths['vertex'], paths['fragment'])
-            shader_engine.init_shaders()
-            self.shader_program = shader_engine.shader_program
-        else:
-            raise RuntimeError(f"Shader '{self.shader_name}' not found in provided shaders.")
+        vertex_shader, fragment_shader = self.shader_names
+        vertex_shader_path = self.shaders['vertex'][vertex_shader]
+        fragment_shader_path = self.shaders['fragment'][fragment_shader]
+        shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path)
+        self.shader_program = shader_engine.shader_program
 
     def load_texture(self, path, texture):
         """Load a 2D texture from file."""

@@ -18,6 +18,7 @@ if __name__ == "__main__":
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
+        culling=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -26,7 +27,7 @@ if __name__ == "__main__":
 
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
-        shader_name='water',
+        shader_names=('standard', 'water'),
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=400.0,

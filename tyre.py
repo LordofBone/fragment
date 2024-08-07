@@ -18,8 +18,8 @@ if __name__ == "__main__":
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
-        culling=False,
-        texture_lod_bias=0.6,
+        culling=True,
+        texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
     )
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/rubber_1.png',
             'displacement': 'textures/displacement/rubber_1.png'
         },
-        shader_name='rubber',
+        shader_names=('standard', 'rubber'),
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,

@@ -20,16 +20,16 @@ if __name__ == "__main__":
         fov=40,
         near_plane=0.1,
         far_plane=5000,
-        light_positions=[(50.0, 200.0, 300.0)],
+        light_positions=[(50.0, 20.0, 30.0)],
         light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[1.0],
+        light_strengths=[0.8],
         anisotropy=16.0,
         auto_camera=True,
         move_speed=0.2,
         loop=True,
         msaa_level=8,
         culling=True,
-        texture_lod_bias=0.2,
+        texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
     )
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='embm',
+        shader_names=('standard', 'embm'),
     )
 
     # Define the configuration for the rotating pyramid model
@@ -56,18 +56,18 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='default',
+        shader_names=('standard', 'normal_mapping'),  # Pass vertex and fragment shader names as a tuple
         rotation_speed=2000.0,
     )
 
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
-        shader_name='water',
+        shader_names=('standard', 'water'),  # Pass vertex and fragment shader names as a tuple
         wave_speed=6.0,
         wave_amplitude=0.8,
-        randomness=400.0,
+        randomness=600.0,
         tex_coord_frequency=400.0,
-        tex_coord_amplitude=0.085,
+        tex_coord_amplitude=0.010,
         width=50.0,
         height=50.0,
     )

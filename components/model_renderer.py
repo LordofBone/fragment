@@ -7,8 +7,8 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ModelRenderer(AbstractRenderer):
-    def __init__(self, obj_path, texture_paths, shader_name, **kwargs):
-        super().__init__(shader_name=shader_name, **kwargs)
+    def __init__(self, obj_path, texture_paths, **kwargs):
+        super().__init__(**kwargs)
         self.obj_path = obj_path
         self.texture_paths = texture_paths
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)

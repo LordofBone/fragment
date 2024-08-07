@@ -14,7 +14,7 @@ if __name__ == "__main__":
         far_plane=100,
         light_positions=[(3.0, 3.0, 3.0)],
         light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[0.8, 0.5],
+        light_strengths=[0.8],
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
@@ -35,7 +35,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='embm',
+        shader_names=('standard', 'embm'),
         rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
