@@ -39,7 +39,7 @@ def common_funcs(func):
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, shader_name, shaders=None, cubemap_folder='textures/cube/night_sky_egypt/',
+    def __init__(self, shader_names, shaders=None, cubemap_folder='textures/cube/night_sky_egypt/',
                  camera_positions=None, camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1,
                  far_plane=100, light_positions=None, light_colors=None, light_strengths=None, rotation_speed=2000.0,
                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, texture_lod_bias=0.0,
@@ -55,7 +55,7 @@ class AbstractRenderer(ABC):
 
         self.dynamic_attrs = kwargs
 
-        self.shader_name = shader_name
+        self.shader_names = shader_names  # Expecting a tuple (vertex_shader_name, fragment_shader_name)
         self.shaders = shaders or {}
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions or [(0, 0, 0)]
@@ -118,13 +118,11 @@ class AbstractRenderer(ABC):
 
     def init_shaders(self):
         """Initialize shaders from provided shader paths."""
-        if self.shader_name in self.shaders:
-            paths = self.shaders[self.shader_name]
-            shader_engine = ShaderEngine(paths['vertex'], paths['fragment'])
-            shader_engine.init_shaders()
-            self.shader_program = shader_engine.shader_program
-        else:
-            raise RuntimeError(f"Shader '{self.shader_name}' not found in provided shaders.")
+        vertex_shader, fragment_shader = self.shader_names
+        vertex_shader_path = self.shaders['vertex'][vertex_shader]
+        fragment_shader_path = self.shaders['fragment'][fragment_shader]
+        shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path)
+        self.shader_program = shader_engine.shader_program
 
     def load_texture(self, path, texture):
         """Load a 2D texture from file."""

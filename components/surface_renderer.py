@@ -5,8 +5,8 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class SurfaceRenderer(AbstractRenderer):
-    def __init__(self, shader_name, **kwargs):
-        super().__init__(shader_name=shader_name, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def create_buffers(self):
         """Create buffers for the surface."""
