@@ -45,7 +45,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='embm',
+        shader_names=('standard', 'embm'),
     )
 
     # Define the configuration for the rotating pyramid model
@@ -56,13 +56,13 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='default',
+        shader_names=('standard', 'normal_mapping'),  # Pass vertex and fragment shader names as a tuple
         rotation_speed=2000.0,
     )
 
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
-        shader_name='water',
+        shader_names=('standard', 'water'),  # Pass vertex and fragment shader names as a tuple
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=600.0,

@@ -35,7 +35,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='embm',
+        shader_names=('standard', 'embm'),
         rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,

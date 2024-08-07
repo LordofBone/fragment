@@ -35,7 +35,7 @@ if __name__ == "__main__":
             'normal': 'textures/normal/crystal.png',
             'displacement': 'textures/displacement/crystal.png'
         },
-        shader_name='stealth',
+        shader_names=('standard', 'stealth'),
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
