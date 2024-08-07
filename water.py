@@ -18,6 +18,7 @@ if __name__ == "__main__":
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
+        culling=True,
     )
 
     # Create the rendering instance with the base configuration
