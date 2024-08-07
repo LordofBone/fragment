@@ -18,8 +18,8 @@ def common_funcs(func):
         if self.culling:
             glEnable(GL_CULL_FACE)
             glCullFace(GL_BACK)
-            # Options are: GL_CW, GL_CCW
-            glFrontFace(GL_CCW)
+            # Set front face winding based on the attribute
+            glFrontFace(self.front_face_winding)
         else:
             glDisable(GL_CULL_FACE)
 
@@ -44,7 +44,7 @@ class AbstractRenderer(ABC):
                  far_plane=100, light_positions=None, light_colors=None, light_strengths=None, rotation_speed=2000.0,
                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, texture_lod_bias=0.0,
                  env_map_lod_bias=0.0, culling=True, msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0,
-                 loop=True, window_size=(800, 600), **kwargs):
+                 loop=True, front_face_winding="CCW", window_size=(800, 600), **kwargs):
 
         if light_strengths is None:
             light_strengths = [0.8]
@@ -85,6 +85,7 @@ class AbstractRenderer(ABC):
         self.auto_camera = auto_camera
         self.move_speed = move_speed
         self.loop = loop
+        self.front_face_winding = self.get_winding_constant(front_face_winding)
         self.window_size = window_size
 
         self.vbos = []
@@ -96,6 +97,16 @@ class AbstractRenderer(ABC):
             self.camera_controller = CameraController(self.camera_positions, self.move_speed, self.loop)
         else:
             self.camera_position = glm.vec3(*self.camera_positions[0])
+
+    def get_winding_constant(self, winding):
+        """Convert winding string to OpenGL constant."""
+        winding_options = {
+            "CW": GL_CW,
+            "CCW": GL_CCW
+        }
+        if winding not in winding_options:
+            raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
+        return winding_options[winding]
 
     def setup(self):
         """Setup resources and initialize the renderer."""
