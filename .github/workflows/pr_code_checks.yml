@@ -1,0 +1,48 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    paths:
+      - '**/*.py'
+      - '**/*.glsl'
+  workflow_dispatch:
+
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+
+      - name: Run flake8
+        run: |
+          flake8 .
+
+  glsl-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install glslangValidator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+
+      - name: Run glslangValidator
+        run: |
+          for file in $(find . -name "*.glsl"); do
+            glslangValidator -V $file;
+          done
