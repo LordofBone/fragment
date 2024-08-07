@@ -41,27 +41,19 @@ vec3 toneMapping(vec3 color) {
 
 void main()
 {
-    // Retrieve normal from normal map and adjust
     vec3 normal = normalize(Normal + texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0);
     float height = texture(displacementMap, TexCoords, textureLodLevel).r;
 
-    // Transform FragPos to view space to get view direction
     vec4 viewFragPos = view * vec4(FragPos, 1.0);
     vec3 viewDir = normalize(-viewFragPos.xyz);
 
-    // Calculate reflection direction
     vec3 reflectDir = reflect(viewDir, normal);
-
-    // Retrieve environment color
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
-    // Calculate ambient light
-    vec3 ambient = 0.05 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
-
-    // Initialize diffuse and specular lighting
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    float roughness = 0.8;
+    float roughness = 0.5;// Reduced roughness for more shine
 
     for (int i = 0; i < 10; i++) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
@@ -69,11 +61,15 @@ void main()
         diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
 
         vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), 16.0 * (1.0 - roughness));
+        float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0 * (1.0 - roughness));// Adjusted shininess
         specular += spec * lightColors[i] * lightStrengths[i];
     }
 
-    vec3 result = ambient + diffuse + specular * 0.1 + envColor * height * envSpecularStrength;
+    // Fresnel effect for edges
+    float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
+    vec3 reflection = mix(envColor, vec3(1.0), fresnel);
+
+    vec3 result = ambient + diffuse + specular * 0.3 + reflection * envSpecularStrength;
 
     if (applyToneMapping) {
         result = toneMapping(result);
