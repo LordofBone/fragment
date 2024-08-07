@@ -6,7 +6,8 @@ class RendererConfig:
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), rotation_axis=(0, 3, 0), fov=40, near_plane=0.1,
                  far_plane=1000, light_positions=None, light_colors=None, light_strengths=None, anisotropy=16.0,
                  auto_camera=False, height_factor=1.5, distance_factor=2.0, msaa_level=8, culling=True,
-                 texture_lod_bias=0.0, env_map_lod_bias=0.0, move_speed=1.0, loop=True, shaders=None):
+                 texture_lod_bias=0.0, env_map_lod_bias=0.0, move_speed=1.0, loop=True, front_face_winding="CCW",
+                 shaders=None):
         if light_strengths is None:
             light_strengths = [0.8]
         if light_colors is None:
@@ -38,9 +39,16 @@ class RendererConfig:
         self.env_map_lod_bias = env_map_lod_bias
         self.move_speed = move_speed
         self.loop = loop
+        self.front_face_winding = front_face_winding
         self.shaders = {}
 
+        self.validate_winding()
         self.discover_shaders()
+
+    def validate_winding(self):
+        """Validate the front face winding option."""
+        if self.front_face_winding not in ("CW", "CCW"):
+            raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
 
     def discover_shaders(self):
         """Discover shaders in the shaders directory."""
