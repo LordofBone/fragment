@@ -11,5 +11,5 @@ void main()
 {
     TexCoords = position;
     vec4 pos = projection * view * vec4(position, 1.0);
-    gl_Position = pos.xyww;// xyww keeps the z value of the skybox at the farthest point
+    gl_Position = pos.xyww;
 }
