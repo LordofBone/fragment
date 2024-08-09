@@ -81,6 +81,8 @@ class SkyboxRenderer(AbstractRenderer):
 
     @common_funcs
     def render(self):
+        glDepthFunc(
+            GL_LEQUAL)  # Change depth function so depth test passes when values are equal to depth buffer's content
         """Render the skybox."""
         # Use the skybox shader program
         glUseProgram(self.shader_program)
@@ -102,3 +104,4 @@ class SkyboxRenderer(AbstractRenderer):
         glDrawArrays(GL_TRIANGLES, 0, 36)
 
         glBindVertexArray(0)
+        glDepthFunc(GL_LESS)  # Set depth function back to default
