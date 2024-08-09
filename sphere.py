@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # Add a surface renderer
     skybox_config = base_config.add_skybox(
         shader_names=('skybox', 'skybox'),
-        cubemap_folder="textures/cube/night_sky_egypt/",
+        cubemap_folder="textures/cube/night_sky/",
     )
     instance.add_renderer('skybox', **skybox_config)
 
