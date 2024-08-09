@@ -1,6 +1,7 @@
 from components.model_renderer import ModelRenderer
 from components.renderer_window import RendererWindow
 from components.scene_constructor import SceneConstructor
+from components.skybox_renderer import SkyboxRenderer
 from components.surface_renderer import SurfaceRenderer
 
 
@@ -21,6 +22,8 @@ class RenderingInstance:
             renderer = ModelRenderer(**params)
         elif renderer_type == 'surface':
             renderer = SurfaceRenderer(**params)
+        elif renderer_type == 'skybox':
+            renderer = SkyboxRenderer(**params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
         self.scene_construct.add_renderer(renderer)
