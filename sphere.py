@@ -31,9 +31,9 @@ if __name__ == "__main__":
     sphere_config = base_config.add_model(
         obj_path="models/sphere.obj",
         texture_paths={
-            'diffuse': 'textures/diffuse/crystal.png',
-            'normal': 'textures/normal/crystal.png',
-            'displacement': 'textures/displacement/crystal.png'
+            'diffuse': 'textures/diffuse/metal_1.png',
+            'normal': 'textures/normal/metal_1.png',
+            'displacement': 'textures/displacement/metal_1.png'
         },
         shader_names=('standard', 'stealth'),
         rotation_speed=2000.0,
