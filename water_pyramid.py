@@ -72,6 +72,13 @@ if __name__ == "__main__":
         height=50.0,
     )
 
+    # Add a surface renderer
+    skybox_config = base_config.add_skybox(
+        shader_names=('skybox', 'skybox'),
+        cubemap_folder="textures/cube/night_sky_egypt/",
+    )
+    instance.add_renderer('skybox', **skybox_config)
+
     # Add the renderers to the instance
     instance.add_renderer('model', **stretched_pyramid_config)
     instance.add_renderer('model', **rotating_pyramid_config)
