@@ -141,7 +141,7 @@ class AbstractRenderer(ABC):
 
     def load_cubemap(self, folder_path, texture):
         """Load a cubemap texture from a folder."""
-        faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
+        faces = ['right.png', 'left.png', 'bottom.png', 'top.png', 'front.png', 'back.png']
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
             surface = pygame.image.load(folder_path + face)
