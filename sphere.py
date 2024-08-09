@@ -42,6 +42,13 @@ if __name__ == "__main__":
         apply_gamma_correction=False,
     )
 
+    # Add a surface renderer
+    skybox_config = base_config.add_skybox(
+        shader_names=('skybox', 'skybox'),
+        cubemap_folder="textures/cube/night_sky_egypt/",
+    )
+    instance.add_renderer('skybox', **skybox_config)
+
     # Add the sphere renderer to the instance
     instance.add_renderer('model', **sphere_config)
 
