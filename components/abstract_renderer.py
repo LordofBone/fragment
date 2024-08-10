@@ -39,7 +39,7 @@ def common_funcs(func):
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, shader_names, shaders=None, cubemap_folder='textures/cube/night_sky_egypt/',
+    def __init__(self, shader_names, shaders=None, cubemap_folder=None,
                  camera_positions=None, camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1,
                  far_plane=100, light_positions=None, light_colors=None, light_strengths=None, rotation_speed=2000.0,
                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, texture_lod_bias=0.0,
@@ -57,7 +57,7 @@ class AbstractRenderer(ABC):
 
         self.shader_names = shader_names  # Expecting a tuple (vertex_shader_name, fragment_shader_name)
         self.shaders = shaders or {}
-        self.cubemap_folder = cubemap_folder
+        self.cubemap_folder = cubemap_folder  # Per-instance cubemap folder
         self.camera_positions = camera_positions or [(0, 0, 0)]
         self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
@@ -112,7 +112,7 @@ class AbstractRenderer(ABC):
         """Setup resources and initialize the renderer."""
         self.init_shaders()
         self.create_buffers()
-        self.load_textures()
+        self.load_textures()  # Load textures including cubemap
         self.setup_camera()
         self.set_constant_uniforms()
 
