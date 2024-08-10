@@ -60,7 +60,7 @@ class ModelRenderer(AbstractRenderer):
 
         self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap)
+            self.load_cubemap(self.cubemap_folder, self.environmentMap, 3)  # Use a specific texture unit
 
         glUseProgram(self.shader_program)
 
@@ -83,6 +83,7 @@ class ModelRenderer(AbstractRenderer):
     @common_funcs
     def render(self):
         """Render the model."""
+        glUseProgram(self.shader_program)  # Ensure this renderer's shader program is active
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
 
