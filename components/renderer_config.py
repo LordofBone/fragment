@@ -1,8 +1,9 @@
+import copy
 import os
 
 
 class RendererConfig:
-    def __init__(self, window_size=(800, 600), cubemap_folder=None, camera_positions=None,
+    def __init__(self, window_size=(800, 600), cubemap_folder="test", camera_positions=None,
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), rotation_axis=(0, 3, 0), fov=40, near_plane=0.1,
                  far_plane=1000, light_positions=None, light_colors=None, light_strengths=None, anisotropy=16.0,
                  auto_camera=False, height_factor=1.5, distance_factor=2.0, msaa_level=8, culling=True,
@@ -71,14 +72,19 @@ class RendererConfig:
 
     def unpack(self):
         """Unpack the configuration into a dictionary."""
-        return self.__dict__
+        return copy.deepcopy(self.__dict__)  # Use deepcopy to avoid mutating the original configuration
 
     def add_model(self, obj_path, texture_paths, shader_names=('standard', 'default'), rotation_speed=0.0,
                   rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, width=10.0,
                   height=10.0, wave_speed=10.0, wave_amplitude=0.1, randomness=0.8, tex_coord_frequency=100.0,
                   tex_coord_amplitude=0.1, cubemap_folder=None, **kwargs):
         """Add a model to the configuration."""
-        model_config = {
+
+        # Start with a deep copy of the base configuration
+        model_config = self.unpack()
+
+        # Now apply specific overrides provided by the model, overwriting defaults
+        model_specifics = {
             'obj_path': obj_path,
             'texture_paths': texture_paths,
             'shader_names': shader_names,
@@ -93,13 +99,15 @@ class RendererConfig:
             'randomness': randomness,
             'tex_coord_frequency': tex_coord_frequency,
             'tex_coord_amplitude': tex_coord_amplitude,
-            'cubemap_folder': cubemap_folder
+            'cubemap_folder': cubemap_folder  # Specific or None
         }
+
+        # Update the configuration with model specifics, preserving non-None values
+        model_config.update({k: v for k, v in model_specifics.items() if v is not None})
+
+        # Apply any additional keyword arguments passed in kwargs
         model_config.update(kwargs)
-        model_config.update(self.unpack())
-        # After unpacking, override the specific cubemap_folder if provided
-        if cubemap_folder is not None:
-            model_config['cubemap_folder'] = cubemap_folder
+
         return model_config
 
     def add_surface(self, shader_names=('standard', 'default'), wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
@@ -107,7 +115,9 @@ class RendererConfig:
                     tex_coord_frequency=100.0,
                     tex_coord_amplitude=0.1, width=500.0, height=500.0, cubemap_folder=None, **kwargs):
         """Add a surface to the configuration."""
-        surface_config = {
+        surface_config = self.unpack()
+
+        surface_specifics = {
             'shader_names': shader_names,
             'rotation_speed': rotation_speed,
             'apply_tone_mapping': apply_tone_mapping,
@@ -119,24 +129,24 @@ class RendererConfig:
             'tex_coord_amplitude': tex_coord_amplitude,
             'width': width,
             'height': height,
-            'cubemap_folder': cubemap_folder
+            'cubemap_folder': cubemap_folder  # Specific or None
         }
+
+        surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
         surface_config.update(kwargs)
-        surface_config.update(self.unpack())
-        # After unpacking, override the specific cubemap_folder if provided
-        if cubemap_folder is not None:
-            cubemap_folder['cubemap_folder'] = cubemap_folder
+
         return surface_config
 
     def add_skybox(self, cubemap_folder=None, shader_names=('skybox_vertex', 'skybox_fragment'), **kwargs):
         """Add a skybox to the configuration."""
-        skybox_config = {
+        skybox_config = self.unpack()
+
+        skybox_specifics = {
             'shader_names': shader_names,
-            'cubemap_folder': cubemap_folder
+            'cubemap_folder': cubemap_folder  # Specific or None
         }
+
+        skybox_config.update({k: v for k, v in skybox_specifics.items() if v is not None})
         skybox_config.update(kwargs)
-        skybox_config.update(self.unpack())
-        # After unpacking, override the specific cubemap_folder if provided
-        if cubemap_folder is not None:
-            skybox_config['cubemap_folder'] = cubemap_folder
+
         return skybox_config
