@@ -74,9 +74,9 @@ class RendererConfig:
         return self.__dict__
 
     def add_model(self, obj_path, texture_paths, shader_names=('standard', 'default'), rotation_speed=0.0,
-                  rotation_axis=(0, 3, 0),
-                  apply_tone_mapping=False, apply_gamma_correction=False, width=10.0, height=10.0, wave_speed=10.0,
-                  wave_amplitude=0.1, randomness=0.8, tex_coord_frequency=100.0, tex_coord_amplitude=0.1, **kwargs):
+                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, width=10.0,
+                  height=10.0, wave_speed=10.0, wave_amplitude=0.1, randomness=0.8, tex_coord_frequency=100.0,
+                  tex_coord_amplitude=0.1, cubemap_folder=None, **kwargs):
         """Add a model to the configuration."""
         model_config = {
             'obj_path': obj_path,
@@ -93,15 +93,19 @@ class RendererConfig:
             'randomness': randomness,
             'tex_coord_frequency': tex_coord_frequency,
             'tex_coord_amplitude': tex_coord_amplitude,
+            'cubemap_folder': cubemap_folder
         }
         model_config.update(kwargs)
         model_config.update(self.unpack())
+        # After unpacking, override the specific cubemap_folder if provided
+        if cubemap_folder is not None:
+            model_config['cubemap_folder'] = cubemap_folder
         return model_config
 
     def add_surface(self, shader_names=('standard', 'default'), wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
                     rotation_speed=0.0, apply_tone_mapping=False, apply_gamma_correction=False,
                     tex_coord_frequency=100.0,
-                    tex_coord_amplitude=0.1, width=500.0, height=500.0, **kwargs):
+                    tex_coord_amplitude=0.1, width=500.0, height=500.0, cubemap_folder=None, **kwargs):
         """Add a surface to the configuration."""
         surface_config = {
             'shader_names': shader_names,
@@ -115,19 +119,24 @@ class RendererConfig:
             'tex_coord_amplitude': tex_coord_amplitude,
             'width': width,
             'height': height,
+            'cubemap_folder': cubemap_folder
         }
         surface_config.update(kwargs)
         surface_config.update(self.unpack())
+        # After unpacking, override the specific cubemap_folder if provided
+        if cubemap_folder is not None:
+            cubemap_folder['cubemap_folder'] = cubemap_folder
         return surface_config
 
     def add_skybox(self, cubemap_folder=None, shader_names=('skybox_vertex', 'skybox_fragment'), **kwargs):
         """Add a skybox to the configuration."""
-        if cubemap_folder:
-            self.cubemap_folder = cubemap_folder
         skybox_config = {
             'shader_names': shader_names,
-            'cubemap_folder': self.cubemap_folder,
+            'cubemap_folder': cubemap_folder
         }
         skybox_config.update(kwargs)
         skybox_config.update(self.unpack())
+        # After unpacking, override the specific cubemap_folder if provided
+        if cubemap_folder is not None:
+            skybox_config['cubemap_folder'] = cubemap_folder
         return skybox_config
