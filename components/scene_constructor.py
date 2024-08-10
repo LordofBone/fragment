@@ -17,11 +17,6 @@ class SceneConstructor:
         for renderer in self.renderers:
             renderer.render()
 
-    def setup(self):
-        """Setup all renderers in the scene."""
-        for renderer in self.renderers:
-            renderer.setup()
-
     def translate_renderer(self, index, position):
         """Translate a renderer in the scene."""
         if index < len(self.renderers):
