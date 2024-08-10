@@ -3,7 +3,7 @@ import os
 
 
 class RendererConfig:
-    def __init__(self, window_size=(800, 600), cubemap_folder="test", camera_positions=None,
+    def __init__(self, window_size=(800, 600), cubemap_folder=None, camera_positions=None,
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), rotation_axis=(0, 3, 0), fov=40, near_plane=0.1,
                  far_plane=1000, light_positions=None, light_colors=None, light_strengths=None, anisotropy=16.0,
                  auto_camera=False, height_factor=1.5, distance_factor=2.0, msaa_level=8, culling=True,
