@@ -21,6 +21,8 @@ jobs:
 
       - name: Ensure branch is up-to-date with base branch
         run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin ${{ github.event.pull_request.base.ref }}
           git rebase origin/${{ github.event.pull_request.base.ref }}
 
@@ -60,8 +62,6 @@ jobs:
       - name: Create fix branch
         if: env.has_changes == 'true'
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           BRANCH_NAME="${{ github.event.pull_request.head.ref }}-linting-fixes-$(date +%s)"
           git checkout -b $BRANCH_NAME
           git add .
