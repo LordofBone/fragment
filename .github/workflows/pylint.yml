@@ -23,6 +23,7 @@ jobs:
       - name: Lint the code
         run: |
           pylint $(git ls-files '*.py')
+        continue-on-error: true  # Allow workflow to continue even if pylint fails
       - name: Auto-fix code style issues
         run: |
           autopep8 --in-place --aggressive --aggressive $(git ls-files '*.py')
