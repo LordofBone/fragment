@@ -47,7 +47,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           BRANCH_NAME="lint-fixes-$(date +%s)"
           git checkout -b $BRANCH_NAME
-          git add $(git ls-files '*.py')  # Only add Python files to the commit
+          git add '*.py'  # Add only Python files
           git commit -m "Auto-fix linting issues"
           git push origin $BRANCH_NAME
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
