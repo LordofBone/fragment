@@ -1,25 +1,48 @@
-name: Pylint
+name: Pylint and Auto-fix
 
 on:
   pull_request:
   workflow_dispatch:
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: [ "3.10" ]
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pylint
-    - name: Analysing the code with pylint
-      run: |
-        pylint $(git ls-files '*.py')
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint autopep8
+      - name: Lint the code
+        run: |
+          pylint $(git ls-files '*.py')
+      - name: Auto-fix code style issues
+        run: |
+          autopep8 --in-place --aggressive --aggressive $(git ls-files '*.py')
+      - name: Check for changes
+        id: git_diff
+        run: |
+          git diff --exit-code || echo "Code was modified" && echo "true" > has_changes.txt
+      - name: Create fix branch
+        if: steps.git_diff.outputs.has_changes == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b lint-fixes
+          git add .
+          git commit -m "Auto-fix linting issues"
+          git push origin lint-fixes
+      - name: Create pull request
+        if: steps.git_diff.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          branch: lint-fixes
+          title: "Auto-fix linting issues"
+          body: "This pull request contains automated fixes for linting issues."
