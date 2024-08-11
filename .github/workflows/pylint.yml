@@ -34,10 +34,11 @@ jobs:
       - name: Check for changes
         id: git_diff
         run: |
-          if git diff --exit-code > /dev/null; then
-            echo "false" > has_changes.txt
-          else
+          # Check if any Python files were modified
+          if git diff --name-only | grep -E '\.py$'; then
             echo "true" > has_changes.txt
+          else
+            echo "false" > has_changes.txt
           fi
           echo "has_changes=$(cat has_changes.txt)" >> $GITHUB_ENV
       - name: Create fix branch
@@ -49,8 +50,6 @@ jobs:
           git checkout -b $BRANCH_NAME
           # Only add Python files
           git add $(git ls-files '*.py')
-          # Ensure text files are not staged
-          git rm --cached pylint_output.txt autopep8_output.txt pr_notes.txt has_changes.txt || true
           git commit -m "Auto-fix linting issues"
           git push origin $BRANCH_NAME
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
