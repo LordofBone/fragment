@@ -64,6 +64,7 @@ jobs:
         run: |
           BRANCH_NAME="${{ github.event.pull_request.head.ref }}-linting-fixes-$(date +%s)"
           git checkout -b $BRANCH_NAME
+          ls -l
           git add .
           git commit -m "Auto-fix formatting issues with black and autopep8"
           git push origin $BRANCH_NAME --set-upstream
