@@ -25,12 +25,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install pylint autopep8
       - name: Lint the code
+        id: pylint
         run: |
-          pylint $(git ls-files '*.py') | tee pylint_output.txt
+          pylint_output=$(pylint $(git ls-files '*.py') || true)
+          echo "pylint_output<<EOF" >> $GITHUB_ENV
+          echo "$pylint_output" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
         continue-on-error: true  # Allow workflow to continue even if pylint fails
       - name: Auto-fix code style issues
+        id: autopep8
         run: |
-          autopep8 --in-place --aggressive --aggressive $(git ls-files '*.py') | tee autopep8_output.txt
+          autopep8_output=$(autopep8 --in-place --aggressive --aggressive $(git ls-files '*.py') || true)
+          echo "autopep8_output<<EOF" >> $GITHUB_ENV
+          echo "$autopep8_output" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
       - name: Check for changes
         id: git_diff
         run: |
@@ -58,16 +66,15 @@ jobs:
           git push origin $BRANCH_NAME
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
       - name: Generate PR notes
-        id: pr_notes
         run: |
           echo "# Automated Linting and Code Fixes" > pr_notes.txt
           echo "This pull request was automatically generated to fix the following linting issues:" >> pr_notes.txt
           echo "" >> pr_notes.txt
           echo "## Pylint Issues Found:" >> pr_notes.txt
-          cat pylint_output.txt >> pr_notes.txt
+          echo "${{ env.pylint_output }}" >> pr_notes.txt
           echo "" >> pr_notes.txt
           echo "## Autopep8 Changes Applied:" >> pr_notes.txt
-          cat autopep8_output.txt >> pr_notes.txt
+          echo "${{ env.autopep8_output }}" >> pr_notes.txt
           echo "" >> pr_notes.txt
           echo "These changes were made to improve code quality and adhere to style guidelines." >> pr_notes.txt
       - name: Create pull request
