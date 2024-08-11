@@ -6,10 +6,10 @@ if __name__ == "__main__":
     base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
-        camera_positions=[(150.2, 150.2, 150.2)],
+        camera_positions=[(75, 75, 75)],
         camera_target=(0, 0.75, 0),
         up_vector=(0, 1, 0),
-        fov=40,
+        fov=90,
         near_plane=0.1,
         far_plane=1000,
         light_positions=[(50.0, 50.0, 50.0)],
@@ -35,22 +35,21 @@ if __name__ == "__main__":
             'normal': 'textures/normal/metal_1.png',
             'displacement': 'textures/displacement/metal_1.png'
         },
-        shader_names=('standard', 'stealth'),
+        shader_names=('standard', 'embm'),
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
     )
 
-    # Add a surface renderer
+    # Define the configuration for the skybox
     skybox_config = base_config.add_skybox(
         shader_names=('skybox', 'skybox'),
-        cubemap_folder="textures/cube/night_sky/",
     )
-    instance.add_renderer('skybox', **skybox_config)
 
-    # Add the sphere renderer to the instance
-    instance.add_renderer('model', **sphere_config)
+    # Add the renderers to the instance with specific names
+    instance.add_renderer('skybox', 'skybox', **skybox_config)
+    instance.add_renderer('sphere', 'model', **sphere_config)
 
     # Run the rendering instance
     instance.run()
