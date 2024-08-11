@@ -75,9 +75,9 @@ class SkyboxRenderer(AbstractRenderer):
 
     def load_textures(self):
         """Load the skybox cubemap."""
-        self.skybox_cubemap = glGenTextures(1)
+        self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.skybox_cubemap, 4)  # Use a specific texture unit
+            self.load_cubemap(self.cubemap_folder, self.environmentMap, 4)  # Use a specific texture unit
 
     @common_funcs
     def render(self):
@@ -94,7 +94,7 @@ class SkyboxRenderer(AbstractRenderer):
 
         glBindVertexArray(self.skybox_vao)
         glActiveTexture(GL_TEXTURE4)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, self.skybox_cubemap)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
         glUniform1i(glGetUniformLocation(self.shader_program, 'skybox'), 4)
 
         glDrawArrays(GL_TRIANGLES, 0, 36)
