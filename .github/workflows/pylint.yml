@@ -44,10 +44,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git diff --quiet || echo "Changes found" > has_changes.txt
+          git diff --quiet
+          if [ $? -eq 1 ]; then echo "CHANGES_FOUND=true" >> $GITHUB_ENV; fi
 
       - name: Create a new branch if there are changes
-        if: success() && steps.check_diff.outputs.has_changes != ''
+        if: env.CHANGES_FOUND == 'true'
         run: |
           BRANCH_NAME="lint-changes-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$BRANCH_NAME"
@@ -58,7 +59,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create a Pull Request
-        if: success() && steps.check_diff.outputs.has_changes != ''
+        if: env.CHANGES_FOUND == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
