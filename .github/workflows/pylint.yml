@@ -26,9 +26,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pylint autopep8 black
 
-      - name: Run black for code formatting
-        run: black .
-
       - name: Run pylint to check for issues
         id: lint
         run: |
@@ -39,11 +36,14 @@ jobs:
         run: |
           autopep8 --in-place --aggressive --aggressive **/*.py
 
+      - name: Run black for code formatting
+        run: black .
+
       - name: Check if there are changes
         id: git_diff
         run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git diff --exit-code || echo "Changes found"
         continue-on-error: true
 
