@@ -26,11 +26,11 @@ jobs:
           pip install pylint autopep8
       - name: Lint the code
         run: |
-          pylint $(git ls-files '*.py')
+          pylint $(git ls-files '*.py') | tee pylint_output.txt
         continue-on-error: true  # Allow workflow to continue even if pylint fails
       - name: Auto-fix code style issues
         run: |
-          autopep8 --in-place --aggressive --aggressive $(git ls-files '*.py')
+          autopep8 --in-place --aggressive --aggressive $(git ls-files '*.py') | tee autopep8_output.txt
       - name: Check for changes
         id: git_diff
         run: |
@@ -45,17 +45,33 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b lint-fixes
+          BRANCH_NAME="lint-fixes-$(date +%s)"
+          git checkout -b $BRANCH_NAME
           git add .
           git commit -m "Auto-fix linting issues"
-          git push origin lint-fixes
+          git push origin $BRANCH_NAME
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set the token as an environment variable
+      - name: Generate PR notes
+        id: pr_notes
+        run: |
+          echo "# Automated Linting and Code Fixes" > pr_notes.txt
+          echo "This pull request was automatically generated to fix the following linting issues:" >> pr_notes.txt
+          echo "" >> pr_notes.txt
+          echo "## Pylint Issues Found:" >> pr_notes.txt
+          cat pylint_output.txt >> pr_notes.txt
+          echo "" >> pr_notes.txt
+          echo "## Autopep8 Changes Applied:" >> pr_notes.txt
+          cat autopep8_output.txt >> pr_notes.txt
+          echo "" >> pr_notes.txt
+          echo "These changes were made to improve code quality and adhere to style guidelines." >> pr_notes.txt
       - name: Create pull request
         if: env.has_changes == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for the PR
-          branch: lint-fixes
+          branch: ${{ env.branch_name }}
           title: "Auto-fix linting issues"
-          body: "This pull request contains automated fixes for linting issues."
+          body: ${{ steps.pr_notes.outputs.body }}  # Use the generated PR notes
+          base: ${{ github.ref_name }}  # Make sure to use the base branch name
