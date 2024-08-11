@@ -42,11 +42,11 @@ if __name__ == "__main__":
         apply_gamma_correction=False,
     )
 
-    # Add the pyramid renderer to the instance
-    instance.add_renderer('model', **pyramid_config)
+    # Add the pyramid renderer to the instance with a specific name
+    instance.add_renderer('pyramid', 'model', **pyramid_config)
 
     # Enable auto-rotation for the pyramid model
-    instance.scene_construct.set_auto_rotation(0, True)
+    instance.scene_construct.set_auto_rotation('pyramid', True)
 
     # Run the rendering instance
     instance.run()
