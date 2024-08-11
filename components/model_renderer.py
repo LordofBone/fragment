@@ -86,6 +86,8 @@ class ModelRenderer(AbstractRenderer):
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
 
+        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
+
         for mesh in self.object.mesh_list:
             material = self.object.materials['Material']
             glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
