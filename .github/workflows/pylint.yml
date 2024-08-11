@@ -48,8 +48,10 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           BRANCH_NAME="lint-fixes-$(date +%s)"
           git checkout -b $BRANCH_NAME
-          # Only add Python files
-          git add $(git ls-files '*.py')
+          # Unstage everything first to avoid committing unwanted files
+          git reset
+          # Stage only Python files that were modified
+          git add $(git diff --name-only | grep -E '\.py$')
           git commit -m "Auto-fix linting issues"
           git push origin $BRANCH_NAME
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
