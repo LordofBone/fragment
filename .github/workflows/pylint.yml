@@ -50,6 +50,8 @@ jobs:
           git checkout -b $BRANCH_NAME
           # Unstage everything first to avoid committing unwanted files
           git reset
+          # Explicitly remove any unwanted text files from the working directory before staging
+          rm -f pylint_output.txt autopep8_output.txt pr_notes.txt has_changes.txt
           # Stage only Python files that were modified
           git add $(git diff --name-only | grep -E '\.py$')
           git commit -m "Auto-fix linting issues"
