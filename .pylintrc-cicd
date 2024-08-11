@@ -1,37 +1,20 @@
 [MASTER]
-# A comma-separated list of file name patterns to be excluded from checks.
 ignore-patterns=tests/*,migrations/*
 
 [MESSAGES CONTROL]
-# Disable the message, report, category, or checker with the given id(s).
 disable=
-    C0114,  # Missing module docstring
-    C0115,  # Missing class docstring
-    C0116,  # Missing function or method docstring
-    W0401,  # Wildcard import
-    W0201,  # Attribute defined outside __init__
-    E0602,  # Undefined variable
+    C0114, C0115, C0116, W0401, W0201, E0602
 
-# Enable the following messages (focused on formatting that autopep8 can fix)
+# Enable format and style checks
 enable=
-    C0103,  # Variable name doesn't conform to snake_case naming style
-    C0301,  # Line too long
-    C0302,  # Too many lines in module
-    C0303,  # Trailing whitespace
-    C0304,  # Final newline missing
-    C0321,  # Multiple statements on one line (colon)
-    C0326,  # Bad whitespace
-    W0611,  # Unused import
-    W0612,  # Unused variable
+    C0103, C0301, C0302, C0303, C0304, C0321, C0326, W0611, W0612,
+    R0902, R0913, R0914, R0801  # Enable structural checks for manual review
 
 [FORMAT]
-# Maximum number of characters on a single line.
 max-line-length=120
 
 [BASIC]
-# Variable names that should be ignored from the snake_case convention
 good-names=i,j,k,ex,Run,_,env,GL,glm,gl
 
 [REPORTS]
-# Tells whether to display a full report or only the messages.
 reports=no
