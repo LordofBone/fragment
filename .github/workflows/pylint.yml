@@ -52,6 +52,8 @@ jobs:
       - name: Create fix branch
         if: env.has_changes == 'true'
         run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           BRANCH_NAME="lint-changes-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$BRANCH_NAME"
           git add .
