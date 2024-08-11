@@ -9,18 +9,24 @@ disable=
     C0115,  # Missing class docstring
     C0116,  # Missing function or method docstring
     C0103,  # Variable name doesn't conform to snake_case naming style
-    C0301,  # Line too long
     R0902,  # Too many instance attributes
     R0913,  # Too many arguments
     R0914,  # Too many local variables
     R0801,  # Duplicate code
     W0401,  # Wildcard import
     W0201,  # Attribute defined outside __init__
-
-# Enable the following messages
-enable=
     E0602,  # Undefined variable
     E0401,  # Import errors
+    E1101,  # No member
+
+# Enable the following messages (focused on formatting)
+enable=
+    C0301,  # Line too long
+    C0302,  # Too many lines in module
+    C0303,  # Trailing whitespace
+    C0304,  # Final newline missing
+    C0321,  # Multiple statements on one line (colon)
+    C0326,  # Bad whitespace
 
 [FORMAT]
 # Maximum number of characters on a single line.
@@ -29,16 +35,6 @@ max-line-length=120
 [BASIC]
 # Variable names that should be ignored from the snake_case convention
 good-names=i,j,k,ex,Run,_,env,GL,glm,gl
-
-[DESIGN]
-# Maximum number of arguments for function / method
-max-args=10
-
-# Maximum number of attributes for a class (see R0902)
-max-attributes=10
-
-# Maximum number of local variables for function / method body
-max-locals=20
 
 [REPORTS]
 # Tells whether to display a full report or only the messages
