@@ -40,15 +40,14 @@ jobs:
         run: black .
 
       - name: Check if there are changes
-        id: git_diff
+        id: check_diff
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git diff --exit-code || echo "Changes found"
-        continue-on-error: true
+          git diff --quiet || echo "Changes found" > has_changes.txt
 
       - name: Create a new branch if there are changes
-        if: steps.git_diff.outputs.changes != ''
+        if: success() && steps.check_diff.outputs.has_changes != ''
         run: |
           BRANCH_NAME="lint-changes-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$BRANCH_NAME"
@@ -59,11 +58,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create a Pull Request
-        if: steps.git_diff.outputs.changes != ''
+        if: success() && steps.check_diff.outputs.has_changes != ''
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.git_diff.outputs.branch_name }}
+          branch: ${{ steps.check_diff.outputs.branch_name }}
           title: "Auto-fix formatting issues with black and autopep8"
           body: |
             This PR includes auto-fix changes for Python formatting issues detected by pylint and fixed by black and autopep8.
