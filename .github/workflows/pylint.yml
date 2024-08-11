@@ -1,88 +1,68 @@
-name: Pylint and Auto-fix
+name: Lint and Auto-fix Python Code
 
 on:
   pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Allow pushing changes to the repository
-  pull-requests: write  # Allow creating pull requests
+  contents: write
+  pull-requests: write
 
 jobs:
-  lint:
+  lint-and-fix:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ "3.10" ]
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.x'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pylint autopep8
-      - name: Lint the code
-        id: pylint
+
+      - name: Run pylint to check for formatting issues
+        id: lint
         run: |
-          pylint_output=$(pylint $(git ls-files '*.py') || true)
-          echo "pylint_output<<EOF" >> $GITHUB_ENV
-          echo "$pylint_output" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-        continue-on-error: true  # Allow workflow to continue even if pylint fails
-      - name: Auto-fix code style issues
-        id: autopep8
+          pylint **/*.py --disable=all --enable=format --output-format=parseable > pylint_output.txt || true
+          cat pylint_output.txt
+
+      - name: Apply autopep8 fixes
+        if: ${{ steps.lint.outputs.lint-output != '' }}
         run: |
-          autopep8_output=$(autopep8 --in-place --aggressive --aggressive $(git ls-files '*.py') || true)
-          echo "autopep8_output<<EOF" >> $GITHUB_ENV
-          echo "$autopep8_output" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-      - name: Check for changes
+          autopep8 --in-place --aggressive --aggressive **/*.py
+
+      - name: Check if there are changes
         id: git_diff
-        run: |
-          # Check if any Python files were modified
-          if git diff --name-only | grep -E '\.py$'; then
-            echo "true" > has_changes.txt
-          else
-            echo "false" > has_changes.txt
-          fi
-          echo "has_changes=$(cat has_changes.txt)" >> $GITHUB_ENV
-      - name: Create fix branch
-        if: env.has_changes == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          BRANCH_NAME="lint-fixes-$(date +%s)"
-          git checkout -b $BRANCH_NAME
-          # Unstage everything first to avoid committing unwanted files
-          git reset
-          # Explicitly remove any unwanted text files from the working directory before staging
-          rm -f pylint_output.txt autopep8_output.txt pr_notes.txt has_changes.txt
-          # Stage only Python files that were modified
-          git add $(git diff --name-only | grep -E '\.py$')
-          git commit -m "Auto-fix linting issues"
-          git push origin $BRANCH_NAME
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
-      - name: Generate PR notes
+          git diff --exit-code || echo "Changes found"
+        continue-on-error: true
+
+      - name: Create a new branch if there are changes
+        if: steps.git_diff.outputs.changes != ''
         run: |
-          echo "# Automated Linting and Code Fixes" > pr_notes.txt
-          echo "This pull request was automatically generated to fix the following linting issues:" >> pr_notes.txt
-          echo "" >> pr_notes.txt
-          echo "## Pylint Issues Found:" >> pr_notes.txt
-          echo "${{ env.pylint_output }}" >> pr_notes.txt
-          echo "" >> pr_notes.txt
-          echo "## Autopep8 Changes Applied:" >> pr_notes.txt
-          echo "${{ env.autopep8_output }}" >> pr_notes.txt
-          echo "" >> pr_notes.txt
-          echo "These changes were made to improve code quality and adhere to style guidelines." >> pr_notes.txt
-      - name: Create pull request
-        if: env.has_changes == 'true'
+          BRANCH_NAME="lint-changes-$(date +'%Y%m%d%H%M%S')"
+          git checkout -b "$BRANCH_NAME"
+          git add .
+          git commit -m "Auto-fix formatting issues with autopep8"
+          git push origin "$BRANCH_NAME"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create a Pull Request
+        if: steps.git_diff.outputs.changes != ''
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for the PR
-          branch: ${{ env.branch_name }}
-          title: "Auto-fix linting issues"
-          body: ${{ steps.pr_notes.outputs.body }}
-          base: ${{ github.ref_name }}  # Make sure to use the base branch name
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.git_diff.outputs.branch_name }}
+          title: "Auto-fix formatting issues with autopep8"
+          body: |
+            This PR includes auto-fix changes for Python formatting issues detected by pylint and fixed by autopep8.
+            Please review the changes and merge if they are acceptable.
