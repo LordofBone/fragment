@@ -42,8 +42,8 @@ if __name__ == "__main__":
         apply_gamma_correction=False,
     )
 
-    # Add the tyre renderer to the instance
-    instance.add_renderer('model', **tyre_config)
+    # Add the tyre renderer to the instance with a specific name
+    instance.add_renderer('tyre', 'model', **tyre_config)
 
     # Run the rendering instance
     instance.run()
