@@ -47,7 +47,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           BRANCH_NAME="lint-fixes-$(date +%s)"
           git checkout -b $BRANCH_NAME
-          git add .
+          git add $(git ls-files '*.py')  # Only add Python files to the commit
           git commit -m "Auto-fix linting issues"
           git push origin $BRANCH_NAME
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
@@ -73,5 +73,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for the PR
           branch: ${{ env.branch_name }}
           title: "Auto-fix linting issues"
-          body: ${{ steps.pr_notes.outputs.body }}  # Use the generated PR notes
+          body: ${{ steps.pr_notes.outputs.body }}
           base: ${{ github.ref_name }}  # Make sure to use the base branch name
