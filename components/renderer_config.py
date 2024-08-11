@@ -6,9 +6,8 @@ class RendererConfig:
     def __init__(self, window_size=(800, 600), cubemap_folder=None, camera_positions=None,
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), rotation_axis=(0, 3, 0), fov=40, near_plane=0.1,
                  far_plane=1000, light_positions=None, light_colors=None, light_strengths=None, anisotropy=16.0,
-                 auto_camera=False, height_factor=1.5, distance_factor=2.0, msaa_level=8, culling=True,
-                 texture_lod_bias=0.0, env_map_lod_bias=0.0, move_speed=1.0, loop=True, front_face_winding="CCW",
-                 shaders=None):
+                 auto_camera=False, msaa_level=8, culling=True, texture_lod_bias=0.0, env_map_lod_bias=0.0,
+                 move_speed=1.0, loop=True, front_face_winding="CCW", shaders=None):
         if light_strengths is None:
             light_strengths = [0.8]
         if light_colors is None:
@@ -32,8 +31,6 @@ class RendererConfig:
         self.light_strengths = light_strengths
         self.anisotropy = anisotropy
         self.auto_camera = auto_camera
-        self.height_factor = height_factor
-        self.distance_factor = distance_factor
         self.msaa_level = msaa_level
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
