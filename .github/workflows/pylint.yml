@@ -49,12 +49,18 @@ jobs:
           fi
           echo "has_changes=$(cat has_changes.txt)" >> $GITHUB_ENV
 
+      - name: Get current branch name
+        id: get_branch
+        run: |
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          echo "current_branch=$CURRENT_BRANCH" >> $GITHUB_ENV
+
       - name: Create fix branch
         if: env.has_changes == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          BRANCH_NAME="lint-fixes-$(date +%s)"
+          BRANCH_NAME="${{ env.current_branch }}-linting-fixes-$(date +%s)"
           git checkout -b $BRANCH_NAME
           git add .
           git commit -m "Auto-fix formatting issues with black and autopep8"
