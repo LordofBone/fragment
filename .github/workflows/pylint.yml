@@ -69,8 +69,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.branch_name }}
-          base: ${{ github.event.pull_request.base.ref }}
-          title: "Auto-fix formatting issues with black and autopep8"
+          title: "Auto-fix linting issues"
           body: |
             This PR includes auto-fix changes for Python formatting issues detected by pylint and fixed by black and autopep8.
             Please review the changes and merge if they are acceptable.
+            - name: Create pull request
+          base: ${{ github.ref_name }}
