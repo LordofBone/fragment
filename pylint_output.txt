@@ -1,0 +1,15 @@
+************* Module /home/runner/work/314Mark/314Mark/.pylintrc
+.pylintrc:1:0: R0022: Useless option value for '--enable', 'C0326' was removed from pylint, see https://github.com/pylint-dev/pylint/pull/3577. (useless-option-value)
+************* Module components.abstract_renderer
+components/abstract_renderer.py:266:8: W0107: Unnecessary pass statement (unnecessary-pass)
+components/abstract_renderer.py:271:8: W0107: Unnecessary pass statement (unnecessary-pass)
+************* Module components.model_renderer
+components/model_renderer.py:18:12: W0612: Unused variable 'name' (unused-variable)
+************* Module components.shader_engine
+components/shader_engine.py:30:13: W1514: Using open without explicitly specifying an encoding (unspecified-encoding)
+************* Module components.skybox_renderer
+components/skybox_renderer.py:86:8: W0105: String statement has no effect (pointless-string-statement)
+
+-----------------------------------
+Your code has been rated at 9.92/10
+
