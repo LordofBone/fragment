@@ -5,34 +5,34 @@ from components.abstract_renderer import AbstractRenderer
 
 class SceneConstructor:
     def __init__(self):
-        self.renderers = []
+        self.renderers = {}
 
-    def add_renderer(self, renderer: AbstractRenderer):
-        """Add a renderer to the scene."""
-        self.renderers.append(renderer)
+    def add_renderer(self, name: str, renderer: AbstractRenderer):
+        """Add a renderer to the scene with a specific name."""
+        self.renderers[name] = renderer
 
     def render(self):
         """Render all objects in the scene."""
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        for renderer in self.renderers:
+        for renderer in self.renderers.values():
             renderer.render()
 
-    def translate_renderer(self, index, position):
+    def translate_renderer(self, name, position):
         """Translate a renderer in the scene."""
-        if index < len(self.renderers):
-            self.renderers[index].translate(position)
+        if name in self.renderers:
+            self.renderers[name].translate(position)
 
-    def rotate_renderer(self, index, angle, axis):
+    def rotate_renderer(self, name, angle, axis):
         """Rotate a renderer in the scene."""
-        if index < len(self.renderers):
-            self.renderers[index].rotate(angle, axis)
+        if name in self.renderers:
+            self.renderers[name].rotate(angle, axis)
 
-    def scale_renderer(self, index, scale):
+    def scale_renderer(self, name, scale):
         """Scale a renderer in the scene."""
-        if index < len(self.renderers):
-            self.renderers[index].scale(scale)
+        if name in self.renderers:
+            self.renderers[name].scale(scale)
 
-    def set_auto_rotation(self, index, enabled):
+    def set_auto_rotation(self, name, enabled):
         """Enable or disable auto-rotation for a renderer."""
-        if index < len(self.renderers):
-            self.renderers[index].enable_auto_rotation(enabled)
+        if name in self.renderers:
+            self.renderers[name].enable_auto_rotation(enabled)

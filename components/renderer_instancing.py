@@ -16,8 +16,8 @@ class RenderingInstance:
         self.render_window = RendererWindow(window_size=self.config.window_size, title="Renderer",
                                             msaa_level=self.config.msaa_level)
 
-    def add_renderer(self, renderer_type, **params):
-        """Add a renderer to the instance."""
+    def add_renderer(self, name, renderer_type, **params):
+        """Add a renderer to the instance with a specific name."""
         if renderer_type == 'model':
             renderer = ModelRenderer(**params)
         elif renderer_type == 'surface':
@@ -26,15 +26,15 @@ class RenderingInstance:
             renderer = SkyboxRenderer(**params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
-        self.scene_construct.add_renderer(renderer)
+        self.scene_construct.add_renderer(name, renderer)
 
     def run(self):
         """Run the rendering loop."""
-        for renderer in self.scene_construct.renderers:
+        for renderer in self.scene_construct.renderers.values():
             renderer.setup()
 
         def render_callback(delta_time):
-            for renderer in self.scene_construct.renderers:
+            for renderer in self.scene_construct.renderers.values():
                 renderer.update_camera(delta_time)
             self.scene_construct.render()
 
