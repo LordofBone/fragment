@@ -29,6 +29,10 @@ def common_funcs(func):
 
         result = func(self, *args, **kwargs)
 
+        # Unbind textures to avoid affecting subsequent renders
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
+        glBindTexture(GL_TEXTURE_2D, 0)
+
         # Culling teardown
         if self.culling:
             glDisable(GL_CULL_FACE)
@@ -39,7 +43,7 @@ def common_funcs(func):
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, shader_names, shaders=None, cubemap_folder='textures/cube/night_sky_egypt/',
+    def __init__(self, shader_names, shaders=None, cubemap_folder=None,
                  camera_positions=None, camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1,
                  far_plane=100, light_positions=None, light_colors=None, light_strengths=None, rotation_speed=2000.0,
                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, texture_lod_bias=0.0,
@@ -57,7 +61,7 @@ class AbstractRenderer(ABC):
 
         self.shader_names = shader_names  # Expecting a tuple (vertex_shader_name, fragment_shader_name)
         self.shaders = shaders or {}
-        self.cubemap_folder = cubemap_folder
+        self.cubemap_folder = cubemap_folder  # Per-instance cubemap folder
         self.camera_positions = camera_positions or [(0, 0, 0)]
         self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
@@ -112,7 +116,7 @@ class AbstractRenderer(ABC):
         """Setup resources and initialize the renderer."""
         self.init_shaders()
         self.create_buffers()
-        self.load_textures()
+        self.load_textures()  # Load textures including cubemap
         self.setup_camera()
         self.set_constant_uniforms()
 
@@ -138,10 +142,12 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.texture_lod_bias)
+        glBindTexture(GL_TEXTURE_2D, 0)  # Unbind texture after loading
 
-    def load_cubemap(self, folder_path, texture):
+    def load_cubemap(self, folder_path, texture, texture_unit):
         """Load a cubemap texture from a folder."""
-        faces = ['right.png', 'left.png', 'top.png', 'bottom.png', 'front.png', 'back.png']
+        faces = ['right.png', 'left.png', 'bottom.png', 'top.png', 'front.png', 'back.png']
+        glActiveTexture(GL_TEXTURE0 + texture_unit)  # Activate the correct texture unit
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
             surface = pygame.image.load(folder_path + face)
@@ -157,6 +163,7 @@ class AbstractRenderer(ABC):
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, self.env_map_lod_bias)
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)  # Unbind after loading to avoid conflicts
 
     def setup_camera(self):
         """Setup the camera view and projection matrices."""

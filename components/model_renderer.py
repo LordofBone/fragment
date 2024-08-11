@@ -60,7 +60,7 @@ class ModelRenderer(AbstractRenderer):
 
         self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap)
+            self.load_cubemap(self.cubemap_folder, self.environmentMap, 3)  # Use a specific texture unit
 
         glUseProgram(self.shader_program)
 
@@ -85,6 +85,8 @@ class ModelRenderer(AbstractRenderer):
         """Render the model."""
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
 
         for mesh in self.object.mesh_list:
             material = self.object.materials['Material']

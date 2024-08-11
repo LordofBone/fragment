@@ -16,7 +16,7 @@ class SurfaceRenderer(AbstractRenderer):
             -half_width, 0.0, half_height, 0.0, 1.0,  # Top-left
             half_width, 0.0, half_height, 1.0, 1.0,  # Top-right
             half_width, 0.0, -half_height, 1.0, 0.0,  # Bottom-right
-            - half_width, 0.0, -half_height, 0.0, 0.0,  # Bottom-left
+            -half_width, 0.0, -half_height, 0.0, 0.0,  # Bottom-left
         ]
         indices = [0, 1, 2, 2, 3, 0]  # Two triangles forming the quad
         vertices_array = np.array(vertices, dtype=np.float32)
@@ -52,16 +52,16 @@ class SurfaceRenderer(AbstractRenderer):
         """Load textures for the surface."""
         self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap)
+            self.load_cubemap(self.cubemap_folder, self.environmentMap, 5)  # Use a specific texture unit
 
     @common_funcs
     def render(self):
         """Render the surface."""
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 0)
-
         glBindVertexArray(self.vao)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)
+        glActiveTexture(GL_TEXTURE5)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
+        glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 5)
+
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
+
         glBindVertexArray(0)
