@@ -59,6 +59,7 @@ jobs:
           git add .
           git commit -m "Auto-fix formatting issues with black and autopep8"
           git push origin $BRANCH_NAME
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -67,7 +68,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.git_diff.outputs.branch_name }}
+          branch: ${{ env.branch_name }}
           title: "Auto-fix formatting issues with black and autopep8"
           body: |
             This PR includes auto-fix changes for Python formatting issues detected by pylint and fixed by black and autopep8.
