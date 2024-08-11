@@ -54,11 +54,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          BRANCH_NAME="lint-changes-$(date +'%Y%m%d%H%M%S')"
-          git checkout -b "$BRANCH_NAME"
+          BRANCH_NAME="lint-fixes-$(date +%s)"
+          git checkout -b $BRANCH_NAME
           git add .
           git commit -m "Auto-fix formatting issues with black and autopep8"
-          git push origin "$BRANCH_NAME"
+          git push origin $BRANCH_NAME
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
