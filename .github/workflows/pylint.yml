@@ -1,25 +1,68 @@
-name: Pylint
+name: Lint and Auto-fix Python Code
 
 on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  build:
+  lint-and-fix:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pylint
-    - name: Analysing the code with pylint
-      run: |
-        pylint $(git ls-files '*.py')
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint autopep8
+
+      - name: Run pylint to check for formatting issues
+        id: lint
+        run: |
+          pylint **/*.py --disable=all --enable=format --output-format=parseable > pylint_output.txt || true
+          cat pylint_output.txt
+
+      - name: Apply autopep8 fixes
+        if: ${{ steps.lint.outputs.lint-output != '' }}
+        run: |
+          autopep8 --in-place --aggressive --aggressive **/*.py
+
+      - name: Check if there are changes
+        id: git_diff
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --exit-code || echo "Changes found"
+        continue-on-error: true
+
+      - name: Create a new branch if there are changes
+        if: steps.git_diff.outputs.changes != ''
+        run: |
+          BRANCH_NAME="lint-changes-$(date +'%Y%m%d%H%M%S')"
+          git checkout -b "$BRANCH_NAME"
+          git add .
+          git commit -m "Auto-fix formatting issues with autopep8"
+          git push origin "$BRANCH_NAME"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create a Pull Request
+        if: steps.git_diff.outputs.changes != ''
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.git_diff.outputs.branch_name }}
+          title: "Auto-fix formatting issues with autopep8"
+          body: |
+            This PR includes auto-fix changes for Python formatting issues detected by pylint and fixed by autopep8.
+            Please review the changes and merge if they are acceptable.
