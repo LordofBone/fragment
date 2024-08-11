@@ -84,8 +84,6 @@ class SkyboxRenderer(AbstractRenderer):
         glDepthFunc(
             GL_LEQUAL)  # Change depth function so depth test passes when values are equal to depth buffer's content
         """Render the skybox."""
-        glUseProgram(self.shader_program)
-
         # Set the view and projection matrices
         view_matrix = glm.mat4(glm.mat3(self.view))  # Remove translation from the view matrix
         projection_matrix = self.projection
@@ -103,4 +101,3 @@ class SkyboxRenderer(AbstractRenderer):
 
         glBindVertexArray(0)
         glDepthFunc(GL_LESS)  # Set depth function back to default
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)  # Unbind after rendering

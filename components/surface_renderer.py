@@ -57,8 +57,6 @@ class SurfaceRenderer(AbstractRenderer):
     @common_funcs
     def render(self):
         """Render the surface."""
-        glUseProgram(self.shader_program)  # Ensure this renderer's shader program is active
-
         glBindVertexArray(self.vao)
         glActiveTexture(GL_TEXTURE5)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
@@ -67,4 +65,3 @@ class SurfaceRenderer(AbstractRenderer):
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
         glBindVertexArray(0)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)  # Unbind after rendering
