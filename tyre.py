@@ -10,6 +10,7 @@ if __name__ == "__main__":
         light_strengths=[1.0], anisotropy=16.0, auto_camera=False, msaa_level=8, culling=True, texture_lod_bias=0.4, env_map_lod_bias=0.0,
     )
 
+
     # Create the rendering instance with the base configuration
     instance=RenderingInstance(base_config)
     instance.setup()
