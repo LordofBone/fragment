@@ -4,28 +4,18 @@ from components.renderer_instancing import RenderingInstance
 if __name__ == "__main__":
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
-        window_size=(800, 600),
-        cubemap_folder="textures/cube/mountain_lake/",
-        camera_positions=[(6.2, 6.2, 6.2)],
+        window_size=(800, 600), cubemap_folder="textures/cube/mountain_lake/", camera_positions=[(6.2, 6.2, 6.2)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
-        fov=40,
-        near_plane=0.1,
-        far_plane=1000,
-        light_positions=[(-5.0, 0.0, 5.0)],
-        light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[1.0],
-        anisotropy=16.0,
-        auto_camera=False,
-        msaa_level=8,
-        culling=True,
-        texture_lod_bias=0.4,
+        fov=40, near_plane=0.1, far_plane=1000, light_positions=[(-5.0, 0.0, 5.0)], light_colors=[(1.0, 1.0, 1.0)],
+        light_strengths=[1.0], anisotropy=16.0, auto_camera=False, msaa_level=8, culling=True, texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
     )
 
     # Create the rendering instance with the base configuration
     instance = RenderingInstance(base_config)
     instance.setup()
+    instance.base_config = base_config  # Attribute defined outside __init__
 
     # Define the configuration for the tyre model
     tyre_config = base_config.add_model(
