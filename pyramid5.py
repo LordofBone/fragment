@@ -12,7 +12,7 @@ if __name__ == "__main__":
         fov=40,
         near_plane=0.1,
         far_plane=100,
-        light_positions=[(3.0, 3.0, 3.0)],
+        light_positions=[(50.0, 20.0, 50.0)],
         light_colors=[(1.0, 1.0, 1.0)],
         light_strengths=[0.8],
         anisotropy=16.0,
@@ -40,6 +40,7 @@ if __name__ == "__main__":
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        phong_shading=True,
     )
 
     # Add the pyramid renderer to the instance with a specific name
