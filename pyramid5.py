@@ -33,7 +33,7 @@ if __name__ == "__main__":
         texture_paths={
             "diffuse": "textures/diffuse/crystal.png",
             "normal": "textures/normal/crystal.png",
-            "displacement": "textures/displacement/crystal.png"
+            "displacement": "textures/displacement/crystal.png",
         },
         shader_names=("standard", "embm"),
         rotation_speed=5000.0,

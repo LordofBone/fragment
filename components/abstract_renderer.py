@@ -43,13 +43,36 @@ def common_funcs(func):
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, shader_names, shaders=None, cubemap_folder=None,
-                 camera_positions=None, camera_target=(0, 0, 0), up_vector=(0, 1, 0), fov=45, near_plane=0.1,
-                 far_plane=100, light_positions=None, light_colors=None, light_strengths=None, rotation_speed=2000.0,
-                 rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, texture_lod_bias=0.0,
-                 env_map_lod_bias=0.0, culling=True, msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0,
-                 loop=True, front_face_winding="CCW", window_size=(800, 600), **kwargs):
-
+    def __init__(
+        self,
+        shader_names,
+        shaders=None,
+        cubemap_folder=None,
+        camera_positions=None,
+        camera_target=(0, 0, 0),
+        up_vector=(0, 1, 0),
+        fov=45,
+        near_plane=0.1,
+        far_plane=100,
+        light_positions=None,
+        light_colors=None,
+        light_strengths=None,
+        rotation_speed=2000.0,
+        rotation_axis=(0, 3, 0),
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
+        texture_lod_bias=0.0,
+        env_map_lod_bias=0.0,
+        culling=True,
+        msaa_level=8,
+        anisotropy=16.0,
+        auto_camera=False,
+        move_speed=1.0,
+        loop=True,
+        front_face_winding="CCW",
+        window_size=(800, 600),
+        **kwargs,
+    ):
         if light_strengths is None:
             light_strengths = [0.8]
         if light_colors is None:
@@ -104,10 +127,7 @@ class AbstractRenderer(ABC):
 
     def get_winding_constant(self, winding):
         """Convert winding string to OpenGL constant."""
-        winding_options = {
-            "CW": GL_CW,
-            "CCW": GL_CCW
-        }
+        winding_options = {"CW": GL_CW, "CCW": GL_CCW}
         if winding not in winding_options:
             raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
         return winding_options[winding]
@@ -153,8 +173,9 @@ class AbstractRenderer(ABC):
             surface = pygame.image.load(folder_path + face)
             img_data = pygame.image.tostring(surface, "RGB", True)
             width, height = surface.get_size()
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
-                         img_data)
+            glTexImage2D(
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data
+            )
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
@@ -178,7 +199,8 @@ class AbstractRenderer(ABC):
         """Set light uniforms for the shader program."""
         glUseProgram(shader_program)
         for i, (position, color, strength) in enumerate(
-                zip(self.light_positions, self.light_colors, self.light_strengths)):
+            zip(self.light_positions, self.light_colors, self.light_strengths)
+        ):
             glUniform3fv(glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(position))
             glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(color))
             glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), strength)
@@ -214,8 +236,9 @@ class AbstractRenderer(ABC):
         """Apply transformations to the model matrix."""
         if self.auto_rotation_enabled:
             if self.rotation_speed != 0.0:
-                rotation_matrix = glm.rotate(glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed,
-                                             self.rotation_axis)
+                rotation_matrix = glm.rotate(
+                    glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis
+                )
                 self.model_matrix = self.manual_transformations * rotation_matrix
             else:
                 self.auto_rotation_enabled = False
@@ -238,19 +261,26 @@ class AbstractRenderer(ABC):
     def set_shader_uniforms(self):
         """Set uniforms for the shader program."""
         glUseProgram(self.shader_program)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE,
-                           glm.value_ptr(self.model_matrix))
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(self.model_matrix)
+        )
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(self.view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE,
-                           glm.value_ptr(self.projection))
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(self.projection)
+        )
         glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
-        glUniform1f(glGetUniformLocation(self.shader_program, "waveAmplitude"),
-                    self.dynamic_attrs.get("wave_amplitude", 0.1))
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "waveAmplitude"), self.dynamic_attrs.get("wave_amplitude", 0.1)
+        )
         glUniform1f(glGetUniformLocation(self.shader_program, "randomness"), self.dynamic_attrs.get("randomness", 0.8))
-        glUniform1f(glGetUniformLocation(self.shader_program, "texCoordFrequency"),
-                    self.dynamic_attrs.get("tex_coord_frequency", 100.0))
-        glUniform1f(glGetUniformLocation(self.shader_program, "texCoordAmplitude"),
-                    self.dynamic_attrs.get("tex_coord_amplitude", 0.1))
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "texCoordFrequency"),
+            self.dynamic_attrs.get("tex_coord_frequency", 100.0),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "texCoordAmplitude"),
+            self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
+        )
         glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position))
         glUniform1f(glGetUniformLocation(self.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 

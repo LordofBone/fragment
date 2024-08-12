@@ -13,8 +13,9 @@ class RenderingInstance:
 
     def setup(self):
         """Setup the rendering window."""
-        self.render_window = RendererWindow(window_size=self.config.window_size, title="Renderer",
-                                            msaa_level=self.config.msaa_level)
+        self.render_window = RendererWindow(
+            window_size=self.config.window_size, title="Renderer", msaa_level=self.config.msaa_level
+        )
 
     def add_renderer(self, name, renderer_type, **params):
         """Add a renderer to the instance with a specific name."""

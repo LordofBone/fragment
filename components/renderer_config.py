@@ -3,11 +3,31 @@ import os
 
 
 class RendererConfig:
-    def __init__(self, window_size=(800, 600), cubemap_folder=None, camera_positions=None,
-                 camera_target=(0, 0, 0), up_vector=(0, 1, 0), rotation_axis=(0, 3, 0), fov=40, near_plane=0.1,
-                 far_plane=1000, light_positions=None, light_colors=None, light_strengths=None, anisotropy=16.0,
-                 auto_camera=False, msaa_level=8, culling=True, texture_lod_bias=0.0, env_map_lod_bias=0.0,
-                 move_speed=1.0, loop=True, front_face_winding="CCW", shaders=None):
+    def __init__(
+        self,
+        window_size=(800, 600),
+        cubemap_folder=None,
+        camera_positions=None,
+        camera_target=(0, 0, 0),
+        up_vector=(0, 1, 0),
+        rotation_axis=(0, 3, 0),
+        fov=40,
+        near_plane=0.1,
+        far_plane=1000,
+        light_positions=None,
+        light_colors=None,
+        light_strengths=None,
+        anisotropy=16.0,
+        auto_camera=False,
+        msaa_level=8,
+        culling=True,
+        texture_lod_bias=0.0,
+        env_map_lod_bias=0.0,
+        move_speed=1.0,
+        loop=True,
+        front_face_winding="CCW",
+        shaders=None,
+    ):
         if light_strengths is None:
             light_strengths = [0.8]
         if light_colors is None:
@@ -71,10 +91,25 @@ class RendererConfig:
         """Unpack the configuration into a dictionary."""
         return copy.deepcopy(self.__dict__)  # Use deepcopy to avoid mutating the original configuration
 
-    def add_model(self, obj_path, texture_paths, shader_names=("standard", "default"), rotation_speed=0.0,
-                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, width=10.0,
-                  height=10.0, wave_speed=10.0, wave_amplitude=0.1, randomness=0.8, tex_coord_frequency=100.0,
-                  tex_coord_amplitude=0.1, cubemap_folder=None, **kwargs):
+    def add_model(
+        self,
+        obj_path,
+        texture_paths,
+        shader_names=("standard", "default"),
+        rotation_speed=0.0,
+        rotation_axis=(0, 3, 0),
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
+        width=10.0,
+        height=10.0,
+        wave_speed=10.0,
+        wave_amplitude=0.1,
+        randomness=0.8,
+        tex_coord_frequency=100.0,
+        tex_coord_amplitude=0.1,
+        cubemap_folder=None,
+        **kwargs,
+    ):
         """Add a model to the configuration."""
 
         # Start with a deep copy of the base configuration
@@ -96,7 +131,7 @@ class RendererConfig:
             "randomness": randomness,
             "tex_coord_frequency": tex_coord_frequency,
             "tex_coord_amplitude": tex_coord_amplitude,
-            "cubemap_folder": cubemap_folder  # Specific or None
+            "cubemap_folder": cubemap_folder,  # Specific or None
         }
 
         # Update the configuration with model specifics, preserving non-None values
@@ -107,10 +142,22 @@ class RendererConfig:
 
         return model_config
 
-    def add_surface(self, shader_names=("standard", "default"), wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
-                    rotation_speed=0.0, apply_tone_mapping=False, apply_gamma_correction=False,
-                    tex_coord_frequency=100.0,
-                    tex_coord_amplitude=0.1, width=500.0, height=500.0, cubemap_folder=None, **kwargs):
+    def add_surface(
+        self,
+        shader_names=("standard", "default"),
+        wave_speed=10.0,
+        wave_amplitude=0.1,
+        randomness=0.8,
+        rotation_speed=0.0,
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
+        tex_coord_frequency=100.0,
+        tex_coord_amplitude=0.1,
+        width=500.0,
+        height=500.0,
+        cubemap_folder=None,
+        **kwargs,
+    ):
         """Add a surface to the configuration."""
         surface_config = self.unpack()
 
@@ -126,7 +173,7 @@ class RendererConfig:
             "tex_coord_amplitude": tex_coord_amplitude,
             "width": width,
             "height": height,
-            "cubemap_folder": cubemap_folder  # Specific or None
+            "cubemap_folder": cubemap_folder,  # Specific or None
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
@@ -140,7 +187,7 @@ class RendererConfig:
 
         skybox_specifics = {
             "shader_names": shader_names,
-            "cubemap_folder": cubemap_folder  # Specific or None
+            "cubemap_folder": cubemap_folder,  # Specific or None
         }
 
         skybox_config.update({k: v for k, v in skybox_specifics.items() if v is not None})

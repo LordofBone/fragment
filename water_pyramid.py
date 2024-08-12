@@ -43,7 +43,7 @@ if __name__ == "__main__":
         texture_paths={
             "diffuse": "textures/diffuse/crystal.png",
             "normal": "textures/normal/crystal.png",
-            "displacement": "textures/displacement/crystal.png"
+            "displacement": "textures/displacement/crystal.png",
         },
         shader_names=("standard", "normal_mapping"),
     )
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         texture_paths={
             "diffuse": "textures/diffuse/crystal.png",
             "normal": "textures/normal/crystal.png",
-            "displacement": "textures/displacement/crystal.png"
+            "displacement": "textures/displacement/crystal.png",
         },
         shader_names=("standard", "embm"),  # Pass vertex and fragment shader names as a tuple
         rotation_speed=2000.0,
