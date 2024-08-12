@@ -46,6 +46,7 @@ if __name__ == "__main__":
             'displacement': 'textures/displacement/crystal.png'
         },
         shader_names=('standard', 'normal_mapping'),
+        phong_shading=True,
     )
 
     # Define the configuration for the rotating pyramid model
@@ -58,6 +59,7 @@ if __name__ == "__main__":
         },
         shader_names=('standard', 'embm'),  # Pass vertex and fragment shader names as a tuple
         rotation_speed=2000.0,
+        phong_shading=True,
     )
 
     # Define the configuration for the water surface
@@ -70,9 +72,10 @@ if __name__ == "__main__":
         tex_coord_amplitude=0.010,
         width=50.0,
         height=50.0,
+        phong_shading=False,
     )
 
-    # Add a surface renderer
+    # Add a skybox renderer
     skybox_config = base_config.add_skybox(
         shader_names=('skybox', 'skybox'),
     )
