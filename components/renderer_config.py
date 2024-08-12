@@ -7,7 +7,8 @@ class RendererConfig:
                  camera_target=(0, 0, 0), up_vector=(0, 1, 0), rotation_axis=(0, 3, 0), fov=40, near_plane=0.1,
                  far_plane=1000, light_positions=None, light_colors=None, light_strengths=None, anisotropy=16.0,
                  auto_camera=False, msaa_level=8, culling=True, texture_lod_bias=0.0, env_map_lod_bias=0.0,
-                 move_speed=1.0, loop=True, front_face_winding="CCW", shaders=None):
+                 move_speed=1.0, loop=True, front_face_winding="CCW", shaders=None,
+                 phong_shading=False):  # Add phong_shading
         if light_strengths is None:
             light_strengths = [0.8]
         if light_colors is None:
@@ -38,6 +39,7 @@ class RendererConfig:
         self.move_speed = move_speed
         self.loop = loop
         self.front_face_winding = front_face_winding
+        self.phong_shading = phong_shading  # Add this line
         self.shaders = {}
 
         self.validate_winding()
@@ -74,7 +76,7 @@ class RendererConfig:
     def add_model(self, obj_path, texture_paths, shader_names=('standard', 'default'), rotation_speed=0.0,
                   rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, width=10.0,
                   height=10.0, wave_speed=10.0, wave_amplitude=0.1, randomness=0.8, tex_coord_frequency=100.0,
-                  tex_coord_amplitude=0.1, cubemap_folder=None, **kwargs):
+                  tex_coord_amplitude=0.1, cubemap_folder=None, phong_shading=False, **kwargs):  # Add phong_shading
         """Add a model to the configuration."""
 
         # Start with a deep copy of the base configuration
@@ -96,7 +98,8 @@ class RendererConfig:
             'randomness': randomness,
             'tex_coord_frequency': tex_coord_frequency,
             'tex_coord_amplitude': tex_coord_amplitude,
-            'cubemap_folder': cubemap_folder  # Specific or None
+            'cubemap_folder': cubemap_folder,  # Specific or None
+            'phong_shading': phong_shading  # Add this line
         }
 
         # Update the configuration with model specifics, preserving non-None values
@@ -110,7 +113,8 @@ class RendererConfig:
     def add_surface(self, shader_names=('standard', 'default'), wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
                     rotation_speed=0.0, apply_tone_mapping=False, apply_gamma_correction=False,
                     tex_coord_frequency=100.0,
-                    tex_coord_amplitude=0.1, width=500.0, height=500.0, cubemap_folder=None, **kwargs):
+                    tex_coord_amplitude=0.1, width=500.0, height=500.0, cubemap_folder=None, phong_shading=False,
+                    **kwargs):  # Add phong_shading
         """Add a surface to the configuration."""
         surface_config = self.unpack()
 
@@ -126,7 +130,8 @@ class RendererConfig:
             'tex_coord_amplitude': tex_coord_amplitude,
             'width': width,
             'height': height,
-            'cubemap_folder': cubemap_folder  # Specific or None
+            'cubemap_folder': cubemap_folder,  # Specific or None
+            'phong_shading': phong_shading  # Add this line
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
