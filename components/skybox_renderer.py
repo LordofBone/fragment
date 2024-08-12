@@ -88,14 +88,14 @@ class SkyboxRenderer(AbstractRenderer):
         view_matrix = glm.mat4(glm.mat3(self.view))  # Remove translation from the view matrix
         projection_matrix = self.projection
 
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(view_matrix))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view_matrix))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE,
                            glm.value_ptr(projection_matrix))
 
         glBindVertexArray(self.skybox_vao)
         glActiveTexture(GL_TEXTURE4)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'skybox'), 4)
+        glUniform1i(glGetUniformLocation(self.shader_program, "skybox"), 4)
 
         glDrawArrays(GL_TRIANGLES, 0, 36)
 

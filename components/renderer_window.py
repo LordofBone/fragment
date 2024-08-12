@@ -30,7 +30,7 @@ class RendererWindow:
     def draw_fps(self):
         """Draw the FPS on the screen."""
         fps = str(int(self.clock.get_fps()))
-        fps_surface = self.font.render(fps, True, pygame.Color('white'))
+        fps_surface = self.font.render(fps, True, pygame.Color("white"))
         fps_data = pygame.image.tostring(fps_surface, "RGBA", True)
 
         glEnable(GL_BLEND)

@@ -31,11 +31,11 @@ if __name__ == "__main__":
     pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
         texture_paths={
-            'diffuse': 'textures/diffuse/crystal.png',
-            'normal': 'textures/normal/crystal.png',
-            'displacement': 'textures/displacement/crystal.png'
+            "diffuse": "textures/diffuse/crystal.png",
+            "normal": "textures/normal/crystal.png",
+            "displacement": "textures/displacement/crystal.png"
         },
-        shader_names=('standard', 'embm'),
+        shader_names=("standard", "embm"),
         rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
@@ -43,10 +43,10 @@ if __name__ == "__main__":
     )
 
     # Add the pyramid renderer to the instance with a specific name
-    instance.add_renderer('pyramid', 'model', **pyramid_config)
+    instance.add_renderer("pyramid", "model", **pyramid_config)
 
     # Enable auto-rotation for the pyramid model
-    instance.scene_construct.set_auto_rotation('pyramid', True)
+    instance.scene_construct.set_auto_rotation("pyramid", True)
 
     # Run the rendering instance
     instance.run()

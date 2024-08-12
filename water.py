@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
-        shader_names=('standard', 'water'),
+        shader_names=("standard", "water"),
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=400.0,
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     )
 
     # Add the water surface renderer to the instance with a specific name
-    instance.add_renderer('water_surface', 'surface', **water_config)
+    instance.add_renderer("water_surface", "surface", **water_config)
 
     # Run the rendering instance
     instance.run()

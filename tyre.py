@@ -21,11 +21,11 @@ if __name__ == "__main__":
     tyre_config = base_config.add_model(
         obj_path="models/tyre.obj",
         texture_paths={
-            'diffuse': 'textures/diffuse/rubber_1.png',
-            'normal': 'textures/normal/rubber_1.png',
-            'displacement': 'textures/displacement/rubber_1.png'
+            "diffuse": "textures/diffuse/rubber_1.png",
+            "normal": "textures/normal/rubber_1.png",
+            "displacement": "textures/displacement/rubber_1.png"
         },
-        shader_names=('standard', 'rubber'),
+        shader_names=("standard", "rubber"),
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     )
 
     # Add the tyre renderer to the instance with a specific name
-    instance.add_renderer('tyre', 'model', **tyre_config)
+    instance.add_renderer("tyre", "model", **tyre_config)
 
     # Run the rendering instance
     instance.run()

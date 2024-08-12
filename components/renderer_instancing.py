@@ -18,11 +18,11 @@ class RenderingInstance:
 
     def add_renderer(self, name, renderer_type, **params):
         """Add a renderer to the instance with a specific name."""
-        if renderer_type == 'model':
+        if renderer_type == "model":
             renderer = ModelRenderer(**params)
-        elif renderer_type == 'surface':
+        elif renderer_type == "surface":
             renderer = SurfaceRenderer(**params)
-        elif renderer_type == 'skybox':
+        elif renderer_type == "skybox":
             renderer = SkyboxRenderer(**params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")

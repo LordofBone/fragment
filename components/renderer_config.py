@@ -50,18 +50,18 @@ class RendererConfig:
 
     def discover_shaders(self):
         """Discover shaders in the shaders directory."""
-        shader_root = os.path.abspath(os.path.join('shaders'))
+        shader_root = os.path.abspath(os.path.join("shaders"))
         if not os.path.exists(shader_root):
             raise FileNotFoundError(f"The shader root directory '{shader_root}' does not exist.")
 
-        for shader_type in ['vertex', 'fragment']:
+        for shader_type in ["vertex", "fragment"]:
             type_path = os.path.join(shader_root, shader_type)
             if not os.path.exists(type_path):
                 continue
 
             for shader_dir in os.listdir(type_path):
                 dir_path = os.path.join(type_path, shader_dir)
-                shader_file_path = os.path.join(dir_path, f'{shader_type}.glsl')
+                shader_file_path = os.path.join(dir_path, f"{shader_type}.glsl")
                 if os.path.exists(shader_file_path):
                     if shader_type not in self.shaders:
                         self.shaders[shader_type] = {}
@@ -71,7 +71,7 @@ class RendererConfig:
         """Unpack the configuration into a dictionary."""
         return copy.deepcopy(self.__dict__)  # Use deepcopy to avoid mutating the original configuration
 
-    def add_model(self, obj_path, texture_paths, shader_names=('standard', 'default'), rotation_speed=0.0,
+    def add_model(self, obj_path, texture_paths, shader_names=("standard", "default"), rotation_speed=0.0,
                   rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, width=10.0,
                   height=10.0, wave_speed=10.0, wave_amplitude=0.1, randomness=0.8, tex_coord_frequency=100.0,
                   tex_coord_amplitude=0.1, cubemap_folder=None, **kwargs):
@@ -82,21 +82,21 @@ class RendererConfig:
 
         # Now apply specific overrides provided by the model, overwriting defaults
         model_specifics = {
-            'obj_path': obj_path,
-            'texture_paths': texture_paths,
-            'shader_names': shader_names,
-            'rotation_speed': rotation_speed,
-            'rotation_axis': rotation_axis,
-            'apply_tone_mapping': apply_tone_mapping,
-            'apply_gamma_correction': apply_gamma_correction,
-            'width': width,
-            'height': height,
-            'wave_speed': wave_speed,
-            'wave_amplitude': wave_amplitude,
-            'randomness': randomness,
-            'tex_coord_frequency': tex_coord_frequency,
-            'tex_coord_amplitude': tex_coord_amplitude,
-            'cubemap_folder': cubemap_folder  # Specific or None
+            "obj_path": obj_path,
+            "texture_paths": texture_paths,
+            "shader_names": shader_names,
+            "rotation_speed": rotation_speed,
+            "rotation_axis": rotation_axis,
+            "apply_tone_mapping": apply_tone_mapping,
+            "apply_gamma_correction": apply_gamma_correction,
+            "width": width,
+            "height": height,
+            "wave_speed": wave_speed,
+            "wave_amplitude": wave_amplitude,
+            "randomness": randomness,
+            "tex_coord_frequency": tex_coord_frequency,
+            "tex_coord_amplitude": tex_coord_amplitude,
+            "cubemap_folder": cubemap_folder  # Specific or None
         }
 
         # Update the configuration with model specifics, preserving non-None values
@@ -107,7 +107,7 @@ class RendererConfig:
 
         return model_config
 
-    def add_surface(self, shader_names=('standard', 'default'), wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
+    def add_surface(self, shader_names=("standard", "default"), wave_speed=10.0, wave_amplitude=0.1, randomness=0.8,
                     rotation_speed=0.0, apply_tone_mapping=False, apply_gamma_correction=False,
                     tex_coord_frequency=100.0,
                     tex_coord_amplitude=0.1, width=500.0, height=500.0, cubemap_folder=None, **kwargs):
@@ -115,18 +115,18 @@ class RendererConfig:
         surface_config = self.unpack()
 
         surface_specifics = {
-            'shader_names': shader_names,
-            'rotation_speed': rotation_speed,
-            'apply_tone_mapping': apply_tone_mapping,
-            'apply_gamma_correction': apply_gamma_correction,
-            'wave_speed': wave_speed,
-            'wave_amplitude': wave_amplitude,
-            'randomness': randomness,
-            'tex_coord_frequency': tex_coord_frequency,
-            'tex_coord_amplitude': tex_coord_amplitude,
-            'width': width,
-            'height': height,
-            'cubemap_folder': cubemap_folder  # Specific or None
+            "shader_names": shader_names,
+            "rotation_speed": rotation_speed,
+            "apply_tone_mapping": apply_tone_mapping,
+            "apply_gamma_correction": apply_gamma_correction,
+            "wave_speed": wave_speed,
+            "wave_amplitude": wave_amplitude,
+            "randomness": randomness,
+            "tex_coord_frequency": tex_coord_frequency,
+            "tex_coord_amplitude": tex_coord_amplitude,
+            "width": width,
+            "height": height,
+            "cubemap_folder": cubemap_folder  # Specific or None
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
@@ -134,13 +134,13 @@ class RendererConfig:
 
         return surface_config
 
-    def add_skybox(self, cubemap_folder=None, shader_names=('skybox_vertex', 'skybox_fragment'), **kwargs):
+    def add_skybox(self, cubemap_folder=None, shader_names=("skybox_vertex", "skybox_fragment"), **kwargs):
         """Add a skybox to the configuration."""
         skybox_config = self.unpack()
 
         skybox_specifics = {
-            'shader_names': shader_names,
-            'cubemap_folder': cubemap_folder  # Specific or None
+            "shader_names": shader_names,
+            "cubemap_folder": cubemap_folder  # Specific or None
         }
 
         skybox_config.update({k: v for k, v in skybox_specifics.items() if v is not None})

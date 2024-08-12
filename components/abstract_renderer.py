@@ -123,8 +123,8 @@ class AbstractRenderer(ABC):
     def init_shaders(self):
         """Initialize shaders from provided shader paths."""
         vertex_shader, fragment_shader = self.shader_names
-        vertex_shader_path = self.shaders['vertex'][vertex_shader]
-        fragment_shader_path = self.shaders['fragment'][fragment_shader]
+        vertex_shader_path = self.shaders["vertex"][vertex_shader]
+        fragment_shader_path = self.shaders["fragment"][fragment_shader]
         shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path)
         self.shader_program = shader_engine.shader_program
 
@@ -146,7 +146,7 @@ class AbstractRenderer(ABC):
 
     def load_cubemap(self, folder_path, texture, texture_unit):
         """Load a cubemap texture from a folder."""
-        faces = ['right.png', 'left.png', 'bottom.png', 'top.png', 'front.png', 'back.png']
+        faces = ["right.png", "left.png", "bottom.png", "top.png", "front.png", "back.png"]
         glActiveTexture(GL_TEXTURE0 + texture_unit)  # Activate the correct texture unit
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
@@ -179,9 +179,9 @@ class AbstractRenderer(ABC):
         glUseProgram(shader_program)
         for i, (position, color, strength) in enumerate(
                 zip(self.light_positions, self.light_colors, self.light_strengths)):
-            glUniform3fv(glGetUniformLocation(shader_program, f'lightPositions[{i}]'), 1, glm.value_ptr(position))
-            glUniform3fv(glGetUniformLocation(shader_program, f'lightColors[{i}]'), 1, glm.value_ptr(color))
-            glUniform1f(glGetUniformLocation(shader_program, f'lightStrengths[{i}]'), strength)
+            glUniform3fv(glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(position))
+            glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(color))
+            glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), strength)
 
     def set_model_matrix(self, matrix):
         """Set the model matrix."""
@@ -230,29 +230,29 @@ class AbstractRenderer(ABC):
     def set_constant_uniforms(self):
         """Set constant uniforms for the shader program."""
         glUseProgram(self.shader_program)
-        glUniform1f(glGetUniformLocation(self.shader_program, 'textureLodLevel'), self.texture_lod_bias)
-        glUniform1f(glGetUniformLocation(self.shader_program, 'envMapLodLevel'), self.env_map_lod_bias)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'applyToneMapping'), self.apply_tone_mapping)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'applyGammaCorrection'), self.apply_gamma_correction)
+        glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"), self.texture_lod_bias)
+        glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
+        glUniform1i(glGetUniformLocation(self.shader_program, "applyToneMapping"), self.apply_tone_mapping)
+        glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"), self.apply_gamma_correction)
 
     def set_shader_uniforms(self):
         """Set uniforms for the shader program."""
         glUseProgram(self.shader_program)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'model'), 1, GL_FALSE,
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE,
                            glm.value_ptr(self.model_matrix))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(self.view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(self.view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE,
                            glm.value_ptr(self.projection))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'waveSpeed'), self.dynamic_attrs.get('wave_speed', 10.0))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'waveAmplitude'),
-                    self.dynamic_attrs.get('wave_amplitude', 0.1))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'randomness'), self.dynamic_attrs.get('randomness', 0.8))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'texCoordFrequency'),
-                    self.dynamic_attrs.get('tex_coord_frequency', 100.0))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'texCoordAmplitude'),
-                    self.dynamic_attrs.get('tex_coord_amplitude', 0.1))
-        glUniform3fv(glGetUniformLocation(self.shader_program, 'cameraPos'), 1, glm.value_ptr(self.camera_position))
-        glUniform1f(glGetUniformLocation(self.shader_program, 'time'), pygame.time.get_ticks() / 1000.0)
+        glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
+        glUniform1f(glGetUniformLocation(self.shader_program, "waveAmplitude"),
+                    self.dynamic_attrs.get("wave_amplitude", 0.1))
+        glUniform1f(glGetUniformLocation(self.shader_program, "randomness"), self.dynamic_attrs.get("randomness", 0.8))
+        glUniform1f(glGetUniformLocation(self.shader_program, "texCoordFrequency"),
+                    self.dynamic_attrs.get("tex_coord_frequency", 100.0))
+        glUniform1f(glGetUniformLocation(self.shader_program, "texCoordAmplitude"),
+                    self.dynamic_attrs.get("tex_coord_amplitude", 0.1))
+        glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position))
+        glUniform1f(glGetUniformLocation(self.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
     def update_camera(self, delta_time):
         if self.auto_camera:

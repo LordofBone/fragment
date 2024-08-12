@@ -41,28 +41,28 @@ if __name__ == "__main__":
     stretched_pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
         texture_paths={
-            'diffuse': 'textures/diffuse/crystal.png',
-            'normal': 'textures/normal/crystal.png',
-            'displacement': 'textures/displacement/crystal.png'
+            "diffuse": "textures/diffuse/crystal.png",
+            "normal": "textures/normal/crystal.png",
+            "displacement": "textures/displacement/crystal.png"
         },
-        shader_names=('standard', 'normal_mapping'),
+        shader_names=("standard", "normal_mapping"),
     )
 
     # Define the configuration for the rotating pyramid model
     rotating_pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
         texture_paths={
-            'diffuse': 'textures/diffuse/crystal.png',
-            'normal': 'textures/normal/crystal.png',
-            'displacement': 'textures/displacement/crystal.png'
+            "diffuse": "textures/diffuse/crystal.png",
+            "normal": "textures/normal/crystal.png",
+            "displacement": "textures/displacement/crystal.png"
         },
-        shader_names=('standard', 'embm'),  # Pass vertex and fragment shader names as a tuple
+        shader_names=("standard", "embm"),  # Pass vertex and fragment shader names as a tuple
         rotation_speed=2000.0,
     )
 
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
-        shader_names=('standard', 'water'),  # Pass vertex and fragment shader names as a tuple
+        shader_names=("standard", "water"),  # Pass vertex and fragment shader names as a tuple
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=600.0,
@@ -74,23 +74,23 @@ if __name__ == "__main__":
 
     # Add a surface renderer
     skybox_config = base_config.add_skybox(
-        shader_names=('skybox', 'skybox'),
+        shader_names=("skybox", "skybox"),
     )
-    instance.add_renderer('skybox', 'skybox', **skybox_config)
+    instance.add_renderer("skybox", "skybox", **skybox_config)
 
     # Add the renderers to the instance
-    instance.add_renderer('model_stretched', 'model', **stretched_pyramid_config)
-    instance.add_renderer('model_rotating', 'model', **rotating_pyramid_config)
-    instance.add_renderer('water_surface', 'surface', **water_config)
+    instance.add_renderer("model_stretched", "model", **stretched_pyramid_config)
+    instance.add_renderer("model_rotating", "model", **rotating_pyramid_config)
+    instance.add_renderer("water_surface", "surface", **water_config)
 
     # Example transformations
-    instance.scene_construct.translate_renderer('model_stretched', (-3, -3, 0))  # Translate first model
-    instance.scene_construct.rotate_renderer('model_stretched', 45, (0, 1, 0))  # Rotate first model
-    instance.scene_construct.scale_renderer('model_stretched', (1, 2, 1))  # Scale first model
+    instance.scene_construct.translate_renderer("model_stretched", (-3, -3, 0))  # Translate first model
+    instance.scene_construct.rotate_renderer("model_stretched", 45, (0, 1, 0))  # Rotate first model
+    instance.scene_construct.scale_renderer("model_stretched", (1, 2, 1))  # Scale first model
 
-    instance.scene_construct.translate_renderer('model_rotating', (2, 0, 0))  # Translate second model
-    instance.scene_construct.scale_renderer('model_rotating', (1, 2, 1))  # Scale second model
-    instance.scene_construct.set_auto_rotation('model_rotating', True)  # Enable auto-rotation for second model
+    instance.scene_construct.translate_renderer("model_rotating", (2, 0, 0))  # Translate second model
+    instance.scene_construct.scale_renderer("model_rotating", (1, 2, 1))  # Scale second model
+    instance.scene_construct.set_auto_rotation("model_rotating", True)  # Enable auto-rotation for second model
 
     # Run the rendering instance
     instance.run()
