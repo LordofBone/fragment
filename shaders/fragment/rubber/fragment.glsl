@@ -18,9 +18,10 @@ uniform float textureLodLevel;
 uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
+uniform bool phongShading;// Uniform to toggle Phong shading
 uniform float envSpecularStrength;
 
-uniform mat4 view;
+uniform mat4 view;// Uniform for view matrix
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -39,43 +40,62 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor) {
-    vec3 ambient = 0.1 * diffuseColor;
+vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    vec3 specularColor = vec3(1.0);
+    float roughness = 0.5;// Reduced roughness for more shine
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += lightColors[i] * diff * diffuseColor * lightStrengths[i];
+        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
 
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        vec3 halfwayDir = normalize(lightDir + viewDir);
+        float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0 * (1.0 - roughness));// Adjusted shininess
+        specular += spec * lightColors[i] * lightStrengths[i];
     }
 
     return ambient + diffuse + specular;
 }
 
+vec3 computeLightingWithoutPhong(vec3 normal) {
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
+    vec3 diffuse = vec3(0.0);
+
+    for (int i = 0; i < 10; i++) {
+        vec3 lightDir = normalize(lightPositions[i] - FragPos);
+        float diff = max(dot(normal, lightDir), 0.0);
+        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
+    }
+
+    return ambient + diffuse;
+}
+
 void main()
 {
+    // Fetch the normal from the normal map and transform it to the range [-1, 1]
     vec3 normal = normalize(Normal + texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0);
-    float height = texture(displacementMap, TexCoords, textureLodLevel).r;
 
+    // Calculate view direction (from fragment position to camera position)
     vec4 viewFragPos = view * vec4(FragPos, 1.0);
     vec3 viewDir = normalize(-viewFragPos.xyz);
 
     vec3 reflectDir = reflect(viewDir, normal);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
-    vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
-    vec3 lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+    vec3 finalColor;
+    if (phongShading) {
+        finalColor = computePhongLighting(normal, viewDir);
+    } else {
+        finalColor = computeLightingWithoutPhong(normal);
+    }
 
+    // Fresnel effect for edges
     float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
     vec3 reflection = mix(envColor, vec3(1.0), fresnel);
 
-    vec3 result = lighting + reflection * envSpecularStrength;
+    vec3 result = finalColor + reflection * envSpecularStrength;
 
     if (applyToneMapping) {
         result = toneMapping(result);

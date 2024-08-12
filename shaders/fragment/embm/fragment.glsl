@@ -3,9 +3,6 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec3 TangentFragPos;
-in vec3 TangentViewPos;
-in vec3 TangentLightPos[10];
 
 out vec4 FragColor;
 
@@ -22,6 +19,7 @@ uniform float textureLodLevel;
 uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
+uniform bool phongShading;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -41,22 +39,35 @@ vec3 toneMapping(vec3 color) {
 }
 
 vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor) {
-    vec3 ambient = 0.1 * diffuseColor;// Use diffuse color for ambient lighting
+    vec3 ambient = 0.1 * diffuseColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    vec3 specularColor = vec3(1.0);// Specular color
+    vec3 specularColor = vec3(1.0);
 
     for (int i = 0; i < 10; ++i) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += lightColors[i] * diff * diffuseColor * lightStrengths[i];// Combine diffuse lighting with diffuse map
+        diffuse += lightColors[i] * diff * diffuseColor * lightStrengths[i];
 
         vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);// Specular exponent for sharper highlights
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
         specular += spec * specularColor * lightColors[i] * lightStrengths[i];
     }
 
     return ambient + diffuse + specular;
+}
+
+vec3 computeDiffuseLighting(vec3 normal, vec3 FragPos, vec3 diffuseColor) {
+    vec3 ambient = 0.1 * diffuseColor;
+    vec3 diffuse = vec3(0.0);
+
+    for (int i = 0; i < 10; ++i) {
+        vec3 lightDir = normalize(lightPositions[i] - FragPos);
+        float diff = max(dot(normal, lightDir), 0.0);
+        diffuse += lightColors[i] * diff * diffuseColor * lightStrengths[i];
+    }
+
+    return ambient + diffuse;
 }
 
 void main()
@@ -68,14 +79,17 @@ void main()
     vec3 reflectDir = reflect(viewDir, normal);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
-    // Use diffuse map texture for the diffuse color in lighting calculations
     vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
-    vec3 lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+    vec3 lighting = vec3(0.0);
 
-    // Combine the lighting with the environment map
+    if (phongShading) {
+        lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+    } else {
+        lighting = computeDiffuseLighting(normal, FragPos, diffuseColor);
+    }
+
     vec3 result = lighting + envColor * height;
 
-    // Apply tone mapping and gamma correction if enabled
     if (applyToneMapping) {
         result = toneMapping(result);
     }
