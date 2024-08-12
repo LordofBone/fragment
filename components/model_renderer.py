@@ -49,13 +49,13 @@ class ModelRenderer(AbstractRenderer):
     def load_textures(self):
         """Load textures for the model."""
         self.diffuseMap = glGenTextures(1)
-        self.load_texture(self.texture_paths['diffuse'], self.diffuseMap)
+        self.load_texture(self.texture_paths["diffuse"], self.diffuseMap)
 
         self.normalMap = glGenTextures(1)
-        self.load_texture(self.texture_paths['normal'], self.normalMap)
+        self.load_texture(self.texture_paths["normal"], self.normalMap)
 
         self.displacementMap = glGenTextures(1)
-        self.load_texture(self.texture_paths['displacement'], self.displacementMap)
+        self.load_texture(self.texture_paths["displacement"], self.displacementMap)
 
         self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
@@ -65,19 +65,19 @@ class ModelRenderer(AbstractRenderer):
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.diffuseMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'diffuseMap'), 0)
+        glUniform1i(glGetUniformLocation(self.shader_program, "diffuseMap"), 0)
 
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, self.normalMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'normalMap'), 1)
+        glUniform1i(glGetUniformLocation(self.shader_program, "normalMap"), 1)
 
         glActiveTexture(GL_TEXTURE2)
         glBindTexture(GL_TEXTURE_2D, self.displacementMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'displacementMap'), 2)
+        glUniform1i(glGetUniformLocation(self.shader_program, "displacementMap"), 2)
 
         glActiveTexture(GL_TEXTURE3)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'environmentMap'), 3)
+        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), 3)
 
     @common_funcs
     def render(self):
@@ -85,7 +85,7 @@ class ModelRenderer(AbstractRenderer):
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
 
         for mesh in self.object.mesh_list:
-            material = self.object.materials['Material']
+            material = self.object.materials["Material"]
             glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
             glMaterialfv(GL_FRONT, GL_DIFFUSE, material.diffuse)
             glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
