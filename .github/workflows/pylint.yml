@@ -1,5 +1,7 @@
 name: Lint and Commit
-on: push
+
+on:
+  pull_request:
 
 jobs:
   lint:
