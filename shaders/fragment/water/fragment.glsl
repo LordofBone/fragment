@@ -21,6 +21,7 @@ uniform float lightStrengths[10];
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
+uniform bool phongShading;// Add this uniform
 
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -52,20 +53,19 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos) {
-    vec3 ambient = vec3(0.1);// Ambient color is now a constant instead of using diffuse color
+vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
+    vec3 ambient = vec3(0.1);// Keep the ambient lighting minimal and consistent with models
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    vec3 specularColor = vec3(1.0);
 
     for (int i = 0; i < 10; ++i) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
-        float diff = max(dot(normal, lightDir), 0.0);
+        float diff = max(dot(normalMap, lightDir), 0.0);
         diffuse += lightColors[i] * diff * lightStrengths[i];
 
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        vec3 reflectDir = reflect(-lightDir, normalMap);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);// Specular exponent for sharp highlights
+        specular += lightColors[i] * spec * lightStrengths[i];
     }
 
     return ambient + diffuse + specular;
@@ -73,6 +73,7 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos) {
 
 void main()
 {
+    // Generate the water normal map
     vec2 waveTexCoords = TexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
@@ -83,6 +84,14 @@ void main()
     normalMap = normalize(normalMap);
 
     vec3 viewDir = normalize(cameraPos - FragPos);
+
+    // Phong lighting components
+    vec3 phongColor = vec3(0.0);
+    if (phongShading) {
+        phongColor = computePhongLighting(normalMap, viewDir);
+    }
+
+    // Compute reflection and refraction using the environment map
     vec3 reflectDir = reflect(-viewDir, normalMap);
     vec3 refractDir = refract(-viewDir, normalMap, 1.0 / 1.33);
 
@@ -90,12 +99,14 @@ void main()
     vec3 refraction = texture(environmentMap, refractDir).rgb;
 
     float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
+
+    // Reduce the effect of the environment map
     vec3 envColor = mix(refraction, reflection, fresnel);
 
-    vec3 lighting = computePhongLighting(normalMap, viewDir, FragPos);
+    // Final color combining Phong lighting and environment map effects
+    vec3 color = phongColor + envColor;
 
-    vec3 color = lighting + envColor;
-
+    // Apply tone mapping and gamma correction if enabled
     if (applyToneMapping) {
         color = toneMapping(color);
     }
