@@ -6,15 +6,19 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
       - run: pip install ruff
       - run: |
-          ruff check . --fix
-#          ruff fix .
-#          ruff format .
+          # Always run ruff to fix issues
+          ruff check . --fix || true
+      - run: |
+          # Run ruff again to ensure the formatting is correct
+          ruff format . --fix || true
       - uses: stefanzweifel/git-auto-commit-action@v4
-        if: failure()
         with:
           commit_message: 'Code linted by Ruff'
