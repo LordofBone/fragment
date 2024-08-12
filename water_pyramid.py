@@ -92,7 +92,7 @@ if __name__ == "__main__":
     instance.scene_construct.scale_renderer('model_stretched', (1, 2, 1))  # Scale first model
 
     instance.scene_construct.translate_renderer('model_rotating', (2, 0, 0))  # Translate second model
-    instance.scene_construct.scale_renderer('model_rotating', (1, 2, 1))  # Scale second model
+    instance.scene_construct.scale_renderer('model_rotating', (1.2, 1.2, 1.2))  # Scale second model
     instance.scene_construct.set_auto_rotation('model_rotating', True)  # Enable auto-rotation for second model
 
     # Run the rendering instance
