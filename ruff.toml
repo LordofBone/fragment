@@ -1,4 +1,3 @@
-[tool.ruff]
 select = ["E", "F", "W", "Q", "I"]
 
 ignore = ["E203"]
