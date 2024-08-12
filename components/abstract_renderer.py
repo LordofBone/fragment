@@ -14,6 +14,9 @@ def common_funcs(func):
         glUseProgram(self.shader_program)
         glEnable(GL_DEPTH_TEST)
 
+        viewPosition = self.camera_position
+        glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
+
         # Culling setup
         if self.culling:
             glEnable(GL_CULL_FACE)
