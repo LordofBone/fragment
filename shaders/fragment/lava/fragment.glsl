@@ -52,6 +52,25 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
+vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos) {
+    vec3 ambient = vec3(0.1);// Ambient color is now a constant instead of using diffuse color
+    vec3 diffuse = vec3(0.0);
+    vec3 specular = vec3(0.0);
+    vec3 specularColor = vec3(1.0);
+
+    for (int i = 0; i < 10; ++i) {
+        vec3 lightDir = normalize(lightPositions[i] - FragPos);
+        float diff = max(dot(normal, lightDir), 0.0);
+        diffuse += lightColors[i] * diff * lightStrengths[i];
+
+        vec3 reflectDir = reflect(-lightDir, normal);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+    }
+
+    return ambient + diffuse + specular;
+}
+
 void main()
 {
     vec2 waveTexCoords = TexCoords;
@@ -76,14 +95,9 @@ void main()
     vec3 color = mix(baseColor, brightColor, noiseValue);
     color = mix(color, reflection, fresnel * 0.2);
 
-    vec3 lighting = vec3(0.0);
-    for (int i = 0; i < 10; ++i) {
-        vec3 lightDir = normalize(lightPositions[i] - FragPos);
-        float diff = max(dot(normalMap, lightDir), 0.0);
-        lighting += lightColors[i] * diff * lightStrengths[i];
-    }
+    vec3 lighting = computePhongLighting(normalMap, viewDir, FragPos);
 
-    color *= lighting;
+    color = mix(color, lighting, 0.8);// Adjust the mix factor to balance between base color and lighting
 
     float bubbleNoise = smoothNoise(TexCoords * 10.0 + time * 2.0);
     if (bubbleNoise > 0.8) {

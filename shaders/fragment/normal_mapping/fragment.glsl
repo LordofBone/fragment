@@ -34,20 +34,34 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-void main()
-{
-    vec3 normal = normalize(Normal + texture(normalMap, TexCoords).rgb * 2.0 - 1.0);
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords).rgb;
-    vec3 lighting = vec3(0.0);
+vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor) {
+    vec3 ambient = 0.1 * diffuseColor;
+    vec3 diffuse = vec3(0.0);
+    vec3 specular = vec3(0.0);
+    vec3 specularColor = vec3(1.0);
 
     for (int i = 0; i < 10; ++i) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        lighting += lightColors[i] * diff * lightStrengths[i];
+        diffuse += lightColors[i] * diff * diffuseColor * lightStrengths[i];
+
+        vec3 reflectDir = reflect(-lightDir, normal);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
     }
 
-    vec3 diffuse = lighting * texture(diffuseMap, TexCoords).rgb;
-    vec3 result = ambient + diffuse;
+    return ambient + diffuse + specular;
+}
+
+void main()
+{
+    vec3 normal = normalize(Normal + texture(normalMap, TexCoords).rgb * 2.0 - 1.0);
+    vec3 viewDir = normalize(-FragPos);
+    vec3 diffuseColor = texture(diffuseMap, TexCoords).rgb;
+
+    vec3 lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+
+    vec3 result = lighting;
 
     if (applyToneMapping) {
         result = toneMapping(result);
