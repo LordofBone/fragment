@@ -87,7 +87,7 @@ if __name__ == "__main__":
     instance.add_renderer('water_surface', 'surface', **water_config)
 
     # Example transformations
-    instance.scene_construct.translate_renderer('model_stretched', (-3, -3, 0))  # Translate first model
+    instance.scene_construct.translate_renderer('model_stretched', (-3, 0, 0))  # Translate first model
     instance.scene_construct.rotate_renderer('model_stretched', 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer('model_stretched', (1, 2, 1))  # Scale first model
 
