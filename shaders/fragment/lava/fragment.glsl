@@ -21,6 +21,7 @@ uniform float lightStrengths[10];
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
+uniform bool phongShading;// Add this uniform
 
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -52,23 +53,14 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos) {
-    vec3 ambient = vec3(0.1);// Ambient color is now a constant instead of using diffuse color
+vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
     vec3 diffuse = vec3(0.0);
-    vec3 specular = vec3(0.0);
-    vec3 specularColor = vec3(1.0);
-
     for (int i = 0; i < 10; ++i) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
-        float diff = max(dot(normal, lightDir), 0.0);
+        float diff = max(dot(normalMap, lightDir), 0.0);
         diffuse += lightColors[i] * diff * lightStrengths[i];
-
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
     }
-
-    return ambient + diffuse + specular;
+    return diffuse;
 }
 
 void main()
@@ -95,9 +87,10 @@ void main()
     vec3 color = mix(baseColor, brightColor, noiseValue);
     color = mix(color, reflection, fresnel * 0.2);
 
-    vec3 lighting = computePhongLighting(normalMap, viewDir, FragPos);
-
-    color = mix(color, lighting, 0.8);// Adjust the mix factor to balance between base color and lighting
+    if (phongShading) {
+        vec3 phongColor = computePhongLighting(normalMap, viewDir);
+        color = color * 0.5 + phongColor * 0.5;// Combine color and Phong lighting
+    }
 
     float bubbleNoise = smoothNoise(TexCoords * 10.0 + time * 2.0);
     if (bubbleNoise > 0.8) {
