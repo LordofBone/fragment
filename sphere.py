@@ -20,7 +20,7 @@ if __name__ == "__main__":
         msaa_level=8,
         culling=True,
         texture_lod_bias=1.0,
-        env_map_lod_bias=2.0
+        env_map_lod_bias=2.0,
     )
 
     # Create the rendering instance with the base configuration
