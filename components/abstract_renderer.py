@@ -48,7 +48,7 @@ class AbstractRenderer(ABC):
                  far_plane=100, light_positions=None, light_colors=None, light_strengths=None, rotation_speed=2000.0,
                  rotation_axis=(0, 3, 0), apply_tone_mapping=False, apply_gamma_correction=False, texture_lod_bias=0.0,
                  env_map_lod_bias=0.0, culling=True, msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0,
-                 loop=True, front_face_winding="CCW", window_size=(800, 600), **kwargs):
+                 loop=True, front_face_winding="CCW", window_size=(800, 600), phong_shading=False, **kwargs):
 
         if light_strengths is None:
             light_strengths = [0.8]
@@ -96,6 +96,8 @@ class AbstractRenderer(ABC):
         self.vaos = []
 
         self.shader_program = None
+
+        self.phong_shading = phong_shading  # Add Phong shading option
 
         if self.auto_camera:
             self.camera_controller = CameraController(self.camera_positions, self.move_speed, self.loop)
@@ -182,6 +184,9 @@ class AbstractRenderer(ABC):
             glUniform3fv(glGetUniformLocation(shader_program, f'lightPositions[{i}]'), 1, glm.value_ptr(position))
             glUniform3fv(glGetUniformLocation(shader_program, f'lightColors[{i}]'), 1, glm.value_ptr(color))
             glUniform1f(glGetUniformLocation(shader_program, f'lightStrengths[{i}]'), strength)
+
+        # Set Phong shading boolean uniform
+        glUniform1i(glGetUniformLocation(shader_program, 'phongShading'), int(self.phong_shading))
 
     def set_model_matrix(self, matrix):
         """Set the model matrix."""
