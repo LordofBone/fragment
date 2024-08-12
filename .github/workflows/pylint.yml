@@ -11,14 +11,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
       - uses: actions/setup-python@v2
+
       - run: pip install ruff
+
       - run: |
           # Always run ruff to fix issues
           ruff check . --fix || true
+
       - run: |
           # Run ruff again to ensure the formatting is correct
           ruff format .
+
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'Code linted by Ruff'
