@@ -1,4 +1,3 @@
-import glm
 import numpy as np
 import pywavefront
 from OpenGL.GL import *
@@ -83,9 +82,6 @@ class ModelRenderer(AbstractRenderer):
     @common_funcs
     def render(self):
         """Render the model."""
-        viewPosition = self.camera_position
-        glUniform3fv(glGetUniformLocation(self.shader_program, 'viewPosition'), 1, glm.value_ptr(viewPosition))
-
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
 
         for mesh in self.object.mesh_list:
