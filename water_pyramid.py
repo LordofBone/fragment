@@ -31,6 +31,7 @@ if __name__ == "__main__":
         culling=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
+        phong_shading=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -46,7 +47,6 @@ if __name__ == "__main__":
             "displacement": "textures/displacement/crystal.png",
         },
         shader_names=("standard", "normal_mapping"),
-        phong_shading=True,
     )
 
     # Define the configuration for the rotating pyramid model
@@ -59,7 +59,6 @@ if __name__ == "__main__":
         },
         shader_names=("standard", "embm"),  # Pass vertex and fragment shader names as a tuple
         rotation_speed=2000.0,
-        phong_shading=True,
     )
 
     # Define the configuration for the water surface
