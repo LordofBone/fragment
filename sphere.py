@@ -21,6 +21,7 @@ if __name__ == "__main__":
         culling=True,
         texture_lod_bias=1.0,
         env_map_lod_bias=2.0,
+        phong_shading=False,
     )
 
     # Create the rendering instance with the base configuration
