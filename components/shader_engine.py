@@ -27,7 +27,7 @@ class ShaderEngine:
         return shader_program
 
     def load_shader_code(self, shader_file):
-        with open(shader_file, 'r') as file:
+        with open(shader_file, "r") as file:
             return file.read()
 
     def compile_shader(self, source, shader_type):
@@ -37,7 +37,7 @@ class ShaderEngine:
 
         if not glGetShaderiv(shader, GL_COMPILE_STATUS):
             log = glGetShaderInfoLog(shader)
-            shader_type_str = 'vertex' if shader_type == GL_VERTEX_SHADER else 'fragment'
+            shader_type_str = "vertex" if shader_type == GL_VERTEX_SHADER else "fragment"
             glDeleteShader(shader)
             raise RuntimeError(f"Error compiling {shader_type_str} shader: {log.decode()}")
 

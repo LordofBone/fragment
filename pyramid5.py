@@ -12,7 +12,7 @@ if __name__ == "__main__":
         fov=40,
         near_plane=0.1,
         far_plane=100,
-        light_positions=[(3.0, 3.0, 3.0)],
+        light_positions=[(50.0, 20.0, 50.0)],
         light_colors=[(1.0, 1.0, 1.0)],
         light_strengths=[0.8],
         anisotropy=16.0,
@@ -31,22 +31,23 @@ if __name__ == "__main__":
     pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
         texture_paths={
-            'diffuse': 'textures/diffuse/crystal.png',
-            'normal': 'textures/normal/crystal.png',
-            'displacement': 'textures/displacement/crystal.png'
+            "diffuse": "textures/diffuse/crystal.png",
+            "normal": "textures/normal/crystal.png",
+            "displacement": "textures/displacement/crystal.png",
         },
-        shader_names=('standard', 'embm'),
+        shader_names=("standard", "embm"),
         rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        phong_shading=True,
     )
 
     # Add the pyramid renderer to the instance with a specific name
-    instance.add_renderer('pyramid', 'model', **pyramid_config)
+    instance.add_renderer("pyramid", "model", **pyramid_config)
 
     # Enable auto-rotation for the pyramid model
-    instance.scene_construct.set_auto_rotation('pyramid', True)
+    instance.scene_construct.set_auto_rotation("pyramid", True)
 
     # Run the rendering instance
     instance.run()

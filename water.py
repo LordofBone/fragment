@@ -12,9 +12,9 @@ if __name__ == "__main__":
         fov=40,
         near_plane=0.1,
         far_plane=5000,
-        light_positions=[(50.0, 200.0, 300.0)],
+        light_positions=[(50.0, 20.0, 10.0)],
         light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[1.0],
+        light_strengths=[0.8],
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
-        shader_names=('standard', 'water'),
+        shader_names=("standard", "water"),
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=400.0,
@@ -35,10 +35,11 @@ if __name__ == "__main__":
         tex_coord_amplitude=0.085,
         width=50.0,
         height=50.0,
+        phong_shading=False,
     )
 
     # Add the water surface renderer to the instance with a specific name
-    instance.add_renderer('water_surface', 'surface', **water_config)
+    instance.add_renderer("water_surface", "surface", **water_config)
 
     # Run the rendering instance
     instance.run()

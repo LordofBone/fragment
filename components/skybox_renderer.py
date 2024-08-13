@@ -14,47 +14,114 @@ class SkyboxRenderer(AbstractRenderer):
     def create_buffers(self):
         """Create buffers for the skybox."""
         vertices = [
-            -1.0, 1.0, -1.0,
-            -1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            1.0, 1.0, -1.0,
-            -1.0, 1.0, -1.0,
-
-            -1.0, -1.0, 1.0,
-            -1.0, -1.0, -1.0,
-            -1.0, 1.0, -1.0,
-            -1.0, 1.0, -1.0,
-            -1.0, 1.0, 1.0,
-            -1.0, -1.0, 1.0,
-
-            1.0, -1.0, -1.0,
-            1.0, -1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, -1.0,
-            1.0, -1.0, -1.0,
-
-            -1.0, -1.0, 1.0,
-            -1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, -1.0, 1.0,
-            -1.0, -1.0, 1.0,
-
-            -1.0, 1.0, -1.0,
-            1.0, 1.0, -1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            -1.0, 1.0, 1.0,
-            -1.0, 1.0, -1.0,
-
-            -1.0, -1.0, -1.0,
-            -1.0, -1.0, 1.0,
-            1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            -1.0, -1.0, 1.0,
-            1.0, -1.0, 1.0
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
         ]
 
         vertices_array = np.array(vertices, dtype=np.float32)
@@ -82,20 +149,22 @@ class SkyboxRenderer(AbstractRenderer):
     @common_funcs
     def render(self):
         glDepthFunc(
-            GL_LEQUAL)  # Change depth function so depth test passes when values are equal to depth buffer's content
+            GL_LEQUAL
+        )  # Change depth function so depth test passes when values are equal to depth buffer's content
         """Render the skybox."""
         # Set the view and projection matrices
         view_matrix = glm.mat4(glm.mat3(self.view))  # Remove translation from the view matrix
         projection_matrix = self.projection
 
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'view'), 1, GL_FALSE, glm.value_ptr(view_matrix))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, 'projection'), 1, GL_FALSE,
-                           glm.value_ptr(projection_matrix))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view_matrix))
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(projection_matrix)
+        )
 
         glBindVertexArray(self.skybox_vao)
         glActiveTexture(GL_TEXTURE4)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, 'skybox'), 4)
+        glUniform1i(glGetUniformLocation(self.shader_program, "skybox"), 4)
 
         glDrawArrays(GL_TRIANGLES, 0, 36)
 

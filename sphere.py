@@ -20,7 +20,7 @@ if __name__ == "__main__":
         msaa_level=8,
         culling=True,
         texture_lod_bias=1.0,
-        env_map_lod_bias=2.0
+        env_map_lod_bias=2.0,
     )
 
     # Create the rendering instance with the base configuration
@@ -31,11 +31,11 @@ if __name__ == "__main__":
     sphere_config = base_config.add_model(
         obj_path="models/sphere.obj",
         texture_paths={
-            'diffuse': 'textures/diffuse/metal_1.png',
-            'normal': 'textures/normal/metal_1.png',
-            'displacement': 'textures/displacement/metal_1.png'
+            "diffuse": "textures/diffuse/metal_1.png",
+            "normal": "textures/normal/metal_1.png",
+            "displacement": "textures/displacement/metal_1.png",
         },
-        shader_names=('standard', 'embm'),
+        shader_names=("standard", "embm"),
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
@@ -44,12 +44,12 @@ if __name__ == "__main__":
 
     # Define the configuration for the skybox
     skybox_config = base_config.add_skybox(
-        shader_names=('skybox', 'skybox'),
+        shader_names=("skybox", "skybox"),
     )
 
     # Add the renderers to the instance with specific names
-    instance.add_renderer('skybox', 'skybox', **skybox_config)
-    instance.add_renderer('sphere', 'model', **sphere_config)
+    instance.add_renderer("skybox", "skybox", **skybox_config)
+    instance.add_renderer("sphere", "model", **sphere_config)
 
     # Run the rendering instance
     instance.run()
