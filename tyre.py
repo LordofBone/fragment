@@ -21,6 +21,7 @@ if __name__ == "__main__":
         culling=True,
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
+        phong_shading=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -41,7 +42,6 @@ if __name__ == "__main__":
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        phong_shading=True,
     )
 
     # Add the tyre renderer to the instance with a specific name

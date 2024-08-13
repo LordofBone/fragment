@@ -19,6 +19,7 @@ if __name__ == "__main__":
         auto_camera=False,
         msaa_level=8,
         culling=True,
+        phong_shading=False,
     )
 
     # Create the rendering instance with the base configuration
@@ -35,7 +36,6 @@ if __name__ == "__main__":
         tex_coord_amplitude=0.085,
         width=50.0,
         height=50.0,
-        phong_shading=False,
     )
 
     # Add the water surface renderer to the instance with a specific name
