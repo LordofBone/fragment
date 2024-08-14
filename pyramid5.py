@@ -12,9 +12,9 @@ if __name__ == "__main__":
         fov=40,
         near_plane=0.1,
         far_plane=100,
-        light_positions=[(50.0, 20.0, 50.0)],
-        light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[0.8],
+        lights=[
+            {'position': (50.0, 20.0, 50.0), 'color': (1.0, 1.0, 1.0), 'strength': 0.8},
+        ],
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
