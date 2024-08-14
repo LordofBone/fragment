@@ -12,6 +12,7 @@ out vec4 FragColor;
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D displacementMap;
+uniform sampler2D screenTexture;
 uniform samplerCube environmentMap;
 
 uniform vec3 lightPositions[10];
@@ -68,21 +69,22 @@ void main()
 
     vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 reflectDir = reflect(viewDir, normal);
-    vec3 refractDir = refract(viewDir, normal, 1.0 / 1.33);
 
-    vec3 envColorReflect = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-    vec3 envColorRefract = textureLod(environmentMap, refractDir, envMapLodLevel).rgb;
-
-    vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
-    vec3 lighting = vec3(0.0);
-
-    if (phongShading) {
-        lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
-    } else {
-        lighting = diffuseColor;
+    vec3 envColor = vec3(0.0);
+    if (envMapLodLevel > 0.0) {
+        envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
     }
 
-    vec3 result = mix(envColorRefract, envColorReflect, 0.5) * 0.6 + lighting;
+    // Apply distortion using the normal map
+    vec2 distortedCoords = TexCoords + normal.xy * 0.1;// Adjust distortion strength here
+    vec3 backgroundColor = texture(screenTexture, distortedCoords).rgb;
+
+    // If Phong shading is enabled, compute lighting, otherwise, use diffuse color
+    vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
+    vec3 lighting = phongShading ? computePhongLighting(normal, viewDir, FragPos, diffuseColor) : diffuseColor;
+
+    // Mix the distorted background with the lighting and environment reflection
+    vec3 result = mix(backgroundColor, lighting, 0.5) + envColor * 0.3;// Adjust blending factors here
 
     if (applyToneMapping) {
         result = toneMapping(result);
