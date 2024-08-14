@@ -23,6 +23,7 @@ uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform float transparency;
+uniform bool phongShading;  // Add this uniform to control Phong shading
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -73,7 +74,13 @@ void main()
     vec3 envColorRefract = textureLod(environmentMap, refractDir, envMapLodLevel).rgb;
 
     vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
-    vec3 lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+    vec3 lighting = vec3(0.0);
+
+    if (phongShading) {
+        lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+    } else {
+        lighting = diffuseColor;  // Use only the diffuse color when Phong shading is off
+    }
 
     vec3 result = mix(envColorRefract, envColorReflect, 0.5) * 0.6 + lighting;
 
