@@ -9,10 +9,12 @@ in vec3 TangentLightPos[10];
 
 out vec4 FragColor;
 
+uniform mat4 model;// Model transformation matrix
+
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D displacementMap;
-uniform sampler2D screenTexture;
+uniform sampler2D screenTexture;// The screen texture for background distortion
 uniform samplerCube environmentMap;
 
 uniform vec3 lightPositions[10];
@@ -23,8 +25,10 @@ uniform float textureLodLevel;
 uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform float transparency;
-uniform bool phongShading;// Add this uniform to control Phong shading
+uniform float transparency;// Control overall transparency
+uniform bool phongShading;// Control Phong shading
+uniform float distortionStrength;// Control distortion strength
+uniform float reflectionStrength;// Control reflection strength
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -64,10 +68,16 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseC
 
 void main()
 {
-    vec3 normal = normalize(Normal + texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0);
+    // Transform FragPos by the model matrix (if needed)
+    vec3 transformedFragPos = vec3(model * vec4(FragPos, 1.0));
+
+    // Transform the normal by the model matrix (if needed)
+    vec3 transformedNormal = normalize(mat3(transpose(inverse(model))) * Normal);
+
+    vec3 normal = normalize(transformedNormal + texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0);
     float height = texture(displacementMap, TexCoords, textureLodLevel).r;
 
-    vec3 viewDir = normalize(viewPosition - FragPos);
+    vec3 viewDir = normalize(viewPosition - transformedFragPos);
     vec3 reflectDir = reflect(viewDir, normal);
 
     vec3 envColor = vec3(0.0);
@@ -76,15 +86,15 @@ void main()
     }
 
     // Apply distortion using the normal map
-    vec2 distortedCoords = TexCoords + normal.xy * 0.1;// Adjust distortion strength here
+    vec2 distortedCoords = TexCoords + normal.xy * distortionStrength;// Use uniform for distortion strength
     vec3 backgroundColor = texture(screenTexture, distortedCoords).rgb;
 
     // If Phong shading is enabled, compute lighting, otherwise, use diffuse color
     vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
-    vec3 lighting = phongShading ? computePhongLighting(normal, viewDir, FragPos, diffuseColor) : diffuseColor;
+    vec3 lighting = phongShading ? computePhongLighting(normal, viewDir, transformedFragPos, diffuseColor) : diffuseColor;
 
-    // Mix the distorted background with the lighting and environment reflection
-    vec3 result = mix(backgroundColor, lighting, 0.5) + envColor * 0.3;// Adjust blending factors here
+    // Blend background distortion and lighting with controlled reflection strength
+    vec3 result = mix(backgroundColor, lighting, transparency) + envColor * reflectionStrength;
 
     if (applyToneMapping) {
         result = toneMapping(result);
@@ -95,5 +105,7 @@ void main()
     }
 
     result = clamp(result, 0.0, 1.0);
+
+    // Set the final color with configurable transparency
     FragColor = vec4(result, transparency);
 }
