@@ -94,11 +94,6 @@ class RendererConfig:
             apply_gamma_correction=False,
             width=10.0,
             height=10.0,
-            wave_speed=10.0,
-            wave_amplitude=0.1,
-            randomness=0.8,
-            tex_coord_frequency=100.0,
-            tex_coord_amplitude=0.1,
             cubemap_folder=None,
             phong_shading=None,
             **kwargs,
@@ -119,11 +114,6 @@ class RendererConfig:
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
             "height": height,
-            "wave_speed": wave_speed,
-            "wave_amplitude": wave_amplitude,
-            "randomness": randomness,
-            "tex_coord_frequency": tex_coord_frequency,
-            "tex_coord_amplitude": tex_coord_amplitude,
             "cubemap_folder": cubemap_folder,
             "phong_shading": phong_shading,
         }
@@ -132,21 +122,19 @@ class RendererConfig:
         model_config.update({k: v for k, v in model_specifics.items() if v is not None})
 
         # Apply any additional keyword arguments passed in kwargs
-        model_config.update(kwargs)
+        # Ensure that all keys from kwargs are correctly updated in the model_config
+        for key, value in kwargs.items():
+            if key not in model_config:
+                model_config[key] = value
 
         return model_config
 
     def add_surface(
             self,
             shader_names=("standard", "default"),
-            wave_speed=10.0,
-            wave_amplitude=0.1,
-            randomness=0.8,
             rotation_speed=0.0,
             apply_tone_mapping=False,
             apply_gamma_correction=False,
-            tex_coord_frequency=100.0,
-            tex_coord_amplitude=0.1,
             width=500.0,
             height=500.0,
             cubemap_folder=None,
@@ -161,11 +149,6 @@ class RendererConfig:
             "rotation_speed": rotation_speed,
             "apply_tone_mapping": apply_tone_mapping,
             "apply_gamma_correction": apply_gamma_correction,
-            "wave_speed": wave_speed,
-            "wave_amplitude": wave_amplitude,
-            "randomness": randomness,
-            "tex_coord_frequency": tex_coord_frequency,
-            "tex_coord_amplitude": tex_coord_amplitude,
             "width": width,
             "height": height,
             "cubemap_folder": cubemap_folder,
@@ -173,7 +156,10 @@ class RendererConfig:
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
-        surface_config.update(kwargs)
+        # Ensure that all keys from kwargs are correctly updated in the model_config
+        for key, value in kwargs.items():
+            if key not in surface_config:
+                surface_config[key] = value
 
         return surface_config
 
@@ -187,6 +173,9 @@ class RendererConfig:
         }
 
         skybox_config.update({k: v for k, v in skybox_specifics.items() if v is not None})
-        skybox_config.update(kwargs)
+        # Ensure that all keys from kwargs are correctly updated in the model_config
+        for key, value in kwargs.items():
+            if key not in skybox_config:
+                skybox_config[key] = value
 
         return skybox_config
