@@ -83,22 +83,35 @@ class RenderingInstance:
         self.setup()  # Ensures that setup is called before running
 
         def render_callback(delta_time):
+            # First pass: Render the scene to a framebuffer
             for renderer_name, _ in self.render_order:
-                framebuffer, _ = self.framebuffers[renderer_name]
+                framebuffer, texture = self.framebuffers[renderer_name]
                 glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-                # Update camera before rendering
+                # Update camera and render the scene
                 self.scene_construct.renderers[renderer_name].update_camera(delta_time)
-
                 self.scene_construct.render(renderer_name)
+
                 glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-            # Render the final pass with transparency and distortion
+            # Ensure that the framebuffer is complete
+            status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+
+            # Second pass: Render with the screen texture (e.g., distortion effect)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             for renderer_name, _ in self.render_order:
                 _, texture = self.framebuffers[renderer_name]
+
+                # When binding the framebuffer texture in the RenderingInstance
+                glActiveTexture(GL_TEXTURE8)  # Activate texture unit 4 (same as used in the shader)
                 glBindTexture(GL_TEXTURE_2D, texture)
+
+                # Pass the framebuffer texture as the screen texture to the shader
+                self.scene_construct.renderers[renderer_name].screen_texture = texture
                 self.scene_construct.render(renderer_name)
+
+            # Ensure the final pass is rendered to the default framebuffer
+            glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
         self.render_window.mainloop(render_callback)
