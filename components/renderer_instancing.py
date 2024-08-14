@@ -87,6 +87,10 @@ class RenderingInstance:
                 framebuffer, _ = self.framebuffers[renderer_name]
                 glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+                # Update camera before rendering
+                self.scene_construct.renderers[renderer_name].update_camera(delta_time)
+
                 self.scene_construct.render(renderer_name)
                 glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
