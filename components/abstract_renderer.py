@@ -28,7 +28,8 @@ def common_funcs(func):
 
         self.apply_transformations()
         self.set_shader_uniforms()
-        self.set_light_uniforms(self.shader_program)
+        if self.lights_enabled:
+            self.set_light_uniforms(self.shader_program)
 
         result = func(self, *args, **kwargs)
 
@@ -47,43 +48,34 @@ def common_funcs(func):
 
 class AbstractRenderer(ABC):
     def __init__(
-        self,
-        shader_names,
-        shaders=None,
-        cubemap_folder=None,
-        camera_positions=None,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
-        fov=45,
-        near_plane=0.1,
-        far_plane=100,
-        light_positions=None,
-        light_colors=None,
-        light_strengths=None,
-        rotation_speed=2000.0,
-        rotation_axis=(0, 3, 0),
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
-        texture_lod_bias=0.0,
-        env_map_lod_bias=0.0,
-        culling=True,
-        msaa_level=8,
-        anisotropy=16.0,
-        auto_camera=False,
-        move_speed=1.0,
-        loop=True,
-        front_face_winding="CCW",
-        window_size=(800, 600),
-        phong_shading=False,
-        **kwargs,
+            self,
+            shader_names,
+            shaders=None,
+            cubemap_folder=None,
+            camera_positions=None,
+            camera_target=(0, 0, 0),
+            up_vector=(0, 1, 0),
+            fov=45,
+            near_plane=0.1,
+            far_plane=100,
+            lights=None,  # Combined lights: List of dicts [{'position': ..., 'color': ..., 'strength': ...}, ...]
+            rotation_speed=2000.0,
+            rotation_axis=(0, 3, 0),
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
+            texture_lod_bias=0.0,
+            env_map_lod_bias=0.0,
+            culling=True,
+            msaa_level=8,
+            anisotropy=16.0,
+            auto_camera=False,
+            move_speed=1.0,
+            loop=True,
+            front_face_winding="CCW",
+            window_size=(800, 600),
+            phong_shading=False,
+            **kwargs,
     ):
-        if light_strengths is None:
-            light_strengths = [0.8]
-        if light_colors is None:
-            light_colors = [(1.0, 1.0, 1.0)]
-        if light_positions is None:
-            light_positions = [(3.0, 3.0, 3.0)]
-
         self.dynamic_attrs = kwargs
 
         self.shader_names = shader_names  # Expecting a tuple (vertex_shader_name, fragment_shader_name)
@@ -95,9 +87,6 @@ class AbstractRenderer(ABC):
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.light_positions = [glm.vec3(*pos) for pos in light_positions]
-        self.light_colors = [glm.vec3(*col) for col in light_colors]
-        self.light_strengths = light_strengths
         self.rotation_speed = rotation_speed
         self.rotation_axis = glm.vec3(*rotation_axis)
         self.apply_tone_mapping = apply_tone_mapping
@@ -125,6 +114,17 @@ class AbstractRenderer(ABC):
         self.shader_program = None
 
         self.phong_shading = phong_shading  # Add Phong shading option
+
+        # Initialize lighting
+        self.lights_enabled = lights is not None
+        if self.lights_enabled:
+            self.lights = [{
+                'position': glm.vec3(*light.get('position', (0, 0, 0))),
+                'color': glm.vec3(*light.get('color', (1.0, 1.0, 1.0))),
+                'strength': light.get('strength', 1.0)
+            } for light in lights]
+        else:
+            self.lights = []
 
         if self.auto_camera:
             self.camera_controller = CameraController(self.camera_positions, self.move_speed, self.loop)
@@ -204,12 +204,11 @@ class AbstractRenderer(ABC):
     def set_light_uniforms(self, shader_program):
         """Set light uniforms for the shader program."""
         glUseProgram(shader_program)
-        for i, (position, color, strength) in enumerate(
-            zip(self.light_positions, self.light_colors, self.light_strengths)
-        ):
-            glUniform3fv(glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(position))
-            glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(color))
-            glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), strength)
+        for i, light in enumerate(self.lights):
+            glUniform3fv(glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1,
+                         glm.value_ptr(light['position']))
+            glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(light['color']))
+            glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), light['strength'])
 
         # Set Phong shading boolean uniform
         glUniform1i(glGetUniformLocation(shader_program, "phongShading"), int(self.phong_shading))
