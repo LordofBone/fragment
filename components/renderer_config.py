@@ -14,9 +14,7 @@ class RendererConfig:
             fov=40,
             near_plane=0.1,
             far_plane=1000,
-            light_positions=None,
-            light_colors=None,
-            light_strengths=None,
+            lights=None,
             anisotropy=16.0,
             auto_camera=False,
             msaa_level=8,
@@ -29,12 +27,6 @@ class RendererConfig:
             shaders=None,
             phong_shading=False,
     ):
-        if light_strengths is None:
-            light_strengths = [0.8]
-        if light_colors is None:
-            light_colors = [(1.0, 1.0, 1.0)]
-        if light_positions is None:
-            light_positions = [(3.0, 3.0, 3.0)]
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2)]
         self.window_size = window_size
@@ -47,9 +39,7 @@ class RendererConfig:
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.light_positions = light_positions
-        self.light_colors = light_colors
-        self.light_strengths = light_strengths
+        self.lights = lights  # Store lights configuration
         self.anisotropy = anisotropy
         self.auto_camera = auto_camera
         self.msaa_level = msaa_level
