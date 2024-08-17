@@ -17,7 +17,7 @@ uniform float textureLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
-uniform vec3 ambientColor;// New uniform for ambient light color
+uniform vec3 ambientColor;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
