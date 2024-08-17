@@ -101,12 +101,6 @@ class RenderingInstance:
             # Second pass: Render with the screen texture (e.g., distortion effect)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             for renderer_name, _ in self.render_order:
-                _, texture = self.framebuffers[renderer_name]
-
-                # When binding the framebuffer texture in the RenderingInstance
-                glActiveTexture(GL_TEXTURE8)  # Activate texture unit 4 (same as used in the shader)
-                glBindTexture(GL_TEXTURE_2D, texture)
-
                 # Pass the framebuffer texture as the screen texture to the shader
                 self.scene_construct.renderers[renderer_name].screen_texture = texture
                 self.scene_construct.render(renderer_name)
