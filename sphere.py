@@ -7,16 +7,27 @@ if __name__ == "__main__":
         window_size=(800, 600),
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[
-            (100.0, 100.0, 0.0),  # 0 degrees (front)
-            (60.0, 100.0, 60.0),  # 45 degrees
-            (0.0, 100.0, 100.0),  # 90 degrees (side)
-            (-60.0, 60.0, 100.0),  # 135 degrees
-            (-100.0, 100.0, 0.0),  # 180 degrees (back)
-            (-60.0, 100.0, -60.0),  # 225 degrees
-            (0.0, 60.0, -100.0),  # 270 degrees (other side)
-            (60.0, 100.0, -60.0),  # 315 degrees
-            (100.0, 100.0, 0.0)  # 360 degrees (back to front)
+            (100.0, 100.0, 0.0),  # Front top view
+            (60.0, 60.0, 60.0),  # 45 degrees top view
+            (0.0, 100.0, 100.0),  # Side top view
+            (-60.0, 60.0, 100.0),  # 135 degrees top view
+            (-100.0, 100.0, 0.0),  # Back top view
+            (-60.0, 60.0, -60.0),  # 225 degrees top view
+            (0.0, 100.0, -100.0),  # Other side top view
+            (60.0, 60.0, -60.0),  # 315 degrees top view
+
+            (100.0, -100.0, 0.0),  # Front bottom view
+            (60.0, -60.0, 60.0),  # 45 degrees bottom view
+            (0.0, -100.0, 100.0),  # Side bottom view
+            (-60.0, -60.0, 100.0),  # 135 degrees bottom view
+            (-100.0, -100.0, 0.0),  # Back bottom view
+            (-60.0, -60.0, -60.0),  # 225 degrees bottom view
+            (0.0, -100.0, -100.0),  # Other side bottom view
+            (60.0, -60.0, -60.0),  # 315 degrees bottom view
+
+            (100.0, 100.0, 0.0)  # Return to front top view
         ],
+
         auto_camera=True,
         camera_target=(0, 0.75, 0),
         up_vector=(0, 1, 0),
