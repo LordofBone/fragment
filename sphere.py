@@ -27,7 +27,6 @@ if __name__ == "__main__":
 
             (100.0, 100.0, 0.0)  # Return to front top view
         ],
-
         auto_camera=True,
         camera_target=(0, 0.75, 0),
         up_vector=(0, 1, 0),
