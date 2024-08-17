@@ -20,7 +20,7 @@ uniform float textureLodLevel;
 uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform float transparency;
+uniform float opacity;
 uniform bool phongShading;
 uniform float distortionStrength;
 uniform float reflectionStrength;
@@ -85,7 +85,7 @@ void main()
     vec3 diffuseColor = texture(diffuseMap, flippedTexCoords, textureLodLevel).rgb;
     vec3 lighting = computeLighting(normal, viewDir, FragPos, diffuseColor);
 
-    vec3 result = mix(backgroundColor, lighting, transparency) + envColor * reflectionStrength;
+    vec3 result = mix(backgroundColor, lighting, opacity) + envColor * reflectionStrength;
 
     if (applyToneMapping) {
         result = toneMapping(result);
@@ -97,5 +97,5 @@ void main()
 
     result = clamp(result, 0.0, 1.0);
 
-    FragColor = vec4(result, transparency);
+    FragColor = vec4(result, opacity);
 }

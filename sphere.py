@@ -48,7 +48,7 @@ if __name__ == "__main__":
             "displacement": "textures/displacement/metal_1.png",
         },
         shader_names=("standard", "stealth"),
-        transparency=0.0,
+        opacity=0.0,
         distortion_strength=0.1,
         reflection_strength=0.5,
         rotation_axis=(0, 3, 0),

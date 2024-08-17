@@ -74,7 +74,7 @@ class AbstractRenderer(ABC):
             front_face_winding="CCW",
             window_size=(800, 600),
             phong_shading=False,
-            transparency=1.0,
+            opacity=1.0,
             distortion_strength=0.3,
             reflection_strength=0.0,
             screen_texture=None,  # Add screen_texture as an optional argument
@@ -112,7 +112,7 @@ class AbstractRenderer(ABC):
         self.front_face_winding = self.get_winding_constant(front_face_winding)
         self.window_size = window_size
 
-        self.transparency = transparency
+        self.opacity = opacity
         self.distortion_strength = distortion_strength
         self.reflection_strength = reflection_strength
 
@@ -288,7 +288,7 @@ class AbstractRenderer(ABC):
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(self.projection)
         )
-        glUniform1f(glGetUniformLocation(self.shader_program, "transparency"), self.transparency)
+        glUniform1f(glGetUniformLocation(self.shader_program, "opacity"), self.opacity)
         glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
         glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
 
