@@ -73,7 +73,10 @@ class RenderingInstance:
 
         # Set default order if none is provided
         if order is None:
-            order = len(self.render_order)
+            if self.render_order:
+                order = max(o for _, o in self.render_order) + 1
+            else:
+                order = 0  # If no renderers have been added yet, start with order 0
 
         self.render_order.append((name, order))
         self.render_order.sort(key=lambda x: x[1], reverse=True)
