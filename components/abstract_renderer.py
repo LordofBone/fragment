@@ -57,6 +57,7 @@ class AbstractRenderer(ABC):
             fov=45,
             near_plane=0.1,
             far_plane=100,
+            ambient_lighting_strength=(0.1, 0.1, 0.1),
             lights=None,
             rotation_speed=2000.0,
             rotation_axis=(0, 3, 0),
@@ -123,6 +124,8 @@ class AbstractRenderer(ABC):
         self.shader_program = None
 
         self.phong_shading = phong_shading
+
+        self.ambient_lighting_strength = glm.vec3(ambient_lighting_strength)
 
         self.lights_enabled = lights is not None
         if self.lights_enabled:
@@ -276,6 +279,8 @@ class AbstractRenderer(ABC):
     def set_shader_uniforms(self):
         """Set uniforms for the shader program."""
         glUseProgram(self.shader_program)
+        glUniform3fv(glGetUniformLocation(self.shader_program, "ambientColor"), 1,
+                     glm.value_ptr(self.ambient_lighting_strength))
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(self.model_matrix)
         )
