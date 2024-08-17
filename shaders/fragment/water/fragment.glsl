@@ -8,6 +8,7 @@ out vec4 FragColor;
 
 uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
+uniform vec3 ambientColor;
 uniform float time;
 uniform float waveSpeed;
 uniform float waveAmplitude;
@@ -54,7 +55,7 @@ vec3 toneMapping(vec3 color) {
 }
 
 vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
-    vec3 ambient = vec3(0.1);// Ambient lighting contribution
+    vec3 ambient = ambientColor;// Use the ambientColor uniform for ambient lighting
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
 
@@ -114,7 +115,7 @@ void main()
         color += envColor;
     } else {
         // Fallback: if no environment map, use lighting and normal map for water detail
-        color += vec3(0.1) * normalMap;// Adjust this to change the water surface appearance without a cubemap
+        color += ambientColor * normalMap;// Use ambientColor to influence the fallback appearance
     }
 
     // Apply tone mapping and gamma correction if enabled
