@@ -21,7 +21,7 @@ uniform float lightStrengths[10];
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;// Add this uniform
+uniform bool phongShading;
 
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -54,7 +54,7 @@ vec3 toneMapping(vec3 color) {
 }
 
 vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
-    vec3 ambient = vec3(0.1);// Keep the ambient lighting minimal and consistent with models
+    vec3 ambient = vec3(0.1);// Ambient lighting contribution
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
 
@@ -91,20 +91,31 @@ void main()
         phongColor = computePhongLighting(normalMap, viewDir);
     }
 
-    // Compute reflection and refraction using the environment map
-    vec3 reflectDir = reflect(-viewDir, normalMap);
-    vec3 refractDir = refract(-viewDir, normalMap, 1.0 / 1.33);
+    vec3 envColor = vec3(0.0);// Default environment color is black (no reflection)
 
-    vec3 reflection = texture(environmentMap, reflectDir).rgb;
-    vec3 refraction = texture(environmentMap, refractDir).rgb;
+    // Check if the environment map is active (assumes environmentMap is texture unit 0)
+    if (textureSize(environmentMap, 0).x > 1) {
+        // Compute reflection and refraction using the environment map
+        vec3 reflectDir = reflect(-viewDir, normalMap);
+        vec3 refractDir = refract(-viewDir, normalMap, 1.0 / 1.33);
 
-    float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
+        vec3 reflection = texture(environmentMap, reflectDir).rgb;
+        vec3 refraction = texture(environmentMap, refractDir).rgb;
 
-    // Reduce the effect of the environment map
-    vec3 envColor = mix(refraction, reflection, fresnel);
+        float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
 
-    // Final color combining Phong lighting and environment map effects
-    vec3 color = phongColor + envColor;
+        // Reduce the effect of the environment map
+        envColor = mix(refraction, reflection, fresnel);
+    }
+
+    // Combine lighting and fallback for the environment map
+    vec3 color = phongColor;
+    if (envColor != vec3(0.0)) {
+        color += envColor;
+    } else {
+        // Fallback: if no environment map, use lighting and normal map for water detail
+        color += vec3(0.1) * normalMap;// Adjust this to change the water surface appearance without a cubemap
+    }
 
     // Apply tone mapping and gamma correction if enabled
     if (applyToneMapping) {
