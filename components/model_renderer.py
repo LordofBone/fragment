@@ -82,6 +82,7 @@ class ModelRenderer(AbstractRenderer):
     @common_funcs
     def render(self):
         """Render the model."""
+        glActiveTexture(GL_TEXTURE3)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
 
         for mesh in self.object.mesh_list:
