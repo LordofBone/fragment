@@ -24,6 +24,7 @@ uniform float transparency;
 uniform bool phongShading;
 uniform float distortionStrength;
 uniform float reflectionStrength;
+uniform vec3 ambientColor;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -42,8 +43,8 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor) {
-    vec3 ambient = 0.1 * diffuseColor;
+vec3 computeLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor) {
+    vec3 ambient = ambientColor * diffuseColor;// Use ambientColor for ambient lighting
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
     vec3 specularColor = vec3(1.0);
@@ -53,9 +54,11 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseC
         float diff = max(dot(normal, lightDir), 0.0);
         diffuse += lightColors[i] * diff * diffuseColor * lightStrengths[i];
 
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        if (phongShading) {
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+            specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        }
     }
 
     return ambient + diffuse + specular;
@@ -71,13 +74,16 @@ void main()
     vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 reflectDir = reflect(viewDir, normal);
 
-    vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+    vec3 envColor = vec3(0.0);// Default to black if no environment map is applied
+    if (textureSize(environmentMap, 0).x > 1) {
+        envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+    }
 
     vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
     vec3 backgroundColor = texture(screenTexture, distortedCoords).rgb;
 
     vec3 diffuseColor = texture(diffuseMap, flippedTexCoords, textureLodLevel).rgb;
-    vec3 lighting = phongShading ? computePhongLighting(normal, viewDir, FragPos, diffuseColor) : diffuseColor;
+    vec3 lighting = computeLighting(normal, viewDir, FragPos, diffuseColor);
 
     vec3 result = mix(backgroundColor, lighting, transparency) + envColor * reflectionStrength;
 
