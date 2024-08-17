@@ -5,8 +5,19 @@ if __name__ == "__main__":
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_size=(800, 600),
-        cubemap_folder="textures/cube/night_sky_egypt/",
-        camera_positions=[(75, 75, 75)],
+        cubemap_folder="textures/cube/mountain_lake/",
+        camera_positions=[
+            (100.0, 100.0, 0.0),  # 0 degrees (front)
+            (60.0, 100.0, 60.0),  # 45 degrees
+            (0.0, 100.0, 100.0),  # 90 degrees (side)
+            (-60.0, 60.0, 100.0),  # 135 degrees
+            (-100.0, 100.0, 0.0),  # 180 degrees (back)
+            (-60.0, 100.0, -60.0),  # 225 degrees
+            (0.0, 60.0, -100.0),  # 270 degrees (other side)
+            (60.0, 100.0, -60.0),  # 315 degrees
+            (100.0, 100.0, 0.0)  # 360 degrees (back to front)
+        ],
+        auto_camera=True,
         camera_target=(0, 0.75, 0),
         up_vector=(0, 1, 0),
         fov=90,
@@ -16,12 +27,12 @@ if __name__ == "__main__":
             {'position': (50.0, 50.0, 50.0), 'color': (1.0, 1.0, 1.0), 'strength': 0.8},
         ],
         anisotropy=16.0,
-        auto_camera=False,
+        move_speed=0.2,
         msaa_level=8,
         culling=True,
         texture_lod_bias=1.0,
         env_map_lod_bias=2.0,
-        phong_shading=False,
+        phong_shading=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -37,10 +48,13 @@ if __name__ == "__main__":
             "displacement": "textures/displacement/metal_1.png",
         },
         shader_names=("standard", "stealth"),
-        rotation_speed=2000.0,
+        transparency=0.0,
+        distortion_strength=0.1,
+        reflection_strength=0.5,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        cubemap_folder=False,
     )
 
     # Define the configuration for the skybox
@@ -49,8 +63,8 @@ if __name__ == "__main__":
     )
 
     # Add the renderers to the instance with specific names
-    instance.add_renderer("skybox", "skybox", **skybox_config)
-    instance.add_renderer("sphere", "model", **sphere_config)
+    instance.add_renderer("skybox", order=0, renderer_type="skybox", **skybox_config)
+    instance.add_renderer("sphere", order=1, renderer_type="model", **sphere_config)
 
     # Run the rendering instance
     instance.run()
