@@ -14,9 +14,7 @@ class RendererConfig:
         fov=40,
         near_plane=0.1,
         far_plane=1000,
-        light_positions=None,
-        light_colors=None,
-        light_strengths=None,
+        lights=None,
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
@@ -28,13 +26,8 @@ class RendererConfig:
         front_face_winding="CCW",
         shaders=None,
         phong_shading=False,
-    ):  # Add phong_shading
-        if light_strengths is None:
-            light_strengths = [0.8]
-        if light_colors is None:
-            light_colors = [(1.0, 1.0, 1.0)]
-        if light_positions is None:
-            light_positions = [(3.0, 3.0, 3.0)]
+        ambient_lighting_strength=(0.0, 0.0, 0.0),
+    ):
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2)]
         self.window_size = window_size
@@ -47,9 +40,7 @@ class RendererConfig:
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.light_positions = light_positions
-        self.light_colors = light_colors
-        self.light_strengths = light_strengths
+        self.lights = lights
         self.anisotropy = anisotropy
         self.auto_camera = auto_camera
         self.msaa_level = msaa_level
@@ -59,7 +50,8 @@ class RendererConfig:
         self.move_speed = move_speed
         self.loop = loop
         self.front_face_winding = front_face_winding
-        self.phong_shading = phong_shading  # Add this line
+        self.phong_shading = phong_shading
+        self.ambient_lighting_strength = ambient_lighting_strength
         self.shaders = {}
 
         self.validate_winding()
@@ -104,15 +96,10 @@ class RendererConfig:
         apply_gamma_correction=False,
         width=10.0,
         height=10.0,
-        wave_speed=10.0,
-        wave_amplitude=0.1,
-        randomness=0.8,
-        tex_coord_frequency=100.0,
-        tex_coord_amplitude=0.1,
         cubemap_folder=None,
-        phong_shading=False,
+        phong_shading=None,
         **kwargs,
-    ):  # Add phong_shading
+    ):
         """Add a model to the configuration."""
 
         # Start with a deep copy of the base configuration
@@ -129,40 +116,33 @@ class RendererConfig:
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
             "height": height,
-            "wave_speed": wave_speed,
-            "wave_amplitude": wave_amplitude,
-            "randomness": randomness,
-            "tex_coord_frequency": tex_coord_frequency,
-            "tex_coord_amplitude": tex_coord_amplitude,
-            "cubemap_folder": cubemap_folder,  # Specific or None
-            "phong_shading": phong_shading,  # Add this line
+            "cubemap_folder": cubemap_folder,
+            "phong_shading": phong_shading,
         }
 
         # Update the configuration with model specifics, preserving non-None values
         model_config.update({k: v for k, v in model_specifics.items() if v is not None})
 
         # Apply any additional keyword arguments passed in kwargs
-        model_config.update(kwargs)
+        # Ensure that all keys from kwargs are correctly updated in the model_config
+        for key, value in kwargs.items():
+            if key not in model_config:
+                model_config[key] = value
 
         return model_config
 
     def add_surface(
         self,
         shader_names=("standard", "default"),
-        wave_speed=10.0,
-        wave_amplitude=0.1,
-        randomness=0.8,
         rotation_speed=0.0,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        tex_coord_frequency=100.0,
-        tex_coord_amplitude=0.1,
         width=500.0,
         height=500.0,
         cubemap_folder=None,
-        phong_shading=False,
+        phong_shading=None,
         **kwargs,
-    ):  # Add phong_shading
+    ):
         """Add a surface to the configuration."""
         surface_config = self.unpack()
 
@@ -171,19 +151,17 @@ class RendererConfig:
             "rotation_speed": rotation_speed,
             "apply_tone_mapping": apply_tone_mapping,
             "apply_gamma_correction": apply_gamma_correction,
-            "wave_speed": wave_speed,
-            "wave_amplitude": wave_amplitude,
-            "randomness": randomness,
-            "tex_coord_frequency": tex_coord_frequency,
-            "tex_coord_amplitude": tex_coord_amplitude,
             "width": width,
             "height": height,
-            "cubemap_folder": cubemap_folder,  # Specific or None
-            "phong_shading": phong_shading,  # Add this line
+            "cubemap_folder": cubemap_folder,
+            "phong_shading": phong_shading,
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
-        surface_config.update(kwargs)
+        # Ensure that all keys from kwargs are correctly updated in the model_config
+        for key, value in kwargs.items():
+            if key not in surface_config:
+                surface_config[key] = value
 
         return surface_config
 
@@ -193,10 +171,13 @@ class RendererConfig:
 
         skybox_specifics = {
             "shader_names": shader_names,
-            "cubemap_folder": cubemap_folder,  # Specific or None
+            "cubemap_folder": cubemap_folder,
         }
 
         skybox_config.update({k: v for k, v in skybox_specifics.items() if v is not None})
-        skybox_config.update(kwargs)
+        # Ensure that all keys from kwargs are correctly updated in the model_config
+        for key, value in kwargs.items():
+            if key not in skybox_config:
+                skybox_config[key] = value
 
         return skybox_config

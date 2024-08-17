@@ -16,7 +16,8 @@ uniform float textureLodLevel;
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;// Add this uniform
+uniform bool phongShading;
+uniform vec3 ambientColor;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -81,6 +82,9 @@ void main()
         // Even without Phong shading, we still want the lighting to respect the normal map
         color = computeDiffuseWithNormalMap(normal);
     }
+
+    // Add ambient light to the result
+    color += ambientColor * texture(diffuseMap, TexCoords).rgb;
 
     if (applyToneMapping) {
         color = toneMapping(color);

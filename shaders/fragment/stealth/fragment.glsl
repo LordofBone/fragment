@@ -3,15 +3,13 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec3 TangentFragPos;
-in vec3 TangentViewPos;
-in vec3 TangentLightPos[10];
 
 out vec4 FragColor;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D displacementMap;
+uniform sampler2D screenTexture;
 uniform samplerCube environmentMap;
 
 uniform vec3 lightPositions[10];
@@ -22,7 +20,11 @@ uniform float textureLodLevel;
 uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform float transparency;
+uniform float opacity;
+uniform bool phongShading;
+uniform float distortionStrength;
+uniform float reflectionStrength;
+uniform vec3 ambientColor;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -41,8 +43,8 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor) {
-    vec3 ambient = 0.1 * diffuseColor;
+vec3 computeLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor) {
+    vec3 ambient = ambientColor * diffuseColor;// Use ambientColor for ambient lighting
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
     vec3 specularColor = vec3(1.0);
@@ -52,9 +54,11 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseC
         float diff = max(dot(normal, lightDir), 0.0);
         diffuse += lightColors[i] * diff * diffuseColor * lightStrengths[i];
 
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        if (phongShading) {
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+            specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        }
     }
 
     return ambient + diffuse + specular;
@@ -62,20 +66,26 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseC
 
 void main()
 {
-    vec3 normal = normalize(Normal + texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0);
-    float height = texture(displacementMap, TexCoords, textureLodLevel).r;
+    vec2 flippedTexCoords = vec2(TexCoords.x, 1.0 - TexCoords.y);
+
+    vec3 normal = normalize(Normal + texture(normalMap, flippedTexCoords, textureLodLevel).rgb * 2.0 - 1.0);
+    float height = texture(displacementMap, flippedTexCoords, textureLodLevel).r;
 
     vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 reflectDir = reflect(viewDir, normal);
-    vec3 refractDir = refract(viewDir, normal, 1.0 / 1.33);
 
-    vec3 envColorReflect = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-    vec3 envColorRefract = textureLod(environmentMap, refractDir, envMapLodLevel).rgb;
+    vec3 envColor = vec3(0.0);// Default to black if no environment map is applied
+    if (textureSize(environmentMap, 0).x > 1) {
+        envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+    }
 
-    vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
-    vec3 lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+    vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
+    vec3 backgroundColor = texture(screenTexture, distortedCoords).rgb;
 
-    vec3 result = mix(envColorRefract, envColorReflect, 0.5) * 0.6 + lighting;
+    vec3 diffuseColor = texture(diffuseMap, flippedTexCoords, textureLodLevel).rgb;
+    vec3 lighting = computeLighting(normal, viewDir, FragPos, diffuseColor);
+
+    vec3 result = mix(backgroundColor, lighting, opacity) + envColor * reflectionStrength;
 
     if (applyToneMapping) {
         result = toneMapping(result);
@@ -86,5 +96,6 @@ void main()
     }
 
     result = clamp(result, 0.0, 1.0);
-    FragColor = vec4(result, transparency);
+
+    FragColor = vec4(result, opacity);
 }

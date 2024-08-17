@@ -11,11 +11,14 @@ class SceneConstructor:
         """Add a renderer to the scene with a specific name."""
         self.renderers[name] = renderer
 
-    def render(self):
-        """Render all objects in the scene."""
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        for renderer in self.renderers.values():
-            renderer.render()
+    def render(self, name=None):
+        """Render all objects in the scene, or a specific renderer if name is provided."""
+        if name:
+            self.renderers[name].render()
+        else:
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            for renderer in self.renderers.values():
+                renderer.render()
 
     def translate_renderer(self, name, position):
         """Translate a renderer in the scene."""

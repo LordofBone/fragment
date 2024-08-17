@@ -5,20 +5,21 @@ if __name__ == "__main__":
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_size=(800, 600),
-        cubemap_folder="textures/cube/night_sky_egypt/",
+        cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[(3.2, 3.2, 3.2)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.1,
         far_plane=5000,
-        light_positions=[(50.0, 20.0, 10.0)],
-        light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[0.8],
+        lights=[
+            {"position": (5.0, 10.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
+        ],
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
         culling=True,
+        phong_shading=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -35,11 +36,10 @@ if __name__ == "__main__":
         tex_coord_amplitude=0.085,
         width=50.0,
         height=50.0,
-        phong_shading=False,
     )
 
     # Add the water surface renderer to the instance with a specific name
-    instance.add_renderer("water_surface", "surface", **water_config)
+    instance.add_renderer("water_surface", order=0, renderer_type="surface", **water_config)
 
     # Run the rendering instance
     instance.run()

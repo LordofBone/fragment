@@ -12,21 +12,21 @@ if __name__ == "__main__":
         fov=40,
         near_plane=0.1,
         far_plane=100,
-        light_positions=[(50.0, 20.0, 50.0)],
-        light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[0.8],
+        lights=[
+            {"position": (5.0, 0.0, 2.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
+        ],
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
         culling=True,
         texture_lod_bias=0.85,
         env_map_lod_bias=2.5,
+        phong_shading=True,
     )
 
     # Create the rendering instance with the base configuration
     instance = RenderingInstance(base_config)
     instance.setup()
-
     # Define the configuration for the pyramid model
     pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
@@ -40,11 +40,10 @@ if __name__ == "__main__":
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        phong_shading=True,
     )
 
     # Add the pyramid renderer to the instance with a specific name
-    instance.add_renderer("pyramid", "model", **pyramid_config)
+    instance.add_renderer("pyramid", order=0, renderer_type="model", **pyramid_config)
 
     # Enable auto-rotation for the pyramid model
     instance.scene_construct.set_auto_rotation("pyramid", True)

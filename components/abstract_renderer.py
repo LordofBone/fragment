@@ -21,18 +21,18 @@ def common_funcs(func):
         if self.culling:
             glEnable(GL_CULL_FACE)
             glCullFace(GL_BACK)
-            # Set front face winding based on the attribute
             glFrontFace(self.front_face_winding)
         else:
             glDisable(GL_CULL_FACE)
 
         self.apply_transformations()
         self.set_shader_uniforms()
-        self.set_light_uniforms(self.shader_program)
+        if self.lights_enabled:
+            self.set_light_uniforms(self.shader_program)
 
         result = func(self, *args, **kwargs)
 
-        # Unbind textures to avoid affecting subsequent renders
+        # Unbind textures
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
         glBindTexture(GL_TEXTURE_2D, 0)
 
@@ -57,9 +57,8 @@ class AbstractRenderer(ABC):
         fov=45,
         near_plane=0.1,
         far_plane=100,
-        light_positions=None,
-        light_colors=None,
-        light_strengths=None,
+        ambient_lighting_strength=(0.0, 0.0, 0.0),
+        lights=None,
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
@@ -75,15 +74,12 @@ class AbstractRenderer(ABC):
         front_face_winding="CCW",
         window_size=(800, 600),
         phong_shading=False,
+        opacity=1.0,
+        distortion_strength=0.3,
+        reflection_strength=0.0,
+        screen_texture=None,  # Add screen_texture as an optional argument
         **kwargs,
     ):
-        if light_strengths is None:
-            light_strengths = [0.8]
-        if light_colors is None:
-            light_colors = [(1.0, 1.0, 1.0)]
-        if light_positions is None:
-            light_positions = [(3.0, 3.0, 3.0)]
-
         self.dynamic_attrs = kwargs
 
         self.shader_names = shader_names  # Expecting a tuple (vertex_shader_name, fragment_shader_name)
@@ -95,9 +91,6 @@ class AbstractRenderer(ABC):
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.light_positions = [glm.vec3(*pos) for pos in light_positions]
-        self.light_colors = [glm.vec3(*col) for col in light_colors]
-        self.light_strengths = light_strengths
         self.rotation_speed = rotation_speed
         self.rotation_axis = glm.vec3(*rotation_axis)
         self.apply_tone_mapping = apply_tone_mapping
@@ -119,12 +112,33 @@ class AbstractRenderer(ABC):
         self.front_face_winding = self.get_winding_constant(front_face_winding)
         self.window_size = window_size
 
+        self.opacity = opacity
+        self.distortion_strength = distortion_strength
+        self.reflection_strength = reflection_strength
+
+        self.screen_texture = screen_texture
+
         self.vbos = []
         self.vaos = []
 
         self.shader_program = None
 
-        self.phong_shading = phong_shading  # Add Phong shading option
+        self.phong_shading = phong_shading
+
+        self.ambient_lighting_strength = glm.vec3(ambient_lighting_strength)
+
+        self.lights_enabled = lights is not None
+        if self.lights_enabled:
+            self.lights = [
+                {
+                    "position": glm.vec3(*light.get("position", (0, 0, 0))),
+                    "color": glm.vec3(*light.get("color", (1.0, 1.0, 1.0))),
+                    "strength": light.get("strength", 1.0),
+                }
+                for light in lights
+            ]
+        else:
+            self.lights = []
 
         if self.auto_camera:
             self.camera_controller = CameraController(self.camera_positions, self.move_speed, self.loop)
@@ -195,7 +209,7 @@ class AbstractRenderer(ABC):
     def setup_camera(self):
         """Setup the camera view and projection matrices."""
         if self.auto_camera:
-            self.camera_position = self.camera_controller.update(0)  # Initialize the first camera position
+            self.camera_position = self.camera_controller.update(0)
             self.camera_target = self.camera_controller.get_current_target()
         aspect_ratio = self.window_size[0] / self.window_size[1]
         self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
@@ -204,14 +218,13 @@ class AbstractRenderer(ABC):
     def set_light_uniforms(self, shader_program):
         """Set light uniforms for the shader program."""
         glUseProgram(shader_program)
-        for i, (position, color, strength) in enumerate(
-            zip(self.light_positions, self.light_colors, self.light_strengths)
-        ):
-            glUniform3fv(glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(position))
-            glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(color))
-            glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), strength)
+        for i, light in enumerate(self.lights):
+            glUniform3fv(
+                glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(light["position"])
+            )
+            glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(light["color"]))
+            glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), light["strength"])
 
-        # Set Phong shading boolean uniform
         glUniform1i(glGetUniformLocation(shader_program, "phongShading"), int(self.phong_shading))
 
     def set_model_matrix(self, matrix):
@@ -270,6 +283,9 @@ class AbstractRenderer(ABC):
     def set_shader_uniforms(self):
         """Set uniforms for the shader program."""
         glUseProgram(self.shader_program)
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "ambientColor"), 1, glm.value_ptr(self.ambient_lighting_strength)
+        )
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(self.model_matrix)
         )
@@ -277,6 +293,15 @@ class AbstractRenderer(ABC):
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(self.projection)
         )
+        glUniform1f(glGetUniformLocation(self.shader_program, "opacity"), self.opacity)
+        glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
+        glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
+
+        if self.screen_texture:
+            glActiveTexture(GL_TEXTURE8)
+            glBindTexture(GL_TEXTURE_2D, self.screen_texture)
+            glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 8)
+
         glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
         glUniform1f(
             glGetUniformLocation(self.shader_program, "waveAmplitude"), self.dynamic_attrs.get("wave_amplitude", 0.1)

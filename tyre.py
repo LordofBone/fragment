@@ -12,15 +12,16 @@ if __name__ == "__main__":
         fov=40,
         near_plane=0.1,
         far_plane=1000,
-        light_positions=[(-5.0, 0.0, 5.0)],
-        light_colors=[(1.0, 1.0, 1.0)],
-        light_strengths=[1.0],
+        lights=[
+            {"position": (-5.0, 0.0, 5.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+        ],
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
         culling=True,
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
+        phong_shading=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -41,11 +42,10 @@ if __name__ == "__main__":
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        phong_shading=True,
     )
 
     # Add the tyre renderer to the instance with a specific name
-    instance.add_renderer("tyre", "model", **tyre_config)
+    instance.add_renderer("tyre", order=0, renderer_type="model", **tyre_config)
 
     # Run the rendering instance
     instance.run()
