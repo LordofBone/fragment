@@ -26,6 +26,7 @@ class RendererConfig:
             front_face_winding="CCW",
             shaders=None,
             phong_shading=False,
+            ambient_lighting_strength=(0.0, 0.0, 0.0),
     ):
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2)]
@@ -39,7 +40,7 @@ class RendererConfig:
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.lights = lights  # Store lights configuration
+        self.lights = lights
         self.anisotropy = anisotropy
         self.auto_camera = auto_camera
         self.msaa_level = msaa_level
@@ -50,6 +51,7 @@ class RendererConfig:
         self.loop = loop
         self.front_face_winding = front_face_winding
         self.phong_shading = phong_shading
+        self.ambient_lighting_strength = ambient_lighting_strength
         self.shaders = {}
 
         self.validate_winding()
