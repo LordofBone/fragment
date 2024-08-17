@@ -57,7 +57,7 @@ class AbstractRenderer(ABC):
             fov=45,
             near_plane=0.1,
             far_plane=100,
-            ambient_lighting_strength=(0.1, 0.1, 0.1),
+            ambient_lighting_strength=(0.0, 0.0, 0.0),
             lights=None,
             rotation_speed=2000.0,
             rotation_axis=(0, 3, 0),
