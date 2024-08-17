@@ -39,7 +39,7 @@ if __name__ == "__main__":
     )
 
     # Add the water surface renderer to the instance with a specific name
-    instance.add_renderer("water_surface", order=0, renderer_type="surface", **water_config)
+    instance.add_renderer("water_surface", "surface", **water_config)
 
     # Run the rendering instance
     instance.run()

@@ -71,8 +71,8 @@ if __name__ == "__main__":
     )
 
     # Add the renderers to the instance with specific names
-    instance.add_renderer("skybox", order=0, renderer_type="skybox", **skybox_config)
-    instance.add_renderer("sphere", order=1, renderer_type="model", **sphere_config)
+    instance.add_renderer("skybox", "skybox", **skybox_config)
+    instance.add_renderer("sphere", "model", **sphere_config)
 
     # Run the rendering instance
     instance.run()
