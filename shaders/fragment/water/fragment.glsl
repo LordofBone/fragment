@@ -8,7 +8,7 @@ out vec4 FragColor;
 
 uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
-uniform vec3 ambientColor;
+uniform vec3 ambientColor;// Uniform for ambient light color
 uniform float time;
 uniform float waveSpeed;
 uniform float waveAmplitude;
@@ -105,20 +105,16 @@ void main()
 
         float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
 
-        // Reduce the effect of the environment map
-        envColor = mix(refraction, reflection, fresnel);
-    }
-
-    // Combine lighting and fallback for the environment map
-    vec3 color = phongColor;
-    if (envColor != vec3(0.0)) {
-        color += envColor;
+        // Mix the environment map reflection/refraction with the phong lighting
+        envColor = mix(refraction, reflection, fresnel) + phongColor;
     } else {
-        // Fallback: if no environment map, use lighting and normal map for water detail
-        color += ambientColor * normalMap;// Use ambientColor to influence the fallback appearance
+        // Fallback: if no environment map, use ambient lighting and Phong lighting
+        envColor = phongColor + ambientColor * normalMap;
     }
 
     // Apply tone mapping and gamma correction if enabled
+    vec3 color = envColor;
+
     if (applyToneMapping) {
         color = toneMapping(color);
     }
