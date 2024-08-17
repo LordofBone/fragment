@@ -15,7 +15,6 @@ if __name__ == "__main__":
             (-60.0, 60.0, -60.0),  # 225 degrees top view
             (0.0, 100.0, -100.0),  # Other side top view
             (60.0, 60.0, -60.0),  # 315 degrees top view
-
             (100.0, -100.0, 0.0),  # Front bottom view
             (60.0, -60.0, 60.0),  # 45 degrees bottom view
             (0.0, -100.0, 100.0),  # Side bottom view
@@ -24,8 +23,7 @@ if __name__ == "__main__":
             (-60.0, -60.0, -60.0),  # 225 degrees bottom view
             (0.0, -100.0, -100.0),  # Other side bottom view
             (60.0, -60.0, -60.0),  # 315 degrees bottom view
-
-            (100.0, 100.0, 0.0)  # Return to front top view
+            (100.0, 100.0, 0.0),  # Return to front top view
         ],
         auto_camera=True,
         camera_target=(0, 0.75, 0),
@@ -34,7 +32,7 @@ if __name__ == "__main__":
         near_plane=0.1,
         far_plane=1000,
         lights=[
-            {'position': (50.0, 50.0, 50.0), 'color': (1.0, 1.0, 1.0), 'strength': 0.8},
+            {"position": (50.0, 50.0, 50.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
         ],
         anisotropy=16.0,
         move_speed=0.2,

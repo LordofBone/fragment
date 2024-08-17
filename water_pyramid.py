@@ -21,7 +21,7 @@ if __name__ == "__main__":
         near_plane=0.1,
         far_plane=5000,
         lights=[
-            {'position': (50.0, 20.0, 30.0), 'color': (1.0, 1.0, 1.0), 'strength': 0.8},
+            {"position": (50.0, 20.0, 30.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
         ],
         anisotropy=16.0,
         auto_camera=True,

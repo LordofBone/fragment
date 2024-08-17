@@ -47,38 +47,38 @@ def common_funcs(func):
 
 class AbstractRenderer(ABC):
     def __init__(
-            self,
-            shader_names,
-            shaders=None,
-            cubemap_folder=None,
-            camera_positions=None,
-            camera_target=(0, 0, 0),
-            up_vector=(0, 1, 0),
-            fov=45,
-            near_plane=0.1,
-            far_plane=100,
-            ambient_lighting_strength=(0.0, 0.0, 0.0),
-            lights=None,
-            rotation_speed=2000.0,
-            rotation_axis=(0, 3, 0),
-            apply_tone_mapping=False,
-            apply_gamma_correction=False,
-            texture_lod_bias=0.0,
-            env_map_lod_bias=0.0,
-            culling=True,
-            msaa_level=8,
-            anisotropy=16.0,
-            auto_camera=False,
-            move_speed=1.0,
-            loop=True,
-            front_face_winding="CCW",
-            window_size=(800, 600),
-            phong_shading=False,
-            opacity=1.0,
-            distortion_strength=0.3,
-            reflection_strength=0.0,
-            screen_texture=None,  # Add screen_texture as an optional argument
-            **kwargs,
+        self,
+        shader_names,
+        shaders=None,
+        cubemap_folder=None,
+        camera_positions=None,
+        camera_target=(0, 0, 0),
+        up_vector=(0, 1, 0),
+        fov=45,
+        near_plane=0.1,
+        far_plane=100,
+        ambient_lighting_strength=(0.0, 0.0, 0.0),
+        lights=None,
+        rotation_speed=2000.0,
+        rotation_axis=(0, 3, 0),
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
+        texture_lod_bias=0.0,
+        env_map_lod_bias=0.0,
+        culling=True,
+        msaa_level=8,
+        anisotropy=16.0,
+        auto_camera=False,
+        move_speed=1.0,
+        loop=True,
+        front_face_winding="CCW",
+        window_size=(800, 600),
+        phong_shading=False,
+        opacity=1.0,
+        distortion_strength=0.3,
+        reflection_strength=0.0,
+        screen_texture=None,  # Add screen_texture as an optional argument
+        **kwargs,
     ):
         self.dynamic_attrs = kwargs
 
@@ -129,11 +129,14 @@ class AbstractRenderer(ABC):
 
         self.lights_enabled = lights is not None
         if self.lights_enabled:
-            self.lights = [{
-                'position': glm.vec3(*light.get('position', (0, 0, 0))),
-                'color': glm.vec3(*light.get('color', (1.0, 1.0, 1.0))),
-                'strength': light.get('strength', 1.0)
-            } for light in lights]
+            self.lights = [
+                {
+                    "position": glm.vec3(*light.get("position", (0, 0, 0))),
+                    "color": glm.vec3(*light.get("color", (1.0, 1.0, 1.0))),
+                    "strength": light.get("strength", 1.0),
+                }
+                for light in lights
+            ]
         else:
             self.lights = []
 
@@ -216,10 +219,11 @@ class AbstractRenderer(ABC):
         """Set light uniforms for the shader program."""
         glUseProgram(shader_program)
         for i, light in enumerate(self.lights):
-            glUniform3fv(glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1,
-                         glm.value_ptr(light['position']))
-            glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(light['color']))
-            glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), light['strength'])
+            glUniform3fv(
+                glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(light["position"])
+            )
+            glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(light["color"]))
+            glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), light["strength"])
 
         glUniform1i(glGetUniformLocation(shader_program, "phongShading"), int(self.phong_shading))
 
@@ -279,8 +283,9 @@ class AbstractRenderer(ABC):
     def set_shader_uniforms(self):
         """Set uniforms for the shader program."""
         glUseProgram(self.shader_program)
-        glUniform3fv(glGetUniformLocation(self.shader_program, "ambientColor"), 1,
-                     glm.value_ptr(self.ambient_lighting_strength))
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "ambientColor"), 1, glm.value_ptr(self.ambient_lighting_strength)
+        )
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(self.model_matrix)
         )
