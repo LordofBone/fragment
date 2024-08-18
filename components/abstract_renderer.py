@@ -47,38 +47,39 @@ def common_funcs(func):
 
 class AbstractRenderer(ABC):
     def __init__(
-        self,
-        shader_names,
-        shaders=None,
-        cubemap_folder=None,
-        camera_positions=None,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
-        fov=45,
-        near_plane=0.1,
-        far_plane=100,
-        ambient_lighting_strength=(0.0, 0.0, 0.0),
-        lights=None,
-        rotation_speed=2000.0,
-        rotation_axis=(0, 3, 0),
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
-        texture_lod_bias=0.0,
-        env_map_lod_bias=0.0,
-        culling=True,
-        msaa_level=8,
-        anisotropy=16.0,
-        auto_camera=False,
-        move_speed=1.0,
-        loop=True,
-        front_face_winding="CCW",
-        window_size=(800, 600),
-        phong_shading=False,
-        opacity=1.0,
-        distortion_strength=0.3,
-        reflection_strength=0.0,
-        screen_texture=None,  # Add screen_texture as an optional argument
-        **kwargs,
+            self,
+            shader_names,
+            shaders=None,
+            cubemap_folder=None,
+            camera_positions=None,
+            camera_target=(0, 0, 0),
+            up_vector=(0, 1, 0),
+            fov=45,
+            near_plane=0.1,
+            far_plane=100,
+            ambient_lighting_strength=(0.0, 0.0, 0.0),
+            lights=None,
+            rotation_speed=2000.0,
+            rotation_axis=(0, 3, 0),
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
+            texture_lod_bias=0.0,
+            env_map_lod_bias=0.0,
+            culling=True,
+            msaa_level=8,
+            anisotropy=16.0,
+            auto_camera=False,
+            move_speed=1.0,
+            loop=True,
+            front_face_winding="CCW",
+            window_size=(800, 600),
+            phong_shading=False,
+            opacity=1.0,
+            distortion_strength=0.3,
+            reflection_strength=0.0,
+            screen_texture=None,
+            planar_camera=True,
+            **kwargs,
     ):
         self.dynamic_attrs = kwargs
 
@@ -142,8 +143,13 @@ class AbstractRenderer(ABC):
 
         if self.auto_camera:
             self.camera_controller = CameraController(self.camera_positions, self.move_speed, self.loop)
+            self.camera_position = self.camera_controller.update(0)
         else:
             self.camera_position = glm.vec3(*self.camera_positions[0])
+        # Planar camera setup
+        self.planar_camera = planar_camera
+        if self.planar_camera:
+            self.setup_planar_camera(self.camera_position)
 
     def get_winding_constant(self, winding):
         """Convert winding string to OpenGL constant."""
@@ -159,6 +165,66 @@ class AbstractRenderer(ABC):
         self.load_textures()  # Load textures including cubemap
         self.setup_camera()
         self.set_constant_uniforms()
+
+    def setup_planar_camera(self, main_camera_position=None):
+        """Set up the planar camera view and projection matrices based on the main camera."""
+        # Calculate the position of the planar camera relative to the object and main camera
+        direction_to_camera = glm.normalize(main_camera_position - self.translation)
+        self.planar_camera_position = self.translation - direction_to_camera * 2.0  # Example distance
+
+        # Set up view and projection matrices for the planar camera
+        self.planar_view = glm.lookAt(self.planar_camera_position, self.translation, self.up_vector)
+        self.planar_projection = glm.perspective(glm.radians(self.fov), self.window_size[0] / self.window_size[1],
+                                                 self.near_plane, self.far_plane)
+
+        # Setup framebuffer for planar camera rendering
+        self.planar_framebuffer = glGenFramebuffers(1)
+        self.planar_texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.planar_texture)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.window_size[0], self.window_size[1], 0, GL_RGB, GL_UNSIGNED_BYTE,
+                     None)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self.planar_texture, 0)
+
+        rbo = glGenRenderbuffers(1)
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo)
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, self.window_size[0], self.window_size[1])
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)
+
+        if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
+            raise RuntimeError("Framebuffer for planar camera is not complete")
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+    def render_planar_view(self):
+        """Render the planar camera's view to a texture."""
+        if not self.planar_camera:
+            return None
+
+        # Bind the framebuffer for rendering to a texture
+        glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        # Set the shaders and uniform variables
+        glUseProgram(self.shader_program)
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE,
+                           glm.value_ptr(self.planar_view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE,
+                           glm.value_ptr(self.planar_projection))
+
+        # Render the scene from the planar camera's perspective
+        self.render_scene()
+
+        # Capture the rendered texture
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        return self.planar_texture
+
+    def render_scene(self):
+        """Render the scene for the planar camera."""
+        # Implement the rendering logic as needed
+        pass
 
     def init_shaders(self):
         """Initialize shaders from provided shader paths."""

@@ -86,26 +86,22 @@ class RenderingInstance:
         self.setup()  # Ensures that setup is called before running
 
         def render_callback(delta_time):
-            # First pass: Render the scene to a framebuffer
+            # Update the main camera position for all renderers
+            main_camera_position = self.scene_construct.renderers[self.render_order[0][0]].camera_position
+
+            # First pass: Render planar views for each object
             for renderer_name, _ in self.render_order:
-                framebuffer, texture = self.framebuffers[renderer_name]
-                glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                renderer = self.scene_construct.renderers[renderer_name]
+                renderer.update_camera(delta_time)
+                # # Update the main camera position for all renderers
+                # main_camera_position = self.scene_construct.renderers[self.render_order[0][0]].camera_position
+                if renderer.planar_camera:
+                    renderer.setup_planar_camera(main_camera_position)
+                    renderer.render_planar_view()
 
-                # Update camera and render the scene
-                self.scene_construct.renderers[renderer_name].update_camera(delta_time)
-                self.scene_construct.render(renderer_name)
-
-                glBindFramebuffer(GL_FRAMEBUFFER, 0)
-
-            # Ensure that the framebuffer is complete
-            status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
-
-            # Second pass: Render with the screen texture (e.g., distortion effect)
+            # Second pass: Render objects using the planar camera textures
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             for renderer_name, _ in self.render_order:
-                # Pass the framebuffer texture as the screen texture to the shader
-                self.scene_construct.renderers[renderer_name].screen_texture = texture
                 self.scene_construct.render(renderer_name)
 
             # Ensure the final pass is rendered to the default framebuffer
