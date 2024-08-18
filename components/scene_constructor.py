@@ -1,5 +1,3 @@
-from OpenGL.GL import *
-
 from components.abstract_renderer import AbstractRenderer
 
 
@@ -16,7 +14,6 @@ class SceneConstructor:
         if name:
             self.renderers[name].render()
         else:
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             for renderer in self.renderers.values():
                 renderer.render()
 
