@@ -93,8 +93,6 @@ class RenderingInstance:
             for renderer_name, _ in self.render_order:
                 renderer = self.scene_construct.renderers[renderer_name]
                 renderer.update_camera(delta_time)
-                # # Update the main camera position for all renderers
-                # main_camera_position = self.scene_construct.renderers[self.render_order[0][0]].camera_position
                 if renderer.planar_camera:
                     renderer.setup_planar_camera(main_camera_position)
                     renderer.render_planar_view()
