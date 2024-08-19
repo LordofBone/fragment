@@ -79,6 +79,9 @@ class AbstractRenderer(ABC):
             reflection_strength=0.0,
             screen_texture=None,
             planar_camera=True,
+            planar_fov=45,
+            planar_near_plane=0.1,
+            planar_far_plane=100,
             **kwargs,
     ):
         self.dynamic_attrs = kwargs
@@ -119,6 +122,10 @@ class AbstractRenderer(ABC):
 
         self.screen_texture = screen_texture
 
+        self.planar_fov = planar_fov
+        self.planar_near_plane = planar_near_plane
+        self.planar_far_plane = planar_far_plane
+
         self.vbos = []
         self.vaos = []
 
@@ -146,6 +153,7 @@ class AbstractRenderer(ABC):
             self.camera_position = self.camera_controller.update(0)
         else:
             self.camera_position = glm.vec3(*self.camera_positions[0])
+
         # Planar camera setup
         self.planar_camera = planar_camera
         if self.planar_camera:
@@ -172,10 +180,15 @@ class AbstractRenderer(ABC):
         direction_to_camera = glm.normalize(main_camera_position - self.translation)
         self.planar_camera_position = self.translation - direction_to_camera * 2.0  # Example distance
 
+        # Ensure the planar camera stays relative to the main camera but "sticks" to the object
+        planar_target = self.translation  # Planar camera looks directly at the object
+
         # Set up view and projection matrices for the planar camera
-        self.planar_view = glm.lookAt(self.planar_camera_position, self.translation, self.up_vector)
-        self.planar_projection = glm.perspective(glm.radians(self.fov), self.window_size[0] / self.window_size[1],
-                                                 self.near_plane, self.far_plane)
+        self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, self.up_vector)
+        self.planar_projection = glm.perspective(
+            glm.radians(self.planar_fov), self.window_size[0] / self.window_size[1], self.planar_near_plane,
+            self.planar_far_plane
+        )
 
         # Setup framebuffer for planar camera rendering
         self.planar_framebuffer = glGenFramebuffers(1)
@@ -223,6 +236,10 @@ class AbstractRenderer(ABC):
         glBlitFramebuffer(0, 0, self.window_size[0], self.window_size[1], 0, 0, self.window_size[0],
                           self.window_size[1],
                           GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST)
+
+        # Flip the framebuffer vertically using glBlitFramebuffer
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, self.planar_framebuffer)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, self.planar_framebuffer)  # Still drawing to the same framebuffer
 
         # Unbind the framebuffer to ensure subsequent rendering is not affected
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
