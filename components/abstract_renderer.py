@@ -198,33 +198,66 @@ class AbstractRenderer(ABC):
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
+    def render_from_camera(self, view_matrix, projection_matrix):
+        """Capture the current scene from a different camera perspective."""
+        # Bind the framebuffer for rendering to the texture
+        glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
+
+        # Set the viewport to match the texture size
+        glViewport(0, 0, self.window_size[0], self.window_size[1])
+
+        # Clear the framebuffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        # Bind the shader program and set uniforms for the new camera perspective
+        glUseProgram(self.shader_program)
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view_matrix))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE,
+                           glm.value_ptr(projection_matrix))
+
+        # We assume the scene has already been rendered and VAOs/VBOs are set up, so we only need to draw
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)  # Read from the default framebuffer (which has the scene rendered)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, self.planar_framebuffer)  # Write to the planar framebuffer
+
+        # Blit the framebuffer to the planar framebuffer with the new perspective
+        glBlitFramebuffer(0, 0, self.window_size[0], self.window_size[1], 0, 0, self.window_size[0],
+                          self.window_size[1],
+                          GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST)
+
+        # Unbind the framebuffer to ensure subsequent rendering is not affected
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+        # Reset the viewport to the window size
+        glViewport(0, 0, self.window_size[0], self.window_size[1])
+
+        # Return the texture rendered by the planar camera
+        return self.planar_texture
+
     def render_planar_view(self):
         """Render the planar camera's view to a texture."""
         if not self.planar_camera:
             return None
 
-        # Bind the framebuffer for rendering to a texture
+        # Bind the framebuffer for rendering to the texture
         glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
+
+        # Set the viewport to match the texture size
+        glViewport(0, 0, self.window_size[0], self.window_size[1])
+
+        # Clear the framebuffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        # Set the shaders and uniform variables
-        glUseProgram(self.shader_program)
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE,
-                           glm.value_ptr(self.planar_view))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE,
-                           glm.value_ptr(self.planar_projection))
-
         # Render the scene from the planar camera's perspective
-        self.render_scene()
+        self.render_from_camera(self.planar_view, self.planar_projection)
 
-        # Capture the rendered texture
+        # Unbind the framebuffer to ensure subsequent rendering is not affected
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
-        return self.planar_texture
 
-    def render_scene(self):
-        """Render the scene for the planar camera."""
-        # Implement the rendering logic as needed
-        pass
+        # Reset the viewport to the window size
+        glViewport(0, 0, self.window_size[0], self.window_size[1])
+
+        # Set the screen texture to the planar texture
+        self.screen_texture = self.planar_texture
 
     def init_shaders(self):
         """Initialize shaders from provided shader paths."""
