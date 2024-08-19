@@ -177,7 +177,7 @@ class AbstractRenderer(ABC):
     def setup_planar_camera(self, main_camera_position=None):
         """Set up the planar camera view and projection matrices based on the main camera."""
         # Calculate the position of the planar camera relative to the object and main camera
-        direction_to_camera = glm.normalize(main_camera_position - self.translation)
+        direction_to_camera = glm.normalize(glm.vec3(main_camera_position) - self.translation)
         self.planar_camera_position = self.translation - direction_to_camera * 2.0  # Example distance
 
         # Ensure the planar camera stays relative to the main camera but "sticks" to the object
