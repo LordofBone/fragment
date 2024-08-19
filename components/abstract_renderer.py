@@ -157,7 +157,7 @@ class AbstractRenderer(ABC):
         # Planar camera setup
         self.planar_camera = planar_camera
         if self.planar_camera:
-            self.setup_planar_camera(self.camera_position)
+            self.setup_planar_camera()  # Setup framebuffer and texture
 
     def get_winding_constant(self, winding):
         """Convert winding string to OpenGL constant."""
@@ -174,22 +174,8 @@ class AbstractRenderer(ABC):
         self.setup_camera()
         self.set_constant_uniforms()
 
-    def setup_planar_camera(self, main_camera_position=None):
-        """Set up the planar camera view and projection matrices based on the main camera."""
-        # Calculate the position of the planar camera relative to the object and main camera
-        direction_to_camera = glm.normalize(glm.vec3(main_camera_position) - self.translation)
-        self.planar_camera_position = self.translation - direction_to_camera * 2.0  # Example distance
-
-        # Ensure the planar camera stays relative to the main camera but "sticks" to the object
-        planar_target = self.translation  # Planar camera looks directly at the object
-
-        # Set up view and projection matrices for the planar camera
-        self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, self.up_vector)
-        self.planar_projection = glm.perspective(
-            glm.radians(self.planar_fov), self.window_size[0] / self.window_size[1], self.planar_near_plane,
-            self.planar_far_plane
-        )
-
+    def setup_planar_camera(self):
+        """Setup the framebuffer and texture for the planar camera."""
         # Setup framebuffer for planar camera rendering
         self.planar_framebuffer = glGenFramebuffers(1)
         self.planar_texture = glGenTextures(1)
@@ -216,9 +202,18 @@ class AbstractRenderer(ABC):
         if not self.planar_camera:
             return None
 
+        # Setup view and projection matrices for the planar camera based on the current state
+        direction_to_camera = glm.normalize(glm.vec3(self.camera_position) - self.translation)
+        self.planar_camera_position = self.translation - direction_to_camera * 2.0  # Example distance
+        planar_target = self.translation  # Planar camera looks directly at the object
+        self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, self.up_vector)
+        self.planar_projection = glm.perspective(
+            glm.radians(self.planar_fov), self.window_size[0] / self.window_size[1], self.planar_near_plane,
+            self.planar_far_plane
+        )
+
         glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
-        glViewport(0, 0, self.window_size[0], self.window_size[1])
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # Clear framebuffer
 
         for renderer in scene_renderers:
             renderer.render_with_custom_camera(self.planar_view, self.planar_projection)
