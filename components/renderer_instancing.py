@@ -83,15 +83,19 @@ class RenderingInstance:
 
     def run(self):
         """Run the rendering loop."""
-        self.setup()  # Ensures that setup is called before running
+        self.setup()
 
         def render_callback(delta_time):
-            # Update the main camera position for all renderers
+            # First pass: render planar views
             for renderer_name, _ in self.render_order:
                 renderer = self.scene_construct.renderers[renderer_name]
-                renderer.update_camera(delta_time)
                 if renderer.planar_camera:
-                    renderer.render_planar_view()
-                self.scene_construct.render(renderer_name)
+                    renderer.render_planar_view(self.scene_construct.renderers.values())
+
+            # Second pass: render the main scene
+            for renderer_name, _ in self.render_order:
+                renderer = self.scene_construct.renderers[renderer_name]
+                renderer.update_camera(delta_time)  # Update camera position
+                self.scene_construct.render(renderer_name)  # Render scene
 
         self.render_window.mainloop(render_callback)
