@@ -79,7 +79,7 @@ class RenderingInstance:
                 order = 0  # If no renderers have been added yet, start with order 0
 
         self.render_order.append((name, order))
-        self.render_order.sort(key=lambda x: x[1], reverse=True)
+        self.render_order.sort(key=lambda x: x[1], reverse=False)
 
     def run(self):
         """Run the rendering loop."""
@@ -87,22 +87,11 @@ class RenderingInstance:
 
         def render_callback(delta_time):
             # Update the main camera position for all renderers
-            main_camera_position = self.scene_construct.renderers[self.render_order[0][0]].camera_position
-
-            # First pass: Render planar views for each object
             for renderer_name, _ in self.render_order:
                 renderer = self.scene_construct.renderers[renderer_name]
                 renderer.update_camera(delta_time)
                 if renderer.planar_camera:
-                    renderer.setup_planar_camera(main_camera_position)
                     renderer.render_planar_view()
-
-            # Second pass: Render objects using the planar camera textures
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-            for renderer_name, _ in self.render_order:
                 self.scene_construct.render(renderer_name)
-
-            # Ensure the final pass is rendered to the default framebuffer
-            glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
         self.render_window.mainloop(render_callback)
