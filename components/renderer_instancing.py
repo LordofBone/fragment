@@ -86,7 +86,7 @@ class RenderingInstance:
         self.setup()
 
         def render_callback(delta_time):
-            # First pass: render planar views
+            # First pass: render planar views, ensuring each frame is up-to-date
             for renderer_name, _ in self.render_order:
                 renderer = self.scene_construct.renderers[renderer_name]
                 if renderer.planar_camera:
