@@ -27,7 +27,7 @@ class RendererConfig:
             shaders=None,
             phong_shading=False,
             ambient_lighting_strength=(0.0, 0.0, 0.0),
-            planar_camera=False,  # Default to False
+            planar_camera=False,
             planar_fov=45,
             planar_near_plane=0.1,
             planar_far_plane=100,
@@ -108,6 +108,10 @@ class RendererConfig:
             height=10.0,
             cubemap_folder=None,
             phong_shading=None,
+            planar_camera=None,
+            planar_fov=None,
+            planar_near_plane=None,
+            planar_far_plane=None,
             **kwargs,
     ):
         """Add a model to the configuration."""
@@ -128,6 +132,10 @@ class RendererConfig:
             "height": height,
             "cubemap_folder": cubemap_folder,
             "phong_shading": phong_shading,
+            "planar_camera": planar_camera,
+            "planar_fov": planar_fov,
+            "planar_near_plane": planar_near_plane,
+            "planar_far_plane": planar_far_plane,
         }
 
         # Update the configuration with model specifics, preserving non-None values
@@ -151,6 +159,10 @@ class RendererConfig:
             height=500.0,
             cubemap_folder=None,
             phong_shading=None,
+            planar_camera=None,
+            planar_fov=None,
+            planar_near_plane=None,
+            planar_far_plane=None,
             **kwargs,
     ):
         """Add a surface to the configuration."""
@@ -165,6 +177,10 @@ class RendererConfig:
             "height": height,
             "cubemap_folder": cubemap_folder,
             "phong_shading": phong_shading,
+            "planar_camera": planar_camera,
+            "planar_fov": planar_fov,
+            "planar_near_plane": planar_near_plane,
+            "planar_far_plane": planar_far_plane,
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
