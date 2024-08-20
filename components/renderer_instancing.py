@@ -13,29 +13,24 @@ class RenderingInstance:
         self.render_window = None
         self.scene_construct = SceneConstructor()
         self.framebuffers = {}
-        self.render_order = []  # Initialize render_order as an empty list
+        self.render_order = []
 
     def setup(self):
-        """Setup the rendering window."""
         self.render_window = RendererWindow(
             window_size=self.config.window_size, title="Renderer", msaa_level=self.config.msaa_level
         )
 
-        # Ensure renderers are added before initializing framebuffers
         for renderer_name, renderer in self.scene_construct.renderers.items():
             renderer.setup()
 
-        # Initialize framebuffers after all renderers have been added
         self.initialize_framebuffers(self.config.window_size[0], self.config.window_size[1])
 
     def initialize_framebuffers(self, width, height):
-        """Initialize all framebuffers."""
         for renderer_name in self.scene_construct.renderers:
             framebuffer, texture = self.create_framebuffer(width, height)
             self.framebuffers[renderer_name] = (framebuffer, texture)
 
     def create_framebuffer(self, width, height):
-        """Create a framebuffer object with attached texture and depth buffer."""
         framebuffer = glGenFramebuffers(1)
         texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, texture)
@@ -59,7 +54,6 @@ class RenderingInstance:
         return framebuffer, texture
 
     def add_renderer(self, name, renderer_type, order=None, **params):
-        """Add a renderer to the instance with a specific name."""
         if renderer_type == "model":
             renderer = ModelRenderer(**params)
         elif renderer_type == "surface":
@@ -71,31 +65,27 @@ class RenderingInstance:
 
         self.scene_construct.add_renderer(name, renderer)
 
-        # Set default order if none is provided
         if order is None:
             if self.render_order:
                 order = max(o for _, o in self.render_order) + 1
             else:
-                order = 0  # If no renderers have been added yet, start with order 0
+                order = 0
 
         self.render_order.append((name, order))
         self.render_order.sort(key=lambda x: x[1], reverse=False)
 
     def run(self):
-        """Run the rendering loop."""
         self.setup()
 
         def render_callback(delta_time):
-            # First pass: render planar views, ensuring each frame is up-to-date
             for renderer_name, _ in self.render_order:
                 renderer = self.scene_construct.renderers[renderer_name]
                 if renderer.planar_camera:
                     renderer.render_planar_view(self.scene_construct.renderers.values())
 
-            # Second pass: render the main scene
             for renderer_name, _ in self.render_order:
                 renderer = self.scene_construct.renderers[renderer_name]
-                renderer.update_camera(delta_time)  # Update camera position
-                self.scene_construct.render(renderer_name)  # Render scene
+                renderer.update_camera(delta_time)
+                self.scene_construct.render(renderer_name)
 
         self.render_window.mainloop(render_callback)
