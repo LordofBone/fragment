@@ -46,49 +46,20 @@ def common_funcs(func):
 
 
 class AbstractRenderer(ABC):
-    def __init__(
-            self,
-            shader_names,
-            shaders=None,
-            cubemap_folder=None,
-            camera_positions=None,
-            camera_target=(0, 0, 0),
-            up_vector=(0, 1, 0),
-            fov=45,
-            near_plane=0.1,
-            far_plane=100,
-            ambient_lighting_strength=(0.0, 0.0, 0.0),
-            lights=None,
-            rotation_speed=2000.0,
-            rotation_axis=(0, 3, 0),
-            apply_tone_mapping=False,
-            apply_gamma_correction=False,
-            texture_lod_bias=0.0,
-            env_map_lod_bias=0.0,
-            culling=True,
-            msaa_level=8,
-            anisotropy=16.0,
-            auto_camera=False,
-            move_speed=1.0,
-            loop=True,
-            front_face_winding="CCW",
-            window_size=(800, 600),
-            phong_shading=False,
-            opacity=1.0,
-            distortion_strength=0.3,
-            reflection_strength=0.0,
-            screen_texture=None,
-            planar_camera=True,
-            planar_fov=45,
-            planar_near_plane=0.1,
-            planar_far_plane=100,
-            **kwargs,
-    ):
+    def __init__(self, shader_names, shaders=None, cubemap_folder=None, camera_positions=None, camera_target=(0, 0, 0),
+                 up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100, ambient_lighting_strength=(0.0, 0.0, 0.0),
+                 lights=None, rotation_speed=2000.0, rotation_axis=(0, 3, 0), apply_tone_mapping=False,
+                 apply_gamma_correction=False, texture_lod_bias=0.0, env_map_lod_bias=0.0, culling=True,
+                 msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0, loop=True,
+                 front_face_winding="CCW", window_size=(800, 600), phong_shading=False, opacity=1.0,
+                 distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=True,
+                 planar_fov=45, planar_near_plane=0.1, planar_far_plane=100, **kwargs):
+
         self.dynamic_attrs = kwargs
 
-        self.shader_names = shader_names  # Expecting a tuple (vertex_shader_name, fragment_shader_name)
+        self.shader_names = shader_names
         self.shaders = shaders or {}
-        self.cubemap_folder = cubemap_folder  # Per-instance cubemap folder
+        self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions or [(0, 0, 0)]
         self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
@@ -154,29 +125,24 @@ class AbstractRenderer(ABC):
         else:
             self.camera_position = glm.vec3(*self.camera_positions[0])
 
-        # Planar camera setup
         self.planar_camera = planar_camera
         if self.planar_camera:
-            self.setup_planar_camera()  # Setup framebuffer and texture
+            self.setup_planar_camera()
 
     def get_winding_constant(self, winding):
-        """Convert winding string to OpenGL constant."""
         winding_options = {"CW": GL_CW, "CCW": GL_CCW}
         if winding not in winding_options:
             raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
         return winding_options[winding]
 
     def setup(self):
-        """Setup resources and initialize the renderer."""
         self.init_shaders()
         self.create_buffers()
-        self.load_textures()  # Load textures including cubemap
+        self.load_textures()
         self.setup_camera()
         self.set_constant_uniforms()
 
     def setup_planar_camera(self):
-        """Setup the framebuffer and texture for the planar camera."""
-        # Setup framebuffer for planar camera rendering
         self.planar_framebuffer = glGenFramebuffers(1)
         self.planar_texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, self.planar_texture)
@@ -198,22 +164,24 @@ class AbstractRenderer(ABC):
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     def render_planar_view(self, scene_renderers):
-        """Render the planar camera's view to a texture using the existing renderers."""
         if not self.planar_camera:
             return None
 
-        # Setup view and projection matrices for the planar camera based on the current state
-        direction_to_camera = glm.normalize(glm.vec3(self.camera_position) - self.translation)
-        self.planar_camera_position = self.translation - direction_to_camera * 2.0  # Example distance
-        planar_target = self.translation  # Planar camera looks directly at the object
+        # Calculate direction vector from object to camera
+        direction_to_camera = glm.normalize(self.camera_position - self.translation)
+        self.planar_camera_position = self.translation + direction_to_camera * self.dynamic_attrs.get("camera_distance",
+                                                                                                      2.0)
+
+        planar_target = self.translation
         self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, self.up_vector)
+
         self.planar_projection = glm.perspective(
             glm.radians(self.planar_fov), self.window_size[0] / self.window_size[1], self.planar_near_plane,
             self.planar_far_plane
         )
 
         glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # Clear framebuffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         for renderer in scene_renderers:
             renderer.render_with_custom_camera(self.planar_view, self.planar_projection)
@@ -221,17 +189,14 @@ class AbstractRenderer(ABC):
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         glViewport(0, 0, self.window_size[0], self.window_size[1])
 
-        # Set the screen texture to the planar texture
         self.screen_texture = self.planar_texture
 
     def render_with_custom_camera(self, view_matrix, projection_matrix):
-        """Render the scene with a custom camera view and projection matrix."""
         self.view = view_matrix
         self.projection = projection_matrix
         self.render()
 
     def init_shaders(self):
-        """Initialize shaders from provided shader paths."""
         vertex_shader, fragment_shader = self.shader_names
         vertex_shader_path = self.shaders["vertex"][vertex_shader]
         fragment_shader_path = self.shaders["fragment"][fragment_shader]
@@ -239,7 +204,6 @@ class AbstractRenderer(ABC):
         self.shader_program = shader_engine.shader_program
 
     def load_texture(self, path, texture):
-        """Load a 2D texture from file."""
         surface = pygame.image.load(path)
         img_data = pygame.image.tostring(surface, "RGB", True)
         width, height = surface.get_size()
@@ -252,12 +216,11 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.texture_lod_bias)
-        glBindTexture(GL_TEXTURE_2D, 0)  # Unbind texture after loading
+        glBindTexture(GL_TEXTURE_2D, 0)
 
     def load_cubemap(self, folder_path, texture, texture_unit):
-        """Load a cubemap texture from a folder."""
         faces = ["right.png", "left.png", "bottom.png", "top.png", "front.png", "back.png"]
-        glActiveTexture(GL_TEXTURE0 + texture_unit)  # Activate the correct texture unit
+        glActiveTexture(GL_TEXTURE0 + texture_unit)
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
             surface = pygame.image.load(folder_path + face)
@@ -274,10 +237,9 @@ class AbstractRenderer(ABC):
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, self.env_map_lod_bias)
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)  # Unbind after loading to avoid conflicts
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
 
     def setup_camera(self):
-        """Setup the camera view and projection matrices."""
         if self.auto_camera:
             self.camera_position = self.camera_controller.update(0)
             self.camera_target = self.camera_controller.get_current_target()
@@ -286,7 +248,6 @@ class AbstractRenderer(ABC):
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
     def set_light_uniforms(self, shader_program):
-        """Set light uniforms for the shader program."""
         glUseProgram(shader_program)
         for i, light in enumerate(self.lights):
             glUniform3fv(
@@ -298,26 +259,21 @@ class AbstractRenderer(ABC):
         glUniform1i(glGetUniformLocation(shader_program, "phongShading"), int(self.phong_shading))
 
     def set_model_matrix(self, matrix):
-        """Set the model matrix."""
         self.model_matrix = matrix
 
     def translate(self, position):
-        """Translate the model."""
         self.translation = glm.vec3(*position)
         self.update_model_matrix()
 
     def rotate(self, angle, axis):
-        """Rotate the model."""
         self.rotation = glm.vec3(*axis) * glm.radians(angle)
         self.update_model_matrix()
 
     def scale(self, scale):
-        """Scale the model."""
         self.scaling = glm.vec3(*scale)
         self.update_model_matrix()
 
     def update_model_matrix(self):
-        """Update the model matrix with transformations."""
         self.manual_transformations = glm.translate(glm.mat4(1), self.translation)
         self.manual_transformations = glm.rotate(self.manual_transformations, self.rotation.x, glm.vec3(1, 0, 0))
         self.manual_transformations = glm.rotate(self.manual_transformations, self.rotation.y, glm.vec3(0, 1, 0))
@@ -325,7 +281,6 @@ class AbstractRenderer(ABC):
         self.manual_transformations = glm.scale(self.manual_transformations, self.scaling)
 
     def apply_transformations(self):
-        """Apply transformations to the model matrix."""
         if self.auto_rotation_enabled:
             if self.rotation_speed != 0.0:
                 rotation_matrix = glm.rotate(
@@ -339,11 +294,9 @@ class AbstractRenderer(ABC):
             self.model_matrix = self.manual_transformations
 
     def enable_auto_rotation(self, enabled):
-        """Enable or disable auto-rotation."""
         self.auto_rotation_enabled = enabled
 
     def set_constant_uniforms(self):
-        """Set constant uniforms for the shader program."""
         glUseProgram(self.shader_program)
         glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"), self.texture_lod_bias)
         glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
@@ -351,7 +304,6 @@ class AbstractRenderer(ABC):
         glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"), self.apply_gamma_correction)
 
     def set_shader_uniforms(self):
-        """Set uniforms for the shader program."""
         glUseProgram(self.shader_program)
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "ambientColor"), 1, glm.value_ptr(self.ambient_lighting_strength)
@@ -396,10 +348,8 @@ class AbstractRenderer(ABC):
 
     @abstractmethod
     def create_buffers(self):
-        """Abstract method to create buffers."""
         pass
 
     @abstractmethod
     def render(self):
-        """Abstract method to render the object."""
         pass
