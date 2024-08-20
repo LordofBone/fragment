@@ -64,6 +64,7 @@ if __name__ == "__main__":
         apply_gamma_correction=False,
         cubemap_folder=False,
         planar_camera=True,
+        planar_fov=90,
     )
 
     # Define the configuration for the skybox
