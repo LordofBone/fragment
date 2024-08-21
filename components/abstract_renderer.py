@@ -53,7 +53,8 @@ class AbstractRenderer(ABC):
                  msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0, loop=True,
                  front_face_winding="CCW", window_size=(800, 600), phong_shading=False, opacity=1.0,
                  distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
-                 planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100, **kwargs):
+                 planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
+                 planar_camera_position_offset=(0, -1, 1), planar_relative_to_camera=True, **kwargs):
 
         self.dynamic_attrs = kwargs
 
@@ -96,6 +97,9 @@ class AbstractRenderer(ABC):
         self.planar_fov = planar_fov
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
+
+        self.planar_camera_position_offset = glm.vec3(*planar_camera_position_offset)  # Initialize the offset
+        self.planar_relative_to_camera = planar_relative_to_camera  # New boolean flag
 
         self.vbos = []
         self.vaos = []
@@ -169,14 +173,19 @@ class AbstractRenderer(ABC):
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-    def render_planar_view(self, scene_renderers, save_to_file=False, file_path="planar_view_output.png"):
+    def render_planar_view(self, scene_renderers):
         if not self.planar_camera:
             return None
 
-        # Calculate direction vector from object to camera
-        direction_to_camera = glm.normalize(self.camera_position - self.translation)
-        self.planar_camera_position = self.translation + direction_to_camera * self.dynamic_attrs.get("camera_distance",
-                                                                                                      2.0)
+        if self.planar_relative_to_camera:
+            # Planar camera moves relative to the main camera
+            direction_to_camera = glm.normalize(self.camera_position - self.translation)
+            self.planar_camera_position = self.translation + direction_to_camera * self.dynamic_attrs.get(
+                "camera_distance", 2.0)
+        else:
+            # Planar camera is static relative to the object
+            self.planar_camera_position = self.translation + self.planar_camera_position_offset * self.dynamic_attrs.get(
+                "camera_distance", 2.0)
 
         planar_target = self.translation
         self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, self.up_vector)
