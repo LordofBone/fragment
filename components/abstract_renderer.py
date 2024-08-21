@@ -143,33 +143,30 @@ class AbstractRenderer(ABC):
         self.set_constant_uniforms()
 
     def setup_planar_camera(self):
+        glActiveTexture(GL_TEXTURE8)
         self.planar_framebuffer = glGenFramebuffers(1)
         self.planar_texture = glGenTextures(1)
+
         glBindTexture(GL_TEXTURE_2D, self.planar_texture)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.planar_resolution[0], self.planar_resolution[1], 0, GL_RGB,
                      GL_UNSIGNED_BYTE,
                      None)
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
         glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self.planar_texture, 0)
-
-        rbo = glGenRenderbuffers(1)
-        glBindRenderbuffer(GL_RENDERBUFFER, rbo)
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, self.planar_resolution[0],
-                              self.planar_resolution[1])
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)
 
         if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
             raise RuntimeError("Framebuffer for planar camera is not complete")
 
         self.screen_texture = self.planar_texture
-        glActiveTexture(GL_TEXTURE8)
         glBindTexture(GL_TEXTURE_2D, self.screen_texture)
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-    def render_planar_view(self, scene_renderers):
+    def render_planar_view(self, scene_renderers, save_to_file=False, file_path="planar_view_output.png"):
         if not self.planar_camera:
             return None
 
@@ -181,18 +178,30 @@ class AbstractRenderer(ABC):
         planar_target = self.translation
         self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, self.up_vector)
 
+        aspect_ratio = self.planar_resolution[0] / self.planar_resolution[1]
         self.planar_projection = glm.perspective(
-            glm.radians(self.planar_fov), self.window_size[0] / self.window_size[1], self.planar_near_plane,
-            self.planar_far_plane
+            glm.radians(self.planar_fov), aspect_ratio, self.planar_near_plane, self.planar_far_plane
         )
 
+        # Temporarily remove this object from the list of renderers
+        scene_renderers = [renderer for renderer in scene_renderers if renderer is not self]
+
         glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
+
+        # Set the viewport to match the planar resolution
+        glViewport(0, 0, self.planar_resolution[0], self.planar_resolution[1])
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         for renderer in scene_renderers:
             renderer.render_with_custom_camera(self.planar_view, self.planar_projection)
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+        # Reset the viewport back to the window size
+        glViewport(0, 0, self.window_size[0], self.window_size[1])
+
+        glBindTexture(GL_TEXTURE_2D, 0)
 
     def render_with_custom_camera(self, view_matrix, projection_matrix):
         self.view = view_matrix
