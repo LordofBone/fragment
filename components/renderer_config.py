@@ -31,6 +31,7 @@ class RendererConfig:
             planar_fov=45,
             planar_near_plane=0.1,
             planar_far_plane=100,
+            planar_resolution=(1024, 1024),
     ):
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2)]
@@ -63,6 +64,7 @@ class RendererConfig:
         self.planar_fov = planar_fov
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
+        self.planar_resolution = planar_resolution
 
         self.validate_winding()
         self.discover_shaders()
@@ -112,6 +114,7 @@ class RendererConfig:
             planar_fov=None,
             planar_near_plane=None,
             planar_far_plane=None,
+            planar_resolution=None,
             **kwargs,
     ):
         """Add a model to the configuration."""
@@ -136,13 +139,13 @@ class RendererConfig:
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
             "planar_far_plane": planar_far_plane,
+            "planar_resolution": planar_resolution,  # Added here
         }
 
         # Update the configuration with model specifics, preserving non-None values
         model_config.update({k: v for k, v in model_specifics.items() if v is not None})
 
         # Apply any additional keyword arguments passed in kwargs
-        # Ensure that all keys from kwargs are correctly updated in the model_config
         for key, value in kwargs.items():
             if key not in model_config:
                 model_config[key] = value
@@ -163,6 +166,7 @@ class RendererConfig:
             planar_fov=None,
             planar_near_plane=None,
             planar_far_plane=None,
+            planar_resolution=None,
             **kwargs,
     ):
         """Add a surface to the configuration."""
@@ -181,10 +185,12 @@ class RendererConfig:
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
             "planar_far_plane": planar_far_plane,
+            "planar_resolution": planar_resolution,
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
-        # Ensure that all keys from kwargs are correctly updated in the model_config
+
+        # Apply any additional keyword arguments passed in kwargs
         for key, value in kwargs.items():
             if key not in surface_config:
                 surface_config[key] = value
@@ -201,7 +207,8 @@ class RendererConfig:
         }
 
         skybox_config.update({k: v for k, v in skybox_specifics.items() if v is not None})
-        # Ensure that all keys from kwargs are correctly updated in the model_config
+
+        # Apply any additional keyword arguments passed in kwargs
         for key, value in kwargs.items():
             if key not in skybox_config:
                 skybox_config[key] = value
