@@ -52,7 +52,7 @@ class AbstractRenderer(ABC):
                  apply_gamma_correction=False, texture_lod_bias=0.0, env_map_lod_bias=0.0, culling=True,
                  msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0, loop=True,
                  front_face_winding="CCW", window_size=(800, 600), phong_shading=False, opacity=1.0,
-                 distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=True,
+                 distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
                  planar_fov=45, planar_near_plane=0.1, planar_far_plane=100, **kwargs):
 
         self.dynamic_attrs = kwargs
