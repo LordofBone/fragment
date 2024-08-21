@@ -32,7 +32,7 @@ class RendererConfig:
             planar_near_plane=0.1,
             planar_far_plane=100,
             planar_resolution=(1024, 1024),
-            planar_camera_position_offset=(0, 1, 0),
+            planar_camera_position_offset=(0, -2, 1),
             planar_relative_to_camera=True,
     ):
         if camera_positions is None:
@@ -67,7 +67,7 @@ class RendererConfig:
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
         self.planar_resolution = planar_resolution
-        self.planar_camera_position_offset = glm.vec3(*planar_camera_position_offset)
+        self.planar_camera_position_offset = planar_camera_position_offset
         self.planar_relative_to_camera = planar_relative_to_camera
 
         self.validate_winding()

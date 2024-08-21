@@ -54,7 +54,7 @@ class AbstractRenderer(ABC):
                  front_face_winding="CCW", window_size=(800, 600), phong_shading=False, opacity=1.0,
                  distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
                  planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
-                 planar_camera_position_offset=(0, -1, 1), planar_relative_to_camera=True, **kwargs):
+                 planar_camera_position_offset=(0, -2, 1), planar_relative_to_camera=False, **kwargs):
 
         self.dynamic_attrs = kwargs
 
@@ -98,8 +98,9 @@ class AbstractRenderer(ABC):
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
 
-        self.planar_camera_position_offset = glm.vec3(*planar_camera_position_offset)  # Initialize the offset
-        self.planar_relative_to_camera = planar_relative_to_camera  # New boolean flag
+        # Convert planar_camera_position_offset to glm.vec3 here
+        self.planar_camera_position_offset = glm.vec3(*planar_camera_position_offset)
+        self.planar_relative_to_camera = planar_relative_to_camera
 
         self.vbos = []
         self.vaos = []
