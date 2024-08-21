@@ -32,6 +32,8 @@ class RendererConfig:
             planar_near_plane=0.1,
             planar_far_plane=100,
             planar_resolution=(1024, 1024),
+            planar_camera_position_offset=(0, 1, 0),
+            planar_relative_to_camera=True,
     ):
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2)]
@@ -65,6 +67,8 @@ class RendererConfig:
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
         self.planar_resolution = planar_resolution
+        self.planar_camera_position_offset = glm.vec3(*planar_camera_position_offset)
+        self.planar_relative_to_camera = planar_relative_to_camera
 
         self.validate_winding()
         self.discover_shaders()
@@ -115,6 +119,8 @@ class RendererConfig:
             planar_near_plane=None,
             planar_far_plane=None,
             planar_resolution=None,
+            planar_camera_position_offset=None,
+            planar_relative_to_camera=None,
             **kwargs,
     ):
         """Add a model to the configuration."""
@@ -139,7 +145,9 @@ class RendererConfig:
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
             "planar_far_plane": planar_far_plane,
-            "planar_resolution": planar_resolution,  # Added here
+            "planar_resolution": planar_resolution,
+            "planar_camera_position_offset": planar_camera_position_offset,
+            "planar_relative_to_camera": planar_relative_to_camera,
         }
 
         # Update the configuration with model specifics, preserving non-None values
@@ -167,6 +175,8 @@ class RendererConfig:
             planar_near_plane=None,
             planar_far_plane=None,
             planar_resolution=None,
+            planar_camera_position_offset=None,
+            planar_relative_to_camera=None,
             **kwargs,
     ):
         """Add a surface to the configuration."""
@@ -186,6 +196,8 @@ class RendererConfig:
             "planar_near_plane": planar_near_plane,
             "planar_far_plane": planar_far_plane,
             "planar_resolution": planar_resolution,
+            "planar_camera_position_offset": planar_camera_position_offset,
+            "planar_relative_to_camera": planar_relative_to_camera,
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
