@@ -34,6 +34,8 @@ class RendererConfig:
             planar_resolution=(1024, 1024),
             planar_camera_position_offset=(0, -2, 1),
             planar_relative_to_camera=True,
+            planar_camera_rotation=(0, 0),
+            planar_target_offset=(0, 0, 0),
     ):
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2)]
@@ -69,6 +71,8 @@ class RendererConfig:
         self.planar_resolution = planar_resolution
         self.planar_camera_position_offset = planar_camera_position_offset
         self.planar_relative_to_camera = planar_relative_to_camera
+        self.planar_camera_rotation = planar_camera_rotation
+        self.planar_target_offset = planar_target_offset
 
         self.validate_winding()
         self.discover_shaders()
@@ -121,6 +125,8 @@ class RendererConfig:
             planar_resolution=None,
             planar_camera_position_offset=None,
             planar_relative_to_camera=None,
+            planar_camera_rotation=None,
+            planar_target_offset=None,
             **kwargs,
     ):
         """Add a model to the configuration."""
@@ -148,6 +154,8 @@ class RendererConfig:
             "planar_resolution": planar_resolution,
             "planar_camera_position_offset": planar_camera_position_offset,
             "planar_relative_to_camera": planar_relative_to_camera,
+            "planar_camera_rotation": planar_camera_rotation,
+            "planar_target_offset": planar_target_offset,
         }
 
         # Update the configuration with model specifics, preserving non-None values
@@ -177,6 +185,8 @@ class RendererConfig:
             planar_resolution=None,
             planar_camera_position_offset=None,
             planar_relative_to_camera=None,
+            planar_camera_rotation=None,
+            planar_target_offset=None,
             **kwargs,
     ):
         """Add a surface to the configuration."""
@@ -198,6 +208,8 @@ class RendererConfig:
             "planar_resolution": planar_resolution,
             "planar_camera_position_offset": planar_camera_position_offset,
             "planar_relative_to_camera": planar_relative_to_camera,
+            "planar_camera_rotation": planar_camera_rotation,
+            "planar_target_offset": planar_target_offset,
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
