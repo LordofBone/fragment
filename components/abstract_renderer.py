@@ -149,11 +149,14 @@ class AbstractRenderer(ABC):
 
         glBindTexture(GL_TEXTURE_2D, self.planar_texture)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.planar_resolution[0], self.planar_resolution[1], 0, GL_RGB,
-                     GL_UNSIGNED_BYTE,
-                     None)
+                     GL_UNSIGNED_BYTE, None)
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.texture_lod_bias)
 
         glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self.planar_texture, 0)
