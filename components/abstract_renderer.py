@@ -53,7 +53,7 @@ class AbstractRenderer(ABC):
                  msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0, loop=True,
                  front_face_winding="CCW", window_size=(800, 600), phong_shading=False, opacity=1.0,
                  distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
-                 planar_fov=45, planar_near_plane=0.1, planar_far_plane=100, **kwargs):
+                 planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100, **kwargs):
 
         self.dynamic_attrs = kwargs
 
@@ -92,7 +92,7 @@ class AbstractRenderer(ABC):
         self.reflection_strength = reflection_strength
 
         self.screen_texture = screen_texture
-
+        self.planar_resolution = planar_resolution
         self.planar_fov = planar_fov
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
@@ -146,7 +146,8 @@ class AbstractRenderer(ABC):
         self.planar_framebuffer = glGenFramebuffers(1)
         self.planar_texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, self.planar_texture)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.window_size[0], self.window_size[1], 0, GL_RGB, GL_UNSIGNED_BYTE,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.planar_resolution[0], self.planar_resolution[1], 0, GL_RGB,
+                     GL_UNSIGNED_BYTE,
                      None)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
@@ -155,11 +156,16 @@ class AbstractRenderer(ABC):
 
         rbo = glGenRenderbuffers(1)
         glBindRenderbuffer(GL_RENDERBUFFER, rbo)
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, self.window_size[0], self.window_size[1])
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, self.planar_resolution[0],
+                              self.planar_resolution[1])
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)
 
         if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
             raise RuntimeError("Framebuffer for planar camera is not complete")
+
+        self.screen_texture = self.planar_texture
+        glActiveTexture(GL_TEXTURE8)
+        glBindTexture(GL_TEXTURE_2D, self.screen_texture)
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
@@ -187,12 +193,6 @@ class AbstractRenderer(ABC):
             renderer.render_with_custom_camera(self.planar_view, self.planar_projection)
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
-        glViewport(0, 0, self.window_size[0], self.window_size[1])
-
-        self.screen_texture = self.planar_texture
-
-        glActiveTexture(GL_TEXTURE8)
-        glBindTexture(GL_TEXTURE_2D, self.screen_texture)
 
     def render_with_custom_camera(self, view_matrix, projection_matrix):
         self.view = view_matrix
