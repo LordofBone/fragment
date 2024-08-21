@@ -191,6 +191,9 @@ class AbstractRenderer(ABC):
 
         self.screen_texture = self.planar_texture
 
+        glActiveTexture(GL_TEXTURE8)
+        glBindTexture(GL_TEXTURE_2D, self.screen_texture)
+
     def render_with_custom_camera(self, view_matrix, projection_matrix):
         self.view = view_matrix
         self.projection = projection_matrix
@@ -320,8 +323,6 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
 
         if self.screen_texture:
-            glActiveTexture(GL_TEXTURE8)
-            glBindTexture(GL_TEXTURE_2D, self.screen_texture)
             glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 8)
 
         glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
