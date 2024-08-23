@@ -54,8 +54,8 @@ class AbstractRenderer(ABC):
                  front_face_winding="CCW", window_size=(800, 600), phong_shading=False, opacity=1.0,
                  distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
                  planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
-                 planar_camera_position_offset=(0, 0, 0), planar_camera_rotation=(0, 0),
-                 planar_relative_to_camera=False, **kwargs):
+                 planar_camera_position_offset=(0, 0, 0), planar_relative_to_camera=False,
+                 planar_camera_rotation=(0, 0), planar_target_offset=(0, 0, 0), **kwargs):
 
         self.dynamic_attrs = kwargs
 
@@ -99,10 +99,11 @@ class AbstractRenderer(ABC):
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
 
-        # Convert planar_camera_position_offset to glm.vec3 here
+        # Planar camera attributes
         self.planar_camera_position_offset = glm.vec3(*planar_camera_position_offset)
-        self.planar_camera_rotation = glm.vec2(*planar_camera_rotation)
         self.planar_relative_to_camera = planar_relative_to_camera
+        self.planar_camera_rotation = glm.vec2(*planar_camera_rotation)
+        self.planar_target_offset = glm.vec3(*planar_target_offset)  # Define the planar target offset here
 
         self.vbos = []
         self.vaos = []
@@ -180,30 +181,35 @@ class AbstractRenderer(ABC):
         if not self.planar_camera:
             return None
 
-        # Determine planar camera position based on relative-to-object offset
+        # Calculate direction vector from object to camera
+        direction_to_camera = glm.normalize(self.camera_position - self.translation)
+
         if self.planar_relative_to_camera:
-            # Calculate direction vector from object to camera
-            direction_to_camera = glm.normalize(self.camera_position - self.translation)
+            # When relative to the main camera, position the planar camera similarly, and apply offsets.
             self.planar_camera_position = (
-                                                  self.translation + self.planar_camera_position_offset
-                                          ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
+                                                  self.translation + direction_to_camera * self.dynamic_attrs.get(
+                                              "camera_distance", 2.0)
+                                          ) + self.planar_camera_position_offset
+
+            # The planar target will also be influenced by the main camera direction
+            planar_target = self.planar_camera_position + direction_to_camera
         else:
+            # When not relative, the planar camera position is static, with a user-defined offset.
             self.planar_camera_position = self.translation + self.planar_camera_position_offset
 
-        # Define the planar target as the object’s position (self.translation)
-        planar_target = self.translation + glm.vec3(0.0, 0.0, 0.0)  # Planar camera looks at the object
+            # Define a static target based on the adjusted direction
+            direction_to_target = glm.vec3(0.0, 0.0, -1.0)  # Default direction along the negative Z-axis
+            rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.planar_camera_rotation[0]),
+                                         glm.vec3(1.0, 0.0, 0.0))
+            rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.planar_camera_rotation[1]),
+                                         glm.vec3(0.0, 1.0, 0.0))
+            adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
+            planar_target = self.planar_camera_position + adjusted_direction + self.planar_target_offset
 
-        # Apply the rotation to adjust the direction
-        direction_to_target = glm.vec3(0.0, 0.0, -1.0)  # Default direction is along the negative Z-axis
-        rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x), glm.vec3(1.0, 0.0, 0.0))
-        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.planar_camera_rotation.y),
-                                     glm.vec3(0.0, 1.0, 0.0))
-        adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 1.0))
-
-        planar_target = self.planar_camera_position + adjusted_direction
-
+        # Create the view matrix for the planar camera
         self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, self.up_vector)
 
+        # Calculate the aspect ratio and create the projection matrix
         aspect_ratio = self.planar_resolution[0] / self.planar_resolution[1]
         self.planar_projection = glm.perspective(
             glm.radians(self.planar_fov), aspect_ratio, self.planar_near_plane, self.planar_far_plane
