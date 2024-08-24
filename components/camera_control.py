@@ -12,7 +12,6 @@ class CameraController:
             lens_rotations = [0.0]  # Default to no rotation if none provided
 
         self.lens_rotations = lens_rotations
-        print(self.lens_rotations)
         self.move_speed = move_speed
         self.loop = loop
         self.current_position_index = 0
@@ -43,12 +42,9 @@ class CameraController:
     def get_current_lens_rotation(self):
         # Interpolate between the current and next lens rotation using linear interpolation
         current_rotation = self.lens_rotations[self.current_lens_rotation_index]
-        print(current_rotation)
         next_rotation = self.lens_rotations[self.next_lens_rotation_index]
 
         # Simple linear interpolation
         interpolated_rotation = current_rotation * (1.0 - self.t) + next_rotation * self.t
-
-        # print(interpolated_rotation)
 
         return interpolated_rotation
