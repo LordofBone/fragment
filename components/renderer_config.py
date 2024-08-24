@@ -36,6 +36,7 @@ class RendererConfig:
             planar_relative_to_camera=True,
             planar_camera_rotation=(0, 0),
             planar_camera_lens_rotation=0.0,
+            screen_facing_planar_texture=False,
     ):
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2)]
@@ -73,6 +74,7 @@ class RendererConfig:
         self.planar_relative_to_camera = planar_relative_to_camera
         self.planar_camera_rotation = planar_camera_rotation
         self.planar_camera_lens_rotation = planar_camera_lens_rotation
+        self.screen_facing_planar_texture = screen_facing_planar_texture
 
         self.validate_winding()
         self.discover_shaders()
@@ -127,6 +129,7 @@ class RendererConfig:
             planar_relative_to_camera=None,
             planar_camera_rotation=None,
             planar_camera_lens_rotation=None,
+            screen_facing_planar_texture=None,
             **kwargs,
     ):
         """Add a model to the configuration."""
@@ -156,6 +159,7 @@ class RendererConfig:
             "planar_relative_to_camera": planar_relative_to_camera,
             "planar_camera_rotation": planar_camera_rotation,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
+            "screen_facing_planar_texture": screen_facing_planar_texture,
         }
 
         # Update the configuration with model specifics, preserving non-None values
@@ -187,6 +191,7 @@ class RendererConfig:
             planar_relative_to_camera=None,
             planar_camera_rotation=None,
             planar_camera_lens_rotation=None,
+            screen_facing_planar_texture=None,
             **kwargs,
     ):
         """Add a surface to the configuration."""
@@ -210,6 +215,7 @@ class RendererConfig:
             "planar_relative_to_camera": planar_relative_to_camera,
             "planar_camera_rotation": planar_camera_rotation,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
+            "screen_facing_planar_texture": screen_facing_planar_texture,
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
