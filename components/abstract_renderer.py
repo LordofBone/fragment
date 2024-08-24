@@ -210,6 +210,9 @@ class AbstractRenderer(ABC):
 
             # Planar camera rotation is relative to the main camera's orientation
             planar_rotation_angle_y = self.planar_camera_rotation.y + main_camera_angle_y
+
+            # Adjust lens rotation relative to the main camera's lens rotation
+            self.planar_camera_lens_rotation += self.planar_camera_lens_rotation - self.camera_controller.get_current_lens_rotation()
         else:
             # Fixed planar camera position relative to the object
             self.planar_camera_position = self.translation + self.planar_camera_position_offset
