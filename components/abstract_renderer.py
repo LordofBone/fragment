@@ -55,7 +55,7 @@ class AbstractRenderer(ABC):
                  distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
                  planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
                  planar_camera_position_offset=(0, 0, 0), planar_relative_to_camera=False,
-                 planar_camera_rotation=(0, 0), planar_camera_lens_rotation=45.0, **kwargs):
+                 planar_camera_rotation=(0, 0), planar_camera_lens_rotation=0.0, **kwargs):
 
         self.dynamic_attrs = kwargs
 
