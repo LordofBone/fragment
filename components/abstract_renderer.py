@@ -55,7 +55,7 @@ class AbstractRenderer(ABC):
                  distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
                  planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
                  planar_camera_position_offset=(0, 0, 0), planar_relative_to_camera=False,
-                 planar_camera_rotation=(0, 0), **kwargs):
+                 planar_camera_rotation=(0, 0), planar_camera_lens_rotation=45.0, **kwargs):
 
         self.dynamic_attrs = kwargs
 
@@ -103,6 +103,7 @@ class AbstractRenderer(ABC):
         self.planar_camera_position_offset = glm.vec3(*planar_camera_position_offset)
         self.planar_relative_to_camera = planar_relative_to_camera
         self.planar_camera_rotation = glm.vec2(*planar_camera_rotation)
+        self.planar_camera_lens_rotation = planar_camera_lens_rotation
 
         self.vbos = []
         self.vaos = []
@@ -213,6 +214,11 @@ class AbstractRenderer(ABC):
 
         # Create the view matrix for the planar camera
         self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, self.up_vector)
+
+        # Apply the lens rotation by rotating around the forward axis
+        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.planar_camera_lens_rotation),
+                                          adjusted_direction)
+        self.planar_view = lens_rotation_matrix * self.planar_view
 
         # Calculate the aspect ratio and create the projection matrix
         aspect_ratio = self.planar_resolution[0] / self.planar_resolution[1]
