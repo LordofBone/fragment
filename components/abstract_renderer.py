@@ -56,7 +56,8 @@ class AbstractRenderer(ABC):
                  planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
                  planar_camera_position_offset=(0, 0, 0), planar_relative_to_camera=False,
                  planar_camera_rotation=(0, 0), planar_camera_lens_rotation=0.0,
-                 screen_facing_planar_texture=False, **kwargs):  # New parameter
+                 lens_rotations=None,
+                 screen_facing_planar_texture=False, **kwargs):
 
         self.dynamic_attrs = kwargs
 
@@ -106,6 +107,9 @@ class AbstractRenderer(ABC):
         self.planar_camera_rotation = glm.vec2(*planar_camera_rotation)
         self.planar_camera_lens_rotation = planar_camera_lens_rotation
 
+        # New parameter for lens rotations
+        self.lens_rotations = lens_rotations or [planar_camera_lens_rotation]
+
         # New attribute
         self.screen_facing_planar_texture = screen_facing_planar_texture
 
@@ -132,10 +136,16 @@ class AbstractRenderer(ABC):
             self.lights = []
 
         if self.auto_camera:
-            self.camera_controller = CameraController(self.camera_positions, self.move_speed, self.loop)
+            # Pass lens_rotations to the CameraController
+            self.camera_controller = CameraController(self.camera_positions, lens_rotations=self.lens_rotations,
+                                                      move_speed=self.move_speed, loop=self.loop)
             self.camera_position = self.camera_controller.update(0)
+            self.planar_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
         else:
+            # Pass lens_rotations to the CameraController even if auto_camera is False
+            self.camera_controller = CameraController(self.camera_positions, lens_rotations=self.lens_rotations)
             self.camera_position = glm.vec3(*self.camera_positions[0])
+            self.planar_camera_lens_rotation = self.camera_controller.lens_rotations[0]
 
         self.planar_camera = planar_camera
         if self.planar_camera:
@@ -302,6 +312,12 @@ class AbstractRenderer(ABC):
         if self.auto_camera:
             self.camera_position = self.camera_controller.update(0)
             self.camera_target = self.camera_controller.get_current_target()
+            self.planar_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
+        else:
+            self.planar_camera_lens_rotation = self.camera_controller.lens_rotations[0]
+        self.setup_camera_matrices()
+
+    def setup_camera_matrices(self):
         aspect_ratio = self.window_size[0] / self.window_size[1]
         self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
@@ -405,7 +421,10 @@ class AbstractRenderer(ABC):
         if self.auto_camera:
             self.camera_position = self.camera_controller.update(delta_time)
             self.camera_target = self.camera_controller.get_current_target()
-        self.setup_camera()
+            self.planar_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
+        else:
+            self.planar_camera_lens_rotation = self.camera_controller.lens_rotations[0]
+        self.setup_camera_matrices()
 
     @abstractmethod
     def create_buffers(self):
