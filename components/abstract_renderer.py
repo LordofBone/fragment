@@ -55,7 +55,8 @@ class AbstractRenderer(ABC):
                  distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
                  planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
                  planar_camera_position_offset=(0, 0, 0), planar_relative_to_camera=False,
-                 planar_camera_rotation=(0, 0), planar_camera_lens_rotation=0.0, **kwargs):
+                 planar_camera_rotation=(0, 0), planar_camera_lens_rotation=0.0,
+                 screen_facing_planar_texture=False, **kwargs):  # New parameter
 
         self.dynamic_attrs = kwargs
 
@@ -104,6 +105,9 @@ class AbstractRenderer(ABC):
         self.planar_relative_to_camera = planar_relative_to_camera
         self.planar_camera_rotation = glm.vec2(*planar_camera_rotation)
         self.planar_camera_lens_rotation = planar_camera_lens_rotation
+
+        # New attribute
+        self.screen_facing_planar_texture = screen_facing_planar_texture
 
         self.vbos = []
         self.vaos = []
@@ -376,6 +380,10 @@ class AbstractRenderer(ABC):
 
         if self.screen_texture:
             glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 8)
+
+        # New uniform
+        glUniform1i(glGetUniformLocation(self.shader_program, "screenFacingPlanarTexture"),
+                    int(self.screen_facing_planar_texture))
 
         glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
         glUniform1f(
