@@ -25,6 +25,7 @@ uniform bool phongShading;
 uniform float distortionStrength;
 uniform float reflectionStrength;
 uniform vec3 ambientColor;
+uniform bool screenFacingPlanarTexture;  // New uniform
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -74,13 +75,25 @@ void main()
     vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 reflectDir = reflect(viewDir, normal);
 
-    vec3 envColor = vec3(0.0);// Default to black if no environment map is applied
+    vec3 envColor = vec3(0.0); // Default to black if no environment map is applied
     if (textureSize(environmentMap, 0).x > 1) {
         envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
     }
 
-    vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
-    vec3 backgroundColor = texture(screenTexture, distortedCoords).rgb;
+    vec3 backgroundColor = vec3(0.0);  // Initialize to black
+
+    if (screenFacingPlanarTexture) {
+        // Calculate the dot product between the normal and the view direction
+        float facing = dot(normal, viewDir);
+
+        if (facing > 0.0) {  // Apply texture only if the fragment is facing the camera
+            vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
+            backgroundColor = texture(screenTexture, distortedCoords).rgb;
+        }
+    } else {
+        vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
+        backgroundColor = texture(screenTexture, distortedCoords).rgb;
+    }
 
     vec3 diffuseColor = texture(diffuseMap, flippedTexCoords, textureLodLevel).rgb;
     vec3 lighting = computeLighting(normal, viewDir, FragPos, diffuseColor);
