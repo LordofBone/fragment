@@ -3,7 +3,8 @@ import glm
 
 class CameraController:
     def __init__(self, camera_positions, lens_rotations=None, move_speed=1.0, loop=True):
-        self.camera_positions = camera_positions
+        # Ensure camera_positions is a list of tuples (x, y, z, rotation_x, rotation_y)
+        self.camera_positions = [(*pos[:3], *pos[3:]) for pos in camera_positions]
 
         # Ensure lens_rotations is a list, even if a single float is passed
         if isinstance(lens_rotations, float) or isinstance(lens_rotations, int):
@@ -29,11 +30,16 @@ class CameraController:
             self.current_lens_rotation_index = self.next_lens_rotation_index
             self.next_lens_rotation_index = (self.next_lens_rotation_index + 1) % len(self.lens_rotations)
 
-        current_position = glm.vec3(*self.camera_positions[self.current_position_index])
-        next_position = glm.vec3(*self.camera_positions[self.next_position_index])
-        interpolated_position = glm.mix(current_position, next_position, self.t)
+        # Interpolate between positions and rotations
+        current_pos = glm.vec3(*self.camera_positions[self.current_position_index][:3])
+        next_pos = glm.vec3(*self.camera_positions[self.next_position_index][:3])
+        interpolated_position = glm.mix(current_pos, next_pos, self.t)
 
-        return interpolated_position
+        current_rotation = glm.vec2(*self.camera_positions[self.current_position_index][3:])
+        next_rotation = glm.vec2(*self.camera_positions[self.next_position_index][3:])
+        interpolated_rotation = glm.mix(current_rotation, next_rotation, self.t)
+
+        return interpolated_position, interpolated_rotation
 
     def get_current_target(self):
         # Assuming target is always (0, 0, 0) for simplicity, this can be extended

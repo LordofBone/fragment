@@ -40,7 +40,9 @@ class RendererConfig:
             lens_rotations=None,
     ):
         if camera_positions is None:
-            camera_positions = [(3.2, 3.2, 3.2)]
+            camera_positions = [
+                (3.2, 3.2, 3.2, 0.0, 0.0)
+            ]
         self.window_size = window_size
         self.shaders = shaders
         self.cubemap_folder = cubemap_folder
