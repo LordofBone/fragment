@@ -6,7 +6,7 @@ if __name__ == "__main__":
     base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/mountain_lake/",
-        camera_positions=[(3.2, 3.2, 3.2)],
+        camera_positions=[(4.2, 4.2, 4.2, -60.0, 55.0)],  # Include yaw and pitch
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=40,
