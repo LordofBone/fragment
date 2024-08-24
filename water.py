@@ -6,7 +6,7 @@ if __name__ == "__main__":
     base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/mountain_lake/",
-        camera_positions=[(4.2, 4.2, 4.2, -60.0, 55.0)],  # Include yaw and pitch
+        camera_positions=[(4.2, 4.2, 4.2, -60.0, 55.0)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=40,
@@ -16,7 +16,7 @@ if __name__ == "__main__":
             {"position": (5.0, 10.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
         ],
         anisotropy=16.0,
-        auto_camera=False,
+        auto_camera=True,
         msaa_level=8,
         culling=True,
         phong_shading=True,
