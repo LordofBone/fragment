@@ -32,9 +32,8 @@ class RendererConfig:
             planar_near_plane=0.1,
             planar_far_plane=100,
             planar_resolution=(1024, 1024),
-            planar_camera_position_offset=(0, -2, 1),
+            planar_camera_position_rotation=(0, 0, 0, 0, 0),
             planar_relative_to_camera=True,
-            planar_camera_rotation=(0, 0),
             planar_camera_lens_rotation=0.0,
             screen_facing_planar_texture=False,
             lens_rotations=None,
@@ -67,15 +66,14 @@ class RendererConfig:
         self.ambient_lighting_strength = ambient_lighting_strength
         self.shaders = {}
 
-        # Planar camera settings
+        # Planar camera settings combined
         self.planar_camera = planar_camera
         self.planar_fov = planar_fov
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
         self.planar_resolution = planar_resolution
-        self.planar_camera_position_offset = planar_camera_position_offset
+        self.planar_camera_position_rotation = planar_camera_position_rotation
         self.planar_relative_to_camera = planar_relative_to_camera
-        self.planar_camera_rotation = planar_camera_rotation
         self.planar_camera_lens_rotation = planar_camera_lens_rotation
         self.screen_facing_planar_texture = screen_facing_planar_texture
 
@@ -131,9 +129,8 @@ class RendererConfig:
             planar_near_plane=None,
             planar_far_plane=None,
             planar_resolution=None,
-            planar_camera_position_offset=None,
+            planar_camera_position_rotation=None,
             planar_relative_to_camera=None,
-            planar_camera_rotation=None,
             planar_camera_lens_rotation=None,
             screen_facing_planar_texture=None,
             lens_rotations=None,
@@ -162,9 +159,8 @@ class RendererConfig:
             "planar_near_plane": planar_near_plane,
             "planar_far_plane": planar_far_plane,
             "planar_resolution": planar_resolution,
-            "planar_camera_position_offset": planar_camera_position_offset,
+            "planar_camera_position_rotation": planar_camera_position_rotation,
             "planar_relative_to_camera": planar_relative_to_camera,
-            "planar_camera_rotation": planar_camera_rotation,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
             "screen_facing_planar_texture": screen_facing_planar_texture,
             "lens_rotations": lens_rotations,
@@ -195,9 +191,8 @@ class RendererConfig:
             planar_near_plane=None,
             planar_far_plane=None,
             planar_resolution=None,
-            planar_camera_position_offset=None,
+            planar_camera_position_rotation=None,
             planar_relative_to_camera=None,
-            planar_camera_rotation=None,
             planar_camera_lens_rotation=None,
             screen_facing_planar_texture=None,
             lens_rotations=None,
@@ -220,9 +215,8 @@ class RendererConfig:
             "planar_near_plane": planar_near_plane,
             "planar_far_plane": planar_far_plane,
             "planar_resolution": planar_resolution,
-            "planar_camera_position_offset": planar_camera_position_offset,
+            "planar_camera_position_rotation": planar_camera_position_rotation,
             "planar_relative_to_camera": planar_relative_to_camera,
-            "planar_camera_rotation": planar_camera_rotation,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
             "screen_facing_planar_texture": screen_facing_planar_texture,
             "lens_rotations": lens_rotations,
