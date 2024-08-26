@@ -1,3 +1,5 @@
 .idea/
 misc/*
 __pycache__
+screenshots/*
+!screenshots/.gitkeep
