@@ -74,7 +74,7 @@ void main() {
 
     // Calculate view and reflection directions
     vec3 viewDir = normalize(viewPosition - FragPos);
-    vec3 reflectDir = reflect(viewDir, FragPos);
+    vec3 reflectDir = reflect(viewDir, normal);
 
     // Normalize reflection vector to avoid extreme clamping issues
     reflectDir = normalize(reflectDir);
