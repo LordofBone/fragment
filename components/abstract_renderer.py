@@ -219,7 +219,7 @@ class AbstractRenderer(ABC):
 
             planar_target = self.planar_camera_position + adjusted_direction
 
-            # Flip the up vector to correct the inversion
+            # Flip the up vector to correct any inversion that might occur
             up_vector = glm.vec3(0.0, -1.0, 0.0)
 
             # Create the view matrix for the planar camera
