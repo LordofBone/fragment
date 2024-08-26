@@ -26,7 +26,7 @@ if __name__ == "__main__":
             0.0,  # No rotation at the start
         ],
         auto_camera=True,
-        camera_target=(0, 0.75, 0),
+        camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=90,
         near_plane=0.1,
@@ -64,12 +64,11 @@ if __name__ == "__main__":
         apply_gamma_correction=False,
         cubemap_folder=False,
         planar_camera=True,
-        planar_fov=90,
-        planar_camera_rotation=(-50.0, 35.0),
-        planar_camera_position_offset=(0, 0, 0),
+        planar_fov=45,
+        planar_camera_position_rotation=(45.0, 60.0, -30.0, 0.0, 0.0),
         planar_relative_to_camera=True,
-        planar_camera_lens_rotation=0.0,
-        screen_facing_planar_texture=False,
+        planar_camera_lens_rotation=30.0,
+        screen_facing_planar_texture=True,
     )
 
     # Define the configuration for the skybox
