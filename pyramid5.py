@@ -6,7 +6,9 @@ if __name__ == "__main__":
     base_config = RendererConfig(
         window_size=(800, 600),
         cubemap_folder="textures/cube/night_sky_egypt/",
-        camera_positions=[(3.2, 3.2, 3.2)],
+        camera_positions=[
+            (3.4, 3.4, 3.4, -39.0, 39.0),
+        ],
         camera_target=(0, 0.75, 0),
         up_vector=(0, 1, 0),
         fov=40,

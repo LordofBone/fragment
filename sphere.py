@@ -7,26 +7,26 @@ if __name__ == "__main__":
         window_size=(800, 600),
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[
-            (100.0, 100.0, 0.0),  # Front top view
-            (60.0, 60.0, 60.0),  # 45 degrees top view
-            (0.0, 100.0, 100.0),  # Side top view
-            (-60.0, 60.0, 100.0),  # 135 degrees top view
-            (-100.0, 100.0, 0.0),  # Back top view
-            (-60.0, 60.0, -60.0),  # 225 degrees top view
-            (0.0, 100.0, -100.0),  # Other side top view
-            (60.0, 60.0, -60.0),  # 315 degrees top view
-            (100.0, -100.0, 0.0),  # Front bottom view
-            (60.0, -60.0, 60.0),  # 45 degrees bottom view
-            (0.0, -100.0, 100.0),  # Side bottom view
-            (-60.0, -60.0, 100.0),  # 135 degrees bottom view
-            (-100.0, -100.0, 0.0),  # Back bottom view
-            (-60.0, -60.0, -60.0),  # 225 degrees bottom view
-            (0.0, -100.0, -100.0),  # Other side bottom view
-            (60.0, -60.0, -60.0),  # 315 degrees bottom view
-            (100.0, 100.0, 0.0),  # Return to front top view
+            (60.4, 60.4, 60.4, -50.0, 35.0),  # Starting position
+            (50.0, 70.0, 50.0, -45.0, 36.0),  # Move up and to the side
+            (40.0, 60.0, 70.0, -45.0, 36.0),  # Move further around, maintaining view
+            (30.0, 50.0, 80.0, -45.0, 36.0),  # Continue to rotate around, higher
+            (20.0, 40.0, 70.0, -45.0, 36.0),  # Move down, still rotating
+            (10.0, 30.0, 60.0, -60.0, 45.0),  # Rotate towards the back
+            (0.0, 20.0, 50.0, -45.0, -30.0),  # Directly behind, looking at the object
+            (-10.0, 30.0, 40.0, -40.0, -30.0),  # Rotate back around
+            (-20.0, 40.0, 30.0, -38.0, -23.0),  # Continue moving down
+            (-30.0, 50.0, 20.0, -45.0, -29.0),  # Directly opposite the starting point
+            (-40.0, 60.0, 30.0, -47.0, -23.0),  # Rotate around to the side
+            (-50.0, 70.0, 40.0, -48.0, -25.0),  # Move back around towards the front
+            (-60.4, 60.4, 60.4, -48.0, -25.0),  # Return to a symmetrical position opposite the start
+            (60.4, 60.4, 60.4, -45.0, 36.0),  # Return to the starting position
+        ],
+        lens_rotations=[
+            0.0,  # No rotation at the start
         ],
         auto_camera=True,
-        camera_target=(0, 0.75, 0),
+        camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=90,
         near_plane=0.1,
@@ -57,12 +57,18 @@ if __name__ == "__main__":
         },
         shader_names=("standard", "stealth"),
         opacity=0.0,
-        distortion_strength=0.1,
-        reflection_strength=0.5,
+        distortion_strength=0.2,
+        reflection_strength=0.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         cubemap_folder=False,
+        planar_camera=True,
+        planar_fov=20,
+        planar_camera_position_rotation=(30.0, 60.0, 0.0, 42.0, 0.0),
+        planar_relative_to_camera=True,
+        planar_camera_lens_rotation=30.0,
+        screen_facing_planar_texture=True,
     )
 
     # Define the configuration for the skybox

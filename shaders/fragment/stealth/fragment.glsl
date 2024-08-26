@@ -25,6 +25,8 @@ uniform bool phongShading;
 uniform float distortionStrength;
 uniform float reflectionStrength;
 uniform vec3 ambientColor;
+uniform bool screenFacingPlanarTexture;
+uniform bool warped;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -44,7 +46,7 @@ vec3 toneMapping(vec3 color) {
 }
 
 vec3 computeLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor) {
-    vec3 ambient = ambientColor * diffuseColor;// Use ambientColor for ambient lighting
+    vec3 ambient = ambientColor * diffuseColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
     vec3 specularColor = vec3(1.0);
@@ -64,23 +66,55 @@ vec3 computeLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec3 diffuseColor)
     return ambient + diffuse + specular;
 }
 
-void main()
-{
+void main() {
     vec2 flippedTexCoords = vec2(TexCoords.x, 1.0 - TexCoords.y);
 
+    // Calculate normal and height for displacement mapping
     vec3 normal = normalize(Normal + texture(normalMap, flippedTexCoords, textureLodLevel).rgb * 2.0 - 1.0);
     float height = texture(displacementMap, flippedTexCoords, textureLodLevel).r;
 
+    // Calculate view and reflection directions
     vec3 viewDir = normalize(viewPosition - FragPos);
-    vec3 reflectDir = reflect(viewDir, normal);
 
-    vec3 envColor = vec3(0.0);// Default to black if no environment map is applied
-    if (textureSize(environmentMap, 0).x > 1) {
-        envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+    // Apply warping conditionally based on the 'warped' uniform and 'distortionStrength'
+    vec3 reflectDir;
+
+    if (distortionStrength == 0.0) {
+        reflectDir = reflect(viewDir, vec3(0.0, 0.0, 0.0));
+    } else if (warped) {
+        reflectDir = reflect(viewDir, FragPos);
+    } else {
+        reflectDir = reflect(viewDir, normal);
     }
 
-    vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
-    vec3 backgroundColor = texture(screenTexture, distortedCoords).rgb;
+    // Normalize reflection vector to avoid extreme clamping issues
+    reflectDir = normalize(reflectDir);
+
+    vec3 envColor = vec3(0.0);
+    vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+
+    if (dot(viewDir, normal) > 0.0) {
+        envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+        envColor = mix(fallbackColor, envColor, step(0.05, length(envColor)));
+    } else {
+        envColor = fallbackColor;
+    }
+
+    vec3 backgroundColor = vec3(0.0);
+
+    // Unified distortion logic for screen-facing and non-screen-facing planar textures
+    vec2 reflectionTexCoords = (reflectDir.xy + vec2(1.0)) * 0.5;
+    vec2 normalDistortion = (texture(normalMap, flippedTexCoords).rg * 2.0 - 1.0) * distortionStrength;
+
+    // Apply distortion based on the normal map without affecting texture stretching
+    vec2 distortedCoords = screenFacingPlanarTexture ? reflectionTexCoords + normalDistortion : flippedTexCoords + normalDistortion;
+
+    backgroundColor = texture(screenTexture, clamp(distortedCoords, 0.0, 1.0)).rgb;
+
+    // If backgroundColor is near black, use fallback color
+    if (length(backgroundColor) < 0.05) {
+        backgroundColor = fallbackColor;
+    }
 
     vec3 diffuseColor = texture(diffuseMap, flippedTexCoords, textureLodLevel).rgb;
     vec3 lighting = computeLighting(normal, viewDir, FragPos, diffuseColor);

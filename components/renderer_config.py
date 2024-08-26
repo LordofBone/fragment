@@ -27,9 +27,20 @@ class RendererConfig:
         shaders=None,
         phong_shading=False,
         ambient_lighting_strength=(0.0, 0.0, 0.0),
+        planar_camera=False,
+        planar_fov=45,
+        planar_near_plane=0.1,
+        planar_far_plane=100,
+        planar_resolution=(1024, 1024),
+        planar_camera_position_rotation=(0, 0, 0, 0, 0),
+        planar_relative_to_camera=True,
+        planar_camera_lens_rotation=0.0,
+        screen_facing_planar_texture=False,
+        lens_rotations=None,
+        debug_mode=None,
     ):
         if camera_positions is None:
-            camera_positions = [(3.2, 3.2, 3.2)]
+            camera_positions = [(3.2, 3.2, 3.2, 0.0, 0.0)]
         self.window_size = window_size
         self.shaders = shaders
         self.cubemap_folder = cubemap_folder
@@ -53,6 +64,23 @@ class RendererConfig:
         self.phong_shading = phong_shading
         self.ambient_lighting_strength = ambient_lighting_strength
         self.shaders = {}
+
+        # Planar camera settings combined
+        self.planar_camera = planar_camera
+        self.planar_fov = planar_fov
+        self.planar_near_plane = planar_near_plane
+        self.planar_far_plane = planar_far_plane
+        self.planar_resolution = planar_resolution
+        self.planar_camera_position_rotation = planar_camera_position_rotation
+        self.planar_relative_to_camera = planar_relative_to_camera
+        self.planar_camera_lens_rotation = planar_camera_lens_rotation
+        self.screen_facing_planar_texture = screen_facing_planar_texture
+
+        # Lens rotations for the camera
+        self.lens_rotations = lens_rotations or [0.0] * len(self.camera_positions)
+
+        # Debug mode
+        self.debug_mode = debug_mode
 
         self.validate_winding()
         self.discover_shaders()
@@ -98,6 +126,17 @@ class RendererConfig:
         height=10.0,
         cubemap_folder=None,
         phong_shading=None,
+        planar_camera=None,
+        planar_fov=None,
+        planar_near_plane=None,
+        planar_far_plane=None,
+        planar_resolution=None,
+        planar_camera_position_rotation=None,
+        planar_relative_to_camera=None,
+        planar_camera_lens_rotation=None,
+        screen_facing_planar_texture=None,
+        lens_rotations=None,
+        debug_mode=None,
         **kwargs,
     ):
         """Add a model to the configuration."""
@@ -118,13 +157,23 @@ class RendererConfig:
             "height": height,
             "cubemap_folder": cubemap_folder,
             "phong_shading": phong_shading,
+            "planar_camera": planar_camera,
+            "planar_fov": planar_fov,
+            "planar_near_plane": planar_near_plane,
+            "planar_far_plane": planar_far_plane,
+            "planar_resolution": planar_resolution,
+            "planar_camera_position_rotation": planar_camera_position_rotation,
+            "planar_relative_to_camera": planar_relative_to_camera,
+            "planar_camera_lens_rotation": planar_camera_lens_rotation,
+            "screen_facing_planar_texture": screen_facing_planar_texture,
+            "lens_rotations": lens_rotations,
+            "debug_mode": debug_mode,
         }
 
         # Update the configuration with model specifics, preserving non-None values
         model_config.update({k: v for k, v in model_specifics.items() if v is not None})
 
         # Apply any additional keyword arguments passed in kwargs
-        # Ensure that all keys from kwargs are correctly updated in the model_config
         for key, value in kwargs.items():
             if key not in model_config:
                 model_config[key] = value
@@ -141,6 +190,17 @@ class RendererConfig:
         height=500.0,
         cubemap_folder=None,
         phong_shading=None,
+        planar_camera=None,
+        planar_fov=None,
+        planar_near_plane=None,
+        planar_far_plane=None,
+        planar_resolution=None,
+        planar_camera_position_rotation=None,
+        planar_relative_to_camera=None,
+        planar_camera_lens_rotation=None,
+        screen_facing_planar_texture=None,
+        lens_rotations=None,
+        debug_mode=None,
         **kwargs,
     ):
         """Add a surface to the configuration."""
@@ -155,10 +215,22 @@ class RendererConfig:
             "height": height,
             "cubemap_folder": cubemap_folder,
             "phong_shading": phong_shading,
+            "planar_camera": planar_camera,
+            "planar_fov": planar_fov,
+            "planar_near_plane": planar_near_plane,
+            "planar_far_plane": planar_far_plane,
+            "planar_resolution": planar_resolution,
+            "planar_camera_position_rotation": planar_camera_position_rotation,
+            "planar_relative_to_camera": planar_relative_to_camera,
+            "planar_camera_lens_rotation": planar_camera_lens_rotation,
+            "screen_facing_planar_texture": screen_facing_planar_texture,
+            "lens_rotations": lens_rotations,
+            "debug_mode": debug_mode,
         }
 
         surface_config.update({k: v for k, v in surface_specifics.items() if v is not None})
-        # Ensure that all keys from kwargs are correctly updated in the model_config
+
+        # Apply any additional keyword arguments passed in kwargs
         for key, value in kwargs.items():
             if key not in surface_config:
                 surface_config[key] = value
@@ -175,7 +247,8 @@ class RendererConfig:
         }
 
         skybox_config.update({k: v for k, v in skybox_specifics.items() if v is not None})
-        # Ensure that all keys from kwargs are correctly updated in the model_config
+
+        # Apply any additional keyword arguments passed in kwargs
         for key, value in kwargs.items():
             if key not in skybox_config:
                 skybox_config[key] = value

@@ -1,9 +1,12 @@
+import os
+import time
 from abc import ABC, abstractmethod
 
 import glm
 import pygame
 from OpenGL.GL import *
 from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
+from PIL import Image
 
 from components.camera_control import CameraController
 from components.shader_engine import ShaderEngine
@@ -77,15 +80,29 @@ class AbstractRenderer(ABC):
         opacity=1.0,
         distortion_strength=0.3,
         reflection_strength=0.0,
-        screen_texture=None,  # Add screen_texture as an optional argument
+        distortion_warped=False,
+        screen_texture=None,
+        planar_camera=False,
+        planar_resolution=(1024, 1024),
+        planar_fov=45,
+        planar_near_plane=0.1,
+        planar_far_plane=100,
+        planar_camera_position_rotation=(0, 0, 0, 0, 0),
+        planar_relative_to_camera=False,
+        planar_camera_lens_rotation=0.0,
+        lens_rotations=None,
+        screen_facing_planar_texture=False,
+        debug_mode=False,
         **kwargs,
     ):
+        self.debug_mode = debug_mode
+
         self.dynamic_attrs = kwargs
 
-        self.shader_names = shader_names  # Expecting a tuple (vertex_shader_name, fragment_shader_name)
+        self.shader_names = shader_names
         self.shaders = shaders or {}
-        self.cubemap_folder = cubemap_folder  # Per-instance cubemap folder
-        self.camera_positions = camera_positions or [(0, 0, 0)]
+        self.cubemap_folder = cubemap_folder
+        self.camera_positions = camera_positions or [(0, 0, 0, 0, 0)]
         self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
         self.fov = fov
@@ -115,8 +132,25 @@ class AbstractRenderer(ABC):
         self.opacity = opacity
         self.distortion_strength = distortion_strength
         self.reflection_strength = reflection_strength
+        self.distortion_warped = distortion_warped
 
         self.screen_texture = screen_texture
+        self.planar_resolution = planar_resolution
+        self.planar_fov = planar_fov
+        self.planar_near_plane = planar_near_plane
+        self.planar_far_plane = planar_far_plane
+
+        # Planar camera attributes combined
+        self.planar_camera_position_rotation = planar_camera_position_rotation
+        self.planar_relative_to_camera = planar_relative_to_camera
+        self.planar_camera_lens_rotation = planar_camera_lens_rotation
+
+        # New parameter for lens rotations
+        self.lens_rotations = lens_rotations or [planar_camera_lens_rotation]
+
+        # New attribute
+        self.screen_facing_planar_texture = screen_facing_planar_texture
+        self.screen_facing_planar_screenshotted = False
 
         self.vbos = []
         self.vaos = []
@@ -141,27 +175,197 @@ class AbstractRenderer(ABC):
             self.lights = []
 
         if self.auto_camera:
-            self.camera_controller = CameraController(self.camera_positions, self.move_speed, self.loop)
+            # Pass lens_rotations to the CameraController
+            self.camera_controller = CameraController(
+                self.camera_positions, lens_rotations=self.lens_rotations, move_speed=self.move_speed, loop=self.loop
+            )
+            self.camera_position, self.camera_rotation = self.camera_controller.update(0)
+            self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
         else:
-            self.camera_position = glm.vec3(*self.camera_positions[0])
+            # Pass lens_rotations to the CameraController even if auto_camera is False
+            self.camera_controller = CameraController(self.camera_positions, lens_rotations=self.lens_rotations)
+            self.camera_position = glm.vec3(*self.camera_positions[0][:3])
+            self.camera_rotation = glm.vec2(*self.camera_positions[0][3:])
+            self.main_camera_lens_rotation = self.camera_controller.lens_rotations[0]
+
+        self.planar_camera = planar_camera
+        if self.planar_camera:
+            self.setup_planar_camera()
 
     def get_winding_constant(self, winding):
-        """Convert winding string to OpenGL constant."""
         winding_options = {"CW": GL_CW, "CCW": GL_CCW}
         if winding not in winding_options:
             raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
         return winding_options[winding]
 
     def setup(self):
-        """Setup resources and initialize the renderer."""
         self.init_shaders()
         self.create_buffers()
-        self.load_textures()  # Load textures including cubemap
+        self.load_textures()
         self.setup_camera()
         self.set_constant_uniforms()
 
+    def setup_planar_camera(self):
+        glActiveTexture(GL_TEXTURE8)
+        self.planar_framebuffer = glGenFramebuffers(1)
+        self.planar_texture = glGenTextures(1)
+
+        glBindTexture(GL_TEXTURE_2D, self.planar_texture)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGB,
+            self.planar_resolution[0],
+            self.planar_resolution[1],
+            0,
+            GL_RGB,
+            GL_UNSIGNED_BYTE,
+            None,
+        )
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.texture_lod_bias)
+
+        glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self.planar_texture, 0)
+
+        if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
+            raise RuntimeError("Framebuffer for planar camera is not complete")
+
+        self.screen_texture = self.planar_texture
+        glBindTexture(GL_TEXTURE_2D, self.screen_texture)
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+    def render_planar_view(self, scene_renderers):
+        if not self.planar_camera:
+            return None
+
+        # Calculate the main camera's forward direction
+        main_camera_forward = glm.normalize(self.camera_target - self.camera_position)
+
+        if self.planar_relative_to_camera:
+            # Ensure the planar camera's lens rotation matches relative to the main camera's lens rotation
+            lens_rotation = self.planar_camera_lens_rotation + self.main_camera_lens_rotation
+
+            # Calculate the direction to camera
+            direction_to_camera = glm.normalize(self.camera_position - self.translation)
+
+            # Planar camera position is relative to the object's position and adjusted direction based on camera distance
+            self.planar_camera_position = (
+                self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
+            ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
+
+            # Calculate the relative rotation based on the main camera's orientation
+            self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:]) + glm.vec2(
+                self.camera_rotation
+            )
+
+            rotation_matrix = glm.rotate(
+                glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x), glm.vec3(1.0, 0.0, 0.0)
+            )
+            rotation_matrix = glm.rotate(
+                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(0.0, 1.0, 0.0)
+            )
+            adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(main_camera_forward, 0.0))
+
+            planar_target = self.planar_camera_position + adjusted_direction
+
+            # Flip the up vector to correct any inversion that might occur
+            up_vector = glm.vec3(0.0, -1.0, 0.0)
+
+            # Create the view matrix for the planar camera
+            self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
+        else:
+            # Ensure the planar camera's lens rotation is set static to the specified value
+            lens_rotation = self.planar_camera_lens_rotation
+
+            # Fixed planar camera position relative to the object
+            self.planar_camera_position = self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
+            self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:])
+            direction_to_target = glm.vec3(0.0, 0.0, -1.0)
+
+            rotation_matrix = glm.rotate(
+                glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x), glm.vec3(1.0, 0.0, 0.0)
+            )
+            rotation_matrix = glm.rotate(
+                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(0.0, 1.0, 0.0)
+            )
+            adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
+
+            planar_target = self.planar_camera_position + adjusted_direction
+
+            # Flip the up vector to correct the inversion
+            up_vector = glm.vec3(0.0, -1.0, 0.0)
+
+            # Create the view matrix for the planar camera
+            self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
+
+        # Apply lens rotation by rotating around the forward axis
+        lens_rotation_matrix = glm.rotate(
+            glm.mat4(1.0), glm.radians(lens_rotation), glm.vec3(0.0, 0.0, 1.0)
+        )  # Rotation around the forward axis
+        self.planar_view = lens_rotation_matrix * self.planar_view
+
+        # Calculate the aspect ratio and create the projection matrix
+        aspect_ratio = self.planar_resolution[0] / self.planar_resolution[1]
+        self.planar_projection = glm.perspective(
+            glm.radians(self.planar_fov), aspect_ratio, self.planar_near_plane, self.planar_far_plane
+        )
+
+        # Temporarily remove this object from the list of renderers
+        scene_renderers = [renderer for renderer in scene_renderers if renderer is not self]
+
+        glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
+
+        # Set the viewport to match the planar resolution
+        glViewport(0, 0, self.planar_resolution[0], self.planar_resolution[1])
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        for renderer in scene_renderers:
+            renderer.render_with_custom_camera(self.planar_view, self.planar_projection)
+
+        if self.debug_mode:
+            if not self.screen_facing_planar_screenshotted:
+                # Read the texture data from the framebuffer
+                glBindTexture(GL_TEXTURE_2D, self.screen_texture)
+                data = glReadPixels(
+                    0, 0, self.planar_resolution[0], self.planar_resolution[1], GL_RGB, GL_UNSIGNED_BYTE
+                )
+                image = Image.frombytes("RGB", self.planar_resolution, data)
+                image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Flip the image vertically
+
+                # Create the screenshots directory if it doesn't exist
+                screenshots_dir = "screenshots"
+                if not os.path.exists(screenshots_dir):
+                    os.makedirs(screenshots_dir)
+
+                # Generate the filename with a timestamp
+                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                filename = f"screen_texture_output_{timestamp}.png"
+
+                # Save the image in the screenshots directory
+                image.save(os.path.join(screenshots_dir, filename))
+                self.screen_facing_planar_screenshotted = True
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+        # Reset the viewport back to the window size
+        glViewport(0, 0, self.window_size[0], self.window_size[1])
+
+        glBindTexture(GL_TEXTURE_2D, 0)
+
+    def render_with_custom_camera(self, view_matrix, projection_matrix):
+        self.view = view_matrix
+        self.projection = projection_matrix
+        self.render()
+
     def init_shaders(self):
-        """Initialize shaders from provided shader paths."""
         vertex_shader, fragment_shader = self.shader_names
         vertex_shader_path = self.shaders["vertex"][vertex_shader]
         fragment_shader_path = self.shaders["fragment"][fragment_shader]
@@ -169,7 +373,6 @@ class AbstractRenderer(ABC):
         self.shader_program = shader_engine.shader_program
 
     def load_texture(self, path, texture):
-        """Load a 2D texture from file."""
         surface = pygame.image.load(path)
         img_data = pygame.image.tostring(surface, "RGB", True)
         width, height = surface.get_size()
@@ -182,12 +385,11 @@ class AbstractRenderer(ABC):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.texture_lod_bias)
-        glBindTexture(GL_TEXTURE_2D, 0)  # Unbind texture after loading
+        glBindTexture(GL_TEXTURE_2D, 0)
 
     def load_cubemap(self, folder_path, texture, texture_unit):
-        """Load a cubemap texture from a folder."""
         faces = ["right.png", "left.png", "bottom.png", "top.png", "front.png", "back.png"]
-        glActiveTexture(GL_TEXTURE0 + texture_unit)  # Activate the correct texture unit
+        glActiveTexture(GL_TEXTURE0 + texture_unit)
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
             surface = pygame.image.load(folder_path + face)
@@ -204,19 +406,41 @@ class AbstractRenderer(ABC):
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, self.anisotropy)
         glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, self.env_map_lod_bias)
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)  # Unbind after loading to avoid conflicts
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
 
     def setup_camera(self):
-        """Setup the camera view and projection matrices."""
         if self.auto_camera:
-            self.camera_position = self.camera_controller.update(0)
+            self.camera_position, self.camera_rotation = self.camera_controller.update(0)
             self.camera_target = self.camera_controller.get_current_target()
+            self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
+        else:
+            self.camera_position = glm.vec3(*self.camera_positions[0][:3])
+            self.camera_rotation = glm.vec2(*self.camera_positions[0][3:])
+            self.main_camera_lens_rotation = self.camera_controller.lens_rotations[0]
+        self.setup_camera_matrices()
+
+    def setup_camera_matrices(self):
         aspect_ratio = self.window_size[0] / self.window_size[1]
-        self.view = glm.lookAt(self.camera_position, self.camera_target, self.up_vector)
+
+        # Apply rotations to the camera direction
+        direction_to_target = glm.vec3(0, 0, -1.0)  # Assuming default forward direction is along -Z axis
+        rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.camera_rotation.x), glm.vec3(1.0, 0.0, 0.0))
+        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.camera_rotation.y), glm.vec3(0.0, 1.0, 0.0))
+        adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
+
+        # Create the view matrix
+        self.view = glm.lookAt(self.camera_position, self.camera_position + adjusted_direction, self.up_vector)
+
+        # Apply lens rotation by rotating around the forward axis
+        lens_rotation_matrix = glm.rotate(
+            glm.mat4(1.0), glm.radians(self.main_camera_lens_rotation), adjusted_direction
+        )
+        self.view = lens_rotation_matrix * self.view
+
+        # Create the projection matrix
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
     def set_light_uniforms(self, shader_program):
-        """Set light uniforms for the shader program."""
         glUseProgram(shader_program)
         for i, light in enumerate(self.lights):
             glUniform3fv(
@@ -228,26 +452,21 @@ class AbstractRenderer(ABC):
         glUniform1i(glGetUniformLocation(shader_program, "phongShading"), int(self.phong_shading))
 
     def set_model_matrix(self, matrix):
-        """Set the model matrix."""
         self.model_matrix = matrix
 
     def translate(self, position):
-        """Translate the model."""
         self.translation = glm.vec3(*position)
         self.update_model_matrix()
 
     def rotate(self, angle, axis):
-        """Rotate the model."""
         self.rotation = glm.vec3(*axis) * glm.radians(angle)
         self.update_model_matrix()
 
     def scale(self, scale):
-        """Scale the model."""
         self.scaling = glm.vec3(*scale)
         self.update_model_matrix()
 
     def update_model_matrix(self):
-        """Update the model matrix with transformations."""
         self.manual_transformations = glm.translate(glm.mat4(1), self.translation)
         self.manual_transformations = glm.rotate(self.manual_transformations, self.rotation.x, glm.vec3(1, 0, 0))
         self.manual_transformations = glm.rotate(self.manual_transformations, self.rotation.y, glm.vec3(0, 1, 0))
@@ -255,7 +474,6 @@ class AbstractRenderer(ABC):
         self.manual_transformations = glm.scale(self.manual_transformations, self.scaling)
 
     def apply_transformations(self):
-        """Apply transformations to the model matrix."""
         if self.auto_rotation_enabled:
             if self.rotation_speed != 0.0:
                 rotation_matrix = glm.rotate(
@@ -269,11 +487,9 @@ class AbstractRenderer(ABC):
             self.model_matrix = self.manual_transformations
 
     def enable_auto_rotation(self, enabled):
-        """Enable or disable auto-rotation."""
         self.auto_rotation_enabled = enabled
 
     def set_constant_uniforms(self):
-        """Set constant uniforms for the shader program."""
         glUseProgram(self.shader_program)
         glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"), self.texture_lod_bias)
         glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
@@ -281,7 +497,6 @@ class AbstractRenderer(ABC):
         glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"), self.apply_gamma_correction)
 
     def set_shader_uniforms(self):
-        """Set uniforms for the shader program."""
         glUseProgram(self.shader_program)
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "ambientColor"), 1, glm.value_ptr(self.ambient_lighting_strength)
@@ -296,11 +511,20 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_program, "opacity"), self.opacity)
         glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
         glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
+        glUniform1f(glGetUniformLocation(self.shader_program, "warped"), self.distortion_warped)
+
+        glUniform2f(
+            glGetUniformLocation(self.shader_program, "screenResolution"), self.window_size[0], self.window_size[1]
+        )
 
         if self.screen_texture:
-            glActiveTexture(GL_TEXTURE8)
-            glBindTexture(GL_TEXTURE_2D, self.screen_texture)
             glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 8)
+
+        # New uniform
+        glUniform1i(
+            glGetUniformLocation(self.shader_program, "screenFacingPlanarTexture"),
+            int(self.screen_facing_planar_texture),
+        )
 
         glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
         glUniform1f(
@@ -320,16 +544,19 @@ class AbstractRenderer(ABC):
 
     def update_camera(self, delta_time):
         if self.auto_camera:
-            self.camera_position = self.camera_controller.update(delta_time)
+            self.camera_position, self.camera_rotation = self.camera_controller.update(delta_time)
             self.camera_target = self.camera_controller.get_current_target()
-        self.setup_camera()
+            self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
+        else:
+            self.camera_position = glm.vec3(*self.camera_positions[0][:3])
+            self.camera_rotation = glm.vec2(*self.camera_positions[0][3:])
+            self.main_camera_lens_rotation = self.camera_controller.lens_rotations[0]
+        self.setup_camera_matrices()
 
     @abstractmethod
     def create_buffers(self):
-        """Abstract method to create buffers."""
         pass
 
     @abstractmethod
     def render(self):
-        """Abstract method to render the object."""
         pass
