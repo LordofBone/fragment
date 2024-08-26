@@ -76,8 +76,16 @@ void main() {
     // Calculate view and reflection directions
     vec3 viewDir = normalize(viewPosition - FragPos);
 
-    // Apply warping conditionally based on the 'warped' uniform
-    vec3 reflectDir = warped ? reflect(viewDir, FragPos) : reflect(viewDir, normal);
+    // Apply warping conditionally based on the 'warped' uniform and 'distortionStrength'
+    vec3 reflectDir;
+
+    if (distortionStrength == 0.0) {
+        reflectDir = reflect(viewDir, vec3(0.0, 0.0, 0.0));
+    } else if (warped) {
+        reflectDir = reflect(viewDir, FragPos);
+    } else {
+        reflectDir = reflect(viewDir, normal);
+    }
 
     // Normalize reflection vector to avoid extreme clamping issues
     reflectDir = normalize(reflectDir);
