@@ -199,6 +199,9 @@ class AbstractRenderer(ABC):
         main_camera_forward = glm.normalize(self.camera_target - self.camera_position)
 
         if self.planar_relative_to_camera:
+            # Ensure the planar camera's lens rotation matches relative to the main camera's lens rotation
+            lens_rotation = self.planar_camera_lens_rotation + self.main_camera_lens_rotation
+
             # Calculate the direction vector from the object to the camera
             direction_to_camera = glm.normalize(self.camera_position - self.translation)
 
@@ -225,6 +228,9 @@ class AbstractRenderer(ABC):
             # Create the view matrix for the planar camera
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
         else:
+            # Ensure the planar camera's lens rotation is set static to the specified value
+            lens_rotation = self.planar_camera_lens_rotation
+
             # Fixed planar camera position relative to the object
             self.planar_camera_position = self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
             self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:])
@@ -244,8 +250,7 @@ class AbstractRenderer(ABC):
             # Create the view matrix for the planar camera
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
 
-        # Ensure the planar camera's lens rotation matches the main camera's lens rotation
-        lens_rotation = self.planar_camera_lens_rotation if not self.planar_relative_to_camera else self.main_camera_lens_rotation
+        # Apply lens rotation by rotating around the forward axis
         lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(lens_rotation),
                                           glm.vec3(0.0, 0.0, 1.0))  # Rotation around the forward axis
         self.planar_view = lens_rotation_matrix * self.planar_view
