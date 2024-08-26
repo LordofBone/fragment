@@ -245,8 +245,8 @@ class AbstractRenderer(ABC):
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
 
         # Ensure the planar camera's lens rotation matches the main camera's lens rotation
-        # Reverse the lens rotation to correct any potential flipping
-        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(-self.main_camera_lens_rotation),
+        lens_rotation = self.planar_camera_lens_rotation if not self.planar_relative_to_camera else self.main_camera_lens_rotation
+        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(lens_rotation),
                                           glm.vec3(0.0, 0.0, 1.0))  # Rotation around the forward axis
         self.planar_view = lens_rotation_matrix * self.planar_view
 
