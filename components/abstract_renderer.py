@@ -427,6 +427,9 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
         glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
 
+        glUniform2f(glGetUniformLocation(self.shader_program, "screenResolution"), self.window_size[0],
+                    self.window_size[1])
+
         if self.screen_texture:
             glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 8)
 
