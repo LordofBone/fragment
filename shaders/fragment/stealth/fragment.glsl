@@ -76,31 +76,41 @@ void main() {
     vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 reflectDir = reflect(viewDir, normal);
 
-    // Clamp reflection coordinates to prevent extreme distortions
-    reflectDir = clamp(reflectDir, vec3(-1.0), vec3(1.0));
+    // Normalize reflection vector to avoid extreme clamping issues
+    reflectDir = normalize(reflectDir);
 
-    vec3 envColor = vec3(0.0);// Default to black if no environment map is applied
-    if (textureSize(environmentMap, 0).x > 1) {
+    vec3 envColor = vec3(0.0);
+    vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+
+    if (dot(viewDir, normal) > 0.0) {
         envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+        envColor = mix(fallbackColor, envColor, step(0.05, length(envColor)));
+    } else {
+        envColor = fallbackColor;
     }
 
     vec3 backgroundColor = vec3(0.0);
 
     if (screenFacingPlanarTexture) {
-        // Calculate the dot product between the normal and the view direction
-        float facing = dot(normal, viewDir);
+        // Adjust reflectionTexCoords based on reflection vector, but ensure it stays within valid range
+        vec2 reflectionTexCoords = clamp((reflectDir.xy + vec2(1.0)) * 0.5, 0.0, 1.0);
 
-        if (facing > 0.0) { // Apply texture only if the fragment is facing the camera
-            vec2 distortedCoords = flippedTexCoords + reflectDir.xy * distortionStrength;
+        backgroundColor = texture(screenTexture, reflectionTexCoords).rgb;
 
-            // Adjust reflectionTexCoords based on reflection vector
-            vec2 reflectionTexCoords = (reflectDir.xy + vec2(1.0)) * 0.5;
-
-            backgroundColor = texture(screenTexture, reflectionTexCoords).rgb;
+        // If backgroundColor is near black, use fallback color
+        if (length(backgroundColor) < 0.05) {
+            backgroundColor = fallbackColor;
         }
     } else {
-        vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
+        // Scale down texture coordinates for large objects to ensure proper mapping
+        vec2 scaledTexCoords = mod(flippedTexCoords * 0.1, 1.0);
+        vec2 distortedCoords = scaledTexCoords + normal.xy * distortionStrength;
         backgroundColor = texture(screenTexture, distortedCoords).rgb;
+
+        // If backgroundColor is near black, use fallback color
+        if (length(backgroundColor) < 0.05) {
+            backgroundColor = fallbackColor;
+        }
     }
 
     vec3 diffuseColor = texture(diffuseMap, flippedTexCoords, textureLodLevel).rgb;
