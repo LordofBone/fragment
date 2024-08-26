@@ -49,20 +49,52 @@ def common_funcs(func):
 
 
 class AbstractRenderer(ABC):
-    def __init__(self, shader_names, shaders=None, cubemap_folder=None, camera_positions=None, camera_target=(0, 0, 0),
-                 up_vector=(0, 1, 0), fov=45, near_plane=0.1, far_plane=100, ambient_lighting_strength=(0.0, 0.0, 0.0),
-                 lights=None, rotation_speed=2000.0, rotation_axis=(0, 3, 0), apply_tone_mapping=False,
-                 apply_gamma_correction=False, texture_lod_bias=0.0, env_map_lod_bias=0.0, culling=True,
-                 msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0, loop=True,
-                 front_face_winding="CCW", window_size=(800, 600), phong_shading=False, opacity=1.0,
-                 distortion_strength=0.3, reflection_strength=0.0, distortion_warped=False, screen_texture=None,
-                 planar_camera=False,
-                 planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
-                 planar_camera_position_rotation=(0, 0, 0, 0, 0), planar_relative_to_camera=False,
-                 planar_camera_lens_rotation=0.0,
-                 lens_rotations=None,
-                 screen_facing_planar_texture=False, debug_mode=False, **kwargs):
-
+    def __init__(
+        self,
+        shader_names,
+        shaders=None,
+        cubemap_folder=None,
+        camera_positions=None,
+        camera_target=(0, 0, 0),
+        up_vector=(0, 1, 0),
+        fov=45,
+        near_plane=0.1,
+        far_plane=100,
+        ambient_lighting_strength=(0.0, 0.0, 0.0),
+        lights=None,
+        rotation_speed=2000.0,
+        rotation_axis=(0, 3, 0),
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
+        texture_lod_bias=0.0,
+        env_map_lod_bias=0.0,
+        culling=True,
+        msaa_level=8,
+        anisotropy=16.0,
+        auto_camera=False,
+        move_speed=1.0,
+        loop=True,
+        front_face_winding="CCW",
+        window_size=(800, 600),
+        phong_shading=False,
+        opacity=1.0,
+        distortion_strength=0.3,
+        reflection_strength=0.0,
+        distortion_warped=False,
+        screen_texture=None,
+        planar_camera=False,
+        planar_resolution=(1024, 1024),
+        planar_fov=45,
+        planar_near_plane=0.1,
+        planar_far_plane=100,
+        planar_camera_position_rotation=(0, 0, 0, 0, 0),
+        planar_relative_to_camera=False,
+        planar_camera_lens_rotation=0.0,
+        lens_rotations=None,
+        screen_facing_planar_texture=False,
+        debug_mode=False,
+        **kwargs,
+    ):
         self.debug_mode = debug_mode
 
         self.dynamic_attrs = kwargs
@@ -144,8 +176,9 @@ class AbstractRenderer(ABC):
 
         if self.auto_camera:
             # Pass lens_rotations to the CameraController
-            self.camera_controller = CameraController(self.camera_positions, lens_rotations=self.lens_rotations,
-                                                      move_speed=self.move_speed, loop=self.loop)
+            self.camera_controller = CameraController(
+                self.camera_positions, lens_rotations=self.lens_rotations, move_speed=self.move_speed, loop=self.loop
+            )
             self.camera_position, self.camera_rotation = self.camera_controller.update(0)
             self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
         else:
@@ -178,8 +211,17 @@ class AbstractRenderer(ABC):
         self.planar_texture = glGenTextures(1)
 
         glBindTexture(GL_TEXTURE_2D, self.planar_texture)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.planar_resolution[0], self.planar_resolution[1], 0, GL_RGB,
-                     GL_UNSIGNED_BYTE, None)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGB,
+            self.planar_resolution[0],
+            self.planar_resolution[1],
+            0,
+            GL_RGB,
+            GL_UNSIGNED_BYTE,
+            None,
+        )
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
@@ -215,17 +257,20 @@ class AbstractRenderer(ABC):
 
             # Planar camera position is relative to the object's position and adjusted direction based on camera distance
             self.planar_camera_position = (
-                                                  self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
-                                          ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
+                self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
+            ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
 
             # Calculate the relative rotation based on the main camera's orientation
             self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:]) + glm.vec2(
-                self.camera_rotation)
+                self.camera_rotation
+            )
 
-            rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x),
-                                         glm.vec3(1.0, 0.0, 0.0))
-            rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.planar_camera_rotation.y),
-                                         glm.vec3(0.0, 1.0, 0.0))
+            rotation_matrix = glm.rotate(
+                glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x), glm.vec3(1.0, 0.0, 0.0)
+            )
+            rotation_matrix = glm.rotate(
+                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(0.0, 1.0, 0.0)
+            )
             adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(main_camera_forward, 0.0))
 
             planar_target = self.planar_camera_position + adjusted_direction
@@ -244,10 +289,12 @@ class AbstractRenderer(ABC):
             self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:])
             direction_to_target = glm.vec3(0.0, 0.0, -1.0)
 
-            rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x),
-                                         glm.vec3(1.0, 0.0, 0.0))
-            rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.planar_camera_rotation.y),
-                                         glm.vec3(0.0, 1.0, 0.0))
+            rotation_matrix = glm.rotate(
+                glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x), glm.vec3(1.0, 0.0, 0.0)
+            )
+            rotation_matrix = glm.rotate(
+                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(0.0, 1.0, 0.0)
+            )
             adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
 
             planar_target = self.planar_camera_position + adjusted_direction
@@ -259,8 +306,9 @@ class AbstractRenderer(ABC):
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
 
         # Apply lens rotation by rotating around the forward axis
-        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(lens_rotation),
-                                          glm.vec3(0.0, 0.0, 1.0))  # Rotation around the forward axis
+        lens_rotation_matrix = glm.rotate(
+            glm.mat4(1.0), glm.radians(lens_rotation), glm.vec3(0.0, 0.0, 1.0)
+        )  # Rotation around the forward axis
         self.planar_view = lens_rotation_matrix * self.planar_view
 
         # Calculate the aspect ratio and create the projection matrix
@@ -286,8 +334,9 @@ class AbstractRenderer(ABC):
             if not self.screen_facing_planar_screenshotted:
                 # Read the texture data from the framebuffer
                 glBindTexture(GL_TEXTURE_2D, self.screen_texture)
-                data = glReadPixels(0, 0, self.planar_resolution[0], self.planar_resolution[1], GL_RGB,
-                                    GL_UNSIGNED_BYTE)
+                data = glReadPixels(
+                    0, 0, self.planar_resolution[0], self.planar_resolution[1], GL_RGB, GL_UNSIGNED_BYTE
+                )
                 image = Image.frombytes("RGB", self.planar_resolution, data)
                 image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Flip the image vertically
 
@@ -383,8 +432,9 @@ class AbstractRenderer(ABC):
         self.view = glm.lookAt(self.camera_position, self.camera_position + adjusted_direction, self.up_vector)
 
         # Apply lens rotation by rotating around the forward axis
-        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.main_camera_lens_rotation),
-                                          adjusted_direction)
+        lens_rotation_matrix = glm.rotate(
+            glm.mat4(1.0), glm.radians(self.main_camera_lens_rotation), adjusted_direction
+        )
         self.view = lens_rotation_matrix * self.view
 
         # Create the projection matrix
@@ -463,15 +513,18 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
         glUniform1f(glGetUniformLocation(self.shader_program, "warped"), self.distortion_warped)
 
-        glUniform2f(glGetUniformLocation(self.shader_program, "screenResolution"), self.window_size[0],
-                    self.window_size[1])
+        glUniform2f(
+            glGetUniformLocation(self.shader_program, "screenResolution"), self.window_size[0], self.window_size[1]
+        )
 
         if self.screen_texture:
             glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 8)
 
         # New uniform
-        glUniform1i(glGetUniformLocation(self.shader_program, "screenFacingPlanarTexture"),
-                    int(self.screen_facing_planar_texture))
+        glUniform1i(
+            glGetUniformLocation(self.shader_program, "screenFacingPlanarTexture"),
+            int(self.screen_facing_planar_texture),
+        )
 
         glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
         glUniform1f(
