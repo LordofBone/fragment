@@ -37,6 +37,7 @@ class RendererConfig:
             planar_camera_lens_rotation=0.0,
             screen_facing_planar_texture=False,
             lens_rotations=None,
+            debug_mode=False,
     ):
         if camera_positions is None:
             camera_positions = [
@@ -79,6 +80,9 @@ class RendererConfig:
 
         # Lens rotations for the camera
         self.lens_rotations = lens_rotations or [0.0] * len(self.camera_positions)
+
+        # Debug mode
+        self.debug_mode = debug_mode
 
         self.validate_winding()
         self.discover_shaders()
