@@ -91,24 +91,18 @@ void main() {
 
     vec3 backgroundColor = vec3(0.0);
 
-    if (screenFacingPlanarTexture) {
-        // Adjust reflectionTexCoords based on reflection vector, but ensure it stays within valid range
-        vec2 reflectionTexCoords = clamp((reflectDir.xy + vec2(1.0)) * 0.5, 0.0, 1.0);
+    // Unified distortion logic for screen-facing and non-screen-facing planar textures
+    vec2 reflectionTexCoords = (reflectDir.xy + vec2(1.0)) * 0.5;
+    vec2 normalDistortion = (texture(normalMap, flippedTexCoords).rg * 2.0 - 1.0) * distortionStrength;
 
-        backgroundColor = texture(screenTexture, reflectionTexCoords).rgb;
+    // Apply distortion based on the normal map without affecting texture stretching
+    vec2 distortedCoords = screenFacingPlanarTexture ? reflectionTexCoords + normalDistortion : flippedTexCoords + normalDistortion;
 
-        // If backgroundColor is near black, use fallback color
-        if (length(backgroundColor) < 0.05) {
-            backgroundColor = fallbackColor;
-        }
-    } else {
-        vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
-        backgroundColor = texture(screenTexture, distortedCoords).rgb;
+    backgroundColor = texture(screenTexture, clamp(distortedCoords, 0.0, 1.0)).rgb;
 
-        // If backgroundColor is near black, use fallback color
-        if (length(backgroundColor) < 0.05) {
-            backgroundColor = fallbackColor;
-        }
+    // If backgroundColor is near black, use fallback color
+    if (length(backgroundColor) < 0.05) {
+        backgroundColor = fallbackColor;
     }
 
     vec3 diffuseColor = texture(diffuseMap, flippedTexCoords, textureLodLevel).rgb;
