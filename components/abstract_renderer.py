@@ -55,7 +55,8 @@ class AbstractRenderer(ABC):
                  apply_gamma_correction=False, texture_lod_bias=0.0, env_map_lod_bias=0.0, culling=True,
                  msaa_level=8, anisotropy=16.0, auto_camera=False, move_speed=1.0, loop=True,
                  front_face_winding="CCW", window_size=(800, 600), phong_shading=False, opacity=1.0,
-                 distortion_strength=0.3, reflection_strength=0.0, screen_texture=None, planar_camera=False,
+                 distortion_strength=0.3, reflection_strength=0.0, distortion_warped=False, screen_texture=None,
+                 planar_camera=False,
                  planar_resolution=(1024, 1024), planar_fov=45, planar_near_plane=0.1, planar_far_plane=100,
                  planar_camera_position_rotation=(0, 0, 0, 0, 0), planar_relative_to_camera=False,
                  planar_camera_lens_rotation=0.0,
@@ -99,6 +100,7 @@ class AbstractRenderer(ABC):
         self.opacity = opacity
         self.distortion_strength = distortion_strength
         self.reflection_strength = reflection_strength
+        self.distortion_warped = distortion_warped
 
         self.screen_texture = screen_texture
         self.planar_resolution = planar_resolution
@@ -459,6 +461,7 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_program, "opacity"), self.opacity)
         glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
         glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
+        glUniform1f(glGetUniformLocation(self.shader_program, "warped"), self.distortion_warped)
 
         glUniform2f(glGetUniformLocation(self.shader_program, "screenResolution"), self.window_size[0],
                     self.window_size[1])
