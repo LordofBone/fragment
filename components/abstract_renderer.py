@@ -1,9 +1,12 @@
+import os
+import time
 from abc import ABC, abstractmethod
 
 import glm
 import pygame
 from OpenGL.GL import *
 from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
+from PIL import Image
 
 from components.camera_control import CameraController
 from components.shader_engine import ShaderEngine
@@ -57,7 +60,9 @@ class AbstractRenderer(ABC):
                  planar_camera_position_rotation=(0, 0, 0, 0, 0), planar_relative_to_camera=False,
                  planar_camera_lens_rotation=0.0,
                  lens_rotations=None,
-                 screen_facing_planar_texture=False, **kwargs):
+                 screen_facing_planar_texture=False, debug_mode=False, **kwargs):
+
+        self.debug_mode = debug_mode
 
         self.dynamic_attrs = kwargs
 
@@ -111,6 +116,7 @@ class AbstractRenderer(ABC):
 
         # New attribute
         self.screen_facing_planar_texture = screen_facing_planar_texture
+        self.screen_facing_planar_screenshotted = False
 
         self.vbos = []
         self.vaos = []
@@ -202,7 +208,7 @@ class AbstractRenderer(ABC):
             # Ensure the planar camera's lens rotation matches relative to the main camera's lens rotation
             lens_rotation = self.planar_camera_lens_rotation + self.main_camera_lens_rotation
 
-            # Calculate the direction vector from the object to the camera
+            # Calculate the direction to camera
             direction_to_camera = glm.normalize(self.camera_position - self.translation)
 
             # Planar camera position is relative to the object's position and adjusted direction based on camera distance
@@ -273,6 +279,28 @@ class AbstractRenderer(ABC):
 
         for renderer in scene_renderers:
             renderer.render_with_custom_camera(self.planar_view, self.planar_projection)
+
+        if self.debug_mode:
+            if not self.screen_facing_planar_screenshotted:
+                # Read the texture data from the framebuffer
+                glBindTexture(GL_TEXTURE_2D, self.screen_texture)
+                data = glReadPixels(0, 0, self.planar_resolution[0], self.planar_resolution[1], GL_RGB,
+                                    GL_UNSIGNED_BYTE)
+                image = Image.frombytes("RGB", self.planar_resolution, data)
+                image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Flip the image vertically
+
+                # Create the screenshots directory if it doesn't exist
+                screenshots_dir = "screenshots"
+                if not os.path.exists(screenshots_dir):
+                    os.makedirs(screenshots_dir)
+
+                # Generate the filename with a timestamp
+                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                filename = f"screen_texture_output_{timestamp}.png"
+
+                # Save the image in the screenshots directory
+                image.save(os.path.join(screenshots_dir, filename))
+                self.screen_facing_planar_screenshotted = True
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
