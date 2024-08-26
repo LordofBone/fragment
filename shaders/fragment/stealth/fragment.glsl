@@ -102,9 +102,7 @@ void main() {
             backgroundColor = fallbackColor;
         }
     } else {
-        // Scale down texture coordinates for large objects to ensure proper mapping
-        vec2 scaledTexCoords = mod(flippedTexCoords * 0.1, 1.0);
-        vec2 distortedCoords = scaledTexCoords + normal.xy * distortionStrength;
+        vec2 distortedCoords = flippedTexCoords + normal.xy * distortionStrength;
         backgroundColor = texture(screenTexture, distortedCoords).rgb;
 
         // If backgroundColor is near black, use fallback color
