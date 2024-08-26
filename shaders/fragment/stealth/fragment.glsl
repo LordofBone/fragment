@@ -26,6 +26,7 @@ uniform float distortionStrength;
 uniform float reflectionStrength;
 uniform vec3 ambientColor;
 uniform bool screenFacingPlanarTexture;
+uniform bool warped;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -74,7 +75,9 @@ void main() {
 
     // Calculate view and reflection directions
     vec3 viewDir = normalize(viewPosition - FragPos);
-    vec3 reflectDir = reflect(viewDir, normal);
+
+    // Apply warping conditionally based on the 'warped' uniform
+    vec3 reflectDir = warped ? reflect(viewDir, FragPos) : reflect(viewDir, normal);
 
     // Normalize reflection vector to avoid extreme clamping issues
     reflectDir = normalize(reflectDir);
