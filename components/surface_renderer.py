@@ -10,7 +10,6 @@ texture_manager = TextureManager()
 class SurfaceRenderer(AbstractRenderer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.identifier = "surface"  # Unique identifier for the surface renderer
 
     def create_buffers(self):
         """Create buffers for the surface."""
