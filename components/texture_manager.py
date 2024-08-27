@@ -1,13 +1,9 @@
+from utils.decorators import singleton
+
+
+@singleton
 class TextureManager:
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(TextureManager, cls).__new__(cls, *args, **kwargs)
-            cls._instance._initialize()
-        return cls._instance
-
-    def _initialize(self):
+    def __init__(self):
         # Initialize the texture unit management
         self.current_texture_unit = 0
         self.texture_unit_map = {}
