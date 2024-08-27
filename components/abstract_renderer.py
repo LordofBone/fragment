@@ -526,10 +526,9 @@ class AbstractRenderer(ABC):
         )
 
         if self.screen_texture:
-            screen_texture_unit = texture_manager.get_texture_unit(self.identifier, "screen_texture")
+            screen_texture_unit = texture_manager.get_texture_unit(self.identifier, "planar_camera")
             glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), screen_texture_unit)
 
-        # New uniform
         glUniform1i(
             glGetUniformLocation(self.shader_program, "screenFacingPlanarTexture"),
             int(self.screen_facing_planar_texture),
