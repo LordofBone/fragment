@@ -99,8 +99,8 @@ class AbstractRenderer(ABC):
             debug_mode=False,
             **kwargs,
     ):
-        # Set the unique identifier early
-        self.identifier = kwargs.get('identifier', id(self))  # Unique identifier for the renderer instance
+        # Use the memory address of the instance as a unique identifier
+        self.identifier = self
 
         # Proceed with other initializations
         self.debug_mode = debug_mode
