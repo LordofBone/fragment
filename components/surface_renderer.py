@@ -2,11 +2,15 @@ import numpy as np
 from OpenGL.GL import *
 
 from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.texture_manager import TextureManager
+
+texture_manager = TextureManager()
 
 
 class SurfaceRenderer(AbstractRenderer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.identifier = "surface"  # Unique identifier for the surface renderer
 
     def create_buffers(self):
         """Create buffers for the surface."""
@@ -68,15 +72,18 @@ class SurfaceRenderer(AbstractRenderer):
         """Load textures for the surface."""
         self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap, 5)  # Use a specific texture unit
+            env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
+            glActiveTexture(GL_TEXTURE0 + env_map_unit)
+            self.load_cubemap(self.cubemap_folder, self.environmentMap, env_map_unit)
 
     @common_funcs
     def render(self):
         """Render the surface."""
+        env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
         glBindVertexArray(self.vao)
-        glActiveTexture(GL_TEXTURE5)
+        glActiveTexture(GL_TEXTURE0 + env_map_unit)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), 5)
+        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), env_map_unit)
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 

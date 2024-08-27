@@ -3,6 +3,9 @@ import pywavefront
 from OpenGL.GL import *
 
 from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.texture_manager import TextureManager
+
+texture_manager = TextureManager()
 
 
 class ModelRenderer(AbstractRenderer):
@@ -11,6 +14,7 @@ class ModelRenderer(AbstractRenderer):
         self.obj_path = obj_path
         self.texture_paths = texture_paths
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
+        self.identifier = self.obj_path  # Unique identifier based on the object path
 
     def create_buffers(self):
         """Create buffers for the model."""
@@ -49,40 +53,38 @@ class ModelRenderer(AbstractRenderer):
     def load_textures(self):
         """Load textures for the model."""
         self.diffuseMap = glGenTextures(1)
+        diffuse_unit = texture_manager.get_texture_unit(self.identifier, "diffuse")
+        glActiveTexture(GL_TEXTURE0 + diffuse_unit)
         self.load_texture(self.texture_paths["diffuse"], self.diffuseMap)
 
         self.normalMap = glGenTextures(1)
+        normal_unit = texture_manager.get_texture_unit(self.identifier, "normal")
+        glActiveTexture(GL_TEXTURE0 + normal_unit)
         self.load_texture(self.texture_paths["normal"], self.normalMap)
 
         self.displacementMap = glGenTextures(1)
+        displacement_unit = texture_manager.get_texture_unit(self.identifier, "displacement")
+        glActiveTexture(GL_TEXTURE0 + displacement_unit)
         self.load_texture(self.texture_paths["displacement"], self.displacementMap)
 
         self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap, 3)  # Use a specific texture unit
+            env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
+            glActiveTexture(GL_TEXTURE0 + env_map_unit)
+            self.load_cubemap(self.cubemap_folder, self.environmentMap, env_map_unit)
 
         glUseProgram(self.shader_program)
 
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, self.diffuseMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "diffuseMap"), 0)
-
-        glActiveTexture(GL_TEXTURE1)
-        glBindTexture(GL_TEXTURE_2D, self.normalMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "normalMap"), 1)
-
-        glActiveTexture(GL_TEXTURE2)
-        glBindTexture(GL_TEXTURE_2D, self.displacementMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "displacementMap"), 2)
-
-        glActiveTexture(GL_TEXTURE3)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), 3)
+        glUniform1i(glGetUniformLocation(self.shader_program, "diffuseMap"), diffuse_unit)
+        glUniform1i(glGetUniformLocation(self.shader_program, "normalMap"), normal_unit)
+        glUniform1i(glGetUniformLocation(self.shader_program, "displacementMap"), displacement_unit)
+        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), env_map_unit)
 
     @common_funcs
     def render(self):
         """Render the model."""
-        glActiveTexture(GL_TEXTURE3)
+        env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
+        glActiveTexture(GL_TEXTURE0 + env_map_unit)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
 
         for mesh in self.object.mesh_list:

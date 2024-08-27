@@ -10,6 +10,10 @@ from PIL import Image
 
 from components.camera_control import CameraController
 from components.shader_engine import ShaderEngine
+from components.texture_manager import TextureManager
+
+# Get the singleton instance of TextureManager
+texture_manager = TextureManager()
 
 
 def common_funcs(func):
@@ -50,53 +54,56 @@ def common_funcs(func):
 
 class AbstractRenderer(ABC):
     def __init__(
-        self,
-        shader_names,
-        shaders=None,
-        cubemap_folder=None,
-        camera_positions=None,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
-        fov=45,
-        near_plane=0.1,
-        far_plane=100,
-        ambient_lighting_strength=(0.0, 0.0, 0.0),
-        lights=None,
-        rotation_speed=2000.0,
-        rotation_axis=(0, 3, 0),
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
-        texture_lod_bias=0.0,
-        env_map_lod_bias=0.0,
-        culling=True,
-        msaa_level=8,
-        anisotropy=16.0,
-        auto_camera=False,
-        move_speed=1.0,
-        loop=True,
-        front_face_winding="CCW",
-        window_size=(800, 600),
-        phong_shading=False,
-        opacity=1.0,
-        distortion_strength=0.3,
-        reflection_strength=0.0,
-        distortion_warped=False,
-        screen_texture=None,
-        planar_camera=False,
-        planar_resolution=(1024, 1024),
-        planar_fov=45,
-        planar_near_plane=0.1,
-        planar_far_plane=100,
-        planar_camera_position_rotation=(0, 0, 0, 0, 0),
-        planar_relative_to_camera=False,
-        planar_camera_lens_rotation=0.0,
-        lens_rotations=None,
-        screen_facing_planar_texture=False,
-        debug_mode=False,
-        **kwargs,
+            self,
+            shader_names,
+            shaders=None,
+            cubemap_folder=None,
+            camera_positions=None,
+            camera_target=(0, 0, 0),
+            up_vector=(0, 1, 0),
+            fov=45,
+            near_plane=0.1,
+            far_plane=100,
+            ambient_lighting_strength=(0.0, 0.0, 0.0),
+            lights=None,
+            rotation_speed=2000.0,
+            rotation_axis=(0, 3, 0),
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
+            texture_lod_bias=0.0,
+            env_map_lod_bias=0.0,
+            culling=True,
+            msaa_level=8,
+            anisotropy=16.0,
+            auto_camera=False,
+            move_speed=1.0,
+            loop=True,
+            front_face_winding="CCW",
+            window_size=(800, 600),
+            phong_shading=False,
+            opacity=1.0,
+            distortion_strength=0.3,
+            reflection_strength=0.0,
+            distortion_warped=False,
+            screen_texture=None,
+            planar_camera=False,
+            planar_resolution=(1024, 1024),
+            planar_fov=45,
+            planar_near_plane=0.1,
+            planar_far_plane=100,
+            planar_camera_position_rotation=(0, 0, 0, 0, 0),
+            planar_relative_to_camera=False,
+            planar_camera_lens_rotation=0.0,
+            lens_rotations=None,
+            screen_facing_planar_texture=False,
+            debug_mode=False,
+            **kwargs,
     ):
-        self.debug_mode = debug_mode
+        # Set the unique identifier early
+        self.identifier = kwargs.get('identifier', id(self))  # Unique identifier for the renderer instance
 
+        # Proceed with other initializations
+        self.debug_mode = debug_mode
         self.dynamic_attrs = kwargs
 
         self.shader_names = shader_names
@@ -206,7 +213,8 @@ class AbstractRenderer(ABC):
         self.set_constant_uniforms()
 
     def setup_planar_camera(self):
-        glActiveTexture(GL_TEXTURE8)
+        texture_unit = texture_manager.get_texture_unit(self.identifier, "planar_camera")
+        glActiveTexture(GL_TEXTURE0 + texture_unit)
         self.planar_framebuffer = glGenFramebuffers(1)
         self.planar_texture = glGenTextures(1)
 
@@ -257,8 +265,8 @@ class AbstractRenderer(ABC):
 
             # Planar camera position is relative to the object's position and adjusted direction based on camera distance
             self.planar_camera_position = (
-                self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
-            ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
+                                                  self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
+                                          ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
 
             # Calculate the relative rotation based on the main camera's orientation
             self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:]) + glm.vec2(
@@ -518,7 +526,8 @@ class AbstractRenderer(ABC):
         )
 
         if self.screen_texture:
-            glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 8)
+            screen_texture_unit = texture_manager.get_texture_unit(self.identifier, "screen_texture")
+            glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), screen_texture_unit)
 
         # New uniform
         glUniform1i(
