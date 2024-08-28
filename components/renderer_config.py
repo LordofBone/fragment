@@ -241,11 +241,13 @@ class RendererConfig:
 
         return surface_config
 
-    def add_skybox(self, cubemap_folder=None, shader_names=("skybox_vertex", "skybox_fragment"), **kwargs):
+    def add_skybox(self, cubemap_folder=None, texture_paths=None, shader_names=("skybox_vertex", "skybox_fragment"),
+                   **kwargs):
         """Add a skybox to the configuration."""
         skybox_config = self.unpack()
 
         skybox_specifics = {
+            "texture_paths": texture_paths,
             "shader_names": shader_names,
             "cubemap_folder": cubemap_folder,
         }
