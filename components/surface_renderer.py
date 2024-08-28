@@ -73,7 +73,7 @@ class SurfaceRenderer(AbstractRenderer):
         if self.cubemap_folder:
             env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
             glActiveTexture(GL_TEXTURE0 + env_map_unit)
-            self.load_cubemap(self.cubemap_folder, self.environmentMap, env_map_unit)
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
     @common_funcs
     def render(self):
