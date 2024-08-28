@@ -6,6 +6,7 @@ class RendererConfig:
     def __init__(
         self,
         window_size=(800, 600),
+        texture_paths=None,
         cubemap_folder=None,
         camera_positions=None,
         camera_target=(0, 0, 0),
@@ -42,6 +43,7 @@ class RendererConfig:
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2, 0.0, 0.0)]
         self.window_size = window_size
+        self.texture_paths = texture_paths
         self.shaders = shaders
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions
@@ -182,6 +184,7 @@ class RendererConfig:
 
     def add_surface(
         self,
+        texture_paths=None,
         shader_names=("standard", "default"),
         rotation_speed=0.0,
         apply_tone_mapping=False,
@@ -207,6 +210,7 @@ class RendererConfig:
         surface_config = self.unpack()
 
         surface_specifics = {
+            "texture_paths": texture_paths,
             "shader_names": shader_names,
             "rotation_speed": rotation_speed,
             "apply_tone_mapping": apply_tone_mapping,
@@ -237,11 +241,14 @@ class RendererConfig:
 
         return surface_config
 
-    def add_skybox(self, cubemap_folder=None, shader_names=("skybox_vertex", "skybox_fragment"), **kwargs):
+    def add_skybox(
+        self, cubemap_folder=None, texture_paths=None, shader_names=("skybox_vertex", "skybox_fragment"), **kwargs
+    ):
         """Add a skybox to the configuration."""
         skybox_config = self.unpack()
 
         skybox_specifics = {
+            "texture_paths": texture_paths,
             "shader_names": shader_names,
             "cubemap_folder": cubemap_folder,
         }

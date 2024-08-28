@@ -10,6 +10,10 @@ from PIL import Image
 
 from components.camera_control import CameraController
 from components.shader_engine import ShaderEngine
+from components.texture_manager import TextureManager
+
+# Get the singleton instance of TextureManager
+texture_manager = TextureManager()
 
 
 def common_funcs(func):
@@ -36,7 +40,6 @@ def common_funcs(func):
         result = func(self, *args, **kwargs)
 
         # Unbind textures
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
         glBindTexture(GL_TEXTURE_2D, 0)
 
         # Culling teardown
@@ -95,8 +98,11 @@ class AbstractRenderer(ABC):
         debug_mode=False,
         **kwargs,
     ):
-        self.debug_mode = debug_mode
+        # Use the memory address of the instance as a unique identifier
+        self.identifier = self
 
+        # Proceed with other initializations
+        self.debug_mode = debug_mode
         self.dynamic_attrs = kwargs
 
         self.shader_names = shader_names
@@ -206,7 +212,8 @@ class AbstractRenderer(ABC):
         self.set_constant_uniforms()
 
     def setup_planar_camera(self):
-        glActiveTexture(GL_TEXTURE8)
+        texture_unit = texture_manager.get_texture_unit(self.identifier, "planar_camera")
+        glActiveTexture(GL_TEXTURE0 + texture_unit)
         self.planar_framebuffer = glGenFramebuffers(1)
         self.planar_texture = glGenTextures(1)
 
@@ -372,6 +379,31 @@ class AbstractRenderer(ABC):
         shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path)
         self.shader_program = shader_engine.shader_program
 
+    def load_textures(self):
+        """Load textures for the model."""
+        glUseProgram(self.shader_program)
+        if self.texture_paths:
+            self.load_and_set_texture("diffuse", "diffuseMap")
+            self.load_and_set_texture("normal", "normalMap")
+            self.load_and_set_texture("displacement", "displacementMap")
+
+        self.environmentMap = glGenTextures(1)
+        env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
+        glActiveTexture(GL_TEXTURE0 + env_map_unit)
+        if self.cubemap_folder:
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
+        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), env_map_unit)
+
+    def load_and_set_texture(self, texture_type, uniform_name):
+        """Helper method to load a texture and set the corresponding uniform."""
+        texture_map = glGenTextures(1)
+        texture_unit = texture_manager.get_texture_unit(self.identifier, texture_type)
+        glActiveTexture(GL_TEXTURE0 + texture_unit)
+        self.load_texture(self.texture_paths[texture_type], texture_map)
+        glBindTexture(GL_TEXTURE_2D, texture_map)
+        glUniform1i(glGetUniformLocation(self.shader_program, uniform_name), texture_unit)
+
     def load_texture(self, path, texture):
         surface = pygame.image.load(path)
         img_data = pygame.image.tostring(surface, "RGB", True)
@@ -387,9 +419,8 @@ class AbstractRenderer(ABC):
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, self.texture_lod_bias)
         glBindTexture(GL_TEXTURE_2D, 0)
 
-    def load_cubemap(self, folder_path, texture, texture_unit):
+    def load_cubemap(self, folder_path, texture):
         faces = ["right.png", "left.png", "bottom.png", "top.png", "front.png", "back.png"]
-        glActiveTexture(GL_TEXTURE0 + texture_unit)
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
             surface = pygame.image.load(folder_path + face)
@@ -518,9 +549,9 @@ class AbstractRenderer(ABC):
         )
 
         if self.screen_texture:
-            glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), 8)
+            screen_texture_unit = texture_manager.get_texture_unit(self.identifier, "planar_camera")
+            glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), screen_texture_unit)
 
-        # New uniform
         glUniform1i(
             glGetUniformLocation(self.shader_program, "screenFacingPlanarTexture"),
             int(self.screen_facing_planar_texture),

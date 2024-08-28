@@ -3,6 +3,9 @@ import pywavefront
 from OpenGL.GL import *
 
 from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.texture_manager import TextureManager
+
+texture_manager = TextureManager()
 
 
 class ModelRenderer(AbstractRenderer):
@@ -46,45 +49,9 @@ class ModelRenderer(AbstractRenderer):
             glBindBuffer(GL_ARRAY_BUFFER, 0)
             glBindVertexArray(0)
 
-    def load_textures(self):
-        """Load textures for the model."""
-        self.diffuseMap = glGenTextures(1)
-        self.load_texture(self.texture_paths["diffuse"], self.diffuseMap)
-
-        self.normalMap = glGenTextures(1)
-        self.load_texture(self.texture_paths["normal"], self.normalMap)
-
-        self.displacementMap = glGenTextures(1)
-        self.load_texture(self.texture_paths["displacement"], self.displacementMap)
-
-        self.environmentMap = glGenTextures(1)
-        if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap, 3)  # Use a specific texture unit
-
-        glUseProgram(self.shader_program)
-
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, self.diffuseMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "diffuseMap"), 0)
-
-        glActiveTexture(GL_TEXTURE1)
-        glBindTexture(GL_TEXTURE_2D, self.normalMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "normalMap"), 1)
-
-        glActiveTexture(GL_TEXTURE2)
-        glBindTexture(GL_TEXTURE_2D, self.displacementMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "displacementMap"), 2)
-
-        glActiveTexture(GL_TEXTURE3)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), 3)
-
     @common_funcs
     def render(self):
         """Render the model."""
-        glActiveTexture(GL_TEXTURE3)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-
         for mesh in self.object.mesh_list:
             material = self.object.materials["Material"]
             glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
