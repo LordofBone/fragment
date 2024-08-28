@@ -8,8 +8,9 @@ texture_manager = TextureManager()
 
 
 class SurfaceRenderer(AbstractRenderer):
-    def __init__(self, **kwargs):
+    def __init__(self, texture_paths, **kwargs):
         super().__init__(**kwargs)
+        self.texture_paths = texture_paths
 
     def create_buffers(self):
         """Create buffers for the surface."""
@@ -67,23 +68,9 @@ class SurfaceRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
-    def load_textures(self):
-        """Load textures for the surface."""
-        self.environmentMap = glGenTextures(1)
-        if self.cubemap_folder:
-            env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
-            glActiveTexture(GL_TEXTURE0 + env_map_unit)
-            self.load_cubemap(self.cubemap_folder, self.environmentMap)
-
     @common_funcs
     def render(self):
         """Render the surface."""
-        env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
         glBindVertexArray(self.vao)
-        glActiveTexture(GL_TEXTURE0 + env_map_unit)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), env_map_unit)
-
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
-
         glBindVertexArray(0)
