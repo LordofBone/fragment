@@ -20,25 +20,35 @@ class RenderingInstance:
             window_size=self.config.window_size, title="Renderer", msaa_level=self.config.msaa_level
         )
 
-        for renderer_name, renderer in self.scene_construct.renderers.items():
+        for renderer in self.scene_construct.renderers.values():
             renderer.setup()
 
         self.initialize_framebuffers(self.config.window_size[0], self.config.window_size[1])
 
     def initialize_framebuffers(self, width, height):
         for renderer_name in self.scene_construct.renderers:
-            framebuffer, texture = self.create_framebuffer(width, height)
-            self.framebuffers[renderer_name] = (framebuffer, texture)
+            self.framebuffers[renderer_name] = self.create_framebuffer(width, height)
 
     def create_framebuffer(self, width, height):
         framebuffer = glGenFramebuffers(1)
+        texture = self.create_texture(width, height)
+        self.attach_texture_to_framebuffer(framebuffer, texture, width, height)
+        return framebuffer, texture
+
+    def create_texture(self, width, height):
         texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, texture)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, None)
+        self.set_texture_parameters()
+        return texture
+
+    def set_texture_parameters(self):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+
+    def attach_texture_to_framebuffer(self, framebuffer, texture, width, height):
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0)
 
@@ -51,41 +61,51 @@ class RenderingInstance:
             raise RuntimeError("Framebuffer is not complete")
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
-        return framebuffer, texture
 
     def add_renderer(self, name, renderer_type, order=None, **params):
+        renderer = self.create_renderer(renderer_type, **params)
+        self.scene_construct.add_renderer(name, renderer)
+        self.update_render_order(name, order)
+
+    def create_renderer(self, renderer_type, **params):
         if renderer_type == "model":
-            renderer = ModelRenderer(**params)
+            return ModelRenderer(**params)
         elif renderer_type == "surface":
-            renderer = SurfaceRenderer(**params)
+            return SurfaceRenderer(**params)
         elif renderer_type == "skybox":
-            renderer = SkyboxRenderer(**params)
+            return SkyboxRenderer(**params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
 
-        self.scene_construct.add_renderer(name, renderer)
-
+    def update_render_order(self, name, order):
         if order is None:
-            if self.render_order:
-                order = max(o for _, o in self.render_order) + 1
-            else:
-                order = 0
+            order = self.calculate_order()
 
         self.render_order.append((name, order))
-        self.render_order.sort(key=lambda x: x[1], reverse=False)
+        self.render_order.sort(key=lambda x: x[1])
+
+    def calculate_order(self):
+        if self.render_order:
+            return max(o for _, o in self.render_order) + 1
+        return 0
 
     def run(self):
         self.setup()
 
         def render_callback(delta_time):
-            for renderer_name, _ in self.render_order:
-                renderer = self.scene_construct.renderers[renderer_name]
-                if renderer.planar_camera:
-                    renderer.render_planar_view(self.scene_construct.renderers.values())
-
-            for renderer_name, _ in self.render_order:
-                renderer = self.scene_construct.renderers[renderer_name]
-                renderer.update_camera(delta_time)
-                self.scene_construct.render(renderer_name)
+            self.render_planar_views()
+            self.render_scene(delta_time)
 
         self.render_window.mainloop(render_callback)
+
+    def render_planar_views(self):
+        for renderer_name, _ in self.render_order:
+            renderer = self.scene_construct.renderers[renderer_name]
+            if renderer.planar_camera:
+                renderer.render_planar_view(self.scene_construct.renderers.values())
+
+    def render_scene(self, delta_time):
+        for renderer_name, _ in self.render_order:
+            renderer = self.scene_construct.renderers[renderer_name]
+            renderer.update_camera(delta_time)
+            self.scene_construct.render(renderer_name)
