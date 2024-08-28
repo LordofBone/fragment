@@ -3,6 +3,10 @@ import numpy as np
 from OpenGL.GL import *
 
 from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.texture_manager import TextureManager
+
+# Get the singleton instance of TextureManager
+texture_manager = TextureManager()
 
 
 class SkyboxRenderer(AbstractRenderer):
@@ -142,9 +146,11 @@ class SkyboxRenderer(AbstractRenderer):
 
     def load_textures(self):
         """Load the skybox cubemap."""
-        self.environmentMap = glGenTextures(1)
         if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap, 4)  # Use a specific texture unit
+            self.environmentMap = glGenTextures(1)
+            env_map_unit = texture_manager.get_texture_unit(self.identifier, "skybox_cubemap")
+            glActiveTexture(GL_TEXTURE0 + env_map_unit)
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
     @common_funcs
     def render(self):
@@ -162,9 +168,10 @@ class SkyboxRenderer(AbstractRenderer):
         )
 
         glBindVertexArray(self.skybox_vao)
-        glActiveTexture(GL_TEXTURE4)
+        texture_unit = texture_manager.get_texture_unit(self.identifier, "skybox_cubemap")
+        glActiveTexture(GL_TEXTURE0 + texture_unit)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "skybox"), 4)
+        glUniform1i(glGetUniformLocation(self.shader_program, "skybox"), texture_unit)
 
         glDrawArrays(GL_TRIANGLES, 0, 36)
 
