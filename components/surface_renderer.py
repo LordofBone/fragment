@@ -8,9 +8,8 @@ texture_manager = TextureManager()
 
 
 class SurfaceRenderer(AbstractRenderer):
-    def __init__(self, texture_paths, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.texture_paths = texture_paths
 
     def create_buffers(self):
         """Create buffers for the surface."""
