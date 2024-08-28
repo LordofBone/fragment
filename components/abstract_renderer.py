@@ -383,33 +383,26 @@ class AbstractRenderer(ABC):
         """Load textures for the model."""
         glUseProgram(self.shader_program)
         if self.texture_paths:
-            self.diffuseMap = glGenTextures(1)
-            diffuse_unit = texture_manager.get_texture_unit(self.identifier, "diffuse")
-            glActiveTexture(GL_TEXTURE0 + diffuse_unit)
-            self.load_texture(self.texture_paths["diffuse"], self.diffuseMap)
-            glBindTexture(GL_TEXTURE_2D, self.diffuseMap)
-            glUniform1i(glGetUniformLocation(self.shader_program, "diffuseMap"), diffuse_unit)
-
-            self.normalMap = glGenTextures(1)
-            normal_unit = texture_manager.get_texture_unit(self.identifier, "normal")
-            glActiveTexture(GL_TEXTURE0 + normal_unit)
-            self.load_texture(self.texture_paths["normal"], self.normalMap)
-            glBindTexture(GL_TEXTURE_2D, self.normalMap)
-            glUniform1i(glGetUniformLocation(self.shader_program, "normalMap"), normal_unit)
-
-            self.displacementMap = glGenTextures(1)
-            displacement_unit = texture_manager.get_texture_unit(self.identifier, "displacement")
-            glActiveTexture(GL_TEXTURE0 + displacement_unit)
-            self.load_texture(self.texture_paths["displacement"], self.displacementMap)
-            glBindTexture(GL_TEXTURE_2D, self.displacementMap)
-            glUniform1i(glGetUniformLocation(self.shader_program, "displacementMap"), displacement_unit)
+            self.load_and_set_texture("diffuse", "diffuseMap")
+            self.load_and_set_texture("normal", "normalMap")
+            self.load_and_set_texture("displacement", "displacementMap")
 
         self.environmentMap = glGenTextures(1)
         env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
         glActiveTexture(GL_TEXTURE0 + env_map_unit)
-        if self.cubemap_folder: self.load_cubemap(self.cubemap_folder, self.environmentMap)
+        if self.cubemap_folder:
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
         glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), env_map_unit)
+
+    def load_and_set_texture(self, texture_type, uniform_name):
+        """Helper method to load a texture and set the corresponding uniform."""
+        texture_map = glGenTextures(1)
+        texture_unit = texture_manager.get_texture_unit(self.identifier, texture_type)
+        glActiveTexture(GL_TEXTURE0 + texture_unit)
+        self.load_texture(self.texture_paths[texture_type], texture_map)
+        glBindTexture(GL_TEXTURE_2D, texture_map)
+        glUniform1i(glGetUniformLocation(self.shader_program, uniform_name), texture_unit)
 
     def load_texture(self, path, texture):
         surface = pygame.image.load(path)
