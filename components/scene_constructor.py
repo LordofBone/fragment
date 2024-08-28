@@ -14,25 +14,30 @@ class SceneConstructor:
         if name:
             self.renderers[name].render()
         else:
-            for renderer in self.renderers.values():
-                renderer.render()
+            self._apply_to_all_renderers(lambda r: r.render())
 
     def translate_renderer(self, name, position):
         """Translate a renderer in the scene."""
-        if name in self.renderers:
-            self.renderers[name].translate(position)
+        self._apply_to_renderer(name, lambda r: r.translate(position))
 
     def rotate_renderer(self, name, angle, axis):
         """Rotate a renderer in the scene."""
-        if name in self.renderers:
-            self.renderers[name].rotate(angle, axis)
+        self._apply_to_renderer(name, lambda r: r.rotate(angle, axis))
 
     def scale_renderer(self, name, scale):
         """Scale a renderer in the scene."""
-        if name in self.renderers:
-            self.renderers[name].scale(scale)
+        self._apply_to_renderer(name, lambda r: r.scale(scale))
 
     def set_auto_rotation(self, name, enabled):
         """Enable or disable auto-rotation for a renderer."""
+        self._apply_to_renderer(name, lambda r: r.enable_auto_rotation(enabled))
+
+    def _apply_to_renderer(self, name, action):
+        """Apply an action to a renderer if it exists."""
         if name in self.renderers:
-            self.renderers[name].enable_auto_rotation(enabled)
+            action(self.renderers[name])
+
+    def _apply_to_all_renderers(self, action):
+        """Apply an action to all renderers."""
+        for renderer in self.renderers.values():
+            action(renderer)
