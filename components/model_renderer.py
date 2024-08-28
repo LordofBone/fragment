@@ -62,12 +62,12 @@ class ModelRenderer(AbstractRenderer):
         self.displacementMap = glGenTextures(1)
         self.load_texture(self.texture_paths["displacement"], self.displacementMap)
 
-        env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
         self.environmentMap = glGenTextures(1)
-        if self.cubemap_folder:
-            self.load_cubemap(self.cubemap_folder, self.environmentMap, env_map_unit)  # Use a specific texture unit
+        env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
+        glActiveTexture(GL_TEXTURE0 + env_map_unit)
 
-        glUseProgram(self.shader_program)
+        if self.cubemap_folder:
+            self.load_cubemap(self.cubemap_folder, self.environmentMap)
 
         diffuse_unit = texture_manager.get_texture_unit(self.identifier, "diffuse")
         glActiveTexture(GL_TEXTURE0 + diffuse_unit)
