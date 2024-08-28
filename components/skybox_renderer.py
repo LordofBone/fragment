@@ -10,8 +10,9 @@ texture_manager = TextureManager()
 
 
 class SkyboxRenderer(AbstractRenderer):
-    def __init__(self, **kwargs):
+    def __init__(self, texture_paths, **kwargs):
         super().__init__(**kwargs)
+        self.texture_paths = texture_paths
         self.skybox_vao = None
         self.skybox_vbo = None
 
@@ -144,14 +145,6 @@ class SkyboxRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
-    def load_textures(self):
-        """Load the skybox cubemap."""
-        if self.cubemap_folder:
-            self.environmentMap = glGenTextures(1)
-            env_map_unit = texture_manager.get_texture_unit(self.identifier, "skybox_cubemap")
-            glActiveTexture(GL_TEXTURE0 + env_map_unit)
-            self.load_cubemap(self.cubemap_folder, self.environmentMap)
-
     @common_funcs
     def render(self):
         glDepthFunc(
@@ -168,12 +161,6 @@ class SkyboxRenderer(AbstractRenderer):
         )
 
         glBindVertexArray(self.skybox_vao)
-        texture_unit = texture_manager.get_texture_unit(self.identifier, "skybox_cubemap")
-        glActiveTexture(GL_TEXTURE0 + texture_unit)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "skybox"), texture_unit)
-
         glDrawArrays(GL_TRIANGLES, 0, 36)
-
         glBindVertexArray(0)
         glDepthFunc(GL_LESS)  # Set depth function back to default
