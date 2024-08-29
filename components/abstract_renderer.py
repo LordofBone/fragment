@@ -56,6 +56,7 @@ class AbstractRenderer(ABC):
         self,
         shader_names,
         shaders=None,
+        texture_paths=None,
         cubemap_folder=None,
         camera_positions=None,
         camera_target=(0, 0, 0),
@@ -107,6 +108,7 @@ class AbstractRenderer(ABC):
 
         self.shader_names = shader_names
         self.shaders = shaders or {}
+        self.texture_paths = texture_paths or {}
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions or [(0, 0, 0, 0, 0)]
         self.camera_target = glm.vec3(*camera_target)

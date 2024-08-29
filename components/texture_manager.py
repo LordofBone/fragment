@@ -4,9 +4,7 @@ from utils.decorators import singleton
 @singleton
 class TextureManager:
     def __init__(self):
-        # Initialize the texture unit management
-        self.current_texture_unit = 0
-        self.texture_unit_map = {}
+        self.reset()
 
     def get_texture_unit(self, identifier, texture_type):
         """
@@ -20,15 +18,15 @@ class TextureManager:
             int: The assigned texture unit.
         """
         key = (identifier, texture_type)
-        if key not in self.texture_unit_map:
-            # Assign a new texture unit and increment the counter
-            self.texture_unit_map[key] = self.current_texture_unit
-            self.current_texture_unit += 1
-        return self.texture_unit_map[key]
+        return self.texture_unit_map.setdefault(key, self._assign_new_texture_unit())
+
+    def _assign_new_texture_unit(self):
+        """Assign a new texture unit."""
+        texture_unit = self.current_texture_unit
+        self.current_texture_unit += 1
+        return texture_unit
 
     def reset(self):
-        """
-        Resets the texture manager, clearing all stored texture units.
-        """
+        """Resets the texture manager, clearing all stored texture units."""
         self.current_texture_unit = 0
-        self.texture_unit_map.clear()
+        self.texture_unit_map = {}

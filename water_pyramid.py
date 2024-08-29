@@ -58,7 +58,28 @@ if __name__ == "__main__":
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
-        rotation_speed=2000.0,
+    )
+
+    # Define the configuration for the opaque pyramid model
+    opaque_pyramid_config = base_config.add_model(
+        obj_path="models/pyramid.obj",
+        cubemap_folder="textures/cube/mountain_lake/",
+        texture_paths={
+            "diffuse": "textures/diffuse/metal_1.png",
+            "normal": "textures/normal/metal_1.png",
+            "displacement": "textures/displacement/metal_1.png",
+        },
+        shader_names=("standard", "stealth"),
+        opacity=0.5,
+        distortion_strength=0.2,
+        reflection_strength=0.4,
+        planar_camera=True,
+        planar_resolution=(1024, 1024),
+        planar_fov=30,
+        planar_camera_position_rotation=(3.0, 6.0, 0.0, 0.0, 0.0),
+        planar_relative_to_camera=True,
+        planar_camera_lens_rotation=0.0,
+        screen_facing_planar_texture=True,
     )
 
     # Define the configuration for the rotating pyramid model
@@ -96,6 +117,7 @@ if __name__ == "__main__":
     instance.add_renderer("water_surface", "surface", **water_config)
     instance.add_renderer("model_stretched", "model", **stretched_pyramid_config)
     instance.add_renderer("model_rotating", "model", **rotating_pyramid_config)
+    instance.add_renderer("model_opaque", "model", **opaque_pyramid_config)
 
     # Example transformations
     instance.scene_construct.translate_renderer("model_rotating", (-3, 0, 0))  # Translate first model
@@ -106,7 +128,10 @@ if __name__ == "__main__":
 
     instance.scene_construct.translate_renderer("model_stretched", (2, 0, 0))  # Translate second model
     instance.scene_construct.scale_renderer("model_stretched", (1.2, 1.2, 1.2))  # Scale second model
-    instance.scene_construct.set_auto_rotation("model_stretched", False)  # Disable auto-rotation for second model
+
+    instance.scene_construct.translate_renderer("model_opaque", (6, 0, -6))  # Translate second model
+    instance.scene_construct.scale_renderer("model_opaque", (1.3, 1.3, 1.3))  # Scale second model
+    instance.scene_construct.set_auto_rotation("model_opaque", False)  # Disable auto-rotation for second model
 
     # Run the rendering instance
     instance.run()
