@@ -1,6 +1,7 @@
 from OpenGL.GL import *
 
 from components.model_renderer import ModelRenderer
+from components.particle_renderer import ParticleRenderer
 from components.renderer_window import RendererWindow
 from components.scene_constructor import SceneConstructor
 from components.skybox_renderer import SkyboxRenderer
@@ -74,6 +75,8 @@ class RenderingInstance:
             return SurfaceRenderer(**params)
         elif renderer_type == "skybox":
             return SkyboxRenderer(**params)
+        elif renderer_type == "particle":
+            return ParticleRenderer(**params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
 
