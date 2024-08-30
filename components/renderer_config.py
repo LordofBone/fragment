@@ -4,41 +4,41 @@ import os
 
 class RendererConfig:
     def __init__(
-        self,
-        window_size=(800, 600),
-        texture_paths=None,
-        cubemap_folder=None,
-        camera_positions=None,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
-        rotation_axis=(0, 3, 0),
-        fov=40,
-        near_plane=0.1,
-        far_plane=1000,
-        lights=None,
-        anisotropy=16.0,
-        auto_camera=False,
-        msaa_level=8,
-        culling=True,
-        texture_lod_bias=0.0,
-        env_map_lod_bias=0.0,
-        move_speed=1.0,
-        loop=True,
-        front_face_winding="CCW",
-        shaders=None,
-        phong_shading=False,
-        ambient_lighting_strength=(0.0, 0.0, 0.0),
-        planar_camera=False,
-        planar_fov=45,
-        planar_near_plane=0.1,
-        planar_far_plane=100,
-        planar_resolution=(1024, 1024),
-        planar_camera_position_rotation=(0, 0, 0, 0, 0),
-        planar_relative_to_camera=True,
-        planar_camera_lens_rotation=0.0,
-        screen_facing_planar_texture=False,
-        lens_rotations=None,
-        debug_mode=None,
+            self,
+            window_size=(800, 600),
+            texture_paths=None,
+            cubemap_folder=None,
+            camera_positions=None,
+            camera_target=(0, 0, 0),
+            up_vector=(0, 1, 0),
+            rotation_axis=(0, 3, 0),
+            fov=40,
+            near_plane=0.1,
+            far_plane=1000,
+            lights=None,
+            anisotropy=16.0,
+            auto_camera=False,
+            msaa_level=8,
+            culling=True,
+            texture_lod_bias=0.0,
+            env_map_lod_bias=0.0,
+            move_speed=1.0,
+            loop=True,
+            front_face_winding="CCW",
+            shaders=None,
+            phong_shading=False,
+            ambient_lighting_strength=(0.0, 0.0, 0.0),
+            planar_camera=False,
+            planar_fov=45,
+            planar_near_plane=0.1,
+            planar_far_plane=100,
+            planar_resolution=(1024, 1024),
+            planar_camera_position_rotation=(0, 0, 0, 0, 0),
+            planar_relative_to_camera=True,
+            planar_camera_lens_rotation=0.0,
+            screen_facing_planar_texture=False,
+            lens_rotations=None,
+            debug_mode=None,
     ):
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2, 0.0, 0.0)]
@@ -98,7 +98,7 @@ class RendererConfig:
         if not os.path.exists(shader_root):
             raise FileNotFoundError(f"The shader root directory '{shader_root}' does not exist.")
 
-        for shader_type in ["vertex", "fragment"]:
+        for shader_type in ["vertex", "fragment", "compute"]:
             type_path = os.path.join(shader_root, shader_type)
             if not os.path.exists(type_path):
                 continue
@@ -116,30 +116,30 @@ class RendererConfig:
         return copy.deepcopy(self.__dict__)  # Use deepcopy to avoid mutating the original configuration
 
     def add_model(
-        self,
-        obj_path,
-        texture_paths,
-        shader_names=("standard", "default"),
-        rotation_speed=0.0,
-        rotation_axis=(0, 3, 0),
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
-        width=10.0,
-        height=10.0,
-        cubemap_folder=None,
-        phong_shading=None,
-        planar_camera=None,
-        planar_fov=None,
-        planar_near_plane=None,
-        planar_far_plane=None,
-        planar_resolution=None,
-        planar_camera_position_rotation=None,
-        planar_relative_to_camera=None,
-        planar_camera_lens_rotation=None,
-        screen_facing_planar_texture=None,
-        lens_rotations=None,
-        debug_mode=None,
-        **kwargs,
+            self,
+            obj_path,
+            texture_paths,
+            shader_names=("standard", "default"),
+            rotation_speed=0.0,
+            rotation_axis=(0, 3, 0),
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
+            width=10.0,
+            height=10.0,
+            cubemap_folder=None,
+            phong_shading=None,
+            planar_camera=None,
+            planar_fov=None,
+            planar_near_plane=None,
+            planar_far_plane=None,
+            planar_resolution=None,
+            planar_camera_position_rotation=None,
+            planar_relative_to_camera=None,
+            planar_camera_lens_rotation=None,
+            screen_facing_planar_texture=None,
+            lens_rotations=None,
+            debug_mode=None,
+            **kwargs,
     ):
         """Add a model to the configuration."""
 
@@ -183,27 +183,27 @@ class RendererConfig:
         return model_config
 
     def add_surface(
-        self,
-        shader_names=("standard", "default"),
-        rotation_speed=0.0,
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
-        width=500.0,
-        height=500.0,
-        cubemap_folder=None,
-        phong_shading=None,
-        planar_camera=None,
-        planar_fov=None,
-        planar_near_plane=None,
-        planar_far_plane=None,
-        planar_resolution=None,
-        planar_camera_position_rotation=None,
-        planar_relative_to_camera=None,
-        planar_camera_lens_rotation=None,
-        screen_facing_planar_texture=None,
-        lens_rotations=None,
-        debug_mode=None,
-        **kwargs,
+            self,
+            shader_names=("standard", "default"),
+            rotation_speed=0.0,
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
+            width=500.0,
+            height=500.0,
+            cubemap_folder=None,
+            phong_shading=None,
+            planar_camera=None,
+            planar_fov=None,
+            planar_near_plane=None,
+            planar_far_plane=None,
+            planar_resolution=None,
+            planar_camera_position_rotation=None,
+            planar_relative_to_camera=None,
+            planar_camera_lens_rotation=None,
+            screen_facing_planar_texture=None,
+            lens_rotations=None,
+            debug_mode=None,
+            **kwargs,
     ):
         """Add a surface to the configuration."""
         surface_config = self.unpack()
@@ -256,3 +256,43 @@ class RendererConfig:
                 skybox_config[key] = value
 
         return skybox_config
+
+    def add_particle_renderer(
+            self,
+            particle_count=1000,
+            render_mode='transform_feedback',
+            shader_names=("particle_vertex", "particle_fragment"),
+            compute_shader_program=None,
+            particle_size=1.0,
+            color=(1.0, 1.0, 1.0),
+            gravity=(0.0, -9.81, 0.0),
+            bounce_factor=0.5,
+            ground_plane_normal=(0.0, 1.0, 0.0),
+            ground_plane_height=0.0,
+            **kwargs,
+    ):
+        """Add a particle renderer to the configuration."""
+        particle_config = self.unpack()
+
+        particle_specifics = {
+            "particle_count": particle_count,
+            "render_mode": render_mode,
+            "shader_names": shader_names,
+            "compute_shader_program": compute_shader_program,
+            "particle_size": particle_size,
+            "color": color,
+            "gravity": gravity,
+            "bounce_factor": bounce_factor,
+            "ground_plane_normal": ground_plane_normal,
+            "ground_plane_height": ground_plane_height,
+        }
+
+        # Update the configuration with particle renderer specifics, preserving non-None values
+        particle_config.update({k: v for k, v in particle_specifics.items() if v is not None})
+
+        # Apply any additional keyword arguments passed in kwargs
+        for key, value in kwargs.items():
+            if key not in particle_config:
+                particle_config[key] = value
+
+        return particle_config
