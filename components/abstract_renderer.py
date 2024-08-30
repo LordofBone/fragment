@@ -53,51 +53,51 @@ def common_funcs(func):
 
 class AbstractRenderer(ABC):
     def __init__(
-        self,
-        shader_names,
-        shaders=None,
-        texture_paths=None,
-        cubemap_folder=None,
-        camera_positions=None,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
-        fov=45,
-        near_plane=0.1,
-        far_plane=100,
-        ambient_lighting_strength=(0.0, 0.0, 0.0),
-        lights=None,
-        rotation_speed=2000.0,
-        rotation_axis=(0, 3, 0),
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
-        texture_lod_bias=0.0,
-        env_map_lod_bias=0.0,
-        culling=True,
-        msaa_level=8,
-        anisotropy=16.0,
-        auto_camera=False,
-        move_speed=1.0,
-        loop=True,
-        front_face_winding="CCW",
-        window_size=(800, 600),
-        phong_shading=False,
-        opacity=1.0,
-        distortion_strength=0.3,
-        reflection_strength=0.0,
-        distortion_warped=False,
-        screen_texture=None,
-        planar_camera=False,
-        planar_resolution=(1024, 1024),
-        planar_fov=45,
-        planar_near_plane=0.1,
-        planar_far_plane=100,
-        planar_camera_position_rotation=(0, 0, 0, 0, 0),
-        planar_relative_to_camera=False,
-        planar_camera_lens_rotation=0.0,
-        lens_rotations=None,
-        screen_facing_planar_texture=False,
-        debug_mode=False,
-        **kwargs,
+            self,
+            shader_names,
+            shaders=None,
+            texture_paths=None,
+            cubemap_folder=None,
+            camera_positions=None,
+            camera_target=(0, 0, 0),
+            up_vector=(0, 1, 0),
+            fov=45,
+            near_plane=0.1,
+            far_plane=100,
+            ambient_lighting_strength=(0.0, 0.0, 0.0),
+            lights=None,
+            rotation_speed=2000.0,
+            rotation_axis=(0, 3, 0),
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
+            texture_lod_bias=0.0,
+            env_map_lod_bias=0.0,
+            culling=True,
+            msaa_level=8,
+            anisotropy=16.0,
+            auto_camera=False,
+            move_speed=1.0,
+            loop=True,
+            front_face_winding="CCW",
+            window_size=(800, 600),
+            phong_shading=False,
+            opacity=1.0,
+            distortion_strength=0.3,
+            reflection_strength=0.0,
+            distortion_warped=False,
+            screen_texture=None,
+            planar_camera=False,
+            planar_resolution=(1024, 1024),
+            planar_fov=45,
+            planar_near_plane=0.1,
+            planar_far_plane=100,
+            planar_camera_position_rotation=(0, 0, 0, 0, 0),
+            planar_relative_to_camera=False,
+            planar_camera_lens_rotation=0.0,
+            lens_rotations=None,
+            screen_facing_planar_texture=False,
+            debug_mode=False,
+            **kwargs,
     ):
         # Use the memory address of the instance as a unique identifier
         self.identifier = self
@@ -266,8 +266,8 @@ class AbstractRenderer(ABC):
 
             # Planar camera position is relative to the object's position and adjusted direction based on camera distance
             self.planar_camera_position = (
-                self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
-            ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
+                                                  self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
+                                          ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
 
             # Calculate the relative rotation based on the main camera's orientation
             self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:]) + glm.vec2(
@@ -375,10 +375,12 @@ class AbstractRenderer(ABC):
         self.render()
 
     def init_shaders(self):
-        vertex_shader, fragment_shader = self.shader_names
-        vertex_shader_path = self.shaders["vertex"][vertex_shader]
-        fragment_shader_path = self.shaders["fragment"][fragment_shader]
-        shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path)
+        vertex_shader, fragment_shader, compute_shader = self.shader_names
+        vertex_shader_path = self.shaders["vertex"].get(vertex_shader)
+        fragment_shader_path = self.shaders["fragment"].get(fragment_shader)
+        compute_shader_path = self.shaders["compute"].get(self.shader_names[2]) if len(self.shader_names) > 2 else None
+
+        shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path)
         self.shader_program = shader_engine.shader_program
 
     def load_textures(self):
