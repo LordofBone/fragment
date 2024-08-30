@@ -2,17 +2,28 @@ from OpenGL.GL import *
 
 
 class ShaderEngine:
-    def __init__(self, vertex_shader_path, fragment_shader_path):
-        self.shader_program = self.create_shader_program(vertex_shader_path, fragment_shader_path)
+    def __init__(self, vertex_shader_path=None, fragment_shader_path=None, compute_shader_path=None):
+        self.shader_program = self.create_shader_program(vertex_shader_path, fragment_shader_path, compute_shader_path)
 
-    def create_shader_program(self, vertex_shader_path, fragment_shader_path):
-        vertex_shader = self._create_and_compile_shader(vertex_shader_path, GL_VERTEX_SHADER)
-        fragment_shader = self._create_and_compile_shader(fragment_shader_path, GL_FRAGMENT_SHADER)
+    def create_shader_program(self, vertex_shader_path=None, fragment_shader_path=None, compute_shader_path=None):
+        shaders = []
 
-        shader_program = self._link_shader_program(vertex_shader, fragment_shader)
+        if vertex_shader_path:
+            vertex_shader = self._create_and_compile_shader(vertex_shader_path, GL_VERTEX_SHADER)
+            shaders.append(vertex_shader)
 
-        glDeleteShader(vertex_shader)
-        glDeleteShader(fragment_shader)
+        if fragment_shader_path:
+            fragment_shader = self._create_and_compile_shader(fragment_shader_path, GL_FRAGMENT_SHADER)
+            shaders.append(fragment_shader)
+
+        if compute_shader_path:
+            compute_shader = self._create_and_compile_shader(compute_shader_path, GL_COMPUTE_SHADER)
+            shaders.append(compute_shader)
+
+        shader_program = self._link_shader_program(shaders)
+
+        for shader in shaders:
+            glDeleteShader(shader)
 
         return shader_program
 
@@ -34,17 +45,20 @@ class ShaderEngine:
 
         if not glGetShaderiv(shader, GL_COMPILE_STATUS):
             log = glGetShaderInfoLog(shader)
-            shader_type_str = "vertex" if shader_type == GL_VERTEX_SHADER else "fragment"
+            shader_type_str = \
+                {GL_VERTEX_SHADER: "vertex", GL_FRAGMENT_SHADER: "fragment", GL_COMPUTE_SHADER: "compute"}[shader_type]
             glDeleteShader(shader)
             raise RuntimeError(f"Error compiling {shader_type_str} shader: {log.decode()}")
 
         return shader
 
-    def _link_shader_program(self, vertex_shader, fragment_shader):
-        """Link the vertex and fragment shaders into a shader program."""
+    def _link_shader_program(self, shaders):
+        """Link the shaders into a shader program."""
         shader_program = glCreateProgram()
-        glAttachShader(shader_program, vertex_shader)
-        glAttachShader(shader_program, fragment_shader)
+
+        for shader in shaders:
+            glAttachShader(shader_program, shader)
+
         glLinkProgram(shader_program)
 
         if not glGetProgramiv(shader_program, GL_LINK_STATUS):
