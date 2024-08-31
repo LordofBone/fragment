@@ -6,18 +6,28 @@ layout(location = 1) in vec3 velocity;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-
+uniform float deltaTime;
 uniform float particle_size;
 uniform vec3 gravity;
 uniform float bounceFactor;
 uniform vec3 groundPlaneNormal;
 uniform float groundPlaneHeight;
+uniform float maxVelocity;// Maximum allowed velocity
 
 out vec3 fragColor;
 
 void main() {
-    vec3 newVelocity = velocity + gravity;
-    vec3 newPosition = position + newVelocity;
+    // Update velocity with gravity
+    vec3 newVelocity = velocity + gravity * deltaTime;
+
+    // Clamp the velocity to the maximum allowed value
+    float speed = length(newVelocity);
+    if (speed > maxVelocity) {
+        newVelocity = normalize(newVelocity) * maxVelocity;
+    }
+
+    // Update position
+    vec3 newPosition = position + newVelocity * deltaTime;
 
     // Check for collision with the ground plane
     float distanceToGround = dot(newPosition, groundPlaneNormal) - groundPlaneHeight;
@@ -29,7 +39,7 @@ void main() {
     // Pass the updated position to the next pipeline stage
     gl_Position = projection * view * model * vec4(newPosition, 1.0);
 
-    // Set the color based on the velocity for a visual effect
+    // Set the color based on the clamped velocity for a visual effect
     fragColor = normalize(newVelocity) * 0.5 + 0.5;
 
     // Set the size of the particle
