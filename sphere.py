@@ -55,7 +55,10 @@ if __name__ == "__main__":
             "normal": "textures/normal/metal_1.png",
             "displacement": "textures/displacement/metal_1.png",
         },
-        shader_names=("standard", "stealth"),
+        shader_names={
+            'vertex': 'standard',
+            'fragment': 'stealth',
+        },
         opacity=0.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
@@ -73,7 +76,10 @@ if __name__ == "__main__":
 
     # Define the configuration for the skybox
     skybox_config = base_config.add_skybox(
-        shader_names=("skybox", "skybox"),
+        shader_names={
+            'vertex': 'skybox',
+            'fragment': 'skybox',
+        },
     )
 
     # Add the renderers to the instance with specific names
