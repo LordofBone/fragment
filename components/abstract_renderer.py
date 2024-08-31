@@ -19,7 +19,12 @@ texture_manager = TextureManager()
 def common_funcs(func):
     def wrapper(self, *args, **kwargs):
         glUseProgram(self.shader_program)
-        glEnable(GL_DEPTH_TEST)
+
+        # Depth testing setup
+        if self.depth_testing:
+            glEnable(GL_DEPTH_TEST)
+        else:
+            glDisable(GL_DEPTH_TEST)
 
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_program, "viewPosition"), 1, glm.value_ptr(viewPosition))
@@ -41,6 +46,10 @@ def common_funcs(func):
 
         # Unbind textures
         glBindTexture(GL_TEXTURE_2D, 0)
+
+        # Depth testing teardown
+        if self.depth_testing:
+            glDisable(GL_DEPTH_TEST)
 
         # Culling teardown
         if self.culling:
@@ -72,6 +81,7 @@ class AbstractRenderer(ABC):
             apply_gamma_correction=False,
             texture_lod_bias=0.0,
             env_map_lod_bias=0.0,
+            depth_testing=True,
             culling=True,
             msaa_level=8,
             anisotropy=16.0,
@@ -128,6 +138,7 @@ class AbstractRenderer(ABC):
         self.auto_rotation_enabled = rotation_speed != 0.0
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
+        self.depth_testing = depth_testing
         self.culling = culling
         self.msaa_level = msaa_level
         self.anisotropy = anisotropy
