@@ -375,10 +375,16 @@ class AbstractRenderer(ABC):
         self.render()
 
     def init_shaders(self):
-        vertex_shader, fragment_shader, compute_shader = self.shader_names
-        vertex_shader_path = self.shaders["vertex"].get(vertex_shader)
-        fragment_shader_path = self.shaders["fragment"].get(fragment_shader)
-        compute_shader_path = self.shaders["compute"].get(self.shader_names[2]) if len(self.shader_names) > 2 else None
+        vertex_shader_path = None
+        fragment_shader_path = None
+        compute_shader_path = None
+
+        if 'vertex' in self.shader_names:
+            vertex_shader_path = self.shaders["vertex"].get(self.shader_names['vertex'])
+        if 'fragment' in self.shader_names:
+            fragment_shader_path = self.shaders["fragment"].get(self.shader_names['fragment'])
+        if 'compute' in self.shader_names:
+            compute_shader_path = self.shaders["compute"].get(self.shader_names['compute'])
 
         shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path)
         self.shader_program = shader_engine.shader_program
