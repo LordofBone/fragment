@@ -12,7 +12,7 @@ uniform vec3 gravity;
 uniform float bounceFactor;
 uniform vec3 groundPlaneNormal;
 uniform float groundPlaneHeight;
-uniform float maxVelocity;// Maximum allowed velocity
+uniform float maxVelocity;
 
 out vec3 fragColor;
 
