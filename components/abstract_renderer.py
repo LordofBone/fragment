@@ -583,6 +583,34 @@ class AbstractRenderer(ABC):
         glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position))
         glUniform1f(glGetUniformLocation(self.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "particle_size"),
+            self.dynamic_attrs.get("particle_size", 2.0),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "color"),
+            1,
+            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("color", (1.0, 0.5, 0.2)))),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "gravity"),
+            1,
+            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("gravity", (0.0, -9.81, 0.0)))),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "bounceFactor"),
+            self.dynamic_attrs.get("bounce_factor", 0.6),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "groundPlaneNormal"),
+            1,
+            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("ground_plane_normal", (0.0, 1.0, 0.0)))),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "groundPlaneHeight"),
+            self.dynamic_attrs.get("ground_plane_height", 0.0),
+        )
+
     def update_camera(self, delta_time):
         if self.auto_camera:
             self.camera_position, self.camera_rotation = self.camera_controller.update(delta_time)
