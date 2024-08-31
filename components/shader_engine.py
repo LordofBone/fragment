@@ -3,9 +3,11 @@ from OpenGL.GL import *
 
 class ShaderEngine:
     def __init__(self, vertex_shader_path=None, fragment_shader_path=None, compute_shader_path=None):
-        self.shader_program = self.create_shader_program(vertex_shader_path, fragment_shader_path, compute_shader_path)
+        self.shader_program = self.create_shader_program(
+            vertex_shader_path, fragment_shader_path, compute_shader_path
+        )
 
-    def create_shader_program(self, vertex_shader_path=None, fragment_shader_path=None, compute_shader_path=None):
+    def create_shader_program(self, vertex_shader_path, fragment_shader_path, compute_shader_path):
         shaders = []
 
         if vertex_shader_path:
@@ -22,6 +24,7 @@ class ShaderEngine:
 
         shader_program = self._link_shader_program(shaders)
 
+        # Clean up shaders after linking
         for shader in shaders:
             glDeleteShader(shader)
 
@@ -45,8 +48,11 @@ class ShaderEngine:
 
         if not glGetShaderiv(shader, GL_COMPILE_STATUS):
             log = glGetShaderInfoLog(shader)
-            shader_type_str = \
-                {GL_VERTEX_SHADER: "vertex", GL_FRAGMENT_SHADER: "fragment", GL_COMPUTE_SHADER: "compute"}[shader_type]
+            shader_type_str = {
+                GL_VERTEX_SHADER: "vertex",
+                GL_FRAGMENT_SHADER: "fragment",
+                GL_COMPUTE_SHADER: "compute"
+            }.get(shader_type, "unknown")
             glDeleteShader(shader)
             raise RuntimeError(f"Error compiling {shader_type_str} shader: {log.decode()}")
 
@@ -55,7 +61,6 @@ class ShaderEngine:
     def _link_shader_program(self, shaders):
         """Link the shaders into a shader program."""
         shader_program = glCreateProgram()
-
         for shader in shaders:
             glAttachShader(shader_program, shader)
 
