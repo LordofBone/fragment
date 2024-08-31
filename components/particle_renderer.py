@@ -16,25 +16,38 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_size = self.dynamic_attrs.get('particle_size', 2.0)  # Default particle size
 
     def setup(self):
+        """
+        Setup the particle renderer by initializing shaders and rendering mode.
+        Enables point size control from the shader.
+        """
         self.init_shaders()
         self.init_render_mode()
         glEnable(GL_PROGRAM_POINT_SIZE)  # Enable point size control from the shader
 
     def init_shaders(self):
+        """
+        Initialize shaders for the renderer.
+        Handles shader linking and setup for transform feedback if that mode is enabled.
+        """
         super().init_shaders()
         if self.render_mode == 'transform_feedback':
+            # Specify the variables to capture during transform feedback
             varyings = ["tf_position", "tf_velocity"]
             varyings_c = (ctypes.POINTER(ctypes.c_char) * len(varyings))(
                 *[ctypes.create_string_buffer(v.encode('utf-8')) for v in varyings])
             glTransformFeedbackVaryings(self.shader_program, len(varyings), varyings_c, GL_INTERLEAVED_ATTRIBS)
             glLinkProgram(self.shader_program)
 
+            # Check for successful shader program linking
             if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):
                 log = glGetProgramInfoLog(self.shader_program)
                 raise RuntimeError(f"Shader program linking failed: {log.decode()}")
 
     def init_render_mode(self):
-        """Initialize the buffers and settings based on the selected render mode."""
+        """
+        Initialize the buffers and settings based on the selected render mode.
+        Chooses between transform feedback, compute shader, and standard rendering modes.
+        """
         if self.render_mode == 'transform_feedback':
             self.create_transform_feedback_buffers()
         elif self.render_mode == 'compute_shader':
@@ -45,7 +58,11 @@ class ParticleRenderer(AbstractRenderer):
             raise ValueError(f"Unknown render mode: {self.render_mode}")
 
     def create_transform_feedback_buffers(self):
-        """Setup buffers for transform feedback-based particle rendering."""
+        """
+        Setup buffers for transform feedback-based particle rendering.
+        This method sets up the Vertex Array Object (VAO) and Vertex Buffer Objects (VBOs)
+        needed for capturing particle updates via transform feedback.
+        """
         vertices = self.generate_initial_data()
         self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
 
@@ -59,7 +76,11 @@ class ParticleRenderer(AbstractRenderer):
         glBindVertexArray(0)
 
     def create_compute_shader_buffers(self):
-        """Setup buffers for compute shader-based particle rendering."""
+        """
+        Setup buffers for compute shader-based particle rendering.
+        This method creates a Shader Storage Buffer Object (SSBO) for storing particle data
+        and binding it to the appropriate buffer base.
+        """
         particles = self.generate_initial_data()
         self.ssbo = glGenBuffers(1)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
@@ -68,7 +89,10 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
     def create_buffers(self):
-        """Setup buffers for standard vertex/fragment shader-based particle rendering."""
+        """
+        Setup buffers for standard vertex/fragment shader-based particle rendering.
+        This method sets up the VAO and VBO needed for rendering particles using a standard shader pipeline.
+        """
         vertices = self.generate_initial_data()
         self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
         glBindVertexArray(self.vao)
@@ -78,15 +102,22 @@ class ParticleRenderer(AbstractRenderer):
         glBindVertexArray(0)
 
     def generate_initial_data(self):
-        """Generate initial positions and velocities for particles."""
+        """
+        Generate initial positions and velocities for particles.
+        Returns an array of interleaved position and velocity data.
+        """
         data = []
         for _ in range(self.particle_count):
             position, velocity = np.random.uniform(-1.0, 1.0, 3), np.random.uniform(-0.5, 0.5, 3)
-            data.extend(position), data.extend(velocity)
+            data.extend(position)
+            data.extend(velocity)
         return np.array(data, dtype=np.float32)
 
     def _setup_vertex_attributes(self):
-        """Setup vertex attribute pointers."""
+        """
+        Setup vertex attribute pointers for position and velocity.
+        Ensures that the shader program has the correct attribute locations configured.
+        """
         float_size = 4
         vertex_stride = 6 * float_size
         position_loc, velocity_loc = glGetAttribLocation(self.shader_program, "position"), glGetAttribLocation(
@@ -103,20 +134,29 @@ class ParticleRenderer(AbstractRenderer):
         glBindVertexArray(0)
 
     def update_particles(self):
-        """Update particle data based on the render mode."""
+        """
+        Update particle data based on the selected render mode.
+        Dispatches the appropriate particle update mechanism based on the render mode.
+        """
         if self.render_mode == 'compute_shader':
             self._update_particles_compute_shader()
         elif self.render_mode == 'transform_feedback':
             self._update_particles_transform_feedback()
 
     def _update_particles_compute_shader(self):
-        """Update particles using compute shader."""
+        """
+        Update particles using a compute shader.
+        Dispatches the compute shader and ensures memory barriers are respected.
+        """
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
         glDispatchCompute(self.particle_count // 128 + 1, 1, 1)
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
 
     def _update_particles_transform_feedback(self):
-        """Update particles using transform feedback."""
+        """
+        Update particles using transform feedback.
+        Captures the output of the vertex shader back into a buffer and swaps the buffers for the next frame.
+        """
         glBindVertexArray(self.vao)
         glEnable(GL_RASTERIZER_DISCARD)
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, self.feedback_vbo)
@@ -124,11 +164,19 @@ class ParticleRenderer(AbstractRenderer):
         glDrawArrays(GL_POINTS, 0, self.particle_count)
         glEndTransformFeedback()
         glDisable(GL_RASTERIZER_DISCARD)
+
+        # Ensure buffer data is synchronized before the next draw call
+        glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
+
+        # Swap the VBOs for the next iteration
         self.vbo, self.feedback_vbo = self.feedback_vbo, self.vbo
 
     @common_funcs
     def render(self):
-        """Render particles."""
+        """
+        Render particles.
+        This method binds the VAO and issues a draw call to render the particles as points.
+        """
         self.update_particles()
         glBindVertexArray(self.vao)
         glDrawArrays(GL_POINTS, 0, self.particle_count)
