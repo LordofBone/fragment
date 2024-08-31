@@ -1,3 +1,5 @@
+import ctypes
+
 import numpy as np
 from OpenGL.GL import *
 
@@ -5,7 +7,7 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
-    def __init__(self, particle_count=1000, render_mode='transform_feedback', **kwargs):
+    def __init__(self, particle_count=1000, render_mode='transform_feedback', compute_shader_program=None, **kwargs):
         super().__init__(**kwargs)
         self.particle_count = particle_count
         self.render_mode = render_mode
@@ -15,8 +17,23 @@ class ParticleRenderer(AbstractRenderer):
         self.ssbo = None
 
     def setup(self):
-        super().setup()
+        self.init_shaders()
         self.init_render_mode()
+
+    def init_shaders(self):
+        super().init_shaders()
+
+        if self.render_mode == 'transform_feedback':
+            varyings = ["tf_position", "tf_velocity"]
+            varyings_c = (ctypes.POINTER(ctypes.c_char) * len(varyings))(
+                *[ctypes.create_string_buffer(v.encode('utf-8')) for v in varyings])
+
+            glTransformFeedbackVaryings(self.shader_program, len(varyings), varyings_c, GL_INTERLEAVED_ATTRIBS)
+            glLinkProgram(self.shader_program)
+
+            if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):
+                log = glGetProgramInfoLog(self.shader_program)
+                raise RuntimeError(f"Shader program linking failed: {log.decode()}")
 
     def init_render_mode(self):
         """Initialize the buffers and settings based on the selected render mode."""
@@ -50,6 +67,12 @@ class ParticleRenderer(AbstractRenderer):
         # Setup vertex attributes
         self._setup_vertex_attributes()
 
+        # Bind the buffer for transform feedback
+        glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, self.feedback_vbo)
+
+        # Unbind VAO
+        glBindVertexArray(0)
+
     def create_compute_shader_buffers(self):
         """Setup buffers for compute shader-based particle rendering."""
         particles = self.generate_initial_data()
@@ -76,6 +99,8 @@ class ParticleRenderer(AbstractRenderer):
 
         # Setup vertex attributes
         self._setup_vertex_attributes()
+
+        glBindVertexArray(0)
 
     def generate_initial_data(self):
         """Generate initial positions and velocities for particles."""
@@ -134,11 +159,14 @@ class ParticleRenderer(AbstractRenderer):
         glEnable(GL_RASTERIZER_DISCARD)
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, self.feedback_vbo)
 
+        # Begin transform feedback, capturing the updated vertex data
         glBeginTransformFeedback(GL_POINTS)
         glDrawArrays(GL_POINTS, 0, self.particle_count)
         glEndTransformFeedback()
 
         glDisable(GL_RASTERIZER_DISCARD)
+
+        # Swap the VBOs for the next iteration
         self.vbo, self.feedback_vbo = self.feedback_vbo, self.vbo
 
     @common_funcs
