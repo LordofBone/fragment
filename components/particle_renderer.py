@@ -5,7 +5,7 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
-    def __init__(self, particle_count=1000, render_mode='transform_feedback', compute_shader_program=None, **kwargs):
+    def __init__(self, particle_count=1000, render_mode='transform_feedback', **kwargs):
         super().__init__(**kwargs)
         self.particle_count = particle_count
         self.render_mode = render_mode
@@ -13,7 +13,9 @@ class ParticleRenderer(AbstractRenderer):
         self.vbo = None
         self.feedback_vbo = None
         self.ssbo = None
-        self.compute_shader_program = compute_shader_program
+
+    def setup(self):
+        super().setup()
         self.init_render_mode()
 
     def init_render_mode(self):
@@ -90,8 +92,16 @@ class ParticleRenderer(AbstractRenderer):
         float_size = 4
         vertex_stride = 6 * float_size
 
+        if not self.shader_program:
+            raise RuntimeError("Shader program is not initialized.")
+
         position_loc = glGetAttribLocation(self.shader_program, "position")
         velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
+
+        if position_loc == -1:
+            raise RuntimeError("Position attribute not found in shader program.")
+        if velocity_loc == -1:
+            raise RuntimeError("Velocity attribute not found in shader program.")
 
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
@@ -111,7 +121,6 @@ class ParticleRenderer(AbstractRenderer):
 
     def _update_particles_compute_shader(self):
         """Update particles using compute shader."""
-        glUseProgram(self.compute_shader_program)
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
 
         # Dispatch compute shader
