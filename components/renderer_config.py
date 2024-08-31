@@ -19,6 +19,7 @@ class RendererConfig:
             anisotropy=16.0,
             auto_camera=False,
             msaa_level=8,
+            depth_testing=True,
             culling=True,
             texture_lod_bias=0.0,
             env_map_lod_bias=0.0,
@@ -57,6 +58,7 @@ class RendererConfig:
         self.anisotropy = anisotropy
         self.auto_camera = auto_camera
         self.msaa_level = msaa_level
+        self.depth_testing = depth_testing
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
