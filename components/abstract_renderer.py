@@ -16,18 +16,28 @@ from components.texture_manager import TextureManager
 texture_manager = TextureManager()
 
 
+def check_gl_error(context, debug_mode):
+    if debug_mode:
+        error = glGetError()
+        if error != GL_NO_ERROR:
+            raise RuntimeError(f"OpenGL error in {context}: {error}")
+
+
 def common_funcs(func):
     def wrapper(self, *args, **kwargs):
         glUseProgram(self.shader_program)
+        check_gl_error("glUseProgram", self.debug_mode)
 
         # Depth testing setup
         if self.depth_testing:
             glEnable(GL_DEPTH_TEST)
         else:
             glDisable(GL_DEPTH_TEST)
+        check_gl_error("Depth testing setup", self.debug_mode)
 
         viewPosition = self.camera_position
         glUniform3fv(glGetUniformLocation(self.shader_program, "viewPosition"), 1, glm.value_ptr(viewPosition))
+        check_gl_error("Setting viewPosition uniform", self.debug_mode)
 
         # Culling setup
         if self.culling:
@@ -36,24 +46,34 @@ def common_funcs(func):
             glFrontFace(self.front_face_winding)
         else:
             glDisable(GL_CULL_FACE)
+        check_gl_error("Culling setup", self.debug_mode)
 
         self.apply_transformations()
+        check_gl_error("apply_transformations", self.debug_mode)
+
         self.set_shader_uniforms()
+        check_gl_error("set_shader_uniforms", self.debug_mode)
+
         if self.lights_enabled:
             self.set_light_uniforms(self.shader_program)
+        check_gl_error("set_light_uniforms", self.debug_mode)
 
         result = func(self, *args, **kwargs)
+        check_gl_error("render function", self.debug_mode)
 
         # Unbind textures
         glBindTexture(GL_TEXTURE_2D, 0)
+        check_gl_error("Unbind textures", self.debug_mode)
 
         # Depth testing teardown
         if self.depth_testing:
             glDisable(GL_DEPTH_TEST)
+        check_gl_error("Depth testing teardown", self.debug_mode)
 
         # Culling teardown
         if self.culling:
             glDisable(GL_CULL_FACE)
+        check_gl_error("Culling teardown", self.debug_mode)
 
         return result
 
@@ -598,11 +618,16 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_program, "particle_size"),
             self.dynamic_attrs.get("particle_size", 2.0),
         )
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "maxVelocity"),
+                    self.dynamic_attrs.get("max_velocity", 10.0))
+
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "color"),
             1,
             glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("color", (1.0, 0.5, 0.2)))),
         )
+
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "gravity"),
             1,
