@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 from OpenGL.GL import *
 
@@ -14,6 +16,19 @@ class ParticleRenderer(AbstractRenderer):
         self.feedback_vbo = None
         self.ssbo = None
         self.particle_size = self.dynamic_attrs.get('particle_size', 2.0)  # Default particle size
+        self.height = self.dynamic_attrs.get('height', 1.0)  # Default height for the particle field
+        self.width = self.dynamic_attrs.get('width', 1.0)  # Default width for the particle field
+        self.last_time = time.time()  # Store the last frame time for delta time calculations
+
+        # Only used in CPU mode
+        self.positions = None
+        self.velocities = None
+        self.gravity = np.array(self.dynamic_attrs.get('gravity', (0.0, -9.81, 0.0)), dtype=np.float32)
+        self.bounce_factor = self.dynamic_attrs.get('bounce_factor', 0.6)
+        self.ground_plane_normal = np.array(self.dynamic_attrs.get('ground_plane_normal', (0.0, 1.0, 0.0)),
+                                            dtype=np.float32)
+        self.ground_plane_height = self.dynamic_attrs.get('ground_plane_height', 0.0)
+        self.max_velocity = self.dynamic_attrs.get('max_velocity', 10.0)
 
     def setup(self):
         """
@@ -46,16 +61,25 @@ class ParticleRenderer(AbstractRenderer):
     def init_render_mode(self):
         """
         Initialize the buffers and settings based on the selected render mode.
-        Chooses between transform feedback, compute shader, and standard rendering modes.
+        Chooses between transform feedback, compute shader, and CPU-based rendering modes.
         """
         if self.render_mode == 'transform_feedback':
             self.create_transform_feedback_buffers()
         elif self.render_mode == 'compute_shader':
             self.create_compute_shader_buffers()
-        elif self.render_mode == 'standard':
+        elif self.render_mode == 'cpu':
+            self.init_cpu_mode()
             self.create_buffers()
         else:
             raise ValueError(f"Unknown render mode: {self.render_mode}")
+
+    def init_cpu_mode(self):
+        """
+        Initialize the CPU mode by setting up the initial particle positions and velocities.
+        """
+        self.positions = np.random.uniform(-self.width, self.width, (self.particle_count, 3)).astype(np.float32)
+        self.positions[:, 1] = np.random.uniform(0.0, self.height, self.particle_count)  # Y-axis controls height
+        self.velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
 
     def create_transform_feedback_buffers(self):
         """
@@ -90,14 +114,14 @@ class ParticleRenderer(AbstractRenderer):
 
     def create_buffers(self):
         """
-        Setup buffers for standard vertex/fragment shader-based particle rendering.
-        This method sets up the VAO and VBO needed for rendering particles using a standard shader pipeline.
+        Setup buffers for vertex/fragment shader-based particle rendering.
+        This method sets up the VAO and VBO needed for rendering particles using a shader pipeline.
         """
         vertices = self.generate_initial_data()
         self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
         glBindVertexArray(self.vao)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_DYNAMIC_DRAW)
         self._setup_vertex_attributes()
         glBindVertexArray(0)
 
@@ -106,12 +130,11 @@ class ParticleRenderer(AbstractRenderer):
         Generate initial positions and velocities for particles.
         Returns an array of interleaved position and velocity data.
         """
-        data = []
-        for _ in range(self.particle_count):
-            position, velocity = np.random.uniform(-1.0, 1.0, 3), np.random.uniform(-0.5, 0.5, 3)
-            data.extend(position)
-            data.extend(velocity)
-        return np.array(data, dtype=np.float32)
+        positions = np.random.uniform(-self.width, self.width, (self.particle_count, 3)).astype(np.float32)
+        positions[:, 1] = np.random.uniform(0.0, self.height, self.particle_count)  # Y-axis controls height
+        velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
+        data = np.hstack((positions, velocities)).astype(np.float32)
+        return data
 
     def _setup_vertex_attributes(self):
         """
@@ -142,6 +165,41 @@ class ParticleRenderer(AbstractRenderer):
             self._update_particles_compute_shader()
         elif self.render_mode == 'transform_feedback':
             self._update_particles_transform_feedback()
+        elif self.render_mode == 'cpu':
+            self._update_particles_cpu()
+
+    def _update_particles_cpu(self):
+        """
+        Update particles on the CPU.
+        This method performs the simulation entirely on the CPU and uploads the updated data to the GPU.
+        """
+        current_time = time.time()
+        delta_time = current_time - self.last_time
+        self.last_time = current_time
+
+        for i in range(self.particle_count):
+            # Update velocity with gravity
+            self.velocities[i] += self.gravity * delta_time
+
+            # Clamp the velocity to the maximum allowed value
+            speed = np.linalg.norm(self.velocities[i])
+            if speed > self.max_velocity:
+                self.velocities[i] = self.velocities[i] / speed * self.max_velocity
+
+            # Update position
+            self.positions[i] += self.velocities[i] * delta_time
+
+            # Check for collision with the ground plane
+            distance_to_ground = np.dot(self.positions[i], self.ground_plane_normal) - self.ground_plane_height
+            if distance_to_ground < 0.0:
+                self.velocities[i] = np.reflect(self.velocities[i], self.ground_plane_normal) * self.bounce_factor
+                self.positions[i] -= self.ground_plane_normal * distance_to_ground
+
+        # Upload updated positions and velocities to the GPU
+        particle_data = np.hstack((self.positions, self.velocities)).astype(np.float32)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, particle_data.nbytes, particle_data)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _update_particles_compute_shader(self):
         """
