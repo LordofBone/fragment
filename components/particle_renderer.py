@@ -87,15 +87,24 @@ class ParticleRenderer(AbstractRenderer):
         This method sets up the Vertex Array Object (VAO) and Vertex Buffer Objects (VBOs)
         needed for capturing particle updates via transform feedback.
         """
-        vertices = self.generate_initial_data()
+        vertices = self.generate_initial_data()  # Generates initial positions and velocities
         self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
 
         glBindVertexArray(self.vao)
+
+        # Bind and upload the vertex data (positions and velocities)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_DYNAMIC_DRAW)
+
+        # Bind and allocate space for the feedback VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
         glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, None, GL_DYNAMIC_DRAW)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+
+        # Set up vertex attribute pointers
         self._setup_vertex_attributes()
+
+        # Bind the feedback buffer to the transform feedback buffer binding point
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, self.feedback_vbo)
         glBindVertexArray(0)
 
@@ -141,18 +150,23 @@ class ParticleRenderer(AbstractRenderer):
         Setup vertex attribute pointers for position and velocity.
         Ensures that the shader program has the correct attribute locations configured.
         """
-        float_size = 4
-        vertex_stride = 6 * float_size
-        position_loc, velocity_loc = glGetAttribLocation(self.shader_program, "position"), glGetAttribLocation(
-            self.shader_program, "velocity")
+        float_size = 4  # Size of a float in bytes
+        vertex_stride = 6 * float_size  # 3 floats for position + 3 floats for velocity
+
+        # Get the attribute locations
+        position_loc = glGetAttribLocation(self.shader_program, "position")
+        velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
 
         if position_loc == -1 or velocity_loc == -1:
             raise RuntimeError("Position or Velocity attribute not found in shader program.")
 
+        # Enable the vertex attribute arrays
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
+
         glEnableVertexAttribArray(velocity_loc)
-        glVertexAttribPointer(velocity_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(3 * float_size))
+        glVertexAttribPointer(velocity_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(5 * float_size))
+
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
@@ -161,6 +175,13 @@ class ParticleRenderer(AbstractRenderer):
         Update particle data based on the selected render mode.
         Dispatches the appropriate particle update mechanism based on the render mode.
         """
+        current_time = time.time()
+        delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
+        self.last_time = current_time
+
+        # Pass deltaTime to the shader
+        glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), delta_time)
+
         if self.render_mode == 'compute_shader':
             self._update_particles_compute_shader()
         elif self.render_mode == 'transform_feedback':
@@ -174,7 +195,7 @@ class ParticleRenderer(AbstractRenderer):
         This method performs the simulation entirely on the CPU and uploads the updated data to the GPU.
         """
         current_time = time.time()
-        delta_time = current_time - self.last_time
+        delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
         self.last_time = current_time
 
         for i in range(self.particle_count):
@@ -237,5 +258,8 @@ class ParticleRenderer(AbstractRenderer):
         """
         self.update_particles()
         glBindVertexArray(self.vao)
+
+        # Issue the draw call
         glDrawArrays(GL_POINTS, 0, self.particle_count)
+
         glBindVertexArray(0)
