@@ -615,7 +615,7 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "particle_size"),
+            glGetUniformLocation(self.shader_program, "particleSize"),
             self.dynamic_attrs.get("particle_size", 2.0),
         )
 
