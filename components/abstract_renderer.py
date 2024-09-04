@@ -643,6 +643,7 @@ class AbstractRenderer(ABC):
             1,
             glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("particle_gravity", (0.0, -9.81, 0.0)))),
         )
+
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleBounceFactor"),
             self.dynamic_attrs.get("particle_bounce_factor", 0.6),
