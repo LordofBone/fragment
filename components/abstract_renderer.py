@@ -619,32 +619,44 @@ class AbstractRenderer(ABC):
             self.dynamic_attrs.get("particle_size", 2.0),
         )
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "maxVelocity"),
-                    self.dynamic_attrs.get("max_velocity", 10.0))
-
-        glUniform3fv(
-            glGetUniformLocation(self.shader_program, "color"),
-            1,
-            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("color", (1.0, 0.5, 0.2)))),
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "particleLifetime"),
+            self.dynamic_attrs.get("particle_lifetime", 1.0),
         )
 
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "particleMaxLifetime"),
+            self.dynamic_attrs.get("particle_max_lifetime", 5.0),
+        )
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "particleMaxVelocity"),
+                    self.dynamic_attrs.get("particle_max_velocity", 10.0))
+
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "gravity"),
+            glGetUniformLocation(self.shader_program, "particleColor"),
             1,
-            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("gravity", (0.0, -9.81, 0.0)))),
+            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("particle_color", (1.0, 0.5, 0.2)))),
+        )
+
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "particleGravity"),
+            1,
+            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("particle_gravity", (0.0, -9.81, 0.0)))),
         )
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "bounceFactor"),
-            self.dynamic_attrs.get("bounce_factor", 0.6),
+            glGetUniformLocation(self.shader_program, "particleBounceFactor"),
+            self.dynamic_attrs.get("particle_bounce_factor", 0.6),
         )
+
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "groundPlaneNormal"),
+            glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
             1,
-            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("ground_plane_normal", (0.0, 1.0, 0.0)))),
+            glm.value_ptr(glm.vec3(*self.dynamic_attrs.get("particle_ground_plane_normal", (0.0, 1.0, 0.0)))),
         )
+
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "groundPlaneHeight"),
-            self.dynamic_attrs.get("ground_plane_height", 0.0),
+            glGetUniformLocation(self.shader_program, "particleGroundPlaneHeight"),
+            self.dynamic_attrs.get("particle_ground_plane_height", 0.0),
         )
 
     def update_camera(self, delta_time):
