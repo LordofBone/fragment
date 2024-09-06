@@ -568,27 +568,53 @@ class AbstractRenderer(ABC):
 
     def set_constant_uniforms(self):
         glUseProgram(self.shader_program)
-        glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"), self.texture_lod_bias)
-        glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
-        glUniform1i(glGetUniformLocation(self.shader_program, "applyToneMapping"), self.apply_tone_mapping)
-        glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"), self.apply_gamma_correction)
+        glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"),
+                    self.texture_lod_bias)
+        glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"),
+                    self.env_map_lod_bias)
+
+        glUniform1i(glGetUniformLocation(self.shader_program, "applyToneMapping"),
+                    self.apply_tone_mapping)
+
+        glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"),
+                    self.apply_gamma_correction)
 
     def set_shader_uniforms(self):
         glUseProgram(self.shader_program)
+
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "ambientColor"), 1, glm.value_ptr(self.ambient_lighting_strength)
+            glGetUniformLocation(self.shader_program, "ambientColor"),
+            1,
+            glm.value_ptr(self.ambient_lighting_strength)
         )
+
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(self.model_matrix)
+            glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE,
+            glm.value_ptr(self.model_matrix)
         )
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(self.view))
+
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"),
+                           1,
+                           GL_FALSE,
+                           glm.value_ptr(self.view))
+
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(self.projection)
+            glGetUniformLocation(self.shader_program, "projection"),
+            1,
+            GL_FALSE,
+            glm.value_ptr(self.projection)
         )
-        glUniform1f(glGetUniformLocation(self.shader_program, "opacity"), self.opacity)
-        glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
-        glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
-        glUniform1f(glGetUniformLocation(self.shader_program, "warped"), self.distortion_warped)
+        glUniform1f(glGetUniformLocation(self.shader_program, "opacity"),
+                    self.opacity)
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"),
+                    self.distortion_strength)
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"),
+                    self.reflection_strength)
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "warped"),
+                    self.distortion_warped)
 
         glUniform2f(
             glGetUniformLocation(self.shader_program, "screenResolution"), self.window_size[0], self.window_size[1]
@@ -603,11 +629,17 @@ class AbstractRenderer(ABC):
             int(self.screen_facing_planar_texture),
         )
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
+        glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"),
+                    self.dynamic_attrs.get("wave_speed", 10.0))
+
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "waveAmplitude"), self.dynamic_attrs.get("wave_amplitude", 0.1)
+            glGetUniformLocation(self.shader_program, "waveAmplitude"),
+            self.dynamic_attrs.get("wave_amplitude", 0.1)
         )
-        glUniform1f(glGetUniformLocation(self.shader_program, "randomness"), self.dynamic_attrs.get("randomness", 0.8))
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "randomness"),
+                    self.dynamic_attrs.get("randomness", 0.8))
+
         glUniform1f(
             glGetUniformLocation(self.shader_program, "texCoordFrequency"),
             self.dynamic_attrs.get("tex_coord_frequency", 100.0),
@@ -616,8 +648,12 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_program, "texCoordAmplitude"),
             self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
         )
-        glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position))
-        glUniform1f(glGetUniformLocation(self.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
+        glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"),
+                     1,
+                     glm.value_ptr(self.camera_position))
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "time"),
+                    pygame.time.get_ticks() / 1000.0)
 
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleSize"),
@@ -632,6 +668,16 @@ class AbstractRenderer(ABC):
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleMaxLifetime"),
             self.dynamic_attrs.get("particle_max_lifetime", 5.0),
+        )
+
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "minWeight"),
+            self.dynamic_attrs.get("particle_min_weight", 0.5),
+        )
+
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "maxWeight"),
+            self.dynamic_attrs.get("particle_max_weight", 1.0),
         )
 
         glUniform1f(
