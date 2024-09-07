@@ -1,6 +1,6 @@
 import time
 
-import glm  # Ensure you're using PyGLM or any other GLM-compatible library
+import glm
 import numpy as np
 from OpenGL.GL import *
 
@@ -89,11 +89,15 @@ class ParticleRenderer(AbstractRenderer):
         view_location = glGetUniformLocation(self.shader_program, "view")
         projection_location = glGetUniformLocation(self.shader_program, "projection")
         camera_position_location = glGetUniformLocation(self.shader_program, "cameraPosition")
+        model_matrix_location = glGetUniformLocation(self.shader_program, "model")
 
         # Pass the view and projection matrices to the shader
         glUniformMatrix4fv(view_location, 1, GL_FALSE, glm.value_ptr(self.view))
         glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm.value_ptr(self.projection))
         glUniform3fv(camera_position_location, 1, glm.value_ptr(self.camera_position))
+
+        # Pass the model matrix (which includes scaling, rotating, translating)
+        glUniformMatrix4fv(model_matrix_location, 1, GL_FALSE, glm.value_ptr(self.model_matrix))
 
     def init_cpu_mode(self):
         """
