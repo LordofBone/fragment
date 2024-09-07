@@ -88,10 +88,12 @@ class ParticleRenderer(AbstractRenderer):
         # Get the uniform locations for the view and projection matrices
         view_location = glGetUniformLocation(self.shader_program, "view")
         projection_location = glGetUniformLocation(self.shader_program, "projection")
+        camera_position_location = glGetUniformLocation(self.shader_program, "cameraPosition")
 
         # Pass the view and projection matrices to the shader
         glUniformMatrix4fv(view_location, 1, GL_FALSE, glm.value_ptr(self.view))
         glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm.value_ptr(self.projection))
+        glUniform3fv(camera_position_location, 1, glm.value_ptr(self.camera_position))
 
     def init_cpu_mode(self):
         """
