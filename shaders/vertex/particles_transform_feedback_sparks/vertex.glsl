@@ -2,7 +2,9 @@
 
 layout (location = 0) in vec3 position;// Input particle position
 layout (location = 1) in vec3 velocity;// Input particle velocity
+layout (location = 2) in float spawnTime;// Time when the particle was created
 
+uniform float currentTime;// The global time for tracking particle lifetime
 uniform float deltaTime;// Time elapsed between frames
 uniform vec3 particleGravity;// Gravity vector applied to the particles
 uniform float particleBounceFactor;// How much velocity is preserved upon bouncing
@@ -24,6 +26,7 @@ uniform mat4 projection;// Projection matrix
 // Output variables for transform feedback
 out vec3 tfPosition;
 out vec3 tfVelocity;
+out float tfSpawnTime;
 
 out float lifetimePercentage;// Particle's current lifetime percentage
 out vec3 fragColor;// Output color to the fragment shader
@@ -68,17 +71,17 @@ void main() {
         newPosition -= particleGroundPlaneNormal * distanceToGround;
     }
 
-    // Increment the particle's lifetime using deltaTime
-    float lifetime = deltaTime;// In this case, deltaTime is how much time has passed for this particle.
+    // Calculate the time that has passed since the particle was spawned
+    float elapsedTime = currentTime - spawnTime;
 
     // Calculate the percentage of the particle's lifetime that has elapsed
-    lifetimePercentage = clamp(lifetime / particleMaxLifetime, 0.0, 1.0);
+    lifetimePercentage = clamp(elapsedTime / particleMaxLifetime, 0.0, 1.0);
 
     // If the particle's lifetime exceeds the max, it should disappear (optional)
     if (lifetimePercentage >= 1.0) {
         // Option 1: Make particle invisible by moving it off-screen
-        newPosition = vec3(10000.0, 10000.0, 10000.0);
-        newVelocity = vec3(0.0);
+        //        newPosition = vec3(10000.0, 10000.0, 10000.0);
+        //        newVelocity = vec3(0.0);
 
         // Option 2: Set the point size to 0 (effectively making it invisible)
         gl_PointSize = 0.0;
@@ -90,6 +93,9 @@ void main() {
     // Output the updated position and velocity for transform feedback
     tfPosition = newPosition;
     tfVelocity = newVelocity;
+
+    // Pass the spawn time unchanged
+    tfSpawnTime = spawnTime;
 
     // Set the final position of the particle using view and projection matrices
     gl_Position = projection * view * vec4(newPosition, 1.0);
