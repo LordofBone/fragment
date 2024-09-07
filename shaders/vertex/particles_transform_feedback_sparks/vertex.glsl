@@ -23,13 +23,14 @@ uniform float maxWeight;// Maximum weight of particles
 // Camera uniforms for view and projection matrices
 uniform mat4 view;// View matrix
 uniform mat4 projection;// Projection matrix
+uniform vec3 cameraPosition;// Position of the camera in world space
 
 // Output variables for transform feedback
 out vec3 tfPosition;
 out vec3 tfVelocity;
 out float tfSpawnTime;
 out float tfParticleLifetime;
-out float tfParticleID;// Add particle ID to the transform feedback
+out float tfParticleID;
 
 out float lifetimePercentage;// Particle's current lifetime percentage
 out vec3 fragColor;// Output color to the fragment shader
@@ -81,9 +82,15 @@ void main() {
         newPosition = vec3(10000.0, 10000.0, 10000.0);// Move off-screen
         newVelocity = vec3(0.0);
         gl_PointSize = 0.0;// Make invisible
-    } else {
-        gl_PointSize = particleSize;// Keep particle visible
     }
+
+    // Adjust particle size based on distance from the camera
+    vec3 particleToCamera = cameraPosition - newPosition;
+    float distanceFromCamera = length(particleToCamera);
+    float adjustedSize = particleSize / distanceFromCamera;// Inverse proportional to distance
+
+    // Set particle size for rendering
+    gl_PointSize = adjustedSize;
 
     // Output the updated position and velocity for transform feedback
     tfPosition = newPosition;
