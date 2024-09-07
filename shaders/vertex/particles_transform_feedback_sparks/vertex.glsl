@@ -13,12 +13,16 @@ uniform float particleBounceFactor;// How much velocity is preserved upon bounci
 uniform vec3 particleGroundPlaneNormal;// Normal vector of the ground plane
 uniform float particleGroundPlaneHeight;// Height of the ground plane
 uniform float particleMaxVelocity;// Maximum allowed velocity for particles
+uniform float particlePressure;// Pressure force for fluid dynamics
+uniform float particleViscosity;// Viscosity force for fluid dynamics
 uniform float particleSize;// Size of the particle
 uniform vec3 particleColor;// Base color of the particle
 
 // New uniforms for weight
 uniform float minWeight;// Minimum weight of particles
 uniform float maxWeight;// Maximum weight of particles
+
+uniform bool fluidSimulation;// Flag to enable water simulation
 
 // Camera uniforms for view and projection matrices
 uniform mat4 view;// View matrix
@@ -39,6 +43,14 @@ out float lifetimePercentage;// Particle's current lifetime percentage
 out vec3 fragColor;// Output color to the fragment shader
 flat out float particleIDOut;// Pass the particle ID to the fragment shader
 
+// A simple function to simulate the interaction with neighboring particles
+vec3 calculateFluidForces(vec3 velocity) {
+    // Apply a simple pressure and viscosity model for fluid flow
+    vec3 pressureForce = -normalize(velocity) * particlePressure;
+    vec3 viscosityForce = -velocity * particleViscosity;
+    return pressureForce + viscosityForce;
+}
+
 void main() {
     // Generate a random weight for this particle
     float weight = mix(minWeight, maxWeight, fract(sin(particleID) * 43758.5453));
@@ -48,6 +60,12 @@ void main() {
 
     // Apply gravity scaled by weight
     vec3 newVelocity = velocity + adjustedGravity * deltaTime;
+
+    if (fluidSimulation == true) {
+        // Apply fluid forces (pressure and viscosity)
+        vec3 fluidForces = calculateFluidForces(velocity);
+        newVelocity += fluidForces * deltaTime;
+    }
 
     // Clamp the velocity to the maximum allowed value
     float speed = length(newVelocity);
