@@ -25,6 +25,9 @@ uniform mat4 view;// View matrix
 uniform mat4 projection;// Projection matrix
 uniform vec3 cameraPosition;// Position of the camera in world space
 
+// New uniform for model matrix to apply transformations (translation, scaling, rotation)
+uniform mat4 model;// Model matrix
+
 // Output variables for transform feedback
 out vec3 tfPosition;
 out vec3 tfVelocity;
@@ -101,8 +104,11 @@ void main() {
     tfParticleLifetime = particleLifetime;
     tfParticleID = particleID;
 
+    // Apply the model matrix to the particle's position
+    vec4 worldPosition = model * vec4(newPosition, 1.0);
+
     // Set the final position of the particle using view and projection matrices
-    gl_Position = projection * view * vec4(newPosition, 1.0);
+    gl_Position = projection * view * worldPosition;
 
     // Pass the color to the fragment shader
     fragColor = particleColor;
