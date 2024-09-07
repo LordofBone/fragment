@@ -10,10 +10,10 @@ void main() {
     float alpha = clamp(1.0 - lifetimePercentage, 0.0, 1.0);
 
     // Adjust color based on lifetime to simulate cooling (start hot, then cool to base color)
-    vec3 hotColor = vec3(0.0, 0.0, 0.0);// Hot spark color (orange/red)
+    vec3 fadeColor = vec3(0.0, 0.0, 0.0);
 
     // Interpolate from the hot color to the input fragColor over the particle's lifetime
-    vec3 cooledColor = mix(fragColor, hotColor, lifetimePercentage);
+    vec3 cooledColor = mix(fragColor, fadeColor, lifetimePercentage);
 
     // Output the final color with fading alpha
     finalColor = vec4(cooledColor, 0.2);
