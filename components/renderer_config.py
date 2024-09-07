@@ -283,6 +283,8 @@ class RendererConfig:
             particle_max_lifetime=5.0,
             particle_max_weight=1.0,
             particle_min_weight=0.1,
+            particle_spawn_time_jitter=False,  # Jitter for spawn time
+            particle_max_spawn_time_jitter=5,  # Max jitter for spawn time
             **kwargs,
     ):
         """Add a particle renderer to the configuration."""
@@ -305,6 +307,8 @@ class RendererConfig:
             "particle_max_lifetime": particle_max_lifetime,
             "particle_max_weight": particle_max_weight,
             "particle_min_weight": particle_min_weight,
+            "particle_spawn_time_jitter": particle_spawn_time_jitter,
+            "particle_max_spawn_time_jitter": particle_max_spawn_time_jitter,
         }
 
         # Update the configuration with particle renderer specifics, preserving non-None values
