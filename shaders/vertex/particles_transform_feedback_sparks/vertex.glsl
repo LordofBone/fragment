@@ -17,12 +17,16 @@ uniform float particleMaxLifetime;// Maximum lifetime of particles (in seconds)
 uniform float minWeight;// Minimum weight of particles
 uniform float maxWeight;// Maximum weight of particles
 
-out float particleLifetime;// Particle's current lifetime (0.0 to 1.0)
-out vec3 fragColor;// Output color to the fragment shader
+// Camera uniforms for view and projection matrices
+uniform mat4 view;// View matrix
+uniform mat4 projection;// Projection matrix
 
 // Output variables for transform feedback
 out vec3 tfPosition;
 out vec3 tfVelocity;
+
+out float particleLifetime;// Particle's current lifetime (0.0 to 1.0)
+out vec3 fragColor;// Output color to the fragment shader
 
 float generateRandomWeight() {
     // Generate a random weight between minWeight and maxWeight
@@ -71,12 +75,12 @@ void main() {
     // Calculate the particle's current lifetime (0.0 to 1.0)
     particleLifetime = clamp(gl_InstanceID * deltaTime / particleMaxLifetime, 0.0, 1.0);
 
-    // Set the final position of the particle
-    gl_Position = vec4(newPosition, 1.0);
+    // Set the final position of the particle using view and projection matrices
+    gl_Position = projection * view * vec4(newPosition, 1.0);
 
     // Set the point size (adjust based on your needs)
     gl_PointSize = particleSize;
 
-    // Pass the color to the fragment shader (you can modify this for effects)
+    // Pass the color to the fragment shader
     fragColor = particleColor;
 }
