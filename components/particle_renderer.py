@@ -20,6 +20,7 @@ class ParticleRenderer(AbstractRenderer):
         self.height = self.dynamic_attrs.get('height', 1.0)  # Default height for the particle field
         self.width = self.dynamic_attrs.get('width', 1.0)  # Default width for the particle field
         self.depth = self.dynamic_attrs.get('depth', 1.0)  # Default depth for the particle field
+        self.start_time = time.time()  # Store the start time (epoch)
         self.last_time = time.time()  # Store the last frame time for delta time calculations
 
         # Only used in CPU mode
@@ -178,8 +179,10 @@ class ParticleRenderer(AbstractRenderer):
         # Generate particle velocities (3D)
         particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
 
-        # Generate spawn times (1D)
-        spawn_times = np.full((self.particle_count, 1), current_time, dtype=np.float32)
+        # Generate spawn times (1D) relative to the start time
+        # This can add variation to spawn times or keep them identical to start_time
+        # You can introduce randomness by adding some jitter if desired, like: np.random.uniform(0, 5)
+        spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
 
         # Interleave positions, velocities, and spawn times into a single array
         data = np.hstack((particle_positions, particle_velocities, spawn_times)).astype(np.float32)
@@ -254,12 +257,13 @@ class ParticleRenderer(AbstractRenderer):
         Update particle data based on the selected render mode.
         Dispatches the appropriate particle update mechanism based on the render mode.
         """
-        current_time = time.time()
-        delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
-        self.last_time = current_time
+        current_time = time.time()  # Current Unix time
+        elapsed_time = current_time - self.start_time  # Time elapsed since the system started
+        delta_time = min(elapsed_time - self.last_time, 0.016)  # Clamp delta time to ~60 FPS
+        self.last_time = elapsed_time
 
-        # Pass deltaTime to the shader
-        glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), np.float32(current_time))
+        # Pass the elapsed time (relative to start) to the shader
+        glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), np.float32(elapsed_time))
         glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), delta_time)
 
         if self.particle_render_mode == 'compute_shader':
