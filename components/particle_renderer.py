@@ -271,8 +271,8 @@ class ParticleRenderer(AbstractRenderer):
                                         self.particle_ground_plane_normal) - self.particle_ground_plane_height
             if distance_to_ground < 0.0:
                 self.particle_velocities[i] = np.reflect(self.particle_velocities[i],
-                                                         self.plane_normal) * self.particle_bounce_factor
-                self.particle_positions[i] -= self.round_plane_normal * distance_to_ground
+                                                         self.particle_ground_plane_normal) * self.particle_bounce_factor
+                self.particle_positions[i] -= self.particle_ground_plane_normal * distance_to_ground
 
         # Upload updated positions and velocities to the GPU
         particle_data = np.hstack((self.particle_positions, self.particle_velocities)).astype(np.float32)
