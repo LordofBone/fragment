@@ -661,11 +661,6 @@ class AbstractRenderer(ABC):
         )
 
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleLifetime"),
-            self.dynamic_attrs.get("particle_lifetime", 1.0),
-        )
-
-        glUniform1f(
             glGetUniformLocation(self.shader_program, "particleMaxLifetime"),
             self.dynamic_attrs.get("particle_max_lifetime", 5.0),
         )
