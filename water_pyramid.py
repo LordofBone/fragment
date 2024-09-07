@@ -136,7 +136,6 @@ if __name__ == "__main__":
     instance.add_renderer("model_opaque", "model", **opaque_pyramid_config)
 
     # Example transformations
-    instance.scene_construct.translate_renderer("model_rotating", (-3, 0, 0))  # Translate first model
     instance.scene_construct.translate_renderer("model_rotating", (0, 0, -3))  # Translate first model
     instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
