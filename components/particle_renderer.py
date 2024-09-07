@@ -53,7 +53,7 @@ class ParticleRenderer(AbstractRenderer):
         super().init_shaders()
         if self.particle_render_mode == 'transform_feedback':
             # Specify the variables to capture during transform feedback
-            varyings = ["tfPosition", "tfVelocity", "tfSpawnTime", "tfParticleLifetime"]
+            varyings = ["tfPosition", "tfVelocity", "tfSpawnTime", "tfParticleLifetime", "tfParticleID"]
             varyings_c = (ctypes.POINTER(ctypes.c_char) * len(varyings))(
                 *[ctypes.create_string_buffer(v.encode('utf-8')) for v in varyings])
             glTransformFeedbackVaryings(self.shader_program, len(varyings), varyings_c, GL_INTERLEAVED_ATTRIBS)
@@ -161,8 +161,8 @@ class ParticleRenderer(AbstractRenderer):
 
     def generate_initial_data(self):
         """
-        Generate initial positions, velocities, spawn times, and lifetimes for particles.
-        Returns an array of interleaved position, velocity, spawn time, and lifetime data.
+        Generate initial positions, velocities, spawn times, lifetimes, and particle IDs for particles.
+        Returns an array of interleaved position, velocity, spawn time, lifetime, and particle ID data.
         """
         current_time = time.time()  # Get the current time to set as spawn time
 
@@ -181,30 +181,36 @@ class ParticleRenderer(AbstractRenderer):
         lifetimes = np.random.uniform(0.5 * self.particle_max_lifetime, self.particle_max_lifetime,
                                       (self.particle_count, 1)).astype(np.float32)
 
-        # Interleave positions, velocities, spawn times, and lifetimes into a single array
-        data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes)).astype(np.float32)
+        # Generate particle IDs (1D) ranging from 0 to particle_count - 1
+        particle_ids = np.arange(self.particle_count, dtype=np.float32).reshape(-1, 1)
+
+        # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
+        data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids)).astype(
+            np.float32)
 
         return data
 
     def _setup_vertex_attributes(self):
         """
-        Setup vertex attribute pointers for position, velocity, spawn time, and lifetime.
+        Setup vertex attribute pointers for position, velocity, spawn time, lifetime, and particle ID.
         Ensures that the shader program has the correct attribute locations configured.
         """
         float_size = 4  # Size of a float in bytes
-        vertex_stride = 8 * float_size  # 3 floats for position + 3 floats for velocity + 1 float for spawn time + 1 float for lifetime
+        vertex_stride = 9 * float_size  # 3 floats for position + 3 floats for velocity + 1 float for spawn time + 1 float for lifetime + 1 float for particle ID
 
         # Get the attribute locations
         position_loc = glGetAttribLocation(self.shader_program, "position")
         velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
         spawn_time_loc = glGetAttribLocation(self.shader_program, "spawnTime")
         lifetime_loc = glGetAttribLocation(self.shader_program, "particleLifetime")
+        particle_id_loc = glGetAttribLocation(self.shader_program, "particleID")
 
         # Ensure all attributes are found
-        if position_loc == -1 or velocity_loc == -1 or spawn_time_loc == -1 or lifetime_loc == -1:
-            raise RuntimeError("Position, Velocity, Spawn Time, or Lifetime attribute not found in shader program.")
+        if position_loc == -1 or velocity_loc == -1 or spawn_time_loc == -1 or lifetime_loc == -1 or particle_id_loc == -1:
+            raise RuntimeError(
+                "Position, Velocity, Spawn Time, Lifetime, or Particle ID attribute not found in shader program.")
 
-        # Enable and set the vertex attribute arrays for position, velocity, spawn time, and lifetime
+        # Enable and set the vertex attribute arrays for position, velocity, spawn time, lifetime, and particle ID
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
 
@@ -217,6 +223,9 @@ class ParticleRenderer(AbstractRenderer):
         glEnableVertexAttribArray(lifetime_loc)
         glVertexAttribPointer(lifetime_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(7 * float_size))
 
+        glEnableVertexAttribArray(particle_id_loc)
+        glVertexAttribPointer(particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(8 * float_size))
+
     def _check_vertex_attrib_pointer_setup(self, vertices):
         """
         Debug function to check vertex attribute pointer setup.
@@ -225,16 +234,20 @@ class ParticleRenderer(AbstractRenderer):
         velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
         spawn_time_loc = glGetAttribLocation(self.shader_program, "spawnTime")
         lifetime_loc = glGetAttribLocation(self.shader_program, "particleLifetime")
+        particle_id_loc = glGetAttribLocation(self.shader_program, "particleID")
 
+        # Stride and offset values
         position_stride = glGetVertexAttribiv(position_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
         velocity_stride = glGetVertexAttribiv(velocity_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
         spawn_time_stride = glGetVertexAttribiv(spawn_time_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
         lifetime_stride = glGetVertexAttribiv(lifetime_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
+        particle_id_stride = glGetVertexAttribiv(particle_id_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
 
         position_offset = glGetVertexAttribPointerv(position_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         velocity_offset = glGetVertexAttribPointerv(velocity_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         spawn_time_offset = glGetVertexAttribPointerv(spawn_time_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         lifetime_offset = glGetVertexAttribPointerv(lifetime_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
+        particle_id_offset = glGetVertexAttribPointerv(particle_id_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
 
         print(f"Position Attributes in _check_vertex_attrib_pointer_setup")
         print(f"Position Attribute: Location = {position_loc}, Stride = {position_stride}, Offset = {position_offset}")
@@ -242,6 +255,8 @@ class ParticleRenderer(AbstractRenderer):
         print(
             f"Spawn Time Attribute: Location = {spawn_time_loc}, Stride = {spawn_time_stride}, Offset = {spawn_time_offset}")
         print(f"Lifetime Attribute: Location = {lifetime_loc}, Stride = {lifetime_stride}, Offset = {lifetime_offset}")
+        print(
+            f"Particle ID Attribute: Location = {particle_id_loc}, Stride = {particle_id_stride}, Offset = {particle_id_offset}")
 
         # Optionally, read back the entire buffer data to verify
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -253,7 +268,7 @@ class ParticleRenderer(AbstractRenderer):
             ctypes_array = (ctypes.c_byte * buffer_size).from_address(mapped_buffer)
             # Convert ctypes array to bytes and then to a numpy array
             buffer_data = np.frombuffer(ctypes_array, dtype=vertices.dtype)
-            print(f"Buffer Data Readback (first 5 vertices): {buffer_data[:8].reshape(-1, vertices.shape[1])}")
+            print(f"Buffer Data Readback (first 5 vertices): {buffer_data[:9].reshape(-1, vertices.shape[1])}")
             glUnmapBuffer(GL_ARRAY_BUFFER)
         else:
             print("Failed to map buffer for reading.")
