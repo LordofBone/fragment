@@ -25,7 +25,7 @@ uniform mat4 projection;// Projection matrix
 out vec3 tfPosition;
 out vec3 tfVelocity;
 
-out float particleLifetime;// Particle's current lifetime (0.0 to 1.0)
+out float lifetimePercentage;// Particle's current lifetime percentage
 out vec3 fragColor;// Output color to the fragment shader
 
 float generateRandomWeight() {
@@ -68,18 +68,31 @@ void main() {
         newPosition -= particleGroundPlaneNormal * distanceToGround;
     }
 
+    // Increment the particle's lifetime using deltaTime
+    float lifetime = deltaTime;// In this case, deltaTime is how much time has passed for this particle.
+
+    // Calculate the percentage of the particle's lifetime that has elapsed
+    lifetimePercentage = clamp(lifetime / particleMaxLifetime, 0.0, 1.0);
+
+    // If the particle's lifetime exceeds the max, it should disappear (optional)
+    if (lifetimePercentage >= 1.0) {
+        // Option 1: Make particle invisible by moving it off-screen
+        newPosition = vec3(10000.0, 10000.0, 10000.0);
+        newVelocity = vec3(0.0);
+
+        // Option 2: Set the point size to 0 (effectively making it invisible)
+        gl_PointSize = 0.0;
+    } else {
+        // Set the point size for rendering the particle if it's still active
+        gl_PointSize = particleSize;
+    }
+
     // Output the updated position and velocity for transform feedback
     tfPosition = newPosition;
     tfVelocity = newVelocity;
 
-    // Calculate the particle's current lifetime (0.0 to 1.0)
-    particleLifetime = clamp(gl_InstanceID * deltaTime / particleMaxLifetime, 0.0, 1.0);
-
     // Set the final position of the particle using view and projection matrices
     gl_Position = projection * view * vec4(newPosition, 1.0);
-
-    // Set the point size (adjust based on your needs)
-    gl_PointSize = particleSize;
 
     // Pass the color to the fragment shader
     fragColor = particleColor;
