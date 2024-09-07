@@ -697,6 +697,17 @@ class AbstractRenderer(ABC):
             glm.value_ptr(self.shader_particle_gravity),
         )
 
+        glUniform1i(
+            glGetUniformLocation(self.shader_program, "fluidSimulation"),
+            int(self.dynamic_attrs.get("fluid_simulation", 0))
+        )
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"),
+                    self.dynamic_attrs.get("particle_pressure", 1.0))
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "particleViscosity"),
+                    self.dynamic_attrs.get("particle_viscosity", 0.5))
+
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
             1,
