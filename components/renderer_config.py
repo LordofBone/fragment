@@ -281,7 +281,6 @@ class RendererConfig:
             particle_ground_plane_normal=(0.0, 1.0, 0.0),
             particle_ground_plane_height=0.0,
             particle_max_lifetime=5.0,
-            particle_min_lifetime=1.0,
             particle_max_weight=1.0,
             particle_min_weight=0.1,
             **kwargs,
@@ -304,7 +303,6 @@ class RendererConfig:
             "particle_ground_plane_normal": particle_ground_plane_normal,
             "particle_ground_plane_height": particle_ground_plane_height,
             "particle_max_lifetime": particle_max_lifetime,
-            "particle_min_lifetime": particle_min_lifetime,
             "particle_max_weight": particle_max_weight,
             "particle_min_weight": particle_min_weight,
         }
