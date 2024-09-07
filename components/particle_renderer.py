@@ -1,5 +1,6 @@
 import time
 
+import glm  # Ensure you're using PyGLM or any other GLM-compatible library
 import numpy as np
 from OpenGL.GL import *
 
@@ -75,6 +76,20 @@ class ParticleRenderer(AbstractRenderer):
             self.create_buffers()
         else:
             raise ValueError(f"Unknown render mode: {self.particle_render_mode}")
+
+    def set_view_projection_matrices(self):
+        """
+        Send the view and projection matrices to the shader.
+        """
+        self.setup_camera()
+
+        # Get the uniform locations for the view and projection matrices
+        view_location = glGetUniformLocation(self.shader_program, "view")
+        projection_location = glGetUniformLocation(self.shader_program, "projection")
+
+        # Pass the view and projection matrices to the shader
+        glUniformMatrix4fv(view_location, 1, GL_FALSE, glm.value_ptr(self.view))
+        glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm.value_ptr(self.projection))
 
     def init_cpu_mode(self):
         """
@@ -299,6 +314,7 @@ class ParticleRenderer(AbstractRenderer):
         Render particles.
         This method binds the VAO and issues a draw call to render the particles as points.
         """
+        self.set_view_projection_matrices()
         self.update_particles()
         glBindVertexArray(self.vao)
 
