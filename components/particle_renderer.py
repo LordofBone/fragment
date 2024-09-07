@@ -49,11 +49,17 @@ class ParticleRenderer(AbstractRenderer):
         Handles shader linking and setup for transform feedback if that mode is enabled.
         """
         super().init_shaders()
+
         if self.particle_render_mode == 'transform_feedback':
             # Specify the variables to capture during transform feedback
-            varyings = ["tfPosition", "tfVelocity"]
+            varyings = ["tfPosition", "tfVelocity", "tfSpawnTime"]
+
+            # Convert the varyings to a C-compatible format for OpenGL
             varyings_c = (ctypes.POINTER(ctypes.c_char) * len(varyings))(
-                *[ctypes.create_string_buffer(v.encode('utf-8')) for v in varyings])
+                *[ctypes.create_string_buffer(v.encode('utf-8')) for v in varyings]
+            )
+
+            # Set up transform feedback to capture the varyings
             glTransformFeedbackVaryings(self.shader_program, len(varyings), varyings_c, GL_INTERLEAVED_ATTRIBS)
             glLinkProgram(self.shader_program)
 
@@ -159,40 +165,52 @@ class ParticleRenderer(AbstractRenderer):
 
     def generate_initial_data(self):
         """
-        Generate initial positions and velocities for particles.
-        Returns an array of interleaved position and velocity data in 3D.
+        Generate initial positions, velocities, and spawn times for particles.
+        Returns an array of interleaved position, velocity, and spawn time data.
         """
-        particle_positions = np.random.uniform(-self.width, self.width, (self.particle_count, 3)).astype(np.float32)
-        particle_positions[:, 1] = np.random.uniform(-self.height, self.height,
-                                                     self.particle_count)  # Y-axis controls height
-        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth,
-                                                     self.particle_count)  # Z-axis controls depth
+        current_time = time.time()  # Get the current time to set as spawn time
 
+        # Generate particle positions (3D)
+        particle_positions = np.random.uniform(-self.width, self.width, (self.particle_count, 3)).astype(np.float32)
+        particle_positions[:, 1] = np.random.uniform(-self.height, self.height, self.particle_count)  # Y-axis
+        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, self.particle_count)  # Z-axis
+
+        # Generate particle velocities (3D)
         particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
-        data = np.hstack((particle_positions, particle_velocities)).astype(np.float32)
+
+        # Generate spawn times (1D)
+        spawn_times = np.full((self.particle_count, 1), current_time, dtype=np.float32)
+
+        # Interleave positions, velocities, and spawn times into a single array
+        data = np.hstack((particle_positions, particle_velocities, spawn_times)).astype(np.float32)
+
         return data
 
     def _setup_vertex_attributes(self):
         """
-        Setup vertex attribute pointers for position and velocity.
+        Setup vertex attribute pointers for position, velocity, and spawn time.
         Ensures that the shader program has the correct attribute locations configured.
         """
         float_size = 4  # Size of a float in bytes
-        vertex_stride = 6 * float_size  # 3 floats for position + 3 floats for velocity
+        vertex_stride = 7 * float_size  # 3 floats for position + 3 floats for velocity + 1 float for spawn time
 
         # Get the attribute locations
         position_loc = glGetAttribLocation(self.shader_program, "position")
         velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
+        spawn_time_loc = glGetAttribLocation(self.shader_program, "spawnTime")
 
-        if position_loc == -1 or velocity_loc == -1:
-            raise RuntimeError("Position or Velocity attribute not found in shader program.")
+        if position_loc == -1 or velocity_loc == -1 or spawn_time_loc == -1:
+            raise RuntimeError("Position, Velocity, or Spawn Time attribute not found in shader program.")
 
-        # Enable the vertex attribute arrays
+        # Enable and set the vertex attribute arrays for position, velocity, and spawn time
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
 
         glEnableVertexAttribArray(velocity_loc)
         glVertexAttribPointer(velocity_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(3 * float_size))
+
+        glEnableVertexAttribArray(spawn_time_loc)
+        glVertexAttribPointer(spawn_time_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(6 * float_size))
 
     def _check_vertex_attrib_pointer_setup(self, vertices):
         """
@@ -200,16 +218,21 @@ class ParticleRenderer(AbstractRenderer):
         """
         position_loc = glGetAttribLocation(self.shader_program, "position")
         velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
+        spawn_time_loc = glGetAttribLocation(self.shader_program, "spawnTime")
 
         position_stride = glGetVertexAttribiv(position_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
         velocity_stride = glGetVertexAttribiv(velocity_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
+        spawn_time_stride = glGetVertexAttribiv(spawn_time_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
 
         position_offset = glGetVertexAttribPointerv(position_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         velocity_offset = glGetVertexAttribPointerv(velocity_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
+        spawn_time_offset = glGetVertexAttribPointerv(spawn_time_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
 
         print(f"Position Attributes in _check_vertex_attrib_pointer_setup")
         print(f"Position Attribute: Location = {position_loc}, Stride = {position_stride}, Offset = {position_offset}")
         print(f"Velocity Attribute: Location = {velocity_loc}, Stride = {velocity_stride}, Offset = {velocity_offset}")
+        print(
+            f"Spawn Time Attribute: Location = {spawn_time_loc}, Stride = {spawn_time_stride}, Offset = {spawn_time_offset}")
 
         # Optionally, read back the entire buffer data to verify
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -221,7 +244,7 @@ class ParticleRenderer(AbstractRenderer):
             ctypes_array = (ctypes.c_byte * buffer_size).from_address(mapped_buffer)
             # Convert ctypes array to bytes and then to a numpy array
             buffer_data = np.frombuffer(ctypes_array, dtype=vertices.dtype)
-            print(f"Buffer Data Readback (first 5 vertices): {buffer_data[:6].reshape(-1, vertices.shape[1])}")
+            print(f"Buffer Data Readback (first 5 vertices): {buffer_data[:7].reshape(-1, vertices.shape[1])}")
             glUnmapBuffer(GL_ARRAY_BUFFER)
         else:
             print("Failed to map buffer for reading.")
@@ -236,6 +259,7 @@ class ParticleRenderer(AbstractRenderer):
         self.last_time = current_time
 
         # Pass deltaTime to the shader
+        glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), np.float32(current_time))
         glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), delta_time)
 
         if self.particle_render_mode == 'compute_shader':
@@ -295,17 +319,25 @@ class ParticleRenderer(AbstractRenderer):
         Captures the output of the vertex shader back into a buffer and swaps the buffers for the next frame.
         """
         glBindVertexArray(self.vao)
+
+        # Enable rasterizer discard to avoid rendering particles to the screen
         glEnable(GL_RASTERIZER_DISCARD)
+
+        # Bind the feedback VBO to capture transform feedback output
         glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, self.feedback_vbo)
+
+        # Start capturing transform feedback
         glBeginTransformFeedback(GL_POINTS)
         glDrawArrays(GL_POINTS, 0, self.particle_count)
         glEndTransformFeedback()
+
+        # Disable rasterizer discard
         glDisable(GL_RASTERIZER_DISCARD)
 
-        # Ensure buffer data is synchronized before the next draw call
+        # Ensure that the buffer is synchronized before the next frame
         glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
 
-        # Swap the VBOs for the next iteration
+        # Swap the VBOs (this swaps the input and feedback buffers for the next frame)
         self.vbo, self.feedback_vbo = self.feedback_vbo, self.vbo
 
     @common_funcs
