@@ -35,6 +35,8 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_ground_plane_height = self.dynamic_attrs.get('particle_ground_plane_height', 0.0)
         self.particle_max_velocity = self.dynamic_attrs.get('particle_max_velocity', 10.0)
         self.particle_max_lifetime = self.dynamic_attrs.get('particle_max_lifetime', 5.0)
+        self.particle_spawn_time_jitter = self.dynamic_attrs.get('particle_spawn_time_jitter', False)
+        self.particle_max_spawn_time_jitter = self.dynamic_attrs.get('particle_max_spawn_time_jitter', 5.0)
 
     def setup(self):
         """
@@ -181,7 +183,13 @@ class ParticleRenderer(AbstractRenderer):
         particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
 
         # Generate spawn times (1D) relative to the start time
-        spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
+        # You can introduce randomness by adding some jitter if desired, like: np.random.uniform(0, 5)
+        if self.particle_spawn_time_jitter:
+            spawn_times = np.full((self.particle_count, 1), current_time - self.start_time + np.random.uniform(0,
+                                                                                                               self.particle_max_spawn_time_jitter),
+                                  dtype=np.float32)
+        else:
+            spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
 
         # Generate random lifetimes (1D) between 0.5 * particleMaxLifetime and particleMaxLifetime
         lifetimes = np.random.uniform(0.5 * self.particle_max_lifetime, self.particle_max_lifetime,
