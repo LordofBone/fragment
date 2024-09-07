@@ -61,7 +61,8 @@ void main() {
     // Apply gravity scaled by weight
     vec3 newVelocity = velocity + adjustedGravity * deltaTime;
 
-    if (fluidSimulation == true) {
+    // Conditionally apply fluid simulation forces if the flag is true
+    if (fluidSimulation) {
         // Apply fluid forces (pressure and viscosity)
         vec3 fluidForces = calculateFluidForces(velocity);
         newVelocity += fluidForces * deltaTime;
