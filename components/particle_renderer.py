@@ -183,7 +183,6 @@ class ParticleRenderer(AbstractRenderer):
         particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
 
         # Generate spawn times (1D) relative to the start time
-        # You can introduce randomness by adding some jitter if desired, like: np.random.uniform(0, 5)
         if self.particle_spawn_time_jitter:
             spawn_times = np.full((self.particle_count, 1), current_time - self.start_time + np.random.uniform(0,
                                                                                                                self.particle_max_spawn_time_jitter),
@@ -191,11 +190,13 @@ class ParticleRenderer(AbstractRenderer):
         else:
             spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
 
-        # Generate random lifetimes (1D) between 0.5 * particleMaxLifetime and particleMaxLifetime
-        lifetimes = np.random.uniform(0.5 * self.particle_max_lifetime, self.particle_max_lifetime,
-                                      (self.particle_count, 1)).astype(np.float32)
+        # Generate lifetimes (1D)
+        if self.particle_max_lifetime > 0.0:
+            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_count, 1)).astype(np.float32)
+        else:
+            lifetimes = np.full((self.particle_count, 1), 0.0, dtype=np.float32)
 
-        # Generate particle IDs (1D) ranging from 0 to particle_count - 1
+        # Generate particle IDs (1D)
         particle_ids = np.arange(self.particle_count, dtype=np.float32).reshape(-1, 1)
 
         # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
