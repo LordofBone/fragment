@@ -8,43 +8,39 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
-    def __init__(self, particle_count=1000, num_generators=0, generator_positions=None,
-                 particle_render_mode='transform_feedback', **kwargs):
+    def __init__(self, particle_count=1000, particle_render_mode='transform_feedback', particle_generator=False,
+                 **kwargs):
         super().__init__(**kwargs)
-        self.particle_count = particle_count  # Number of preset particles
+        self.particle_count = particle_count
         self.particle_render_mode = particle_render_mode
-        self.num_generators = num_generators  # Number of particle generators
-        self.generator_positions = generator_positions if generator_positions is not None else []  # Positions of generators
+        self.particle_generator = particle_generator  # New flag to control generator mode
+        self.generated_particles = 0  # Track total generated particles in generator mode
+
         self.vao = None
         self.vbo = None
         self.feedback_vbo = None
         self.ssbo = None
-        self.particle_size = self.dynamic_attrs.get('particle_size', 2.0)
-        self.height = self.dynamic_attrs.get('height', 1.0)
-        self.width = self.dynamic_attrs.get('width', 1.0)
-        self.depth = self.dynamic_attrs.get('depth', 1.0)
-        self.start_time = time.time()  # Store the start time
+        self.particle_size = self.dynamic_attrs.get('particle_size', 2.0)  # Default particle size
+        self.height = self.dynamic_attrs.get('height', 1.0)  # Default height for the particle field
+        self.width = self.dynamic_attrs.get('width', 1.0)  # Default width for the particle field
+        self.depth = self.dynamic_attrs.get('depth', 1.0)  # Default depth for the particle field
+        self.start_time = time.time()  # Store the start time (epoch)
         self.last_time = time.time()  # Store the last frame time for delta time calculations
 
-        # Gravity, bounce, and ground properties
+        # Only used in CPU mode
         self.particle_positions = None
         self.particle_velocities = None
-        self.particle_gravity = np.array
         self.particle_gravity = np.array(self.dynamic_attrs.get('particle_gravity', (0.0, -9.81, 0.0)),
                                          dtype=np.float32)
         self.particle_bounce_factor = self.dynamic_attrs.get('particle_bounce_factor', 0.6)
         self.particle_ground_plane_normal = np.array(
-            self.dynamic_attrs.get('particle_ground_plane_normal', (0.0, 1.0, 0.0)), dtype=np.float32)
+            self.dynamic_attrs.get('particle_ground_plane_normal', (0.0, 1.0, 0.0)),
+            dtype=np.float32)
         self.particle_ground_plane_height = self.dynamic_attrs.get('particle_ground_plane_height', 0.0)
         self.particle_max_velocity = self.dynamic_attrs.get('particle_max_velocity', 10.0)
         self.particle_max_lifetime = self.dynamic_attrs.get('particle_max_lifetime', 5.0)
         self.particle_spawn_time_jitter = self.dynamic_attrs.get('particle_spawn_time_jitter', False)
         self.particle_max_spawn_time_jitter = self.dynamic_attrs.get('particle_max_spawn_time_jitter', 5.0)
-
-        # Generator-specific attributes
-        self.generator_emit_rate = self.dynamic_attrs.get('generator_emit_rate',
-                                                          100)  # Number of particles emitted per frame from each generator
-        self.generated_particles = 0  # Counter to track how many particles have been generated over time
 
     def setup(self):
         """
@@ -126,7 +122,9 @@ class ParticleRenderer(AbstractRenderer):
         needed for capturing particle updates via transform feedback.
         """
         glUseProgram(self.shader_program)
-        particle_vertices, total_particles = self.generate_initial_data()
+
+        # Call the generate_initial_data function and unpack the return values
+        particle_vertices, _ = self.generate_initial_data()  # Ignore the second value (particle_count) for now
 
         self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
 
@@ -168,7 +166,7 @@ class ParticleRenderer(AbstractRenderer):
         Setup buffers for vertex/fragment shader-based particle rendering.
         This method sets up the VAO and VBO needed for rendering particles using a shader pipeline.
         """
-        vertices = self.generate_initial_data()
+        vertices, _ = self.generate_initial_data()
         self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
         glBindVertexArray(self.vao)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -177,76 +175,39 @@ class ParticleRenderer(AbstractRenderer):
 
     def generate_initial_data(self):
         """
-        Generate initial positions, velocities, spawn times, lifetimes, and particle IDs for preset particles and generator-emitted particles.
+        Generate initial positions, velocities, spawn times, lifetimes, and particle IDs for particles.
         Returns an array of interleaved position, velocity, spawn time, lifetime, and particle ID data.
         """
         current_time = time.time()  # Get the current time to set as spawn time
 
-        # Classic preset particles initialization (if generators == 0, behaves like before)
-        if self.num_generators == 0:
-            particle_positions = np.random.uniform(-self.width, self.width, (self.particle_count, 3)).astype(np.float32)
-            particle_positions[:, 1] = np.random.uniform(-self.height, self.height, self.particle_count)  # Y-axis
-            particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, self.particle_count)  # Z-axis
+        particle_positions = np.random.uniform(-self.width, self.width, (self.particle_count, 3)).astype(
+            np.float32)
+        particle_positions[:, 1] = np.random.uniform(-self.height, self.height, self.particle_count)  # Y-axis
+        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, self.particle_count)  # Z-axis
 
-            particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
+        particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
 
-            if self.particle_spawn_time_jitter:
-                jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
-                                                  (self.particle_count, 1)).astype(np.float32)
-                spawn_times = np.full((self.particle_count, 1), current_time - self.start_time,
-                                      dtype=np.float32) + jitter_values
-            else:
-                spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
-
-            # Generate lifetimes (1D)
-            if self.particle_max_lifetime > 0.0:
-                lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_count, 1)).astype(
-                    np.float32)
-            else:
-                lifetimes = np.full((self.particle_count, 1), 0.0, dtype=np.float32)
-
-            particle_ids = np.arange(self.particle_count, dtype=np.float32).reshape(-1, 1)
-
-            # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
-            data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids)).astype(
-                np.float32)
-            return data, self.particle_count
-
-        # Generator-based particles (continuously generate over time)
+        if self.particle_spawn_time_jitter:
+            jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
+                                              (self.particle_count, 1)).astype(np.float32)
+            spawn_times = np.full((self.particle_count, 1), current_time - self.start_time,
+                                  dtype=np.float32) + jitter_values
         else:
-            particle_positions = np.zeros((0, 3), dtype=np.float32)
-            particle_velocities = np.zeros((0, 3), dtype=np.float32)
-            spawn_times = np.zeros((0, 1), dtype=np.float32)
-            lifetimes = np.zeros((0, 1), dtype=np.float32)
-            particle_ids = np.zeros((0, 1), dtype=np.float32)
+            spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
 
-            # Generate particles from each generator at each frame
-            for generator_index, generator_position in enumerate(self.generator_positions):
-                num_gen_particles = self.generator_emit_rate
-
-                gen_positions = np.full((num_gen_particles, 3), generator_position).astype(np.float32)
-                gen_velocities = np.random.uniform(-0.5, 0.5, (num_gen_particles, 3)).astype(np.float32)
-                gen_spawn_times = np.full((num_gen_particles, 1), current_time - self.start_time, dtype=np.float32)
-                gen_lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_gen_particles, 1)).astype(
-                    np.float32)
-                gen_ids = np.arange(self.generated_particles, self.generated_particles + num_gen_particles,
-                                    dtype=np.float32).reshape(-1, 1)
-
-                # Add generator particles to arrays
-                particle_positions = np.vstack(
-                    (particle_positions, gen_positions)) if particle_positions.size else gen_positions
-                particle_velocities = np.vstack(
-                    (particle_velocities, gen_velocities)) if particle_velocities.size else gen_velocities
-                spawn_times = np.vstack((spawn_times, gen_spawn_times)) if spawn_times.size else gen_spawn_times
-                lifetimes = np.vstack((lifetimes, gen_lifetimes)) if lifetimes.size else gen_lifetimes
-                particle_ids = np.vstack((particle_ids, gen_ids)) if particle_ids.size else gen_ids
-
-                self.generated_particles += num_gen_particles  # Keep track of total generated particles
-
-            # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
-            data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids)).astype(
+        # Generate lifetimes (1D)
+        if self.particle_max_lifetime > 0.0:
+            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_count, 1)).astype(
                 np.float32)
-            return data, particle_positions.shape[0]
+        else:
+            lifetimes = np.full((self.particle_count, 1), 0.0, dtype=np.float32)
+
+        particle_ids = np.arange(self.particle_count, dtype=np.float32).reshape(-1, 1)
+
+        # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
+        data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids)).astype(
+            np.float32)
+        return data, self.particle_count
 
     def _setup_vertex_attributes(self):
         """
@@ -341,13 +302,6 @@ class ParticleRenderer(AbstractRenderer):
         delta_time = min(elapsed_time - self.last_time, 0.016)  # Clamp delta time to ~60 FPS
         self.last_time = elapsed_time
 
-        # Emit new particles if using generators
-        if self.num_generators > 0:
-            new_particle_data, new_particle_count = self.generate_initial_data()
-            glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferSubData(GL_ARRAY_BUFFER, 0, new_particle_data.nbytes, new_particle_data)
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-
         # Pass the elapsed time (relative to start) to the shader
         glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), np.float32(elapsed_time))
         glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), delta_time)
@@ -358,6 +312,39 @@ class ParticleRenderer(AbstractRenderer):
             self._update_particles_transform_feedback()
         elif self.particle_render_mode == 'cpu':
             self._update_particles_cpu()
+
+        if self.particle_generator:
+            self._generate_new_particles()
+
+    def _generate_new_particles(self):
+        """
+        Generate new particles each frame when the particle generator mode is enabled.
+        """
+        current_time = time.time()
+
+        # Generate a new set of particles for this frame
+        num_gen_particles = self.particle_count  # Number of particles to generate per frame
+        gen_positions = np.random.uniform(-self.width, self.width, (num_gen_particles, 3)).astype(np.float32)
+        gen_positions[:, 1] = np.random.uniform(-self.height, self.height, num_gen_particles)  # Y-axis
+        gen_positions[:, 2] = np.random.uniform(-self.depth, self.depth, num_gen_particles)  # Z-axis
+
+        gen_velocities = np.random.uniform(-0.5, 0.5, (num_gen_particles, 3)).astype(np.float32)
+        gen_spawn_times = np.full((num_gen_particles, 1), current_time - self.start_time, dtype=np.float32)
+        gen_lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_gen_particles, 1)).astype(np.float32)
+        gen_ids = np.arange(self.generated_particles, self.generated_particles + num_gen_particles,
+                            dtype=np.float32).reshape(-1, 1)
+
+        # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
+        new_particles = np.hstack((gen_positions, gen_velocities, gen_spawn_times, gen_lifetimes, gen_ids)).astype(
+            np.float32)
+
+        # Update the total generated particles count
+        self.generated_particles += num_gen_particles
+
+        # Bind the feedback VBO and append new particle data
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, new_particles.nbytes, new_particles)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _update_particles_cpu(self):
         """
