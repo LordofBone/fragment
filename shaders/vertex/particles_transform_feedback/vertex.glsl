@@ -3,7 +3,7 @@
 layout (location = 0) in vec3 position;// Input particle position
 layout (location = 1) in vec3 velocity;// Input particle velocity
 layout (location = 2) in float spawnTime;// Time when the particle was created
-layout (location = 3) in float particleLifetime;// The lifetime of the particle
+layout (location = 3) in float particleLifetime;// The lifetime of the particle (0.0 means no expiration)
 layout (location = 4) in float particleID;// The ID of the particle
 
 uniform float currentTime;// The global time for tracking particle lifetime
@@ -17,11 +17,8 @@ uniform float particlePressure;// Pressure force for fluid dynamics
 uniform float particleViscosity;// Viscosity force for fluid dynamics
 uniform float particleSize;// Size of the particle
 uniform vec3 particleColor;// Base color of the particle
-
-// New uniforms for weight
 uniform float minWeight;// Minimum weight of particles
 uniform float maxWeight;// Maximum weight of particles
-
 uniform bool fluidSimulation;// Flag to enable water simulation
 
 // Camera uniforms for view and projection matrices
@@ -96,20 +93,25 @@ void main() {
     // Calculate the time that has passed since the particle was spawned
     float elapsedTime = currentTime - spawnTime;
 
-    // Calculate the percentage of the particle's lifetime that has elapsed
-    lifetimePercentage = clamp(elapsedTime / particleLifetime, 0.0, 1.0);
+    // Calculate lifetime percentage
+    if (particleLifetime > 0.0) {
+        lifetimePercentage = clamp(elapsedTime / particleLifetime, 0.0, 1.0);
 
-    // If the particle's lifetime exceeds its randomly generated lifetime, it should disappear
-    if (lifetimePercentage >= 1.0) {
-        newPosition = vec3(10000.0, 10000.0, 10000.0);// Move off-screen
-        newVelocity = vec3(0.0);
-        gl_PointSize = 0.0;// Make invisible
+        // If the particle's lifetime exceeds, it should disappear; moving off-screen and setting size to 0
+        if (lifetimePercentage >= 1.0) {
+            newPosition = vec3(10000.0, 10000.0, 10000.0);
+            newVelocity = vec3(0.0);
+            gl_PointSize = 0.0;
+        }
+    } else {
+        // If lifetime is 0.0, the particle never expires
+        lifetimePercentage = 0.0;
     }
 
     // Adjust particle size based on distance from the camera
     vec3 particleToCamera = cameraPosition - newPosition;
     float distanceFromCamera = length(particleToCamera);
-    float adjustedSize = particleSize / distanceFromCamera;// Inverse proportional to distance
+    float adjustedSize = particleSize / distanceFromCamera;
 
     // Set particle size for rendering
     gl_PointSize = adjustedSize;
@@ -123,10 +125,8 @@ void main() {
     tfParticleLifetime = particleLifetime;
     tfParticleID = particleID;
 
-    // Apply the model matrix to the particle's position
-    vec4 worldPosition = model * vec4(newPosition, 1.0);
-
     // Set the final position of the particle using view and projection matrices
+    vec4 worldPosition = model * vec4(newPosition, 1.0);
     gl_Position = projection * view * worldPosition;
 
     // Pass the color to the fragment shader
