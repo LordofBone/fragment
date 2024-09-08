@@ -198,7 +198,13 @@ class ParticleRenderer(AbstractRenderer):
             else:
                 spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
 
-            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_count, 1)).astype(np.float32)
+            # Generate lifetimes (1D)
+            if self.particle_max_lifetime > 0.0:
+                lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_count, 1)).astype(
+                    np.float32)
+            else:
+                lifetimes = np.full((self.particle_count, 1), 0.0, dtype=np.float32)
+
             particle_ids = np.arange(self.particle_count, dtype=np.float32).reshape(-1, 1)
 
             # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
