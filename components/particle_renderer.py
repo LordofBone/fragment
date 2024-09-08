@@ -182,11 +182,12 @@ class ParticleRenderer(AbstractRenderer):
         # Generate particle velocities (3D)
         particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
 
-        # Generate spawn times (1D) relative to the start time
+        # Generate particle spawn times (1D) with random jitter per particle if enabled
         if self.particle_spawn_time_jitter:
-            spawn_times = np.full((self.particle_count, 1), current_time - self.start_time + np.random.uniform(0,
-                                                                                                               self.particle_max_spawn_time_jitter),
-                                  dtype=np.float32)
+            jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter, (self.particle_count, 1)).astype(
+                np.float32)
+            spawn_times = np.full((self.particle_count, 1), current_time - self.start_time,
+                                  dtype=np.float32) + jitter_values
         else:
             spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
 
