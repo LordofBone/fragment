@@ -8,10 +8,12 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
-    def __init__(self, particle_count=1000, particle_render_mode='transform_feedback', particle_generator=False,
+    def __init__(self, particle_batch_size=1000, particle_render_mode='transform_feedback', particle_generator=False,
                  **kwargs):
         super().__init__(**kwargs)
-        self.particle_count = particle_count
+        self.particle_batch_size = particle_batch_size
+        self.total_particles = 0
+        self.max_particles = 1000
         self.particle_render_mode = particle_render_mode
         self.particle_generator = particle_generator  # New flag to control generator mode
         self.generated_particles = 0  # Track total generated particles in generator mode
@@ -109,11 +111,11 @@ class ParticleRenderer(AbstractRenderer):
         """
         Initialize the CPU mode by setting up the initial particle positions and velocities.
         """
-        self.particle_positions = np.random.uniform(-self.width, self.width, (self.particle_count, 3)).astype(
+        self.particle_positions = np.random.uniform(-self.width, self.width, (self.particle_batch_size, 3)).astype(
             np.float32)
         self.particle_positions[:, 1] = np.random.uniform(0.0, self.height,
-                                                          self.particle_count)  # Y-axis controls height
-        self.particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
+                                                          self.particle_batch_size)  # Y-axis controls height
+        self.particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_batch_size, 3)).astype(np.float32)
 
     def create_transform_feedback_buffers(self):
         """
@@ -180,34 +182,34 @@ class ParticleRenderer(AbstractRenderer):
         """
         current_time = time.time()  # Get the current time to set as spawn time
 
-        particle_positions = np.random.uniform(-self.width, self.width, (self.particle_count, 3)).astype(
+        particle_positions = np.random.uniform(-self.width, self.width, (self.particle_batch_size, 3)).astype(
             np.float32)
-        particle_positions[:, 1] = np.random.uniform(-self.height, self.height, self.particle_count)  # Y-axis
-        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, self.particle_count)  # Z-axis
+        particle_positions[:, 1] = np.random.uniform(-self.height, self.height, self.particle_batch_size)  # Y-axis
+        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, self.particle_batch_size)  # Z-axis
 
-        particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_count, 3)).astype(np.float32)
+        particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_batch_size, 3)).astype(np.float32)
 
         if self.particle_spawn_time_jitter:
             jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
-                                              (self.particle_count, 1)).astype(np.float32)
-            spawn_times = np.full((self.particle_count, 1), current_time - self.start_time,
+                                              (self.particle_batch_size, 1)).astype(np.float32)
+            spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time,
                                   dtype=np.float32) + jitter_values
         else:
-            spawn_times = np.full((self.particle_count, 1), current_time - self.start_time, dtype=np.float32)
+            spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time, dtype=np.float32)
 
         # Generate lifetimes (1D)
         if self.particle_max_lifetime > 0.0:
-            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_count, 1)).astype(
+            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_batch_size, 1)).astype(
                 np.float32)
         else:
-            lifetimes = np.full((self.particle_count, 1), 0.0, dtype=np.float32)
+            lifetimes = np.full((self.particle_batch_size, 1), 0.0, dtype=np.float32)
 
-        particle_ids = np.arange(self.particle_count, dtype=np.float32).reshape(-1, 1)
+        particle_ids = np.arange(self.particle_batch_size, dtype=np.float32).reshape(-1, 1)
 
         # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
         data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids)).astype(
             np.float32)
-        return data, self.particle_count
+        return data, self.particle_batch_size
 
     def _setup_vertex_attributes(self):
         """
@@ -334,7 +336,7 @@ class ParticleRenderer(AbstractRenderer):
         buffer_size = glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE)
 
         # Calculate the expected buffer size based on the number of particles
-        expected_size = self.particle_count * 9 * 4  # 9 floats per particle, 4 bytes per float
+        expected_size = self.total_particles * 9 * 4  # 9 floats per particle, 4 bytes per float
 
         # Resize the buffer if needed
         if buffer_size < expected_size:
@@ -344,7 +346,7 @@ class ParticleRenderer(AbstractRenderer):
         particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, expected_size)
 
         # Convert buffer data into a NumPy array
-        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(self.particle_count, 9)
+        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(self.total_particles, 9)
 
         # Extract particle lifetimes (7th index corresponds to tfParticleLifetime)
         lifetimes = particle_data_np[:, 7]
@@ -357,9 +359,10 @@ class ParticleRenderer(AbstractRenderer):
 
         # Update the particle count to reflect the number of active particles
         num_active_particles = len(active_particles)
-        self.particle_count = num_active_particles
+        self.total_particles = num_active_particles
 
         print(f"Number of active particles: {num_active_particles}")
+        print("Total particles: ", self.total_particles)
 
         # Resize the buffer again to fit the active particles
         if num_active_particles > 0:
@@ -374,14 +377,14 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _generate_new_particles(self):
-        print("Number of particles: ", self.particle_count)
+        print("Number of particles: ", self.total_particles)
 
         # Limit to a maximum of 100 particles
         max_particles = 100
-        if self.particle_count >= max_particles:
+        if self.total_particles >= max_particles:
             num_gen_particles = 0  # No new particles if we already have the maximum
         else:
-            num_gen_particles = min(max_particles - self.particle_count, 3)  # Generate 3 particles per frame
+            num_gen_particles = min(max_particles - self.total_particles, self.particle_batch_size)  # Generate 3 particles per frame
 
         if num_gen_particles == 0:
             return  # Exit early if no new particles need to be generated
@@ -404,20 +407,20 @@ class ParticleRenderer(AbstractRenderer):
             np.float32)
 
         # Calculate total number of particles after adding new ones
-        total_particles = self.particle_count + num_gen_particles
+        total_particles = self.total_particles + num_gen_particles
 
         # Bind the buffer for existing particles
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 
         # Allocate space for both existing and new particles
-        existing_size = self.particle_count * new_particles.shape[1] * new_particles.itemsize
+        existing_size = self.total_particles * new_particles.shape[1] * new_particles.itemsize
         total_size = total_particles * new_particles.shape[1] * new_particles.itemsize
 
         # Allocate buffer data
         glBufferData(GL_ARRAY_BUFFER, total_size, None, GL_DYNAMIC_DRAW)
 
         # Copy the existing particles if there are any
-        if self.particle_count > 0:
+        if self.total_particles > 0:
             # Copy existing particle data to the new buffer space
             old_particles_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, existing_size)
             glBufferSubData(GL_ARRAY_BUFFER, 0, existing_size, old_particles_data)
@@ -429,7 +432,7 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         # Update the particle count and the total number of generated particles
-        self.particle_count = total_particles
+        self.total_particles = total_particles
         self.generated_particles += num_gen_particles
 
     def _update_particles_cpu(self):
@@ -441,7 +444,7 @@ class ParticleRenderer(AbstractRenderer):
         delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
         self.last_time = current_time
 
-        for i in range(self.particle_count):
+        for i in range(self.particle_batch_size):
             # Update velocity with gravity
             self.particle_velocities[i] += self.particle_gravity * delta_time
 
@@ -473,7 +476,7 @@ class ParticleRenderer(AbstractRenderer):
         Dispatches the compute shader and ensures memory barriers are respected.
         """
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
-        glDispatchCompute(self.particle_count // 128 + 1, 1, 1)
+        glDispatchCompute(self.particle_batch_size // 128 + 1, 1, 1)
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
 
     def _update_particles_transform_feedback(self):
@@ -491,7 +494,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Start capturing transform feedback
         glBeginTransformFeedback(GL_POINTS)
-        glDrawArrays(GL_POINTS, 0, self.particle_count)
+        glDrawArrays(GL_POINTS, 0, self.particle_batch_size)
         glEndTransformFeedback()
 
         # Disable rasterizer discard
@@ -514,6 +517,6 @@ class ParticleRenderer(AbstractRenderer):
         glBindVertexArray(self.vao)
 
         # Issue the draw call
-        glDrawArrays(GL_POINTS, 0, self.particle_count)
+        glDrawArrays(GL_POINTS, 0, self.particle_batch_size)
 
         glBindVertexArray(0)
