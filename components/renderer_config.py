@@ -267,7 +267,7 @@ class RendererConfig:
 
     def add_particle_renderer(
             self,
-            particle_count=1000,
+            particle_batch_size=1000,
             particle_render_mode='transform_feedback',
             shader_names=("particle_vertex", "particle_fragment"),
             compute_shader_program=None,
@@ -296,7 +296,7 @@ class RendererConfig:
         particle_specifics = {
             "depth_testing": depth_testing,
             "culling": culling,
-            "particle_count": particle_count,
+            "particle_batch_size": particle_batch_size,
             "particle_max_velocity": particle_max_velocity,
             "particle_render_mode": particle_render_mode,
             "shader_names": shader_names,
