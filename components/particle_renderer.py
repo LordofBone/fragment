@@ -296,16 +296,18 @@ class ParticleRenderer(AbstractRenderer):
         """
         Update particle data based on the selected render mode.
         Dispatches the appropriate particle update mechanism based on the render mode.
+        After updating, expired particles are removed from the buffer.
         """
-        current_time = time.time()  # Current Unix time
-        elapsed_time = current_time - self.start_time  # Time elapsed since the system started
-        delta_time = min(elapsed_time - self.last_time, 0.016)  # Clamp delta time to ~60 FPS
+        current_time = time.time()
+        elapsed_time = current_time - self.start_time
+        delta_time = min(elapsed_time - self.last_time, 0.016)  # Clamp to ~60 FPS
         self.last_time = elapsed_time
 
         # Pass the elapsed time (relative to start) to the shader
         glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), np.float32(elapsed_time))
         glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), delta_time)
 
+        # Update particles based on the selected mode
         if self.particle_render_mode == 'compute_shader':
             self._update_particles_compute_shader()
         elif self.particle_render_mode == 'transform_feedback':
@@ -316,14 +318,77 @@ class ParticleRenderer(AbstractRenderer):
         if self.particle_generator:
             self._generate_new_particles()
 
+        # After updating, remove expired particles
+        self._remove_expired_particles()
+
+    def _remove_expired_particles(self):
+        """
+        Remove particles that have expired (i.e., their lifetime has been exceeded).
+        This method reads back data from the transform feedback buffer, filters out expired particles,
+        and creates a new buffer with the remaining active particles.
+        """
+        # Bind the feedback VBO
+        glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
+
+        # Query the current buffer size
+        buffer_size = glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE)
+
+        # Calculate the expected buffer size based on the number of particles
+        expected_size = self.particle_count * 9 * 4  # 9 floats per particle, 4 bytes per float
+
+        # Resize the buffer if needed
+        if buffer_size < expected_size:
+            glBufferData(GL_ARRAY_BUFFER, expected_size, None, GL_DYNAMIC_DRAW)
+
+        # Read back the buffer data
+        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, expected_size)
+
+        # Convert buffer data into a NumPy array
+        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(self.particle_count, 9)
+
+        # Extract particle lifetimes (7th index corresponds to tfParticleLifetime)
+        lifetimes = particle_data_np[:, 7]
+        ids = particle_data_np[:, 8]
+        print("IDs: ", ids)
+        print("Lifetimes: ", lifetimes)
+
+        # Filter out particles whose lifetime has expired (lifetime <= 0)
+        active_particles = particle_data_np[lifetimes > 0.0]  # Only keep particles with a positive lifetime
+
+        # Update the particle count to reflect the number of active particles
+        num_active_particles = len(active_particles)
+        self.particle_count = num_active_particles
+
+        print(f"Number of active particles: {num_active_particles}")
+
+        # Resize the buffer again to fit the active particles
+        if num_active_particles > 0:
+            new_size = num_active_particles * 9 * 4  # 9 floats per particle, 4 bytes per float
+            if buffer_size != new_size:
+                glBufferData(GL_ARRAY_BUFFER, new_size, None, GL_DYNAMIC_DRAW)
+
+            # Re-upload the active particles back to the VBO
+            glBufferSubData(GL_ARRAY_BUFFER, 0, active_particles.nbytes, active_particles)
+
+        # Unbind the buffer
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+
     def _generate_new_particles(self):
-        """
-        Generate new particles each frame when the particle generator mode is enabled.
-        """
+        print("Number of particles: ", self.particle_count)
+
+        # Limit to a maximum of 100 particles
+        max_particles = 100
+        if self.particle_count >= max_particles:
+            num_gen_particles = 0  # No new particles if we already have the maximum
+        else:
+            num_gen_particles = min(max_particles - self.particle_count, 3)  # Generate 3 particles per frame
+
+        if num_gen_particles == 0:
+            return  # Exit early if no new particles need to be generated
+
         current_time = time.time()
 
-        # Generate a new set of particles for this frame
-        num_gen_particles = self.particle_count  # Number of particles to generate per frame
+        # Generate new particles' positions, velocities, spawn times, lifetimes, and IDs
         gen_positions = np.random.uniform(-self.width, self.width, (num_gen_particles, 3)).astype(np.float32)
         gen_positions[:, 1] = np.random.uniform(-self.height, self.height, num_gen_particles)  # Y-axis
         gen_positions[:, 2] = np.random.uniform(-self.depth, self.depth, num_gen_particles)  # Z-axis
@@ -334,17 +399,38 @@ class ParticleRenderer(AbstractRenderer):
         gen_ids = np.arange(self.generated_particles, self.generated_particles + num_gen_particles,
                             dtype=np.float32).reshape(-1, 1)
 
-        # Interleave positions, velocities, spawn times, lifetimes, and particle IDs into a single array
+        # Interleave new particle data
         new_particles = np.hstack((gen_positions, gen_velocities, gen_spawn_times, gen_lifetimes, gen_ids)).astype(
             np.float32)
 
-        # Update the total generated particles count
-        self.generated_particles += num_gen_particles
+        # Calculate total number of particles after adding new ones
+        total_particles = self.particle_count + num_gen_particles
 
-        # Bind the feedback VBO and append new particle data
+        # Bind the buffer for existing particles
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, new_particles.nbytes, new_particles)
+
+        # Allocate space for both existing and new particles
+        existing_size = self.particle_count * new_particles.shape[1] * new_particles.itemsize
+        total_size = total_particles * new_particles.shape[1] * new_particles.itemsize
+
+        # Allocate buffer data
+        glBufferData(GL_ARRAY_BUFFER, total_size, None, GL_DYNAMIC_DRAW)
+
+        # Copy the existing particles if there are any
+        if self.particle_count > 0:
+            # Copy existing particle data to the new buffer space
+            old_particles_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, existing_size)
+            glBufferSubData(GL_ARRAY_BUFFER, 0, existing_size, old_particles_data)
+
+        # Append the new particles after the old ones
+        glBufferSubData(GL_ARRAY_BUFFER, existing_size, new_particles.nbytes, new_particles)
+
+        # Unbind the buffer
         glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+        # Update the particle count and the total number of generated particles
+        self.particle_count = total_particles
+        self.generated_particles += num_gen_particles
 
     def _update_particles_cpu(self):
         """
