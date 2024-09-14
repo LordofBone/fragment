@@ -121,39 +121,28 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_batch_size, 3)).astype(np.float32)
 
     def create_transform_feedback_buffers(self):
-        """
-        Setup buffers for transform feedback-based particle rendering.
-        This method sets up the Vertex Array Object (VAO) and Vertex Buffer Objects (VBOs)
-        needed for capturing particle updates via transform feedback.
-        """
         glUseProgram(self.shader_program)
-
-        # Call the generate_initial_data function and unpack the return values
-        particle_vertices, _ = self.generate_initial_data()  # Ignore the second value (particle_count) for now
+        particle_vertices, _ = self.generate_initial_data()
 
         self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
-
         glBindVertexArray(self.vao)
 
-        # Bind and upload the vertex data (positions and velocities)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, particle_vertices.nbytes, particle_vertices, GL_DYNAMIC_DRAW)
+        buffer_size = self.max_particles * self.stride_size * 4  # Allocate enough space for max particles
 
-        # Bind and allocate space for the feedback VBO
+        # Initialize the VBO with the initial particle data
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, particle_vertices.nbytes, particle_vertices)
+
+        # Initialize the feedback VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-        glBufferData(GL_ARRAY_BUFFER, particle_vertices.nbytes, None, GL_DYNAMIC_DRAW)
-
-        # Bind the original VBO again to set up attributes
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
 
         # Set up vertex attribute pointers
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         self._setup_vertex_attributes()
 
-        # self.total_particles += self.particle_batch_size
-
-        # Debug: Check attribute pointer setup
-        if self.debug_mode:
-            self._check_vertex_attrib_pointer_setup(particle_vertices)
+        self.total_particles += self.particle_batch_size
 
     def create_compute_shader_buffers(self):
         """
@@ -324,118 +313,71 @@ class ParticleRenderer(AbstractRenderer):
             self._generate_new_particles()
 
         # After updating, remove expired particles
-        self._remove_expired_particles()
+        # self._remove_expired_particles()
 
     def _remove_expired_particles(self):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-        buffer_size = glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE)
-        expected_size = self.total_particles * 10 * 4
+        buffer_size = self.max_particles * self.stride_size * 4
+        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, buffer_size)
+        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_size)
 
-        # if buffer_size < expected_size:
-        #     glBufferData(GL_ARRAY_BUFFER, expected_size, None, GL_DYNAMIC_DRAW)
-        #
-        # particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, expected_size)
-        # particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(self.total_particles, 10)
-        # print(particle_data_np)
-        #
-        # lifetime_percentages = particle_data_np[:,9]
-        # print("Lifetime percentages: ")
-        # print(lifetime_percentages)
-        # active_particles = particle_data_np[lifetime_percentages >= 1.0]
-        #
-        # num_active_particles = len(active_particles)
-        # self.total_particles = num_active_particles
-        #
-        # if num_active_particles > 0:
-        #     new_size = num_active_particles * 10 * 4
-        #     if buffer_size != new_size:
-        #         glBufferData(GL_ARRAY_BUFFER, new_size, None, GL_DYNAMIC_DRAW)
-        #     glBufferSubData(GL_ARRAY_BUFFER, 0, active_particles.nbytes, active_particles)
-        #
-        # glBindBuffer(GL_ARRAY_BUFFER, 0)
+        lifetime_percentages = particle_data_np[:, 9]
+        # print(len(lifetime_percentages))
+        active_particles = particle_data_np[lifetime_percentages < 1.0]
+        num_active_particles = len(active_particles)
+        self.total_particles = num_active_particles
+
+        # Write active particles back to the VBO
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, active_particles.nbytes, active_particles)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _generate_new_particles(self):
         if self.total_particles >= self.max_particles:
-            num_gen_particles = 0  # No new particles if we already have the maximum
-        else:
-            num_gen_particles = min(self.max_particles - self.total_particles, self.particle_batch_size)
-            # print(f"Generating {num_gen_particles} new particles")
+            return  # Already at max capacity
 
-        if num_gen_particles == 0:
-            return  # Exit early if no new particles need to be generated
-
+        num_gen_particles = min(self.max_particles - self.total_particles, self.particle_batch_size)
         current_time = time.time()
-
+        print("Generating new particles: ", num_gen_particles)
+        print("Total particles: ", self.total_particles)
         # Generate new particles
         gen_positions = np.random.uniform(-self.width, self.width, (num_gen_particles, 3)).astype(np.float32)
-        gen_positions[:, 1] = np.random.uniform(-self.height, self.height, num_gen_particles)  # Y-axis
-        gen_positions[:, 2] = np.random.uniform(-self.depth, self.depth, num_gen_particles)  # Z-axis
-
+        gen_positions[:, 1] = np.random.uniform(-self.height, self.height, num_gen_particles)
+        gen_positions[:, 2] = np.random.uniform(-self.depth, self.depth, num_gen_particles)
         gen_velocities = np.random.uniform(-0.5, 0.5, (num_gen_particles, 3)).astype(np.float32)
 
         if self.particle_spawn_time_jitter:
             jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
                                               (self.particle_batch_size, 1)).astype(np.float32)
             gen_spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time,
-                                  dtype=np.float32) + jitter_values
+                                      dtype=np.float32) + jitter_values
         else:
             gen_spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time, dtype=np.float32)
 
-
-
-        gen_lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_gen_particles, 1)).astype(np.float32)
+        if self.particle_max_lifetime > 0.0:
+            gen_lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_batch_size, 1)).astype(
+                np.float32)
+        else:
+            gen_lifetimes = np.full((self.particle_batch_size, 1), 0.0, dtype=np.float32)
 
         gen_ids = np.arange(self.generated_particles, self.generated_particles + num_gen_particles,
                             dtype=np.float32).reshape(-1, 1)
-
         gen_lifetime_percentages = np.zeros((num_gen_particles, 1), dtype=np.float32)
 
-        # self.total_particles += self.particle_batch_size
+        new_particles = np.hstack((
+            gen_positions, gen_velocities, gen_spawn_times,
+            gen_lifetimes, gen_ids, gen_lifetime_percentages
+        )).astype(np.float32)
 
-        new_particles = np.hstack(
-            (gen_positions, gen_velocities, gen_spawn_times, gen_lifetimes, gen_ids, gen_lifetime_percentages)).astype(
-            np.float32)
-
-        # print("New particles: ", new_particles)
-
-        # Map existing buffer data
-        existing_size = self.total_particles * self.stride_size * 4
-        total_size = (self.total_particles + num_gen_particles) * self.stride_size * 4
-
+        # Write new particles into the buffer at the correct offset
+        offset = self.total_particles * self.stride_size * 4  # Calculate offset in bytes
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-
-        # Resize buffer if necessary
-        # glBufferData(GL_ARRAY_BUFFER, total_size, None, GL_DYNAMIC_DRAW)
-
-        # Map buffer to read existing data
-        if self.total_particles > 0:
-            existing_data_ptr = glMapBufferRange(GL_ARRAY_BUFFER, 0, existing_size, GL_MAP_READ_BIT)
-
-            if existing_data_ptr:
-                existing_data = np.frombuffer((GLfloat * (existing_size // 4)).from_address(existing_data_ptr),
-                                              dtype=np.float32)
-                # print("Existing data: ", existing_data)
-                existing_data = existing_data.reshape(-1, self.stride_size)
-                glUnmapBuffer(GL_ARRAY_BUFFER)
-            else:
-                existing_data = np.empty((0, self.stride_size), dtype=np.float32)
-        else:
-            existing_data = np.empty((0, self.stride_size), dtype=np.float32)
-
-        # Concatenate existing and new particles
-        all_particles = np.vstack((existing_data, new_particles))
-
-        print(all_particles)
-        print(len(all_particles))
-        # glBufferData(GL_ARRAY_BUFFER, total_size, None, GL_DYNAMIC_DRAW)
-        # Update buffer with all particles
-        glBufferSubData(GL_ARRAY_BUFFER, 0, all_particles.nbytes, all_particles)
+        glBufferSubData(GL_ARRAY_BUFFER, offset, new_particles.nbytes, new_particles)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         # Update particle counts
         self.total_particles += num_gen_particles
         self.generated_particles += num_gen_particles
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _update_particles_cpu(self):
         """
@@ -510,15 +452,8 @@ class ParticleRenderer(AbstractRenderer):
 
     @common_funcs
     def render(self):
-        """
-        Render particles.
-        This method binds the VAO and issues a draw call to render the particles as points.
-        """
         self.set_view_projection_matrices()
         self.update_particles()
         glBindVertexArray(self.vao)
-
-        # Issue the draw call
-        glDrawArrays(GL_POINTS, 0, self.particle_batch_size)
-
+        glDrawArrays(GL_POINTS, 0, self.total_particles)
         glBindVertexArray(0)
