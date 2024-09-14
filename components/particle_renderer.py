@@ -8,12 +8,13 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
-    def __init__(self, particle_batch_size=1000, particle_render_mode='transform_feedback', particle_generator=False,
+    def __init__(self, max_particles=1000, particle_batch_size=1000, particle_render_mode='transform_feedback',
+                 particle_generator=False,
                  **kwargs):
         super().__init__(**kwargs)
-        self.particle_batch_size = particle_batch_size
+        self.max_particles = max_particles
         self.total_particles = 0
-        self.max_particles = 1000
+        self.particle_batch_size = min(particle_batch_size, max_particles)
         self.particle_render_mode = particle_render_mode
         self.particle_generator = particle_generator  # New flag to control generator mode
         self.generated_particles = 0  # Track total generated particles in generator mode
@@ -170,6 +171,9 @@ class ParticleRenderer(AbstractRenderer):
         self._setup_vertex_attributes()
 
     def generate_initial_data(self):
+        # Ensure we don't generate more particles than max_particles
+        self.particle_batch_size = min(self.particle_batch_size, self.max_particles)
+
         current_time = time.time()
         particle_positions = np.random.uniform(-self.width, self.width, (self.particle_batch_size, 3)).astype(
             np.float32)
@@ -333,6 +337,13 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _generate_new_particles(self):
+        # Calculate how many new particles we can generate without exceeding max_particles
+        available_slots = self.max_particles - self.total_particles
+        num_gen_particles = min(available_slots, self.particle_batch_size)
+
+        if num_gen_particles <= 0:
+            return  # No more particles can be generated
+
         if self.total_particles >= self.max_particles:
             return  # Already at max capacity
 
@@ -368,6 +379,8 @@ class ParticleRenderer(AbstractRenderer):
             gen_positions, gen_velocities, gen_spawn_times,
             gen_lifetimes, gen_ids, gen_lifetime_percentages
         )).astype(np.float32)
+
+        print("New particles: ", new_particles)
 
         # Write new particles into the buffer at the correct offset
         offset = self.total_particles * self.stride_size * 4  # Calculate offset in bytes
