@@ -327,6 +327,7 @@ class ParticleRenderer(AbstractRenderer):
 
         lifetime_percentages = particle_data_np[:, 9]
         # print(len(lifetime_percentages))
+        print(lifetime_percentages)
         active_particles = particle_data_np[lifetime_percentages < 1.0]
         num_active_particles = len(active_particles)
         self.total_particles = num_active_particles
@@ -437,10 +438,6 @@ class ParticleRenderer(AbstractRenderer):
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
 
     def _update_particles_transform_feedback(self):
-        """
-        Update particles using transform feedback.
-        Captures the output of the vertex shader back into a buffer and swaps the buffers for the next frame.
-        """
         glBindVertexArray(self.vao)
 
         # Enable rasterizer discard to avoid rendering particles to the screen
@@ -451,7 +448,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Start capturing transform feedback
         glBeginTransformFeedback(GL_POINTS)
-        glDrawArrays(GL_POINTS, 0, self.particle_batch_size)
+        glDrawArrays(GL_POINTS, 0, self.total_particles)  # Process all active particles
         glEndTransformFeedback()
 
         # Disable rasterizer discard
