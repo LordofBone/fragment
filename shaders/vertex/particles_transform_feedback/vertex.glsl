@@ -36,6 +36,7 @@ out float tfSpawnTime;
 out float tfParticleLifetime;
 out float tfParticleID;
 out float tfLifetimePercentage;// New output variable for transform feedback
+out float lifetimePercentageToFragment;// For fragment shade
 
 out vec3 fragColor;// Output color to the fragment shader
 flat out float particleIDOut;// Pass the particle ID to the fragment shader
@@ -95,7 +96,9 @@ void main() {
 
     // Calculate lifetime percentage
     if (particleLifetime > 0.0) {
-        tfLifetimePercentage = clamp(elapsedTime / particleLifetime, 0.0, 1.0);
+        float calculatedLifetimePercentage = clamp(elapsedTime / particleLifetime, 0.0, 1.0);
+        tfLifetimePercentage = calculatedLifetimePercentage;// For transform feedback
+        lifetimePercentageToFragment = calculatedLifetimePercentage;// For fragment shader
 
         // If the particle's lifetime exceeds, it should disappear; moving off-screen and setting size to 0
         if (tfLifetimePercentage >= 1.0) {
@@ -106,7 +109,10 @@ void main() {
     } else {
         // If lifetime is 0.0, the particle never expires
         tfLifetimePercentage = 0.0;
+        lifetimePercentageToFragment = 0.0;
     }
+
+    tfLifetimePercentage = lifetimePercentageToFragment;// For transform feedback
 
     // Adjust particle size based on distance from the camera
     vec3 particleToCamera = cameraPosition - newPosition;

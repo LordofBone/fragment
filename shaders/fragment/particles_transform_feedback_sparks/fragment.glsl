@@ -1,7 +1,7 @@
 #version 430
 
 in vec3 fragColor;// Base color from vertex shader (input color)
-in float tfLifetimePercentage;// Particle's lifetime percentage passed from vertex shader
+in float lifetimePercentageToFragment;// Particle's lifetime percentage passed from vertex shader
 flat in float particleIDOut;// Particle ID passed from the vertex shader
 
 out vec4 finalColor;
@@ -13,7 +13,7 @@ float generateRandomValue(vec2 uv, float id) {
 
 void main() {
     // Calculate alpha based on the lifetime of the particle (fading effect)
-    float alpha = clamp(1.0 - tfLifetimePercentage, 0.0, 1.0);
+    float alpha = clamp(1.0 - lifetimePercentageToFragment, 0.0, 1.0);
 
     // Generate a random value based on particle ID and fragment's local position for color variation within the particle
     vec2 localCoords = gl_PointCoord;// gl_PointCoord gives the local coordinates within the particle (0.0 to 1.0)
@@ -26,7 +26,7 @@ void main() {
     vec3 fadeColor = vec3(0.0, 0.0, 0.0);
 
     // Interpolate from the varied color to black over the particle's lifetime
-    vec3 cooledColor = mix(variedColor, fadeColor, tfLifetimePercentage);
+    vec3 cooledColor = mix(variedColor, fadeColor, lifetimePercentageToFragment);
 
     // Output the final color with fading alpha
     finalColor = vec4(cooledColor, alpha);
