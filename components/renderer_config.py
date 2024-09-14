@@ -273,6 +273,7 @@ class RendererConfig:
             compute_shader_program=None,
             depth_testing=None,
             culling=None,
+            particles_max=1000,
             particle_size=1.0,
             particle_max_velocity=1.0,
             particle_color=(1.0, 1.0, 1.0),
@@ -296,6 +297,7 @@ class RendererConfig:
         particle_specifics = {
             "depth_testing": depth_testing,
             "culling": culling,
+            "particles_max": particles_max,
             "particle_batch_size": particle_batch_size,
             "particle_max_velocity": particle_max_velocity,
             "particle_render_mode": particle_render_mode,
