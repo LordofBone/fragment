@@ -143,8 +143,6 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         self._setup_vertex_attributes()
 
-        self.total_particles += self.particle_batch_size
-
     def create_compute_shader_buffers(self):
         """
         Setup buffers for compute shader-based particle rendering.
@@ -350,8 +348,7 @@ class ParticleRenderer(AbstractRenderer):
 
         num_gen_particles = min(self.max_particles - self.total_particles, self.particle_batch_size)
         current_time = time.time()
-        print("Generating new particles: ", num_gen_particles)
-        print("Total particles: ", self.total_particles)
+
         # Generate new particles
         gen_positions = np.random.uniform(-self.width, self.width, (num_gen_particles, 3)).astype(np.float32)
         gen_positions[:, 1] = np.random.uniform(-self.height, self.height, num_gen_particles)
@@ -380,8 +377,6 @@ class ParticleRenderer(AbstractRenderer):
             gen_positions, gen_velocities, gen_spawn_times,
             gen_lifetimes, gen_ids, gen_lifetime_percentages
         )).astype(np.float32)
-
-        print("New particles: ", new_particles)
 
         # Write new particles into the buffer at the correct offset
         offset = self.total_particles * self.stride_size * 4  # Calculate offset in bytes
@@ -457,7 +452,7 @@ class ParticleRenderer(AbstractRenderer):
         # Ensure that the buffer is synchronized before the next frame
         glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
 
-        # Swap the VBOs (this swaps the input and feedback buffers for the next frame)
+        # # Swap the VBOs (this swaps the input and feedback buffers for the next frame)
         self.vbo, self.feedback_vbo = self.feedback_vbo, self.vbo
 
     @common_funcs
