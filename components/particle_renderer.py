@@ -13,7 +13,7 @@ class ParticleRenderer(AbstractRenderer):
         super().__init__(**kwargs)
         self.particle_batch_size = particle_batch_size
         self.total_particles = 0
-        self.max_particles = 10
+        self.max_particles = 1000
         self.particle_render_mode = particle_render_mode
         self.particle_generator = particle_generator  # New flag to control generator mode
         self.generated_particles = 0  # Track total generated particles in generator mode
@@ -64,7 +64,7 @@ class ParticleRenderer(AbstractRenderer):
         if self.particle_render_mode == 'transform_feedback':
             # Add lifetimePercentage to the list of variables to capture
             varyings = ["tfPosition", "tfVelocity", "tfSpawnTime", "tfParticleLifetime", "tfParticleID",
-                        "lifetimePercentage"]
+                        "tfLifetimePercentage"]
             varyings_c = (ctypes.POINTER(ctypes.c_char) * len(varyings))(
                 *[ctypes.create_string_buffer(v.encode('utf-8')) for v in varyings])
             glTransformFeedbackVaryings(self.shader_program, len(varyings), varyings_c, GL_INTERLEAVED_ATTRIBS)
@@ -149,7 +149,7 @@ class ParticleRenderer(AbstractRenderer):
         # Set up vertex attribute pointers
         self._setup_vertex_attributes()
 
-        self.total_particles += self.particle_batch_size
+        # self.total_particles += self.particle_batch_size
 
         # Debug: Check attribute pointer setup
         if self.debug_mode:
@@ -331,37 +331,35 @@ class ParticleRenderer(AbstractRenderer):
         buffer_size = glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE)
         expected_size = self.total_particles * 10 * 4
 
-        if buffer_size < expected_size:
-            glBufferData(GL_ARRAY_BUFFER, expected_size, None, GL_DYNAMIC_DRAW)
-
-        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, expected_size)
-        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(self.total_particles, 10)
+        # if buffer_size < expected_size:
+        #     glBufferData(GL_ARRAY_BUFFER, expected_size, None, GL_DYNAMIC_DRAW)
+        #
+        # particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, expected_size)
+        # particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(self.total_particles, 10)
         # print(particle_data_np)
-
-        lifetime_percentages = particle_data_np[:, 9]
-        print("Lifetime percentages: ")
-        print(lifetime_percentages)
-        active_particles = particle_data_np[lifetime_percentages >= 1.0]
-
-        num_active_particles = len(active_particles)
-        self.total_particles = num_active_particles
-
-        if num_active_particles > 0:
-            new_size = num_active_particles * 10 * 4
-            if buffer_size != new_size:
-                glBufferData(GL_ARRAY_BUFFER, new_size, None, GL_DYNAMIC_DRAW)
-            glBufferSubData(GL_ARRAY_BUFFER, 0, active_particles.nbytes, active_particles)
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        #
+        # lifetime_percentages = particle_data_np[:,9]
+        # print("Lifetime percentages: ")
+        # print(lifetime_percentages)
+        # active_particles = particle_data_np[lifetime_percentages >= 1.0]
+        #
+        # num_active_particles = len(active_particles)
+        # self.total_particles = num_active_particles
+        #
+        # if num_active_particles > 0:
+        #     new_size = num_active_particles * 10 * 4
+        #     if buffer_size != new_size:
+        #         glBufferData(GL_ARRAY_BUFFER, new_size, None, GL_DYNAMIC_DRAW)
+        #     glBufferSubData(GL_ARRAY_BUFFER, 0, active_particles.nbytes, active_particles)
+        #
+        # glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _generate_new_particles(self):
-        print("Number of particles: ", self.total_particles)
-        print("Max particles: ", self.max_particles)
-
         if self.total_particles >= self.max_particles:
             num_gen_particles = 0  # No new particles if we already have the maximum
         else:
             num_gen_particles = min(self.max_particles - self.total_particles, self.particle_batch_size)
+            # print(f"Generating {num_gen_particles} new particles")
 
         if num_gen_particles == 0:
             return  # Exit early if no new particles need to be generated
@@ -374,53 +372,70 @@ class ParticleRenderer(AbstractRenderer):
         gen_positions[:, 2] = np.random.uniform(-self.depth, self.depth, num_gen_particles)  # Z-axis
 
         gen_velocities = np.random.uniform(-0.5, 0.5, (num_gen_particles, 3)).astype(np.float32)
-        gen_spawn_times = np.full((num_gen_particles, 1), current_time - self.start_time, dtype=np.float32)
+
+        if self.particle_spawn_time_jitter:
+            jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
+                                              (self.particle_batch_size, 1)).astype(np.float32)
+            gen_spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time,
+                                  dtype=np.float32) + jitter_values
+        else:
+            gen_spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time, dtype=np.float32)
+
+
+
         gen_lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_gen_particles, 1)).astype(np.float32)
+
         gen_ids = np.arange(self.generated_particles, self.generated_particles + num_gen_particles,
                             dtype=np.float32).reshape(-1, 1)
 
-        new_particles = np.hstack((gen_positions, gen_velocities, gen_spawn_times, gen_lifetimes, gen_ids)).astype(
-            np.float32)
-        total_particles = self.total_particles + num_gen_particles
+        gen_lifetime_percentages = np.zeros((num_gen_particles, 1), dtype=np.float32)
 
-        # Bind buffer
+        # self.total_particles += self.particle_batch_size
+
+        new_particles = np.hstack(
+            (gen_positions, gen_velocities, gen_spawn_times, gen_lifetimes, gen_ids, gen_lifetime_percentages)).astype(
+            np.float32)
+
+        # print("New particles: ", new_particles)
+
+        # Map existing buffer data
+        existing_size = self.total_particles * self.stride_size * 4
+        total_size = (self.total_particles + num_gen_particles) * self.stride_size * 4
+
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 
-        existing_size = self.total_particles * self.stride_size * 4
-        total_size = total_particles * self.stride_size * 4
+        # Resize buffer if necessary
+        # glBufferData(GL_ARRAY_BUFFER, total_size, None, GL_DYNAMIC_DRAW)
 
-        # Memory barrier to synchronize
-        glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
-
-        # Retrieve existing particle data
-        print(f"Attempting to read back {existing_size} bytes of existing data.")
-        old_particles_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, existing_size)
-
-        # Check if old_particles_data contains valid data
-        if old_particles_data is not None and len(old_particles_data) > 0:
-            print(f"Existing particle data retrieved: {np.frombuffer(old_particles_data, dtype=np.float32)[:10]}")
-
-        # if old_particles_data:
-        #     print(f"Existing particle data retrieved: {np.frombuffer(old_particles_data, dtype=np.float32)[:10]}")
-
-        old_particles_data = np.frombuffer(old_particles_data, dtype=np.float32)[:10]
-
-        # Allocate buffer space
-        glBufferData(GL_ARRAY_BUFFER, total_size, None, GL_DYNAMIC_DRAW)
-
-        # Copy existing particle data
+        # Map buffer to read existing data
         if self.total_particles > 0:
-            glBufferSubData(GL_ARRAY_BUFFER, 0, existing_size, old_particles_data)
+            existing_data_ptr = glMapBufferRange(GL_ARRAY_BUFFER, 0, existing_size, GL_MAP_READ_BIT)
 
-        # Append new particles
-        glBufferSubData(GL_ARRAY_BUFFER, existing_size, new_particles.nbytes, new_particles)
+            if existing_data_ptr:
+                existing_data = np.frombuffer((GLfloat * (existing_size // 4)).from_address(existing_data_ptr),
+                                              dtype=np.float32)
+                # print("Existing data: ", existing_data)
+                existing_data = existing_data.reshape(-1, self.stride_size)
+                glUnmapBuffer(GL_ARRAY_BUFFER)
+            else:
+                existing_data = np.empty((0, self.stride_size), dtype=np.float32)
+        else:
+            existing_data = np.empty((0, self.stride_size), dtype=np.float32)
+
+        # Concatenate existing and new particles
+        all_particles = np.vstack((existing_data, new_particles))
+
+        print(all_particles)
+        print(len(all_particles))
+        # glBufferData(GL_ARRAY_BUFFER, total_size, None, GL_DYNAMIC_DRAW)
+        # Update buffer with all particles
+        glBufferSubData(GL_ARRAY_BUFFER, 0, all_particles.nbytes, all_particles)
 
         # Update particle counts
-        self.total_particles = total_particles
+        self.total_particles += num_gen_particles
         self.generated_particles += num_gen_particles
 
-        print(f"Total particles: {self.total_particles}")
-        print(f"Generated particles: {self.generated_particles}")
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _update_particles_cpu(self):
         """
