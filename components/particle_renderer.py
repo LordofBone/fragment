@@ -1,4 +1,3 @@
-import random  # Import random module for random primitive selection
 import time
 
 import glm
@@ -471,13 +470,8 @@ class ParticleRenderer(AbstractRenderer):
             # Add more primitives as needed
         }
 
-        # Determine the primitive to use based on particle_type
-        if self.particle_type == 'random':
-            # Randomly select a primitive type
-            primitive = random.choice(list(primitive_types.values()))
-        else:
-            # Get the primitive type from the mapping, default to GL_POINTS if not found
-            primitive = primitive_types.get(self.particle_type, GL_POINTS)
+        # Get the primitive type from the mapping, default to GL_POINTS if not found
+        primitive = primitive_types.get(self.particle_type, GL_POINTS)
 
         glDrawArrays(primitive, 0, self.total_particles)  # Draw all particles with the selected primitive
         glBindVertexArray(0)
