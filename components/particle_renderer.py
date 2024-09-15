@@ -160,6 +160,13 @@ class ParticleRenderer(AbstractRenderer):
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
+        # Set up the VAO and VBO for rendering
+        self.vao = glGenVertexArrays(1)
+        glBindVertexArray(self.vao)
+        glBindBuffer(GL_ARRAY_BUFFER, self.ssbo)
+        self._setup_vertex_attributes()
+        glBindVertexArray(0)
+
     def create_buffers(self):
         """
         Setup buffers for vertex/fragment shader-based particle rendering.
@@ -285,12 +292,12 @@ class ParticleRenderer(AbstractRenderer):
         glUseProgram(self.shader_program)
         current_time = time.time()
         elapsed_time = current_time - self.start_time
-        delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
+        self.delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
         self.last_time = current_time
 
         # Pass the elapsed time (relative to start) to the shader
         glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), np.float32(elapsed_time))
-        glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), delta_time)
+        glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), self.delta_time)
 
         # Update particles based on the selected mode
         if self.particle_render_mode == 'compute_shader':
@@ -389,13 +396,9 @@ class ParticleRenderer(AbstractRenderer):
         Update particles on the CPU.
         This method performs the simulation entirely on the CPU and uploads the updated data to the GPU.
         """
-        current_time = time.time()
-        delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
-        self.last_time = current_time
-
         for i in range(self.particle_batch_size):
             # Update velocity with gravity
-            self.particle_velocities[i] += self.particle_gravity * delta_time
+            self.particle_velocities[i] += self.particle_gravity * self.delta_time
 
             # Clamp the velocity to the maximum allowed value
             speed = np.linalg.norm(self.particle_velocities[i])
@@ -403,7 +406,7 @@ class ParticleRenderer(AbstractRenderer):
                 self.particle_velocities[i] = self.particle_velocities[i] / speed * self.particle_max_velocity
 
             # Update position
-            self.particle_positions[i] += self.particle_velocities[i] * delta_time
+            self.particle_positions[i] += self.particle_velocities[i] * self.delta_time
 
             # Check for collision with the ground plane
             distance_to_ground = np.dot(self.particle_positions[i],
@@ -424,9 +427,22 @@ class ParticleRenderer(AbstractRenderer):
         Update particles using a compute shader.
         Dispatches the compute shader and ensures memory barriers are respected.
         """
+        # Use the compute shader program
+        glUseProgram(self.shader_program)
+
+        # Bind the SSBO
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
-        glDispatchCompute(self.particle_batch_size // 128 + 1, 1, 1)
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
+
+        # Set uniforms
+        glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), time.time() - self.start_time)
+        glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), self.delta_time)
+
+        # Dispatch compute shader
+        num_work_groups = (self.max_particles + 127) // 128  # Assuming a work group size of 128
+        glDispatchCompute(num_work_groups, 1, 1)
+
+        # Ensure the compute shader has finished writing to the buffer
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
 
     def _update_particles_transform_feedback(self):
         glBindVertexArray(self.vao)
