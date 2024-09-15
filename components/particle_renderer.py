@@ -9,7 +9,7 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 class ParticleRenderer(AbstractRenderer):
     def __init__(self, max_particles=1000, particle_batch_size=1000, particle_render_mode='transform_feedback',
-                 particle_generator=False,
+                 particle_generator=False, generator_delay=0.0,
                  **kwargs):
         super().__init__(**kwargs)
         self.max_particles = max_particles
@@ -17,7 +17,9 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_batch_size = min(particle_batch_size, max_particles)
         self.particle_render_mode = particle_render_mode
         self.particle_generator = particle_generator  # Control generator mode
+        self.generator_delay = generator_delay  # Delay between particle generations in seconds
         self.generated_particles = 0  # Track total generated particles
+        self.last_generation_time = time.time()  # Track the last time particles were generated
 
         self.stride_size = 10  # Number of floats per particle (position, velocity, spawn time, lifetime, ID, lifetimePercentage)
 
@@ -30,7 +32,7 @@ class ParticleRenderer(AbstractRenderer):
         self.width = self.dynamic_attrs.get('width', 1.0)  # Default width for the particle field
         self.depth = self.dynamic_attrs.get('depth', 1.0)  # Default depth for the particle field
         self.start_time = time.time()  # Store the start time (epoch)
-        self.last_time = time.time()  # Store the last frame time for delta time calculations
+        self.last_time = self.start_time  # Store the last frame time for delta time calculations
 
         self.free_slots = list(range(self.max_particles))  # All slots are initially free
 
@@ -282,8 +284,8 @@ class ParticleRenderer(AbstractRenderer):
         glUseProgram(self.shader_program)
         current_time = time.time()
         elapsed_time = current_time - self.start_time
-        delta_time = min(elapsed_time - self.last_time, 0.016)  # Clamp to ~60 FPS
-        self.last_time = elapsed_time
+        delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
+        self.last_time = current_time
 
         # Pass the elapsed time (relative to start) to the shader
         glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), np.float32(elapsed_time))
@@ -322,14 +324,19 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _generate_new_particles(self):
+        # Check if sufficient time has passed since the last generation
+        current_time = time.time()
+        time_since_last_generation = current_time - self.last_generation_time
+
+        if time_since_last_generation < self.generator_delay:
+            return  # Not enough time has passed, do not generate new particles yet
+
         # Calculate how many new particles we can generate
         num_free_slots = len(self.free_slots)
         if num_free_slots <= 0:
             return  # No free slots available
 
         num_gen_particles = min(num_free_slots, self.particle_batch_size)
-
-        current_time = time.time()
 
         # Generate new particles
         gen_positions = np.random.uniform(-self.width, self.width, (num_gen_particles, 3)).astype(np.float32)
@@ -374,6 +381,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Update particle counts
         self.generated_particles += num_gen_particles
+        self.last_generation_time = current_time  # Update the last generation time
 
     def _update_particles_cpu(self):
         """
