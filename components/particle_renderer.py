@@ -89,6 +89,7 @@ class ParticleRenderer(AbstractRenderer):
         if self.particle_render_mode == 'transform_feedback':
             self.create_transform_feedback_buffers()
         elif self.particle_render_mode == 'compute_shader':
+            self.set_compute_uniforms()
             self.create_compute_shader_buffers()
         elif self.particle_render_mode == 'cpu':
             self.init_cpu_mode()
@@ -289,6 +290,32 @@ class ParticleRenderer(AbstractRenderer):
         print(f"Lifetime Attribute: Location = {lifetime_loc}, Stride = {lifetime_stride}, Offset = {lifetime_offset}")
         print(
             f"Particle ID Attribute: Location = {particle_id_loc}, Stride = {particle_id_stride}, Offset = {particle_id_offset}")
+
+    def set_compute_uniforms(self):
+        """
+        Set up the uniforms for the compute shader.
+        """
+        if self.debug_mode:
+            print(f"particleMaxLifetime: {self.particle_max_lifetime}")
+            print(f"particleGravity: {self.particle_gravity[1]}")
+            print(f"particleBounceFactor: {self.particle_bounce_factor}")
+            print(f"particleGroundPlaneNormal: {self.particle_ground_plane_normal}")
+            print(f"particleGroundPlaneHeight: {self.particle_ground_plane_height}")
+            print(f"particleMaxVelocity: {self.particle_max_velocity}")
+
+        glUseProgram(self.compute_shader_program)
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxLifetime"),
+                    np.float32(self.particle_max_lifetime))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleGravity"),
+                    np.float32(self.particle_gravity[1]))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleBounceFactor"),
+                    np.float32(self.particle_bounce_factor))
+        glUniform3fv(glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneNormal"),
+                     1, self.particle_ground_plane_normal)
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneHeight"),
+                    np.float32(self.particle_ground_plane_height))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxVelocity"),
+                    np.float32(self.particle_max_velocity))
 
     def update_particles(self):
         """
