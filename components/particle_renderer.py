@@ -8,7 +8,7 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
-    def __init__(self, particles_max=1000, particle_batch_size=1000, particle_render_mode='transform_feedback',
+    def __init__(self, particles_max=100, particle_batch_size=1, particle_render_mode='transform_feedback',
                  particle_generator=False, generator_delay=0.0, particle_type='point',
                  **kwargs):
         super().__init__(**kwargs)
@@ -164,7 +164,6 @@ class ParticleRenderer(AbstractRenderer):
         self.vao = glGenVertexArrays(1)
         glBindVertexArray(self.vao)
         glBindBuffer(GL_ARRAY_BUFFER, self.ssbo)
-        self._setup_vertex_attributes()
         glBindVertexArray(0)
 
     def create_buffers(self):
@@ -221,6 +220,9 @@ class ParticleRenderer(AbstractRenderer):
         float_size = 4  # Size of a float in bytes
         vertex_stride = self.stride_size * float_size
 
+        # Ensure the correct shader program (vertex/fragment) is active
+        glUseProgram(self.shader_program)
+
         # Get the attribute locations
         position_loc = glGetAttribLocation(self.shader_program, "position")
         velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
@@ -230,8 +232,12 @@ class ParticleRenderer(AbstractRenderer):
 
         # Ensure all attributes are found
         if position_loc == -1 or velocity_loc == -1 or spawn_time_loc == -1 or lifetime_loc == -1 or particle_id_loc == -1:
+            # Print attribute locations for debugging
+            print(f"position_loc: {position_loc}, velocity_loc: {velocity_loc}, spawn_time_loc: {spawn_time_loc}, "
+                  f"lifetime_loc: {lifetime_loc}, particle_id_loc: {particle_id_loc}")
             raise RuntimeError(
-                "Position, Velocity, Spawn Time, Lifetime, or Particle ID attribute not found in shader program.")
+                "Position, Velocity, Spawn Time, Lifetime, or Particle ID attribute not found in shader program."
+            )
 
         # Enable and set the vertex attribute arrays for position, velocity, spawn time, lifetime, and particle ID
         glEnableVertexAttribArray(position_loc)
@@ -301,15 +307,16 @@ class ParticleRenderer(AbstractRenderer):
 
         # Update particles based on the selected mode
         if self.particle_render_mode == 'compute_shader':
+            # Use compute shader only for particle updates
+            glUseProgram(self.compute_shader_program)
             self._update_particles_compute_shader()
         elif self.particle_render_mode == 'transform_feedback':
             self._update_particles_transform_feedback()
+            if self.particle_generator:
+                self._remove_expired_particles()  # Update free slots before generating new particles
+                self._generate_new_particles()
         elif self.particle_render_mode == 'cpu':
             self._update_particles_cpu()
-
-        if self.particle_generator:
-            self._remove_expired_particles()  # Update free slots before generating new particles
-            self._generate_new_particles()
 
         if self.debug_mode:
             # Calculate and print the number of active particles
@@ -428,7 +435,7 @@ class ParticleRenderer(AbstractRenderer):
         Dispatches the compute shader and ensures memory barriers are respected.
         """
         # Use the compute shader program
-        glUseProgram(self.shader_program)
+        glUseProgram(self.compute_shader_program)
 
         # Bind the SSBO
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
@@ -437,8 +444,8 @@ class ParticleRenderer(AbstractRenderer):
         glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), time.time() - self.start_time)
         glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), self.delta_time)
 
-        # Dispatch compute shader
-        num_work_groups = (self.max_particles + 127) // 128  # Assuming a work group size of 128
+        # Calculate number of workgroups based on particle count and workgroup size
+        num_work_groups = (self.max_particles + 127) // 128  # Workgroup size is 128
         glDispatchCompute(num_work_groups, 1, 1)
 
         # Ensure the compute shader has finished writing to the buffer
