@@ -269,7 +269,6 @@ class RendererConfig:
 
     def add_particle_renderer(
             self,
-            particle_batch_size=1000,
             particle_render_mode='transform_feedback',
             shader_names=("particle_vertex", "particle_fragment"),
             compute_shader_program=None,
@@ -277,7 +276,8 @@ class RendererConfig:
             culling=None,
             particle_generator=False,
             generator_delay=0.0,
-            particles_max=1000,
+            particles_max=100,
+            particle_batch_size=1,
             particle_size=1.0,
             particle_max_velocity=1.0,
             particle_color=(1.0, 1.0, 1.0),
