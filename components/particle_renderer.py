@@ -13,13 +13,13 @@ class ParticleRenderer(AbstractRenderer):
                  **kwargs):
         super().__init__(**kwargs)
         self.max_particles = max_particles
-        self.total_particles = 0
+        self.total_particles = self.max_particles  # Always process all particles
         self.particle_batch_size = min(particle_batch_size, max_particles)
         self.particle_render_mode = particle_render_mode
-        self.particle_generator = particle_generator  # New flag to control generator mode
-        self.generated_particles = 0  # Track total generated particles in generator mode
+        self.particle_generator = particle_generator  # Control generator mode
+        self.generated_particles = 0  # Track total generated particles
 
-        self.stride_size = 10  # Number of floats per particle (position, velocity, spawn time, lifetime, ID)
+        self.stride_size = 10  # Number of floats per particle (position, velocity, spawn time, lifetime, ID, lifetimePercentage)
 
         self.vao = None
         self.vbo = None
@@ -31,6 +31,8 @@ class ParticleRenderer(AbstractRenderer):
         self.depth = self.dynamic_attrs.get('depth', 1.0)  # Default depth for the particle field
         self.start_time = time.time()  # Store the start time (epoch)
         self.last_time = time.time()  # Store the last frame time for delta time calculations
+
+        self.free_slots = list(range(self.max_particles))  # All slots are initially free
 
         # Only used in CPU mode
         self.particle_positions = None
@@ -123,7 +125,7 @@ class ParticleRenderer(AbstractRenderer):
 
     def create_transform_feedback_buffers(self):
         glUseProgram(self.shader_program)
-        particle_vertices, _ = self.generate_initial_data()
+        particle_vertices = self.generate_initial_data()
 
         self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
         glBindVertexArray(self.vao)
@@ -132,8 +134,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Initialize the VBO with the initial particle data
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, particle_vertices.nbytes, particle_vertices)
+        glBufferData(GL_ARRAY_BUFFER, buffer_size, particle_vertices, GL_DYNAMIC_DRAW)
 
         # Initialize the feedback VBO
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
@@ -161,7 +162,7 @@ class ParticleRenderer(AbstractRenderer):
         Setup buffers for vertex/fragment shader-based particle rendering.
         This method sets up the VAO and VBO needed for rendering particles using a shader pipeline.
         """
-        vertices, _ = self.generate_initial_data()
+        vertices = self.generate_initial_data()
         self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
         glBindVertexArray(self.vao)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -198,11 +199,9 @@ class ParticleRenderer(AbstractRenderer):
                                  dtype=np.float32).reshape(-1, 1)
         lifetime_percentages = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
 
-        self.total_particles += self.particle_batch_size
-
         data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids,
                           lifetime_percentages)).astype(np.float32)
-        return data, self.particle_batch_size
+        return data
 
     def _setup_vertex_attributes(self):
         """
@@ -210,7 +209,7 @@ class ParticleRenderer(AbstractRenderer):
         Ensures that the shader program has the correct attribute locations configured.
         """
         float_size = 4  # Size of a float in bytes
-        vertex_stride = self.stride_size * float_size  # 3 floats for position + 3 floats for velocity + 1 float for spawn time + 1 float for lifetime + 1 float for particle ID
+        vertex_stride = self.stride_size * float_size
 
         # Get the attribute locations
         position_loc = glGetAttribLocation(self.shader_program, "position")
@@ -240,7 +239,10 @@ class ParticleRenderer(AbstractRenderer):
         glEnableVertexAttribArray(particle_id_loc)
         glVertexAttribPointer(particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(8 * float_size))
 
-    def _check_vertex_attrib_pointer_setup(self, vertices):
+        if self.debug_mode:
+            self._check_vertex_attrib_pointer_setup()
+
+    def _check_vertex_attrib_pointer_setup(self):
         """
         Debug function to check vertex attribute pointer setup.
         """
@@ -272,26 +274,10 @@ class ParticleRenderer(AbstractRenderer):
         print(
             f"Particle ID Attribute: Location = {particle_id_loc}, Stride = {particle_id_stride}, Offset = {particle_id_offset}")
 
-        # Optionally, read back the entire buffer data to verify
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        mapped_buffer = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY)
-        if mapped_buffer:
-            # Calculate the size of the buffer in bytes
-            buffer_size = vertices.nbytes
-            # Create a ctypes array from the mapped buffer pointer
-            ctypes_array = (ctypes.c_byte * buffer_size).from_address(mapped_buffer)
-            # Convert ctypes array to bytes and then to a numpy array
-            buffer_data = np.frombuffer(ctypes_array, dtype=vertices.dtype)
-            print(f"Buffer Data Readback (first 5 vertices): {buffer_data[:9].reshape(-1, vertices.shape[1])}")
-            glUnmapBuffer(GL_ARRAY_BUFFER)
-        else:
-            print("Failed to map buffer for reading.")
-
     def update_particles(self):
         """
         Update particle data based on the selected render mode.
         Dispatches the appropriate particle update mechanism based on the render mode.
-        After updating, expired particles are removed from the buffer.
         """
         glUseProgram(self.shader_program)
         current_time = time.time()
@@ -312,41 +298,37 @@ class ParticleRenderer(AbstractRenderer):
             self._update_particles_cpu()
 
         if self.particle_generator:
+            self._remove_expired_particles()  # Update free slots before generating new particles
             self._generate_new_particles()
 
-        # After updating, remove expired particles
-        # self._remove_expired_particles()
+        if self.debug_mode:
+            # Calculate and print the number of active particles
+            num_active_particles = self.max_particles - len(self.free_slots)
+            print(f"Number of active particles: {num_active_particles}")
 
     def _remove_expired_particles(self):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-        buffer_size = self.max_particles * self.stride_size * 4
+        buffer_size = self.max_particles * self.stride_size * 4  # Total buffer size in bytes
         particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, buffer_size)
         particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_size)
-
+        # Extract lifetimePercentage column
         lifetime_percentages = particle_data_np[:, 9]
-        # print(len(lifetime_percentages))
-        print(lifetime_percentages)
-        active_particles = particle_data_np[lifetime_percentages < 1.0]
-        num_active_particles = len(active_particles)
-        self.total_particles = num_active_particles
-
-        # Write active particles back to the VBO
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, active_particles.nbytes, active_particles)
+        # Find indices of expired particles
+        expired_indices = np.where(lifetime_percentages >= 1.0)[0]
+        # Add expired indices to free_slots, avoid duplicates
+        for idx in expired_indices:
+            if idx not in self.free_slots:
+                self.free_slots.append(idx)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _generate_new_particles(self):
-        # Calculate how many new particles we can generate without exceeding max_particles
-        available_slots = self.max_particles - self.total_particles
-        num_gen_particles = min(available_slots, self.particle_batch_size)
+        # Calculate how many new particles we can generate
+        num_free_slots = len(self.free_slots)
+        if num_free_slots <= 0:
+            return  # No free slots available
 
-        if num_gen_particles <= 0:
-            return  # No more particles can be generated
+        num_gen_particles = min(num_free_slots, self.particle_batch_size)
 
-        if self.total_particles >= self.max_particles:
-            return  # Already at max capacity
-
-        num_gen_particles = min(self.max_particles - self.total_particles, self.particle_batch_size)
         current_time = time.time()
 
         # Generate new particles
@@ -357,17 +339,17 @@ class ParticleRenderer(AbstractRenderer):
 
         if self.particle_spawn_time_jitter:
             jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
-                                              (self.particle_batch_size, 1)).astype(np.float32)
-            gen_spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time,
+                                              (num_gen_particles, 1)).astype(np.float32)
+            gen_spawn_times = np.full((num_gen_particles, 1), current_time - self.start_time,
                                       dtype=np.float32) + jitter_values
         else:
-            gen_spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time, dtype=np.float32)
+            gen_spawn_times = np.full((num_gen_particles, 1), current_time - self.start_time, dtype=np.float32)
 
         if self.particle_max_lifetime > 0.0:
-            gen_lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_batch_size, 1)).astype(
+            gen_lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_gen_particles, 1)).astype(
                 np.float32)
         else:
-            gen_lifetimes = np.full((self.particle_batch_size, 1), 0.0, dtype=np.float32)
+            gen_lifetimes = np.full((num_gen_particles, 1), 0.0, dtype=np.float32)
 
         gen_ids = np.arange(self.generated_particles, self.generated_particles + num_gen_particles,
                             dtype=np.float32).reshape(-1, 1)
@@ -378,14 +360,19 @@ class ParticleRenderer(AbstractRenderer):
             gen_lifetimes, gen_ids, gen_lifetime_percentages
         )).astype(np.float32)
 
-        # Write new particles into the buffer at the correct offset
-        offset = self.total_particles * self.stride_size * 4  # Calculate offset in bytes
+        # Write new particles into the buffer at the positions of free slots
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferSubData(GL_ARRAY_BUFFER, offset, new_particles.nbytes, new_particles)
+        float_size = 4
+        particle_stride = self.stride_size * float_size
+
+        for i in range(num_gen_particles):
+            slot_index = self.free_slots.pop(0)
+            offset = slot_index * particle_stride
+            particle_data = new_particles[i]
+            glBufferSubData(GL_ARRAY_BUFFER, offset, particle_data.nbytes, particle_data)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         # Update particle counts
-        self.total_particles += num_gen_particles
         self.generated_particles += num_gen_particles
 
     def _update_particles_cpu(self):
@@ -443,7 +430,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Start capturing transform feedback
         glBeginTransformFeedback(GL_POINTS)
-        glDrawArrays(GL_POINTS, 0, self.total_particles)  # Process all active particles
+        glDrawArrays(GL_POINTS, 0, self.total_particles)  # Process all particles
         glEndTransformFeedback()
 
         # Disable rasterizer discard
@@ -452,7 +439,7 @@ class ParticleRenderer(AbstractRenderer):
         # Ensure that the buffer is synchronized before the next frame
         glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
 
-        # # Swap the VBOs (this swaps the input and feedback buffers for the next frame)
+        # Swap the VBOs (this swaps the input and feedback buffers for the next frame)
         self.vbo, self.feedback_vbo = self.feedback_vbo, self.vbo
 
     @common_funcs
@@ -460,5 +447,5 @@ class ParticleRenderer(AbstractRenderer):
         self.set_view_projection_matrices()
         self.update_particles()
         glBindVertexArray(self.vao)
-        glDrawArrays(GL_POINTS, 0, self.total_particles)
+        glDrawArrays(GL_POINTS, 0, self.total_particles)  # Draw all particles
         glBindVertexArray(0)
