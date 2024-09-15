@@ -5,7 +5,7 @@ if __name__ == "__main__":
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_size=(800, 600),
-        cubemap_folder="textures/cube/night_sky_egypt/",
+        cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[
             (3.4, 3.4, 3.4, -39.0, 39.0),
         ],
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         near_plane=0.1,
         far_plane=100,
         lights=[
-            {"position": (5.0, 0.0, 2.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
+            {"position": (1.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
         ],
         anisotropy=16.0,
         auto_camera=False,
