@@ -3,11 +3,16 @@ from OpenGL.GL import *
 
 class ShaderEngine:
     def __init__(self, vertex_shader_path=None, fragment_shader_path=None, compute_shader_path=None):
-        self.shader_program = self.create_shader_program(
-            vertex_shader_path, fragment_shader_path, compute_shader_path
-        )
+        # Check if this is a compute shader or a render shader program
+        if compute_shader_path:
+            self.compute_shader_program = self.create_compute_shader_program(compute_shader_path)
+            self.shader_program = None  # No need for render shaders if using compute shaders
+        else:
+            self.shader_program = self.create_shader_program(vertex_shader_path, fragment_shader_path)
+            self.compute_shader_program = None  # No compute shader for render shaders
 
-    def create_shader_program(self, vertex_shader_path, fragment_shader_path, compute_shader_path):
+    def create_shader_program(self, vertex_shader_path, fragment_shader_path):
+        """Create and link a program from vertex and fragment shaders."""
         shaders = []
 
         if vertex_shader_path:
@@ -18,16 +23,28 @@ class ShaderEngine:
             fragment_shader = self._create_and_compile_shader(fragment_shader_path, GL_FRAGMENT_SHADER)
             shaders.append(fragment_shader)
 
-        if compute_shader_path:
-            compute_shader = self._create_and_compile_shader(compute_shader_path, GL_COMPUTE_SHADER)
-            shaders.append(compute_shader)
-
         shader_program = self._link_shader_program(shaders)
 
         # Clean up shaders after linking
         for shader in shaders:
             glDeleteShader(shader)
 
+        return shader_program
+
+    def create_compute_shader_program(self, compute_shader_path):
+        """Create and link a program from a compute shader."""
+        compute_shader = self._create_and_compile_shader(compute_shader_path, GL_COMPUTE_SHADER)
+
+        shader_program = glCreateProgram()
+        glAttachShader(shader_program, compute_shader)
+        glLinkProgram(shader_program)
+
+        if not glGetProgramiv(shader_program, GL_LINK_STATUS):
+            log = glGetProgramInfoLog(shader_program)
+            glDeleteProgram(shader_program)
+            raise RuntimeError(f"Error linking compute shader program: {log.decode()}")
+
+        glDeleteShader(compute_shader)  # Clean up after linking
         return shader_program
 
     def _create_and_compile_shader(self, shader_path, shader_type):
