@@ -8,13 +8,13 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
-    def __init__(self, max_particles=1000, particle_batch_size=1000, particle_render_mode='transform_feedback',
+    def __init__(self, particles_max=1000, particle_batch_size=1000, particle_render_mode='transform_feedback',
                  particle_generator=False, generator_delay=0.0, particle_type='point',
                  **kwargs):
         super().__init__(**kwargs)
-        self.max_particles = max_particles
+        self.max_particles = particles_max
         self.total_particles = self.max_particles  # Always process all particles
-        self.particle_batch_size = min(particle_batch_size, max_particles)
+        self.particle_batch_size = min(particle_batch_size, particles_max)
         self.particle_render_mode = particle_render_mode
         self.particle_generator = particle_generator  # Control generator mode
         self.generator_delay = generator_delay  # Delay between particle generations in seconds
