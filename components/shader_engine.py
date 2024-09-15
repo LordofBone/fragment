@@ -3,13 +3,19 @@ from OpenGL.GL import *
 
 class ShaderEngine:
     def __init__(self, vertex_shader_path=None, fragment_shader_path=None, compute_shader_path=None):
-        # Check if this is a compute shader or a render shader program
+        """
+        Initialize the ShaderEngine. This class can handle both compute shaders and rendering shaders.
+        If a compute shader is provided, it will compile and store it separately from the rendering shaders.
+        """
+        # Initialize rendering shaders (vertex and fragment)
+        self.shader_program = None
+        if vertex_shader_path or fragment_shader_path:
+            self.shader_program = self.create_shader_program(vertex_shader_path, fragment_shader_path)
+
+        # Initialize compute shader if provided
+        self.compute_shader_program = None
         if compute_shader_path:
             self.compute_shader_program = self.create_compute_shader_program(compute_shader_path)
-            self.shader_program = None  # No need for render shaders if using compute shaders
-        else:
-            self.shader_program = self.create_shader_program(vertex_shader_path, fragment_shader_path)
-            self.compute_shader_program = None  # No compute shader for render shaders
 
     def create_shader_program(self, vertex_shader_path, fragment_shader_path):
         """Create and link a program from vertex and fragment shaders."""
@@ -89,3 +95,13 @@ class ShaderEngine:
             raise RuntimeError(f"Error linking shader program: {log.decode()}")
 
         return shader_program
+
+    def use_compute_shader(self):
+        """Activate the compute shader program."""
+        if self.compute_shader_program:
+            glUseProgram(self.compute_shader_program)
+
+    def use_shader_program(self):
+        """Activate the vertex/fragment shader program."""
+        if self.shader_program:
+            glUseProgram(self.shader_program)
