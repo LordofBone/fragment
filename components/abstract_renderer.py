@@ -200,6 +200,7 @@ class AbstractRenderer(ABC):
         self.vaos = []
 
         self.shader_program = None
+        self.compute_shader_program = None
 
         self.phong_shading = phong_shading
 
@@ -424,6 +425,7 @@ class AbstractRenderer(ABC):
 
         shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path)
         self.shader_program = shader_engine.shader_program
+        self.compute_shader_program = shader_engine.compute_shader_program
 
     def load_textures(self):
         """Load textures for the model."""
