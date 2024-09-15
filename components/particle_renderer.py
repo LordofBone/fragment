@@ -459,15 +459,18 @@ class ParticleRenderer(AbstractRenderer):
 
         # Define a mapping from particle types to OpenGL primitives
         primitive_types = {
-            'point': GL_POINTS,
-            'line': GL_LINES,
+            'points': GL_POINTS,
+            'lines': GL_LINES,
             'line_strip': GL_LINE_STRIP,
             'line_loop': GL_LINE_LOOP,
-            'triangle': GL_TRIANGLES,
+            'lines_adjacency': GL_LINES_ADJACENCY,
+            'line_strip_adjacency': GL_LINE_STRIP_ADJACENCY,
+            'triangles': GL_TRIANGLES,
             'triangle_strip': GL_TRIANGLE_STRIP,
             'triangle_fan': GL_TRIANGLE_FAN,
-            'quad': GL_QUADS,
-            # Add more primitives as needed
+            'triangles_adjacency': GL_TRIANGLES_ADJACENCY,
+            'triangle_strip_adjacency': GL_TRIANGLE_STRIP_ADJACENCY,
+            'patches': GL_PATCHES,
         }
 
         # Get the primitive type from the mapping, default to GL_POINTS if not found
