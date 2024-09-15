@@ -223,6 +223,8 @@ class RendererConfig:
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
             "height": height,
+            "depth_testing": depth_testing,
+            "culling": culling,
             "cubemap_folder": cubemap_folder,
             "phong_shading": phong_shading,
             "planar_camera": planar_camera,
