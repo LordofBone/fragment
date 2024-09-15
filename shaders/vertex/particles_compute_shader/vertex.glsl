@@ -18,6 +18,7 @@ layout(std430, binding = 0) buffer ParticleBuffer {
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform float particleSize;// Size of the particle
 
 out vec3 fragColor;
 
@@ -37,6 +38,6 @@ void main() {
         fragColor = mix(vec3(1.0, 1.0, 1.0), vec3(1.0, 0.0, 0.0), particle.lifetimePercentage);
 
         // Set point size if using points
-        gl_PointSize = 5.0;
+        gl_PointSize = particleSize;
     }
 }
