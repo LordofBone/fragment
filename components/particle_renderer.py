@@ -1,3 +1,4 @@
+import random  # Import random module for random primitive selection
 import time
 
 import glm
@@ -9,7 +10,7 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 class ParticleRenderer(AbstractRenderer):
     def __init__(self, max_particles=1000, particle_batch_size=1000, particle_render_mode='transform_feedback',
-                 particle_generator=False, generator_delay=0.0,
+                 particle_generator=False, generator_delay=0.0, particle_type='point',
                  **kwargs):
         super().__init__(**kwargs)
         self.max_particles = max_particles
@@ -20,6 +21,7 @@ class ParticleRenderer(AbstractRenderer):
         self.generator_delay = generator_delay  # Delay between particle generations in seconds
         self.generated_particles = 0  # Track total generated particles
         self.last_generation_time = time.time()  # Track the last time particles were generated
+        self.particle_type = particle_type  # New parameter to control the primitive type
 
         self.stride_size = 10  # Number of floats per particle (position, velocity, spawn time, lifetime, ID, lifetimePercentage)
 
@@ -455,5 +457,27 @@ class ParticleRenderer(AbstractRenderer):
         self.set_view_projection_matrices()
         self.update_particles()
         glBindVertexArray(self.vao)
-        glDrawArrays(GL_POINTS, 0, self.total_particles)  # Draw all particles
+
+        # Define a mapping from particle types to OpenGL primitives
+        primitive_types = {
+            'point': GL_POINTS,
+            'line': GL_LINES,
+            'line_strip': GL_LINE_STRIP,
+            'line_loop': GL_LINE_LOOP,
+            'triangle': GL_TRIANGLES,
+            'triangle_strip': GL_TRIANGLE_STRIP,
+            'triangle_fan': GL_TRIANGLE_FAN,
+            'quad': GL_QUADS,
+            # Add more primitives as needed
+        }
+
+        # Determine the primitive to use based on particle_type
+        if self.particle_type == 'random':
+            # Randomly select a primitive type
+            primitive = random.choice(list(primitive_types.values()))
+        else:
+            # Get the primitive type from the mapping, default to GL_POINTS if not found
+            primitive = primitive_types.get(self.particle_type, GL_POINTS)
+
+        glDrawArrays(primitive, 0, self.total_particles)  # Draw all particles with the selected primitive
         glBindVertexArray(0)
