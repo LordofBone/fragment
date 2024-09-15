@@ -15,28 +15,59 @@ layout(std430, binding = 0) buffer ParticleBuffer {
     Particle particles[];
 };
 
-// Uniforms for time
+// Specify workgroup size (adjust based on GPU capabilities)
+layout(local_size_x = 128) in;
+
+// Uniforms for time and other parameters
 uniform float currentTime;
 uniform float deltaTime;
+uniform float particleMaxLifetime;
+uniform vec3 particleGravity;
+uniform float particleMaxVelocity;
+uniform float width;
+uniform float height;
+uniform float depth;
 
-// Gravity and other constants (you can pass these as uniforms if you want)
-const vec3 gravity = vec3(0.0, -9.81, 0.0);
+// Function to generate random values based on particle ID
+float random(float seed) {
+    return fract(sin(seed) * 43758.5453123);
+}
 
 // Main compute shader function
 void main() {
     uint index = gl_GlobalInvocationID.x;
-
     Particle particle = particles[index];
+
+    // Initialize velocities and positions with random values if not already set
+    if (particle.lifetimePercentage == 0.0) {
+        float randSeed = particle.particleID * 0.1;
+
+        // Set random initial position within the bounds (width, height, depth)
+        particle.position.x = (random(randSeed) * 2.0 - 1.0) * width;
+        particle.position.y = (random(randSeed + 1.0) * 2.0 - 1.0) * height;
+        particle.position.z = (random(randSeed + 2.0) * 2.0 - 1.0) * depth;
+
+        // Set random velocity
+        particle.velocity.x = (random(randSeed + 3.0) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.y = (random(randSeed + 4.0) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.z = (random(randSeed + 5.0) * 2.0 - 1.0) * particleMaxVelocity;
+
+        // Assign a random lifetime based on the uniform `particleMaxLifetime`
+        particle.lifetime = random(randSeed + 6.0) * particleMaxLifetime;
+
+        // Initialize the particle's spawn time
+        particle.spawnTime = currentTime;
+    }
 
     // Update only if the particle is active (lifetimePercentage < 1.0)
     if (particle.lifetimePercentage < 1.0) {
         // Update velocity with gravity
-        particle.velocity += gravity * deltaTime;
+        particle.velocity += particleGravity * deltaTime;
 
         // Update position
         particle.position += particle.velocity * deltaTime;
 
-        // Update lifetime percentage
+        // Calculate the elapsed time and update the lifetime percentage
         float elapsedTime = currentTime - particle.spawnTime;
         particle.lifetimePercentage = elapsedTime / particle.lifetime;
 
@@ -45,7 +76,7 @@ void main() {
             particle.lifetimePercentage = 1.0;
         }
 
-        // Write back to the particle buffer
+        // Write the updated particle data back to the buffer
         particles[index] = particle;
     }
 }
