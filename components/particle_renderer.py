@@ -35,6 +35,12 @@ class ParticleRenderer(AbstractRenderer):
         self.start_time = time.time()  # Store the start time (epoch)
         self.last_time = self.start_time  # Store the last frame time for delta time calculations
 
+        self.particle_ground_plane_height = self.dynamic_attrs.get('particle_ground_plane_height', 0.0)
+        self.particle_max_velocity = self.dynamic_attrs.get('particle_max_velocity', 10.0)
+        self.particle_max_lifetime = self.dynamic_attrs.get('particle_max_lifetime', 5.0)
+        self.particle_spawn_time_jitter = self.dynamic_attrs.get('particle_spawn_time_jitter', False)
+        self.particle_max_spawn_time_jitter = self.dynamic_attrs.get('particle_max_spawn_time_jitter', 5.0)
+
         self.free_slots = list(range(self.max_particles))  # All slots are initially free
 
         # Only used in CPU mode
@@ -46,11 +52,10 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_ground_plane_normal = np.array(
             self.dynamic_attrs.get('particle_ground_plane_normal', (0.0, 1.0, 0.0)),
             dtype=np.float32)
-        self.particle_ground_plane_height = self.dynamic_attrs.get('particle_ground_plane_height', 0.0)
-        self.particle_max_velocity = self.dynamic_attrs.get('particle_max_velocity', 10.0)
-        self.particle_max_lifetime = self.dynamic_attrs.get('particle_max_lifetime', 5.0)
-        self.particle_spawn_time_jitter = self.dynamic_attrs.get('particle_spawn_time_jitter', False)
-        self.particle_max_spawn_time_jitter = self.dynamic_attrs.get('particle_max_spawn_time_jitter', 5.0)
+
+        current_time = time.time()
+        self.delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
+        self.last_time = current_time
 
     def setup(self):
         """
@@ -89,7 +94,6 @@ class ParticleRenderer(AbstractRenderer):
         if self.particle_render_mode == 'transform_feedback':
             self.create_transform_feedback_buffers()
         elif self.particle_render_mode == 'compute_shader':
-            self.set_compute_uniforms()
             self.create_compute_shader_buffers()
         elif self.particle_render_mode == 'cpu':
             self.init_cpu_mode()
@@ -296,26 +300,68 @@ class ParticleRenderer(AbstractRenderer):
         Set up the uniforms for the compute shader.
         """
         if self.debug_mode:
+            print(f"deltaTime: {self.delta_time}")
+            print(f"particleGenerator: {int(self.particle_generator)}")
+            print(f"generatorDelay: {self.generator_delay}")
+            print(f"particleBatchSize: {self.particle_batch_size}")
+            print(f"maxParticles: {self.max_particles}")
             print(f"particleMaxLifetime: {self.particle_max_lifetime}")
-            print(f"particleGravity: {self.particle_gravity[1]}")
+            print(f"currentTime: {time.time() - self.start_time}")
+            print(f"particleGravity: {self.shader_particle_gravity}")
+            print(f"particleMaxVelocity: {self.dynamic_attrs.get('particle_max_velocity', 10.0)}")
             print(f"particleBounceFactor: {self.particle_bounce_factor}")
             print(f"particleGroundPlaneNormal: {self.particle_ground_plane_normal}")
             print(f"particleGroundPlaneHeight: {self.particle_ground_plane_height}")
-            print(f"particleMaxVelocity: {self.particle_max_velocity}")
+            print(f"particlePressure: {self.dynamic_attrs.get('particle_pressure', 1.0)}")
+            print(f"particleViscosity: {self.dynamic_attrs.get('particle_viscosity', 0.5)}")
+            print(f"fluidSimulation: {self.dynamic_attrs.get('fluid_simulation', False)}")
+            print(f"width: {self.width}")
+            print(f"height: {self.height}")
+            print(f"depth: {self.depth}")
 
-        glUseProgram(self.compute_shader_program)
+        # New uniforms for particle batch size, generator, and max particles
+        glUniform1i(glGetUniformLocation(self.compute_shader_program, "maxParticles"), self.max_particles)
+        glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleBatchSize"), self.particle_batch_size)
+        glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleGenerator"),
+                    int(self.particle_generator))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "generatorDelay"),
+                    np.float32(self.generator_delay))
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxLifetime"),
                     np.float32(self.particle_max_lifetime))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleGravity"),
-                    np.float32(self.particle_gravity[1]))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleBounceFactor"),
-                    np.float32(self.particle_bounce_factor))
-        glUniform3fv(glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneNormal"),
-                     1, self.particle_ground_plane_normal)
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneHeight"),
-                    np.float32(self.particle_ground_plane_height))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxVelocity"),
-                    np.float32(self.particle_max_velocity))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "deltaTime"), np.float32(self.delta_time))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "currentTime"),
+                    np.float32(time.time() - self.start_time))
+        glUniform3fv(
+            glGetUniformLocation(self.compute_shader_program, "particleGravity"),
+            1,
+            glm.value_ptr(self.shader_particle_gravity),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleMaxVelocity"),
+            self.dynamic_attrs.get("particle_max_velocity", 10.0),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleBounceFactor"),
+            self.dynamic_attrs.get("particle_bounce_factor", 0.6),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneNormal"),
+            1,
+            glm.value_ptr(self.shader_particle_ground_plane_normal),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneHeight"),
+            self.dynamic_attrs.get("particle_ground_plane_height", 0.0),
+        )
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particlePressure"),
+                    self.dynamic_attrs.get("particle_pressure", 1.0))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleViscosity"),
+                    self.dynamic_attrs.get("particle_viscosity", 0.5))
+        glUniform1i(glGetUniformLocation(self.compute_shader_program, "fluidSimulation"),
+                    int(self.dynamic_attrs.get("fluid_simulation", 0)))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "width"), np.float32(self.width))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "height"), np.float32(self.height))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "depth"), np.float32(self.depth))
 
     def update_particles(self):
         """
@@ -335,17 +381,16 @@ class ParticleRenderer(AbstractRenderer):
         # Update particles based on the selected mode
         if self.particle_render_mode == 'compute_shader':
             # Use compute shader only for particle updates
-            glUseProgram(self.compute_shader_program)
             self._update_particles_compute_shader()
         elif self.particle_render_mode == 'transform_feedback':
             self._update_particles_transform_feedback()
             if self.particle_generator:
                 self._remove_expired_particles()  # Update free slots before generating new particles
-                self._generate_new_particles()
+                self._generate_new_particles_transform_feedback()
         elif self.particle_render_mode == 'cpu':
             self._update_particles_cpu()
 
-        if self.debug_mode:
+        if self.debug_mode and self.particle_render_mode != 'compute_shader':
             # Calculate and print the number of active particles
             num_active_particles = self.max_particles - len(self.free_slots)
             print(f"Number of active particles: {num_active_particles}")
@@ -365,7 +410,7 @@ class ParticleRenderer(AbstractRenderer):
                 self.free_slots.append(idx)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-    def _generate_new_particles(self):
+    def _generate_new_particles_transform_feedback(self):
         # Check if sufficient time has passed since the last generation
         current_time = time.time()
         time_since_last_generation = current_time - self.last_generation_time
@@ -458,25 +503,39 @@ class ParticleRenderer(AbstractRenderer):
 
     def _update_particles_compute_shader(self):
         """
-        Update particles using a compute shader.
-        Dispatches the compute shader and ensures memory barriers are respected.
+        Update the particle system by dispatching the compute shader, respecting particle generator logic.
         """
-        # Use the compute shader program
+        current_time = time.time()
+
         glUseProgram(self.compute_shader_program)
 
-        # Bind the SSBO
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
+        # Handle particle generation based on particle generator flag
+        if self.particle_generator:
+            time_since_last_gen = current_time - self.last_generation_time
+            if time_since_last_gen >= self.generator_delay:
+                # Generate a new batch of particles up to max_particles
+                if self.generated_particles + self.particle_batch_size <= self.max_particles:
+                    self.generated_particles += self.particle_batch_size
+                else:
+                    self.generated_particles = self.max_particles  # Cap to max particles
 
-        # Set uniforms
-        glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), time.time() - self.start_time)
-        glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), self.delta_time)
+                # Update last generation time
+                self.last_generation_time = current_time
+        else:
+            # If generator is disabled, generate particles only once
+            self.generated_particles = min(self.particle_batch_size, self.max_particles)
 
-        # Calculate number of workgroups based on particle count and workgroup size
-        num_work_groups = (self.max_particles + 127) // 128  # Workgroup size is 128
-        glDispatchCompute(num_work_groups, 1, 1)
+        # Set uniforms and dispatch compute shader
+        self.set_compute_uniforms()
 
-        # Ensure the compute shader has finished writing to the buffer
+        # Dispatch compute shader
+        num_workgroups = (self.max_particles + 127) // 128
+        glDispatchCompute(num_workgroups, 1, 1)
+
+        # Make sure compute shader writes are complete
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
+
+        glUseProgram(self.shader_program)  # Switch back to the vertex/fragment shader
 
     def _update_particles_transform_feedback(self):
         glBindVertexArray(self.vao)
