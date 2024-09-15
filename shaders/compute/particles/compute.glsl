@@ -24,13 +24,28 @@ uniform float deltaTime;
 uniform float particleMaxLifetime;
 uniform vec3 particleGravity;
 uniform float particleMaxVelocity;
+uniform float particleBounceFactor;
+uniform vec3 particleGroundPlaneNormal;
+uniform float particleGroundPlaneHeight;
 uniform float width;
 uniform float height;
 uniform float depth;
 
+// Optional fluid simulation parameters
+uniform float particlePressure;
+uniform float particleViscosity;
+uniform bool fluidSimulation;
+
 // Function to generate random values based on particle ID
 float random(float seed) {
     return fract(sin(seed) * 43758.5453123);
+}
+
+// Function to calculate fluid forces (simple pressure and viscosity model)
+vec3 calculateFluidForces(vec3 velocity) {
+    vec3 pressureForce = -normalize(velocity) * particlePressure;
+    vec3 viscosityForce = -velocity * particleViscosity;
+    return pressureForce + viscosityForce;
 }
 
 // Main compute shader function
@@ -61,17 +76,45 @@ void main() {
 
     // Update only if the particle is active (lifetimePercentage < 1.0)
     if (particle.lifetimePercentage < 1.0) {
-        // Update velocity with gravity
+        // Apply gravity
         particle.velocity += particleGravity * deltaTime;
 
-        // Update position
+        // Apply fluid simulation forces if enabled
+        if (fluidSimulation) {
+            vec3 fluidForces = calculateFluidForces(particle.velocity);
+            particle.velocity += fluidForces * deltaTime;
+        }
+
+        // Clamp the velocity to the maximum allowed value
+        float speed = length(particle.velocity);
+        if (speed > particleMaxVelocity) {
+            particle.velocity = normalize(particle.velocity) * particleMaxVelocity;
+        }
+
+        // Update position based on velocity
         particle.position += particle.velocity * deltaTime;
+
+        // Check for collision with the ground plane
+        float distanceToGround = dot(particle.position, particleGroundPlaneNormal) - particleGroundPlaneHeight;
+        if (distanceToGround < 0.0) {
+            // Reflect the velocity based on the ground plane normal
+            particle.velocity = reflect(particle.velocity, particleGroundPlaneNormal) * particleBounceFactor;
+
+            // Clamp the reflected velocity to the maximum allowed value
+            speed = length(particle.velocity);
+            if (speed > particleMaxVelocity) {
+                particle.velocity = normalize(particle.velocity) * particleMaxVelocity;
+            }
+
+            // Prevent the particle from penetrating the ground plane
+            particle.position -= particleGroundPlaneNormal * distanceToGround;
+        }
 
         // Calculate the elapsed time and update the lifetime percentage
         float elapsedTime = currentTime - particle.spawnTime;
         particle.lifetimePercentage = elapsedTime / particle.lifetime;
 
-        // Clamp lifetimePercentage to 1.0
+        // Clamp lifetimePercentage to 1.0 (particle expired)
         if (particle.lifetimePercentage > 1.0) {
             particle.lifetimePercentage = 1.0;
         }
