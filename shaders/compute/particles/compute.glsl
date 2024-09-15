@@ -30,6 +30,8 @@ uniform float particleGroundPlaneHeight;
 uniform float width;
 uniform float height;
 uniform float depth;
+uniform int maxParticles;
+uniform int particleBatchSize;
 
 // Optional fluid simulation parameters
 uniform float particlePressure;
@@ -51,27 +53,33 @@ vec3 calculateFluidForces(vec3 velocity) {
 // Main compute shader function
 void main() {
     uint index = gl_GlobalInvocationID.x;
+
+    if (index >= maxParticles) return;// Avoid updating more particles than allowed
+
     Particle particle = particles[index];
 
-    // Initialize velocities and positions with random values if not already set
-    if (particle.lifetimePercentage == 0.0) {
-        float randSeed = particle.particleID * 0.1;
+    // Check if this particle should be generated
+    if (index < particleBatchSize) {
+        // Initialize velocities and positions with random values if not already set
+        if (particle.lifetimePercentage == 0.0) {
+            float randSeed = particle.particleID * 0.1;
 
-        // Set random initial position within the bounds (width, height, depth)
-        particle.position.x = (random(randSeed) * 2.0 - 1.0) * width;
-        particle.position.y = (random(randSeed + 1.0) * 2.0 - 1.0) * height;
-        particle.position.z = (random(randSeed + 2.0) * 2.0 - 1.0) * depth;
+            // Set random initial position within the bounds (width, height, depth)
+            particle.position.x = (random(randSeed) * 2.0 - 1.0) * width;
+            particle.position.y = (random(randSeed + 1.0) * 2.0 - 1.0) * height;
+            particle.position.z = (random(randSeed + 2.0) * 2.0 - 1.0) * depth;
 
-        // Set random velocity
-        particle.velocity.x = (random(randSeed + 3.0) * 2.0 - 1.0) * particleMaxVelocity;
-        particle.velocity.y = (random(randSeed + 4.0) * 2.0 - 1.0) * particleMaxVelocity;
-        particle.velocity.z = (random(randSeed + 5.0) * 2.0 - 1.0) * particleMaxVelocity;
+            // Set random velocity
+            particle.velocity.x = (random(randSeed + 3.0) * 2.0 - 1.0) * particleMaxVelocity;
+            particle.velocity.y = (random(randSeed + 4.0) * 2.0 - 1.0) * particleMaxVelocity;
+            particle.velocity.z = (random(randSeed + 5.0) * 2.0 - 1.0) * particleMaxVelocity;
 
-        // Assign a random lifetime based on the uniform `particleMaxLifetime`
-        particle.lifetime = random(randSeed + 6.0) * particleMaxLifetime;
+            // Assign a random lifetime based on the uniform `particleMaxLifetime`
+            particle.lifetime = random(randSeed + 6.0) * particleMaxLifetime;
 
-        // Initialize the particle's spawn time
-        particle.spawnTime = currentTime;
+            // Initialize the particle's spawn time
+            particle.spawnTime = currentTime;
+        }
     }
 
     // Update only if the particle is active (lifetimePercentage < 1.0)
