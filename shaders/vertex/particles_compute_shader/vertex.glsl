@@ -21,6 +21,7 @@ uniform mat4 projection;
 uniform float particleSize;// Size of the particle
 uniform vec3 particleColor;// Base color of the particle
 
+out float lifetimePercentageToFragment;
 out vec3 fragColor;
 
 void main() {
@@ -35,11 +36,11 @@ void main() {
         vec4 worldPosition = model * vec4(particle.position, 1.0);
         gl_Position = projection * view * worldPosition;
 
-        // Adjust color based on lifetime to simulate cooling (start hot, then cool to black)
-        vec3 fadeColor = vec3(0.0, 0.0, 0.0);
+        // Pass the lifetime percentage to the fragment shader
+        lifetimePercentageToFragment = particle.lifetimePercentage;
 
-        // Interpolate from the varied color to black over the particle's lifetime
-        fragColor = mix(particleColor, fadeColor, particle.lifetimePercentage);
+        // Pass the base color to the fragment shader
+        fragColor = particleColor;
 
         // Set point size if using points
         gl_PointSize = particleSize;
