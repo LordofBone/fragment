@@ -32,11 +32,15 @@ uniform float height;
 uniform float depth;
 uniform int maxParticles;
 uniform int particleBatchSize;
+uniform bool particleGenerator;
 
 // Optional fluid simulation parameters
 uniform float particlePressure;
 uniform float particleViscosity;
 uniform bool fluidSimulation;
+
+// Shared variable for counting active particles
+shared uint activeParticlesCount;
 
 // Function to generate random values based on particle ID
 float random(float seed) {
@@ -54,35 +58,58 @@ vec3 calculateFluidForces(vec3 velocity) {
 void main() {
     uint index = gl_GlobalInvocationID.x;
 
-    if (index >= maxParticles) return;// Avoid updating more particles than allowed
+    if (index >= maxParticles) return; // Avoid updating more particles than allowed
+
+    // Initialize the shared counter to 0 only once per workgroup
+    if (gl_LocalInvocationID.x == 0) {
+        activeParticlesCount = 0;
+    }
+
+    // Synchronize to ensure all threads see the initialized value
+    barrier();
 
     Particle particle = particles[index];
 
-    // Check if this particle should be generated
-    if (index < particleBatchSize) {
-        // Initialize velocities and positions with random values if not already set
-        if (particle.lifetimePercentage == 0.0) {
-            float randSeed = particle.particleID * 0.1;
+    // Check if the particle has expired (lifetimePercentage >= 1.0)
+    bool isExpired = particle.lifetimePercentage >= 1.0;
 
-            // Set random initial position within the bounds (width, height, depth)
-            particle.position.x = (random(randSeed) * 2.0 - 1.0) * width;
-            particle.position.y = (random(randSeed + 1.0) * 2.0 - 1.0) * height;
-            particle.position.z = (random(randSeed + 2.0) * 2.0 - 1.0) * depth;
-
-            // Set random velocity
-            particle.velocity.x = (random(randSeed + 3.0) * 2.0 - 1.0) * particleMaxVelocity;
-            particle.velocity.y = (random(randSeed + 4.0) * 2.0 - 1.0) * particleMaxVelocity;
-            particle.velocity.z = (random(randSeed + 5.0) * 2.0 - 1.0) * particleMaxVelocity;
-
-            // Assign a random lifetime based on the uniform `particleMaxLifetime`
-            particle.lifetime = random(randSeed + 6.0) * particleMaxLifetime;
-
-            // Initialize the particle's spawn time
-            particle.spawnTime = currentTime;
-        }
+    // Count active particles
+    if (particle.lifetimePercentage < 1.0) {
+        atomicAdd(activeParticlesCount, 1);
     }
 
-    // Update only if the particle is active (lifetimePercentage < 1.0)
+    // Synchronize to ensure all threads have updated the counter
+    barrier();
+
+    // Determine how many particles to generate based on active count
+    int particlesToGenerate = 0;
+    if (particleGenerator) {
+        particlesToGenerate = min(particleBatchSize, maxParticles - int(activeParticlesCount));
+    }
+
+    // Regenerate particles if expired or during initial batch generation
+    if ((isExpired && particlesToGenerate > 0) || (index < particleBatchSize && particleGenerator && particlesToGenerate > 0)) {
+        float randSeed = particle.particleID * 0.1;
+
+        // Set random initial position within the bounds (width, height, depth)
+        particle.position.x = (random(randSeed) * 2.0 - 1.0) * width;
+        particle.position.y = (random(randSeed + 1.0) * 2.0 - 1.0) * height;
+        particle.position.z = (random(randSeed + 2.0) * 2.0 - 1.0) * depth;
+
+        // Set random velocity
+        particle.velocity.x = (random(randSeed + 3.0) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.y = (random(randSeed + 4.0) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.z = (random(randSeed + 5.0) * 2.0 - 1.0) * particleMaxVelocity;
+
+        // Assign a random lifetime based on the uniform `particleMaxLifetime`
+        particle.lifetime = random(randSeed + 6.0) * particleMaxLifetime;
+
+        // Initialize the particle's spawn time and reset lifetime percentage
+        particle.spawnTime = currentTime;
+        particle.lifetimePercentage = 0.0;
+    }
+
+    // Process the particles that are currently active
     if (particle.lifetimePercentage < 1.0) {
         // Apply gravity
         particle.velocity += particleGravity * deltaTime;
@@ -126,8 +153,8 @@ void main() {
         if (particle.lifetimePercentage > 1.0) {
             particle.lifetimePercentage = 1.0;
         }
-
-        // Write the updated particle data back to the buffer
-        particles[index] = particle;
     }
+
+    // Write the updated particle data back to the buffer
+    particles[index] = particle;
 }
