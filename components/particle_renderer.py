@@ -387,7 +387,7 @@ class ParticleRenderer(AbstractRenderer):
         elif self.particle_render_mode == 'transform_feedback':
             self._update_particles_transform_feedback()
             if self.particle_generator:
-                self._remove_expired_particles()  # Update free slots before generating new particles
+                self._remove_expired_particles_transform_feedback()  # Update free slots before generating new particles
                 self._generate_new_particles_transform_feedback()
         elif self.particle_render_mode == 'cpu':
             self._update_particles_cpu()
@@ -397,7 +397,7 @@ class ParticleRenderer(AbstractRenderer):
             num_active_particles = self.max_particles - len(self.free_slots)
             print(f"Number of active particles: {num_active_particles}")
 
-    def _remove_expired_particles(self):
+    def _remove_expired_particles_transform_feedback(self):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
         buffer_size = self.max_particles * self.stride_size * 4  # Total buffer size in bytes
         particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, buffer_size)
