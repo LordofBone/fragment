@@ -320,6 +320,8 @@ class ParticleRenderer(AbstractRenderer):
             print(f"depth: {self.depth}")
 
         # New uniforms for particle batch size, generator, and max particles
+        glUniform1i(glGetUniformLocation(self.shader_program, "particleGenerator"),
+                    int(self.particle_generator))
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "maxParticles"), self.max_particles)
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleBatchSize"), self.particle_batch_size)
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleGenerator"),
@@ -505,25 +507,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Update the particle system by dispatching the compute shader, respecting particle generator logic.
         """
-        current_time = time.time()
-
         glUseProgram(self.compute_shader_program)
-
-        # Handle particle generation based on particle generator flag
-        if self.particle_generator:
-            time_since_last_gen = current_time - self.last_generation_time
-            if time_since_last_gen >= self.generator_delay:
-                # Generate a new batch of particles up to max_particles
-                if self.generated_particles + self.particle_batch_size <= self.max_particles:
-                    self.generated_particles += self.particle_batch_size
-                else:
-                    self.generated_particles = self.max_particles  # Cap to max particles
-
-                # Update last generation time
-                self.last_generation_time = current_time
-        else:
-            # If generator is disabled, generate particles only once
-            self.generated_particles = min(self.particle_batch_size, self.max_particles)
 
         # Set uniforms and dispatch compute shader
         self.set_compute_uniforms()
