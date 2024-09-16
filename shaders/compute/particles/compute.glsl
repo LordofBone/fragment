@@ -58,7 +58,7 @@ vec3 calculateFluidForces(vec3 velocity) {
 void main() {
     uint index = gl_GlobalInvocationID.x;
 
-    if (index >= maxParticles) return; // Avoid updating more particles than allowed
+    if (index >= maxParticles) return;// Avoid updating more particles than allowed
 
     // Initialize the shared counter to 0 only once per workgroup
     if (gl_LocalInvocationID.x == 0) {
@@ -87,8 +87,8 @@ void main() {
         particlesToGenerate = min(particleBatchSize, maxParticles - int(activeParticlesCount));
     }
 
-    // Regenerate particles if expired or during initial batch generation
-    if ((isExpired && particlesToGenerate > 0) || (index < particleBatchSize && particleGenerator && particlesToGenerate > 0)) {
+    // Only generate new particles if there is space available
+    if (isExpired && particlesToGenerate > 0) {
         float randSeed = particle.particleID * 0.1;
 
         // Set random initial position within the bounds (width, height, depth)
