@@ -563,7 +563,7 @@ class ParticleRenderer(AbstractRenderer):
         Update particle data on the CPU.
         Simulate particle movement, gravity, collisions, lifetime, and generation.
         """
-        current_time = time.time()
+        current_time = time.time() - self.start_time  # Relative time since particle system started
         self.delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
         self.last_time = current_time
 
@@ -576,19 +576,23 @@ class ParticleRenderer(AbstractRenderer):
             # Explicitly copy position and velocity to avoid referencing issues
             position = self.cpu_particles[i, 0:3].copy()  # Create a copy of the position array
             velocity = self.cpu_particles[i, 3:6].copy()  # Create a copy of the velocity array
-            spawn_time = self.cpu_particles[i, 6]
-            lifetime = self.cpu_particles[i, 7]
+            spawn_time = self.cpu_particles[i, 6]  # No need to copy as it's a single float
+            lifetime = self.cpu_particles[i, 7]  # No need to copy as it's a single float
 
-            if lifetime > 0.0:  # Only process active particles
-                # Update velocity with gravity
-                velocity += self.particle_gravity * self.delta_time
+            # Calculate the time that has passed since the particle was spawned (relative to particle system start time)
+            elapsed_time = current_time - spawn_time
+
+            if lifetime > 0.0 and elapsed_time < lifetime:  # Only process active particles that haven't expired
+                # Apply gravity based on weight (similar to shader logic)
+                adjusted_gravity = self.particle_gravity  # Weight-based gravity adjustment could be added here
+                velocity += adjusted_gravity * self.delta_time
 
                 # Clamp velocity to the max velocity
                 speed = np.linalg.norm(velocity)
                 if speed > self.particle_max_velocity:
                     velocity = velocity / speed * self.particle_max_velocity
 
-                # Update position
+                # Update position based on velocity
                 position += velocity * self.delta_time
 
                 # Check for collision with the ground plane
@@ -601,18 +605,23 @@ class ParticleRenderer(AbstractRenderer):
                     velocity *= self.particle_bounce_factor  # Apply the bounce factor
                     position -= self.particle_ground_plane_normal * distance_to_ground  # Adjust position to avoid penetration
 
-                # Update lifetime percentage
-                elapsed_time = current_time - spawn_time
+                # Update lifetime percentage (now correctly calculated)
                 lifetime_percentage = elapsed_time / lifetime
-                self.cpu_particles[i, 9] = lifetime_percentage
+                lifetime_percentage = min(lifetime_percentage, 1.0)  # Clamp to 1.0
+                self.cpu_particles[i, 9] = lifetime_percentage  # Write back to the particle array
 
                 # Expire particle if its lifetime is over
                 if lifetime_percentage >= 1.0:
-                    self.cpu_particles[i, 7] = 0.0  # Expire particle
+                    self.cpu_particles[i, 7] = 0.0  # Expire particle by setting its lifetime to 0
 
                 # Write back the updated position and velocity to the particle array
                 self.cpu_particles[i, 0:3] = position
                 self.cpu_particles[i, 3:6] = velocity
+
+                # Debug output to track lifetime and velocity
+                if self.debug_mode:
+                    print(
+                        f"Particle {i}: Position {position}, Velocity {velocity}, Lifetime Percentage {lifetime_percentage}")
 
     def _update_particles_compute_shader(self):
         """
