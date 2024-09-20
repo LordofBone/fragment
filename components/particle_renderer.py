@@ -564,8 +564,6 @@ class ParticleRenderer(AbstractRenderer):
         Simulate particle movement, gravity, collisions, lifetime, and generation.
         """
         current_time = time.time() - self.start_time  # Relative time since particle system started
-        self.delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
-        self.last_time = current_time
 
         if self.debug_mode:
             print(f"Number of particles: {len(self.cpu_particles)}")
@@ -584,7 +582,7 @@ class ParticleRenderer(AbstractRenderer):
 
             if lifetime > 0.0 and elapsed_time < lifetime:  # Only process active particles that haven't expired
                 # Apply gravity based on weight (similar to shader logic)
-                adjusted_gravity = self.particle_gravity  # Weight-based gravity adjustment could be added here
+                adjusted_gravity = self.particle_gravity  # Gravity is constant for now
                 velocity += adjusted_gravity * self.delta_time
 
                 # Clamp velocity to the max velocity
@@ -598,16 +596,23 @@ class ParticleRenderer(AbstractRenderer):
                 # Check for collision with the ground plane
                 distance_to_ground = np.dot(position,
                                             self.particle_ground_plane_normal) - self.particle_ground_plane_height
-                if distance_to_ground < 0.0:
+
+                if distance_to_ground < 0.0:  # Particle is below or at the ground
                     # Reflect the velocity based on the ground plane normal
                     velocity = velocity - 2 * np.dot(velocity,
                                                      self.particle_ground_plane_normal) * self.particle_ground_plane_normal
                     velocity *= self.particle_bounce_factor  # Apply the bounce factor
-                    position -= self.particle_ground_plane_normal * distance_to_ground  # Adjust position to avoid penetration
+
+                    # Prevent the particle from sinking below the ground
+                    position -= self.particle_ground_plane_normal * distance_to_ground
+
+                    # Ensure the particle bounces with a minimum upward velocity to avoid sticking
+                    if abs(velocity[1]) < 0.1:  # Assuming Y-axis is up/down, adjust threshold as needed
+                        velocity[1] = 0.1  # Small positive value to ensure it moves upward
 
                 # Update lifetime percentage (now correctly calculated)
                 lifetime_percentage = elapsed_time / lifetime
-                lifetime_percentage = min(lifetime_percentage, 1.0)  # Clamp to 1.0
+                lifetime_percentage = max(0.0, min(lifetime_percentage, 1.0))  # Clamp between 0.0 and 1.0
                 self.cpu_particles[i, 9] = lifetime_percentage  # Write back to the particle array
 
                 # Expire particle if its lifetime is over
