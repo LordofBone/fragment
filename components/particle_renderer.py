@@ -56,6 +56,12 @@ class ParticleRenderer(AbstractRenderer):
             self.dynamic_attrs.get('particle_ground_plane_normal', (0.0, 1.0, 0.0)),
             dtype=np.float32)
 
+        self.particle_min_weight = self.dynamic_attrs.get('particle_min_weight', 0.01)
+        self.particle_max_weight = self.dynamic_attrs.get('particle_max_weight', 0.1)
+        self.fluid_simulation = self.dynamic_attrs.get('fluid_simulation', False)
+        self.particle_pressure = self.dynamic_attrs.get('particle_pressure', 1.0)
+        self.particle_viscosity = self.dynamic_attrs.get('particle_viscosity', 0.5)
+
         current_time = time.time()
         self.delta_time = min(current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
         self.last_time = current_time
@@ -561,7 +567,7 @@ class ParticleRenderer(AbstractRenderer):
     def _update_particles_cpu(self):
         """
         Update particle data on the CPU.
-        Simulate particle movement, gravity, collisions, lifetime, and generation.
+        Simulate particle movement, gravity, collisions, lifetime, weight, and fluid forces.
         """
         current_time = time.time() - self.start_time  # Relative time since particle system started
 
@@ -581,9 +587,22 @@ class ParticleRenderer(AbstractRenderer):
             elapsed_time = current_time - spawn_time
 
             if lifetime > 0.0 and elapsed_time < lifetime:  # Only process active particles that haven't expired
-                # Apply gravity based on weight (similar to shader logic)
-                adjusted_gravity = self.particle_gravity  # Gravity is constant for now
+                # Generate a random weight for this particle (similar to shader logic)
+                particle_id = self.cpu_particles[i, 8]
+                weight = np.interp(np.sin(particle_id * 43758.5453) % 1.0, [0, 1],
+                                   [self.particle_min_weight, self.particle_max_weight])
+
+                # Adjust gravity by weight (heavier particles are less affected by gravity)
+                adjusted_gravity = self.particle_gravity / weight
                 velocity += adjusted_gravity * self.delta_time
+
+                # Apply fluid forces if fluid simulation is enabled
+                if self.fluid_simulation:
+                    # Calculate fluid pressure and viscosity forces
+                    pressure_force = -velocity / np.linalg.norm(velocity) * self.particle_pressure if np.linalg.norm(
+                        velocity) != 0 else 0
+                    viscosity_force = -velocity * self.particle_viscosity
+                    velocity += (pressure_force + viscosity_force) * self.delta_time
 
                 # Clamp velocity to the max velocity
                 speed = np.linalg.norm(velocity)
@@ -623,10 +642,10 @@ class ParticleRenderer(AbstractRenderer):
                 self.cpu_particles[i, 0:3] = position
                 self.cpu_particles[i, 3:6] = velocity
 
-                # Debug output to track lifetime and velocity
+                # Debug output to track lifetime, weight, and velocity
                 if self.debug_mode:
                     print(
-                        f"Particle {i}: Position {position}, Velocity {velocity}, Lifetime Percentage {lifetime_percentage}")
+                        f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, Lifetime Percentage {lifetime_percentage}")
 
     def _update_particles_compute_shader(self):
         """
