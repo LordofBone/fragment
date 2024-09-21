@@ -414,15 +414,6 @@ class ParticleRenderer(AbstractRenderer):
             print(f"particleSize: {self.particle_size}")
             print(f"particleColor: {self.particle_color}")
 
-    def upload_particle_data_cpu(self):
-        """
-        Upload the CPU-calculated particle data (positions, colors, etc.) to the GPU for rendering.
-        """
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, self.cpu_particles[:, 0:3].nbytes,
-                        self.cpu_particles[:, 0:3])  # Upload position data
-        glBindBuffer(GL_ARRAY_BUFFER, 0)  # Unbind the buffer
-
     def update_particles(self):
         """
         Update particle data based on the selected render mode.
@@ -449,7 +440,6 @@ class ParticleRenderer(AbstractRenderer):
                 self._generate_new_particles_transform_feedback()
         elif self.particle_render_mode == 'cpu':
             self._update_particles_cpu()
-            self.upload_particle_data_cpu()
             if self.particle_generator:
                 self._generate_particles_cpu()
 
@@ -646,6 +636,12 @@ class ParticleRenderer(AbstractRenderer):
                 if self.debug_mode:
                     print(
                         f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, Lifetime Percentage {lifetime_percentage}")
+
+        # Upload the CPU-calculated particle data (positions, colors, etc.) to the GPU for rendering.
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, self.cpu_particles[:, 0:3].nbytes,
+                        self.cpu_particles[:, 0:3])  # Upload position data
+        glBindBuffer(GL_ARRAY_BUFFER, 0)  # Unbind the buffer
 
     def _update_particles_compute_shader(self):
         """
