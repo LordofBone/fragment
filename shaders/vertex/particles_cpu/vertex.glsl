@@ -1,16 +1,19 @@
 #version 430
 
-layout(location = 0) in vec3 position;// Particle position (calculated by CPU)
-layout(location = 1) in float particleSize;// Particle size (optional, set on CPU or can be constant)
-layout(location = 2) in vec3 particleColor;// Particle color (optional, set on CPU or can be constant)
+layout (location = 0) in vec3 position;// Input particle position
+layout (location = 1) in float lifetimePercentage;// Lifetime percentage from CPU
 
 // Uniforms for view, projection, and model matrices
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 model;
 
+uniform float particleSize;// Size of the particle
+uniform vec3 particleColor;// Base color of the particle
+
 // Output to the fragment shader
 out vec3 fragColor;
+out float lifetimePercentageToFragment;
 
 void main() {
     // Apply transformations: model, view, projection
@@ -20,6 +23,7 @@ void main() {
     // Set the size of the particle for point rendering
     gl_PointSize = particleSize;
 
-    // Pass the color to the fragment shader
+    // Pass the color and lifetime percentage to the fragment shader
     fragColor = particleColor;
+    lifetimePercentageToFragment = lifetimePercentage;
 }
