@@ -22,7 +22,9 @@ class ParticleRenderer(AbstractRenderer):
         self.last_generation_time = time.time()  # Track the last time particles were generated
         self.particle_type = particle_type  # New parameter to control the primitive type
 
+        self.float_size = 4  # Size of a float in bytes
         self.stride_size = 10  # Number of floats per particle (position, velocity, spawn time, lifetime, ID, lifetimePercentage)
+        self.stride_size_cpu = 5  # Number of floats per particle for CPU mode (position, lifetimePercentage)
 
         self.vao = None
         self.vbo = None
@@ -232,7 +234,7 @@ class ParticleRenderer(AbstractRenderer):
         Setup vertex attribute pointers for position, velocity, spawn time, lifetime, and particle ID.
         Ensures that the shader program has the correct attribute locations configured.
         """
-        float_size = 4  # Size of a float in bytes
+        float_size = self.float_size  # Size of a float in bytes
         vertex_stride = self.stride_size * float_size
 
         # Ensure the correct shader program (vertex/fragment) is active
@@ -309,25 +311,38 @@ class ParticleRenderer(AbstractRenderer):
         """
         Setup vertex attribute pointers for position and any other required data for rendering particles.
         """
-        float_size = 4  # Size of a float in bytes
-        vertex_stride = 3 * float_size  # We only need position data for now (3 floats per vertex)
+        float_size = self.float_size  # Size of a float in bytes
+        vertex_stride = self.stride_size_cpu * float_size  # We only need position data for now (3 floats per vertex)
 
         # Ensure the correct shader program (vertex/fragment) is active
         glUseProgram(self.shader_program)
 
         # Get the attribute locations
         position_loc = glGetAttribLocation(self.shader_program, "position")
+        lifetime_percentage_loc = glGetAttribLocation(self.shader_program, "lifetimePercentage")
+        particle_id_loc = glGetAttribLocation(self.shader_program, "particleID")
 
         # Ensure position attribute is found
-        if position_loc == -1:
-            raise RuntimeError("Position attribute not found in shader program.")
+        if position_loc == -1 or lifetime_percentage_loc == -1 or particle_id_loc == -1:
+            raise RuntimeError("Position, lifetime percentage or particle ID attribute not found in shader program.")
 
         # Enable and set the vertex attribute array for position
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
 
+        # Enable and set the vertex attribute array for lifetime percentage
+        glEnableVertexAttribArray(lifetime_percentage_loc)
+        glVertexAttribPointer(lifetime_percentage_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
+                              ctypes.c_void_p(3 * float_size))
+
+        # Enable and set the vertex attribute array for particle ID
+        glEnableVertexAttribArray(particle_id_loc)
+        glVertexAttribPointer(particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
+                              ctypes.c_void_p(4 * float_size))
+
         if self.debug_mode:
-            print(f"Position attribute location: {position_loc}")
+            print(
+                f"Position attribute location: {position_loc}, Lifetime percentage location: {lifetime_percentage_loc}, Lifetime ID location: {particle_id_loc}")
 
     def set_compute_uniforms(self):
         """
@@ -635,12 +650,21 @@ class ParticleRenderer(AbstractRenderer):
                 # Debug output to track lifetime, weight, and velocity
                 if self.debug_mode:
                     print(
-                        f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, Lifetime Percentage {lifetime_percentage}")
+                        f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, ID {particle_id}, Lifetime Percentage {lifetime_percentage}")
 
         # Upload the CPU-calculated particle data (positions, colors, etc.) to the GPU for rendering.
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, self.cpu_particles[:, 0:3].nbytes,
-                        self.cpu_particles[:, 0:3])  # Upload position data
+
+        # Create a combined array to upload position and lifetime percentage
+        particle_data_to_upload = np.hstack((
+            self.cpu_particles[:, 0:3],  # Position
+            self.cpu_particles[:, 9:10],  # Lifetime percentage
+            self.cpu_particles[:, 8:9],  # Particle ID
+        ))
+
+        # Upload data to the GPU
+        glBufferSubData(GL_ARRAY_BUFFER, 0, particle_data_to_upload.nbytes, particle_data_to_upload)
+
         glBindBuffer(GL_ARRAY_BUFFER, 0)  # Unbind the buffer
 
     def _update_particles_compute_shader(self):
