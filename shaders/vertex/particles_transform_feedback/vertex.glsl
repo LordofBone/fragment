@@ -36,7 +36,7 @@ out float tfSpawnTime;
 out float tfParticleLifetime;
 out float tfParticleID;
 out float tfLifetimePercentage;// New output variable for transform feedback
-out float lifetimePercentageToFragment;// For fragment shade
+out float lifetimePercentageToFragment;// For fragment shader
 
 out vec3 fragColor;// Output color to the fragment shader
 flat out float particleIDOut;// Pass the particle ID to the fragment shader
