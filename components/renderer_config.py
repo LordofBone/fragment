@@ -59,6 +59,7 @@ class RendererConfig:
         self.anisotropy = anisotropy
         self.auto_camera = auto_camera
         self.msaa_level = msaa_level
+        self.alpha_blending = alpha_blending
         self.depth_testing = depth_testing
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
