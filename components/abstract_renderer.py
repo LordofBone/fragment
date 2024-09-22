@@ -187,6 +187,7 @@ class AbstractRenderer(ABC):
         self.distortion_warped = distortion_warped
 
         self.shader_particle_color = glm.vec3(*self.dynamic_attrs.get("particle_color", (1.0, 0.5, 0.2)))
+        self.shader_particle_fade_color = glm.vec3(*self.dynamic_attrs.get("particle_fade_color", (0.0, 0.0, 0.0)))
         self.shader_particle_gravity = glm.vec3(*self.dynamic_attrs.get("particle_gravity", (0.0, -9.81, 0.0)))
         self.shader_particle_ground_plane_normal = glm.vec3(
             *self.dynamic_attrs.get("particle_ground_plane_normal", (0.0, 1.0, 0.0)))
@@ -673,6 +674,17 @@ class AbstractRenderer(ABC):
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleSize"),
             self.dynamic_attrs.get("particle_size", 2.0),
+        )
+
+        glUniform1i(
+            glGetUniformLocation(self.shader_program, "particleFadeToColor"),
+            int(self.dynamic_attrs.get("particle_fade_to_color", 0))
+        )
+
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "particleFadeColor"),
+            1,
+            glm.value_ptr(self.shader_particle_fade_color),
         )
 
         glUniform1f(
