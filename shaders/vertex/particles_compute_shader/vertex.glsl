@@ -21,8 +21,10 @@ uniform mat4 projection;
 uniform float particleSize;// Size of the particle
 uniform vec3 particleColor;// Base color of the particle
 
+// Outputs to fragment shader
 out float lifetimePercentageToFragment;
 out vec3 fragColor;
+flat out float particleIDOut;// Particle ID passed to the fragment shader
 
 void main() {
     uint index = gl_VertexID;// Use the vertex ID to access the correct particle
@@ -41,6 +43,9 @@ void main() {
 
         // Pass the base color to the fragment shader
         fragColor = particleColor;
+
+        // Pass the particle ID to the fragment shader
+        particleIDOut = particle.particleID;
 
         // Set point size if using points
         gl_PointSize = particleSize;
