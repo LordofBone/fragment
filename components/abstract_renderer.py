@@ -28,6 +28,13 @@ def common_funcs(func):
         glUseProgram(self.shader_program)
         check_gl_error("glUseProgram", self.debug_mode)
 
+        # Enable alpha blending
+        if self.alpha_blending:
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        else:
+            glDisable(GL_BLEND)
+
         # Depth testing setup
         if self.depth_testing:
             glEnable(GL_DEPTH_TEST)
@@ -65,6 +72,10 @@ def common_funcs(func):
         glBindTexture(GL_TEXTURE_2D, 0)
         check_gl_error("Unbind textures", self.debug_mode)
 
+        # Disable alpha blending
+        if self.alpha_blending:
+            glDisable(GL_BLEND)
+
         # Depth testing teardown
         if self.depth_testing:
             glDisable(GL_DEPTH_TEST)
@@ -101,6 +112,7 @@ class AbstractRenderer(ABC):
             apply_gamma_correction=False,
             texture_lod_bias=0.0,
             env_map_lod_bias=0.0,
+            alpha_blending=False,
             depth_testing=True,
             culling=True,
             msaa_level=8,
@@ -158,6 +170,7 @@ class AbstractRenderer(ABC):
         self.auto_rotation_enabled = rotation_speed != 0.0
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
+        self.alpha_blending = alpha_blending
         self.depth_testing = depth_testing
         self.culling = culling
         self.msaa_level = msaa_level
