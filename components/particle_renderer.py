@@ -591,7 +591,7 @@ class ParticleRenderer(AbstractRenderer):
             # Calculate the time that has passed since the particle was spawned (relative to particle system start time)
             elapsed_time = current_time - spawn_time
 
-            if lifetime > 0.0 and elapsed_time < lifetime:  # Only process active particles that haven't expired
+            if lifetime > 0.0:
                 # Generate a random weight for this particle (similar to shader logic)
                 particle_id = self.cpu_particles[i, 8]
                 weight = np.interp(np.sin(particle_id * 43758.5453) % 1.0, [0, 1],
@@ -640,17 +640,17 @@ class ParticleRenderer(AbstractRenderer):
                 self.cpu_particles[i, 9] = lifetime_percentage  # Write back to the particle array
 
                 # Expire particle if its lifetime is over
-                if lifetime_percentage >= 1.0:
+                if lifetime_percentage > 1.0:
                     self.cpu_particles[i, 7] = 0.0  # Expire particle by setting its lifetime to 0
 
                 # Write back the updated position and velocity to the particle array
                 self.cpu_particles[i, 0:3] = position
                 self.cpu_particles[i, 3:6] = velocity
 
-                # Debug output to track lifetime, weight, and velocity
-                if self.debug_mode:
-                    print(
-                        f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, ID {particle_id}, Lifetime Percentage {lifetime_percentage}")
+            # Debug output to track lifetime, weight, and velocity
+            if self.debug_mode:
+                print(
+                    f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, ID {particle_id}, Lifetime Percentage {lifetime_percentage}")
 
         # Upload the CPU-calculated particle data (positions, colors, etc.) to the GPU for rendering.
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
