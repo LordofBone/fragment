@@ -6,6 +6,10 @@ flat in float particleIDOut;// Particle ID passed from the vertex shader
 
 out vec4 finalColor;
 
+// Uniforms for controlling fade behavior
+uniform vec3 particleFadeColor;// Color to fade to when fadeToColor is false
+uniform bool particleFadeToColor;// Boolean flag to decide if particles fade by alpha or fade to fadeColor
+
 // Pseudo-random function based on particle ID and fragment coordinates
 float generateRandomValue(vec2 uv, float id) {
     return fract(sin(dot(uv + id, vec2(12.9898, 78.233))) * 43758.5453);
@@ -22,12 +26,16 @@ void main() {
     // Apply the color variation to the base color
     vec3 variedColor = fragColor * (0.9 + 0.2 * colorVariation);// Vary color by ±10%
 
-    // Adjust color based on lifetime to simulate cooling (start hot, then cool to black)
-    vec3 fadeColor = vec3(0.0, 0.0, 0.0);
+    // Conditionally fade based on the fadeToColor flag
+    vec3 finalColorRGB;
+    if (particleFadeToColor) {
+        // Fade out by alpha (no color transition)
+        finalColorRGB = variedColor;
+    } else {
+        // Fade to the specified fadeColor over the particle's lifetime
+        finalColorRGB = mix(variedColor, particleFadeColor, lifetimePercentageToFragment);
+    }
 
-    // Interpolate from the varied color to black over the particle's lifetime
-    vec3 cooledColor = mix(variedColor, fadeColor, lifetimePercentageToFragment);
-
-    // Output the final color with fading alpha
-    finalColor = vec4(cooledColor, alpha);
+    // Output the final color with the calculated alpha
+    finalColor = vec4(finalColorRGB, alpha);
 }
