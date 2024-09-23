@@ -29,11 +29,11 @@ void main() {
     // Conditionally fade based on the fadeToColor flag
     vec3 finalColorRGB;
     if (particleFadeToColor) {
-        // Fade out by alpha (no color transition)
-        finalColorRGB = variedColor;
-    } else {
         // Fade to the specified fadeColor over the particle's lifetime
         finalColorRGB = mix(variedColor, particleFadeColor, lifetimePercentageToFragment);
+    } else {
+        // Fade out by alpha (no color transition)
+        finalColorRGB = variedColor;
     }
 
     // Output the final color with the calculated alpha
