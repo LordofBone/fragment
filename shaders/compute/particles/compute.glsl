@@ -43,8 +43,8 @@ uniform bool fluidSimulation;
 shared uint activeParticlesCount;
 
 // Function to generate random values based on particle ID
-float random(float seed) {
-    return fract(sin(seed) * 43758.5453123);
+float random(float seed, float time) {
+    return fract(sin(seed + float(gl_GlobalInvocationID.x) * 12.9898 + time * 78.233) * 43758.5453123);
 }
 
 // Function to calculate fluid forces (simple pressure and viscosity model)
@@ -81,28 +81,26 @@ void main() {
     // Synchronize to ensure all threads have updated the counter
     barrier();
 
-    // Determine how many particles to generate based on active count
-    int particlesToGenerate = 0;
-    if (particleGenerator) {
-        particlesToGenerate = min(particleBatchSize, maxParticles - int(activeParticlesCount));
-    }
-
     // Only generate new particles if there is space available
-    if (isExpired && particlesToGenerate > 0) {
+    if (isExpired && particleGenerator) {
         float randSeed = particle.particleID * 0.1;
 
+        // Update particleID to make it unique
+        particle.particleID += 1.0;
+
         // Set random initial position within the bounds (width, height, depth)
-        particle.position.x = (random(randSeed) * 2.0 - 1.0) * width;
-        particle.position.y = (random(randSeed + 1.0) * 2.0 - 1.0) * height;
-        particle.position.z = (random(randSeed + 2.0) * 2.0 - 1.0) * depth;
+        particle.position.x = (random(randSeed, currentTime) * 2.0 - 1.0) * width;
+        particle.position.y = (random(randSeed + 1.0, currentTime) * 2.0 - 1.0) * height;
+        particle.position.z = (random(randSeed + 2.0, currentTime) * 2.0 - 1.0) * depth;
 
         // Set random velocity
-        particle.velocity.x = (random(randSeed + 3.0) * 2.0 - 1.0) * particleMaxVelocity;
-        particle.velocity.y = (random(randSeed + 4.0) * 2.0 - 1.0) * particleMaxVelocity;
-        particle.velocity.z = (random(randSeed + 5.0) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.x = (random(randSeed + 3.0, currentTime) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.y = (random(randSeed + 4.0, currentTime) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.z = (random(randSeed + 5.0, currentTime) * 2.0 - 1.0) * particleMaxVelocity;
 
         // Assign a random lifetime based on the uniform `particleMaxLifetime`
-        particle.lifetime = random(randSeed + 6.0) * particleMaxLifetime;
+        // Ensure lifetime is not zero
+        particle.lifetime = mix(0.1, particleMaxLifetime, random(randSeed + 6.0, currentTime));
 
         // Initialize the particle's spawn time and reset lifetime percentage
         particle.spawnTime = currentTime;
@@ -147,11 +145,10 @@ void main() {
 
         // Calculate the elapsed time and update the lifetime percentage
         float elapsedTime = currentTime - particle.spawnTime;
-        particle.lifetimePercentage = elapsedTime / particle.lifetime;
-
-        // Clamp lifetimePercentage to 1.0 (particle expired)
-        if (particle.lifetimePercentage > 1.0) {
-            particle.lifetimePercentage = 1.0;
+        if (particle.lifetime > 0.0) {
+            particle.lifetimePercentage = clamp(elapsedTime / particle.lifetime, 0.0, 1.0);
+        } else {
+            particle.lifetimePercentage = 1.0;// Expire immediately if lifetime is zero
         }
     }
 
