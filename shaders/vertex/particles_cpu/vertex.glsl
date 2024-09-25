@@ -4,10 +4,13 @@ layout (location = 0) in vec3 position;// Input particle position
 layout (location = 1) in float lifetimePercentage;// Lifetime percentage from CPU
 layout (location = 2) in float particleID;// The ID of the particle
 
-// Uniforms for view, projection, and model matrices
-uniform mat4 view;
-uniform mat4 projection;
-uniform mat4 model;
+// Camera uniforms for view and projection matrices
+uniform mat4 view;// View matrix
+uniform mat4 projection;// Projection matrix
+uniform vec3 cameraPosition;// Position of the camera in world space
+
+// New uniform for model matrix to apply transformations (translation, scaling, rotation)
+uniform mat4 model;// Model matrix
 
 uniform float particleSize;// Size of the particle
 uniform vec3 particleColor;// Base color of the particle
@@ -22,8 +25,13 @@ void main() {
     vec4 worldPosition = model * vec4(position, 1.0);
     gl_Position = projection * view * worldPosition;
 
+    // Adjust particle size based on distance from the camera
+    vec3 particleToCamera = cameraPosition - position;
+    float distanceFromCamera = length(particleToCamera);
+    float adjustedSize = particleSize / distanceFromCamera;
+
     // Set the size of the particle for point rendering
-    gl_PointSize = particleSize;
+    gl_PointSize = adjustedSize;
 
     // Pass the color and lifetime percentage to the fragment shader
     fragColor = particleColor;

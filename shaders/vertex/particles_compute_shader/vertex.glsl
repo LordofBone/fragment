@@ -15,9 +15,14 @@ layout(std430, binding = 0) buffer ParticleBuffer {
     Particle particles[];
 };
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+// Camera uniforms for view and projection matrices
+uniform mat4 view;// View matrix
+uniform mat4 projection;// Projection matrix
+uniform vec3 cameraPosition;// Position of the camera in world space
+
+// New uniform for model matrix to apply transformations (translation, scaling, rotation)
+uniform mat4 model;// Model matrix
+
 uniform float particleSize;// Size of the particle
 uniform vec3 particleColor;// Base color of the particle
 
@@ -41,6 +46,11 @@ void main() {
         // Pass the lifetime percentage to the fragment shader
         lifetimePercentageToFragment = particle.lifetimePercentage;
 
+        // Adjust particle size based on distance from the camera
+        vec3 particleToCamera = cameraPosition - particle.position;
+        float distanceFromCamera = length(particleToCamera);
+        float adjustedSize = particleSize / distanceFromCamera;
+
         // Pass the base color to the fragment shader
         fragColor = particleColor;
 
@@ -48,6 +58,6 @@ void main() {
         particleIDOut = particle.particleID;
 
         // Set point size if using points
-        gl_PointSize = particleSize;
+        gl_PointSize = adjustedSize;
     }
 }
