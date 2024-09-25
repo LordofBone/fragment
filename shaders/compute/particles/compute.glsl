@@ -31,16 +31,16 @@ uniform float width;
 uniform float height;
 uniform float depth;
 uniform int maxParticles;
-uniform int particleBatchSize;
 uniform bool particleGenerator;
+uniform int particleBatchSize;// Re-added uniform
 
 // Optional fluid simulation parameters
 uniform float particlePressure;
 uniform float particleViscosity;
 uniform bool fluidSimulation;
 
-// Shared variable for counting active particles
-shared uint activeParticlesCount;
+// Shared variable for counting generated particles in this frame
+shared int particlesGenerated;
 
 // Function to generate random values based on particle ID
 float random(float seed, float time) {
@@ -62,7 +62,7 @@ void main() {
 
     // Initialize the shared counter to 0 only once per workgroup
     if (gl_LocalInvocationID.x == 0) {
-        activeParticlesCount = 0;
+        particlesGenerated = 0;
     }
 
     // Synchronize to ensure all threads see the initialized value
@@ -70,23 +70,37 @@ void main() {
 
     Particle particle = particles[index];
 
+    // Initialize particleID if necessary
+    if (particle.particleID == 0.0) {
+        particle.particleID = float(index);
+    }
+
     // Check if the particle has expired (lifetimePercentage >= 1.0)
     bool isExpired = particle.lifetimePercentage >= 1.0;
 
-    // Count active particles
-    if (particle.lifetimePercentage < 1.0) {
-        atomicAdd(activeParticlesCount, 1);
+    // Check if the particle is uninitialized (spawnTime == 0.0)
+    bool isUninitialized = particle.spawnTime == 0.0;
+
+    // Flag to indicate whether to generate a new particle
+    bool shouldGenerate = false;
+
+    // Determine if we should generate a new particle
+    if (isUninitialized) {
+        shouldGenerate = true;// Always generate initial particles
+    } else if (isExpired && particleGenerator) {
+        // Atomically increment the particlesGenerated counter and check if we can generate more particles
+        int generated = atomicAdd(particlesGenerated, 1);
+        if (generated < particleBatchSize) {
+            shouldGenerate = true;
+        }
     }
 
-    // Synchronize to ensure all threads have updated the counter
+    // Synchronize to ensure particlesGenerated is updated across threads
     barrier();
 
-    // Only generate new particles if there is space available
-    if (isExpired && particleGenerator) {
-        float randSeed = particle.particleID * 0.1;
-
-        // Update particleID to make it unique
-        particle.particleID += 1.0;
+    // Generate new particle if allowed
+    if (shouldGenerate) {
+        float randSeed = particle.particleID * 0.1 + currentTime;
 
         // Set random initial position within the bounds (width, height, depth)
         particle.position.x = (random(randSeed, currentTime) * 2.0 - 1.0) * width;
