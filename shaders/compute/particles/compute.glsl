@@ -75,26 +75,25 @@ void main() {
         particle.particleID = float(index);
     }
 
-    // Declare and initialize isUninitialized and isExpired
-    bool isUninitialized = (particle.spawnTime == 0.0);
+    // Declare isExpired
     bool isExpired = (particle.lifetimePercentage >= 1.0);
 
     bool shouldGenerate = false;
 
     // Determine if we should generate a new particle
     if (particleGenerator) {
-        if (isUninitialized || isExpired) {
+        if (isExpired) {
             // Atomically increment the particlesGenerated counter and check if we can generate more particles
             int generated = atomicAdd(particlesGenerated, 1);
             if (generated < particleBatchSize) {
                 shouldGenerate = true;
             }
         }
-    } else if (isUninitialized) {
+    } else {
         // Allow initial particles to be generated when generator is off, limited by batch size
         int generated = atomicAdd(particlesGenerated, 1);
         if (generated < particleBatchSize) {
-            shouldGenerate = true;
+            shouldGenerate = false;
         }
     }
 
