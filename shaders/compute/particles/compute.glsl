@@ -58,7 +58,7 @@ vec3 calculateFluidForces(vec3 velocity) {
 void main() {
     uint index = gl_GlobalInvocationID.x;
 
-    if (index >= maxParticles) return;// Avoid updating more particles than allowed
+    if (index >= uint(maxParticles)) return;// Avoid updating more particles than allowed
 
     // Initialize the shared counter to 0 only once per workgroup
     if (gl_LocalInvocationID.x == 0) {
@@ -75,20 +75,23 @@ void main() {
         particle.particleID = float(index);
     }
 
-    // Check if the particle has expired (lifetimePercentage >= 1.0)
-    bool isExpired = particle.lifetimePercentage >= 1.0;
+    // Declare and initialize isUninitialized and isExpired
+    bool isUninitialized = (particle.spawnTime == 0.0);
+    bool isExpired = (particle.lifetimePercentage >= 1.0);
 
-    // Check if the particle is uninitialized (spawnTime == 0.0)
-    bool isUninitialized = particle.spawnTime == 0.0;
-
-    // Flag to indicate whether to generate a new particle
     bool shouldGenerate = false;
 
     // Determine if we should generate a new particle
-    if (isUninitialized) {
-        shouldGenerate = true;// Always generate initial particles
-    } else if (isExpired && particleGenerator) {
-        // Atomically increment the particlesGenerated counter and check if we can generate more particles
+    if (particleGenerator) {
+        if (isUninitialized || isExpired) {
+            // Atomically increment the particlesGenerated counter and check if we can generate more particles
+            int generated = atomicAdd(particlesGenerated, 1);
+            if (generated < particleBatchSize) {
+                shouldGenerate = true;
+            }
+        }
+    } else if (isUninitialized) {
+        // Allow initial particles to be generated when generator is off, limited by batch size
         int generated = atomicAdd(particlesGenerated, 1);
         if (generated < particleBatchSize) {
             shouldGenerate = true;
@@ -98,7 +101,6 @@ void main() {
     // Synchronize to ensure particlesGenerated is updated across threads
     barrier();
 
-    // Generate new particle if allowed
     if (shouldGenerate) {
         float randSeed = particle.particleID * 0.1 + currentTime;
 
@@ -112,9 +114,8 @@ void main() {
         particle.velocity.y = (random(randSeed + 4.0, currentTime) * 2.0 - 1.0) * particleMaxVelocity;
         particle.velocity.z = (random(randSeed + 5.0, currentTime) * 2.0 - 1.0) * particleMaxVelocity;
 
-        // Assign a random lifetime based on the uniform `particleMaxLifetime`
-        // Ensure lifetime is not zero
-        particle.lifetime = mix(0.1, particleMaxLifetime, random(randSeed + 6.0, currentTime));
+        // Assign a random lifetime, ensure it's at least 0.1
+        particle.lifetime = max(0.1, mix(0.1, particleMaxLifetime, random(randSeed + 6.0, currentTime)));
 
         // Initialize the particle's spawn time and reset lifetime percentage
         particle.spawnTime = currentTime;
@@ -164,6 +165,14 @@ void main() {
         } else {
             particle.lifetimePercentage = 1.0;// Expire immediately if lifetime is zero
         }
+
+        // Handle precision issues
+        if (particle.lifetimePercentage >= 0.9999) {
+            particle.lifetimePercentage = 1.0;
+        }
+    } else {
+        // If particle expired and not regenerated, reset velocity
+        particle.velocity = vec3(0.0);
     }
 
     // Write the updated particle data back to the buffer
