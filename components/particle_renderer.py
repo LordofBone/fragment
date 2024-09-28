@@ -130,7 +130,7 @@ class ParticleRenderer(AbstractRenderer):
             self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
 
-            buffer_size = self.max_particles * self.stride_size * 4  # Allocate enough space for max particles
+            buffer_size = self.max_particles * self.stride_size * self.float_size  # Allocate enough space for max particles
 
             # Initialize the VBO with the initial particle data
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
