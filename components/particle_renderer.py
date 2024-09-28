@@ -706,11 +706,83 @@ class ParticleRenderer(AbstractRenderer):
         # Swap the VBOs (this swaps the input and feedback buffers for the next frame)
         self.vbo, self.feedback_vbo = self.feedback_vbo, self.vbo
 
+    def print_vao_contents_transform_feedback(self):
+        # Bind the feedback VBO (the buffer with the updated particle data)
+        glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
+
+        # Get the size of the buffer in bytes
+        buffer_size = glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE)
+        print(f"Feedback VBO Buffer Size: {buffer_size} bytes")
+
+        # Calculate the number of particles
+        float_size = self.float_size  # Size of a float in bytes (4 bytes)
+        stride_size = self.stride_size  # Number of floats per particle (10)
+        particle_size = stride_size * float_size  # Size of one particle in bytes
+        num_particles = buffer_size // particle_size
+        print(f"Number of particles in the feedback VBO: {num_particles}")
+
+        # Read back the buffer data
+        data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, buffer_size)
+
+        # Convert the data to a NumPy array
+        particle_data = np.frombuffer(data, dtype=np.float32)
+        particle_data = particle_data.reshape((num_particles, stride_size))
+
+        # Now you can print or process the particle data
+        print("Particle Data:")
+        print(particle_data)
+
+        # Don't forget to unbind the buffer
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+    def print_ssbo_contents_compute_shader(self):
+        # Bind the SSBO
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
+
+        # Get the size of the buffer in bytes
+        buffer_size = glGetBufferParameteriv(GL_SHADER_STORAGE_BUFFER, GL_BUFFER_SIZE)
+        print(f"SSBO Buffer Size: {buffer_size} bytes")
+
+        # Calculate the number of particles
+        float_size = self.float_size  # 4 bytes per float
+        stride_size = self.stride_size  # Number of floats per particle (10)
+        particle_size = stride_size * float_size
+        num_particles = buffer_size // particle_size
+        print(f"Number of particles in the SSBO: {num_particles}")
+
+        # Read back the buffer data
+        data = glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, buffer_size)
+
+        # Convert the data to a NumPy array
+        particle_data = np.frombuffer(data, dtype=np.float32)
+        particle_data = particle_data.reshape((num_particles, stride_size))
+
+        print("Particle Data:")
+        print(particle_data)
+
+        # Unbind the buffer
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+
+    def print_cpu_particles(self):
+        num_particles = len(self.cpu_particles)
+        print(f"Number of particles: {num_particles}")
+        print("Particle Data:")
+        print(self.cpu_particles)
+
     @common_funcs
     def render(self):
         self.set_view_projection_matrices()
         self.update_particles()
         glBindVertexArray(self.vao)
+
+        # After rendering, print the VAO contents if debug mode is enabled
+        if self.debug_mode:
+            if self.particle_render_mode == 'transform_feedback':
+                self.print_vao_contents_transform_feedback()
+            elif self.particle_render_mode == 'compute_shader':
+                self.print_ssbo_contents_compute_shader()
+            elif self.particle_render_mode == 'cpu':
+                self.print_cpu_particles()
 
         # Define a mapping from particle types to OpenGL primitives
         primitive_types = {
