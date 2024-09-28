@@ -149,7 +149,6 @@ class ParticleRenderer(AbstractRenderer):
             This method creates a Shader Storage Buffer Object (SSBO) for storing particle data
             and binding it to the appropriate buffer base.
             """
-            # particles = self.generate_initial_data()
             self.ssbo = glGenBuffers(1)
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
             glBufferData(GL_SHADER_STORAGE_BUFFER, particles.nbytes, particles, GL_DYNAMIC_COPY)
@@ -166,7 +165,6 @@ class ParticleRenderer(AbstractRenderer):
             Setup buffers for vertex/fragment shader-based particle rendering using CPU-generated data.
             This method sets up the VAO and VBO needed for rendering particles based on CPU-calculated data.
             """
-
             glUseProgram(self.shader_program)
 
             self.cpu_particles = particles
