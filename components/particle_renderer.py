@@ -220,8 +220,8 @@ class ParticleRenderer(AbstractRenderer):
         else:
             lifetimes = np.full((self.particle_batch_size, 1), 0.0, dtype=np.float32)
 
-        particle_ids = np.arange(self.generated_particles, self.generated_particles + self.particle_batch_size,
-                                 dtype=np.float32).reshape(-1, 1)
+        particle_ids = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
+
         lifetime_percentages = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
 
         if self.debug_mode:
