@@ -2,12 +2,12 @@
 
 // Define the particle structure
 struct Particle {
-    vec3 position;
-    vec3 velocity;
-    float spawnTime;
-    float lifetime;
-    float particleID;
-    float lifetimePercentage;
+    vec3 position;// 3 floats (12 bytes + 4 bytes padding)
+    vec3 velocity;// 3 floats (12 bytes + 4 bytes padding)
+    float spawnTime;// 1 float (4 bytes)
+    float lifetime;// 1 float (4 bytes)
+    float particleID;// 1 float (4 bytes)
+    float lifetimePercentage;// 1 float (4 bytes)
 };
 
 // Bind the particle buffer as a shader storage buffer
