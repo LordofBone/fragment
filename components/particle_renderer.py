@@ -522,7 +522,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Write new particles into the buffer at the positions of free slots
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        float_size = 4
+        float_size = self.float_size
         particle_stride = self.stride_size * float_size
 
         for i in range(num_gen_particles):
