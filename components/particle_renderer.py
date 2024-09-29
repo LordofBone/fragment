@@ -126,7 +126,7 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.shader_program)
 
-            tf_particles = self.generate_initial_data()
+            tf_particles = self.stack_initial_data_tf_cpu()
 
             self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
@@ -152,7 +152,7 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.compute_shader_program)
 
-            c_particles = self.generate_initial_data_compute_shader()
+            c_particles = self.stack_initial_data_compute_shader()
 
             self.ssbo = glGenBuffers(1)
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
@@ -172,7 +172,7 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.shader_program)
 
-            self.cpu_particles = self.generate_initial_data()
+            self.cpu_particles = self.stack_initial_data_tf_cpu()
 
             self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
@@ -189,62 +189,6 @@ class ParticleRenderer(AbstractRenderer):
             glBindVertexArray(0)  # Unbind VAO
         else:
             raise ValueError(f"Unknown render mode: {self.particle_render_mode}")
-
-    def generate_initial_data_compute_shader(self):
-        # Ensure we don't generate more particles than max_particles
-        self.particle_batch_size = min(self.particle_batch_size, self.max_particles)
-
-        current_time = time.time()
-        particle_positions = np.random.uniform(-self.width, self.width, (self.particle_batch_size, 3)).astype(
-            np.float32)
-        particle_positions[:, 1] = np.random.uniform(-self.height, self.height, self.particle_batch_size)
-        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, self.particle_batch_size)
-        # Padding after position
-        position_padding = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
-
-        particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_batch_size, 3)).astype(np.float32)
-        # Padding after velocity
-        velocity_padding = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
-
-        if self.particle_spawn_time_jitter:
-            jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
-                                              (self.particle_batch_size, 1)).astype(np.float32)
-            spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time,
-                                  dtype=np.float32) + jitter_values
-        else:
-            spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time, dtype=np.float32)
-
-        if self.particle_max_lifetime > 0.0:
-            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_batch_size, 1)).astype(
-                np.float32)
-        else:
-            lifetimes = np.full((self.particle_batch_size, 1), 0.0, dtype=np.float32)
-
-        particle_ids = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
-
-        lifetime_percentages = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
-
-        if self.debug_mode:
-            print(f"Generated Particle positions: {particle_positions}")
-            print(f"Generated Particle velocities: {particle_velocities}")
-            print(f"Generated Spawn times: {spawn_times}")
-            print(f"Generated Lifetimes: {lifetimes}")
-            print(f"Generated Particle IDs: {particle_ids}")
-            print(f"Generated Lifetime percentages: {lifetime_percentages}")
-
-        # Combine all data, with padding for alignment
-        data = np.hstack((
-            particle_positions,  # Columns 0-2 (3 floats)
-            position_padding,  # Column 3 (padding)
-            particle_velocities,  # Columns 4-6 (3 floats)
-            velocity_padding,  # Column 7 (padding)
-            spawn_times,  # Column 8
-            lifetimes,  # Column 9
-            particle_ids,  # Column 10
-            lifetime_percentages  # Column 11
-        )).astype(np.float32)
-
-        return data
 
     def generate_initial_data(self):
         # Ensure we don't generate more particles than max_particles
@@ -283,6 +227,34 @@ class ParticleRenderer(AbstractRenderer):
             print(f"Generated Lifetimes: {lifetimes}")
             print(f"Generated Particle IDs: {particle_ids}")
             print(f"Generated Lifetime percentages: {lifetime_percentages}")
+
+        return particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages
+
+    def stack_initial_data_compute_shader(self):
+        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages = self.generate_initial_data()
+
+        # Blank particle IDs for compute shader; these are generated within the shader
+        particle_ids = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
+
+        # Padding after position and velocity data (SSBO vec3s are 16 bytes aligned, 3 x 4 bytes + 4 bytes padding)
+        position_padding = velocity_padding = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
+
+        # Combine all data, with padding for alignment
+        data = np.hstack((
+            particle_positions,  # Columns 0-2 (3 floats)
+            position_padding,  # Column 3 (padding)
+            particle_velocities,  # Columns 4-6 (3 floats)
+            velocity_padding,  # Column 7 (padding)
+            spawn_times,  # Column 8
+            lifetimes,  # Column 9
+            particle_ids,  # Column 10
+            lifetime_percentages  # Column 11
+        )).astype(np.float32)
+
+        return data
+
+    def stack_initial_data_tf_cpu(self):
+        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages = self.generate_initial_data()
 
         data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids,
                           lifetime_percentages)).astype(np.float32)
