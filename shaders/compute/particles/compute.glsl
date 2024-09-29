@@ -70,10 +70,8 @@ void main() {
 
     Particle particle = particles[index];
 
-    // Initialize particleID if necessary
-    if (particle.particleID == 0.0) {
-        particle.particleID = float(index);
-    }
+    // Always set particleID
+    particle.particleID = float(index);
 
     // Declare isExpired
     bool isExpired = (particle.lifetimePercentage >= 1.0);
