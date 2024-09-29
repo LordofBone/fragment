@@ -400,8 +400,6 @@ class ParticleRenderer(AbstractRenderer):
             print(f"depth: {self.depth}")
 
         # New uniforms for particle batch size, generator, and max particles
-        glUniform1i(glGetUniformLocation(self.shader_program, "particleGenerator"),
-                    int(self.particle_generator))
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "maxParticles"), self.max_particles)
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleBatchSize"), self.particle_batch_size)
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleGenerator"),
