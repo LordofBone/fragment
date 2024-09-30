@@ -190,35 +190,32 @@ class ParticleRenderer(AbstractRenderer):
         else:
             raise ValueError(f"Unknown render mode: {self.particle_render_mode}")
 
-    def generate_initial_data(self):
-        # Ensure we don't generate more particles than max_particles
-        self.particle_batch_size = min(self.particle_batch_size, self.max_particles)
-
+    def generate_initial_data(self, num_particles=0):
         current_time = time.time()
-        particle_positions = np.random.uniform(-self.width, self.width, (self.particle_batch_size, 3)).astype(
+        particle_positions = np.random.uniform(-self.width, self.width, (num_particles, 3)).astype(
             np.float32)
-        particle_positions[:, 1] = np.random.uniform(-self.height, self.height, self.particle_batch_size)
-        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, self.particle_batch_size)
+        particle_positions[:, 1] = np.random.uniform(-self.height, self.height, num_particles)
+        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, num_particles)
 
-        particle_velocities = np.random.uniform(-0.5, 0.5, (self.particle_batch_size, 3)).astype(np.float32)
+        particle_velocities = np.random.uniform(-0.5, 0.5, (num_particles, 3)).astype(np.float32)
 
         if self.particle_spawn_time_jitter:
             jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
-                                              (self.particle_batch_size, 1)).astype(np.float32)
-            spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time,
+                                              (num_particles, 1)).astype(np.float32)
+            spawn_times = np.full((num_particles, 1), current_time - self.start_time,
                                   dtype=np.float32) + jitter_values
         else:
-            spawn_times = np.full((self.particle_batch_size, 1), current_time - self.start_time, dtype=np.float32)
+            spawn_times = np.full((num_particles, 1), current_time - self.start_time, dtype=np.float32)
 
         if self.particle_max_lifetime > 0.0:
-            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (self.particle_batch_size, 1)).astype(
+            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_particles, 1)).astype(
                 np.float32)
         else:
-            lifetimes = np.full((self.particle_batch_size, 1), 0.0, dtype=np.float32)
+            lifetimes = np.full((num_particles, 1), 0.0, dtype=np.float32)
 
-        particle_ids = np.arange(self.generated_particles, self.generated_particles + self.particle_batch_size,
+        particle_ids = np.arange(self.generated_particles, self.generated_particles + num_particles,
                                  dtype=np.float32).reshape(-1, 1)
-        lifetime_percentages = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
+        lifetime_percentages = np.zeros((num_particles, 1), dtype=np.float32)
 
         if self.debug_mode:
             print(f"Generated Particle positions: {particle_positions}")
@@ -231,7 +228,10 @@ class ParticleRenderer(AbstractRenderer):
         return particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages
 
     def stack_initial_data_compute_shader(self):
-        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages = self.generate_initial_data()
+        # Ensure we don't generate more particles than max_particles
+        self.particle_batch_size = min(self.particle_batch_size, self.max_particles)
+        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages = self.generate_initial_data(
+            self.particle_batch_size)
 
         # Blank particle IDs for compute shader; these are generated within the shader
         particle_ids = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
@@ -245,16 +245,21 @@ class ParticleRenderer(AbstractRenderer):
             position_padding,  # Column 3 (padding)
             particle_velocities,  # Columns 4-6 (3 floats)
             velocity_padding,  # Column 7 (padding)
-            spawn_times,  # Column 8
+            # Bizarrely these two appear to get swapped when they land in the compute shader? Might be something else going on here, but this works.
             lifetimes,  # Column 9
+            spawn_times,  # Column 8
+            # Back to normal ordering (matches compute shader)
             particle_ids,  # Column 10
-            lifetime_percentages  # Column 11
+            lifetime_percentages,  # Column 11
         )).astype(np.float32)
 
         return data
 
     def stack_initial_data_tf_cpu(self):
-        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages = self.generate_initial_data()
+        # Ensure we don't generate more particles than max_particles
+        self.particle_batch_size = min(self.particle_batch_size, self.max_particles)
+        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages = self.generate_initial_data(
+            self.particle_batch_size)
 
         data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids,
                           lifetime_percentages)).astype(np.float32)
@@ -404,13 +409,14 @@ class ParticleRenderer(AbstractRenderer):
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleBatchSize"), self.particle_batch_size)
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleGenerator"),
                     int(self.particle_generator))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "generatorDelay"),
-                    np.float32(self.generator_delay))
+        generator_delay_ms = int(self.generator_delay * 1000)
+        glUniform1ui(glGetUniformLocation(self.compute_shader_program, "generatorDelay"),
+                     np.uint32(generator_delay_ms))
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxLifetime"),
                     np.float32(self.particle_max_lifetime))
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "deltaTime"), np.float32(self.delta_time))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "currentTime"),
-                    np.float32(time.time() - self.start_time))
+        current_time_ms = int((time.time() - self.start_time) * 1000)
+        glUniform1ui(glGetUniformLocation(self.compute_shader_program, "currentTime"), np.uint32(current_time_ms)),
         glUniform3fv(
             glGetUniformLocation(self.compute_shader_program, "particleGravity"),
             1,
@@ -520,31 +526,13 @@ class ParticleRenderer(AbstractRenderer):
         if num_free_slots <= 0:
             return  # No free slots available
 
+        # Ensure we don't generate more particles than max_particles or free slots
+        self.particle_batch_size = min(num_free_slots, self.particle_batch_size)
+
         num_gen_particles = min(num_free_slots, self.particle_batch_size)
 
-        # Generate new particles
-        gen_positions = np.random.uniform(-self.width, self.width, (num_gen_particles, 3)).astype(np.float32)
-        gen_positions[:, 1] = np.random.uniform(-self.height, self.height, num_gen_particles)
-        gen_positions[:, 2] = np.random.uniform(-self.depth, self.depth, num_gen_particles)
-        gen_velocities = np.random.uniform(-0.5, 0.5, (num_gen_particles, 3)).astype(np.float32)
-
-        if self.particle_spawn_time_jitter:
-            jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
-                                              (num_gen_particles, 1)).astype(np.float32)
-            gen_spawn_times = np.full((num_gen_particles, 1), current_time - self.start_time,
-                                      dtype=np.float32) + jitter_values
-        else:
-            gen_spawn_times = np.full((num_gen_particles, 1), current_time - self.start_time, dtype=np.float32)
-
-        if self.particle_max_lifetime > 0.0:
-            gen_lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_gen_particles, 1)).astype(
-                np.float32)
-        else:
-            gen_lifetimes = np.full((num_gen_particles, 1), 0.0, dtype=np.float32)
-
-        gen_ids = np.arange(self.generated_particles, self.generated_particles + num_gen_particles,
-                            dtype=np.float32).reshape(-1, 1)
-        gen_lifetime_percentages = np.zeros((num_gen_particles, 1), dtype=np.float32)
+        gen_positions, gen_velocities, gen_spawn_times, gen_lifetimes, gen_ids, gen_lifetime_percentages = self.generate_initial_data(
+            num_gen_particles)
 
         new_particles = np.hstack((
             gen_positions, gen_velocities, gen_spawn_times,
@@ -556,7 +544,7 @@ class ParticleRenderer(AbstractRenderer):
         float_size = self.float_size
         particle_stride = self.stride_size * float_size
 
-        for i in range(num_gen_particles):
+        for i in range(self.particle_batch_size):
             slot_index = self.free_slots.pop(0)
             offset = slot_index * particle_stride
             particle_data = new_particles[i]
@@ -564,7 +552,7 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         # Update particle counts
-        self.generated_particles += num_gen_particles
+        self.generated_particles += self.particle_batch_size
         self.last_generation_time = current_time  # Update the last generation time
 
     def _generate_particles_cpu(self):
@@ -669,7 +657,7 @@ class ParticleRenderer(AbstractRenderer):
                 self.cpu_particles[i, 9] = lifetime_percentage  # Write back to the particle array
 
                 # Expire particle if its lifetime is over
-                if lifetime_percentage > 1.0:
+                if lifetime_percentage >= 1.0:
                     self.cpu_particles[i, 7] = 0.0  # Expire particle by setting its lifetime to 0
 
                 # Write back the updated position and velocity to the particle array
