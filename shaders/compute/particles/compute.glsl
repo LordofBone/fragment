@@ -15,14 +15,20 @@ layout(std430, binding = 0) buffer ParticleBuffer {
     Particle particles[];
 };
 
-// Specify workgroup size (adjust based on GPU capabilities)
+// Buffer for generation data
+layout(std430, binding = 1) buffer GenerationData {
+    uint lastGenerationTime;
+};
+
+// Specify workgroup size
 layout(local_size_x = 128) in;
 
 // Uniforms for time and other parameters
-uniform float currentTime;
-uniform float deltaTime;
+uniform uint currentTime;
+uniform uint generatorDelay;
 uniform float particleMaxLifetime;
 uniform vec3 particleGravity;
+uniform float deltaTime;
 uniform float particleMaxVelocity;
 uniform float particleBounceFactor;
 uniform vec3 particleGroundPlaneNormal;
@@ -32,7 +38,7 @@ uniform float height;
 uniform float depth;
 uniform int maxParticles;
 uniform bool particleGenerator;
-uniform int particleBatchSize;// Re-added uniform
+uniform int particleBatchSize;
 
 // Optional fluid simulation parameters
 uniform float particlePressure;
@@ -40,7 +46,7 @@ uniform float particleViscosity;
 uniform bool fluidSimulation;
 
 // Shared variable for counting generated particles in this frame
-shared int particlesGenerated;
+shared uint particlesGenerated;
 
 // Function to generate random values based on particle ID
 float random(float seed, float time) {
@@ -78,44 +84,37 @@ void main() {
 
     bool shouldGenerate = false;
 
-    // Determine if we should generate a new particle
-    if (particleGenerator) {
-        if (isExpired) {
+    if (particleGenerator && isExpired) {
+        uint timeSinceLastGen = currentTime - lastGenerationTime;
+        if (timeSinceLastGen >= generatorDelay) {
             // Atomically increment the particlesGenerated counter and check if we can generate more particles
-            int generated = atomicAdd(particlesGenerated, 1);
-            if (generated < particleBatchSize) {
+            uint generated = atomicAdd(particlesGenerated, 1);
+            if (generated < uint(particleBatchSize)) {
                 shouldGenerate = true;
+                // Atomically update the lastGenerationTime
+                atomicMax(lastGenerationTime, currentTime);
             }
-        }
-    } else {
-        // Allow initial particles to be generated when generator is off, limited by batch size
-        int generated = atomicAdd(particlesGenerated, 1);
-        if (generated < particleBatchSize) {
-            shouldGenerate = false;
         }
     }
 
-    // Synchronize to ensure particlesGenerated is updated across threads
-    barrier();
-
     if (shouldGenerate) {
-        float randSeed = particle.particleID * 0.1 + currentTime;
+        float randSeed = particle.particleID * 0.1 + float(currentTime) * 0.001;
 
         // Set random initial position within the bounds (width, height, depth)
-        particle.position.x = (random(randSeed, currentTime) * 2.0 - 1.0) * width;
-        particle.position.y = (random(randSeed + 1.0, currentTime) * 2.0 - 1.0) * height;
-        particle.position.z = (random(randSeed + 2.0, currentTime) * 2.0 - 1.0) * depth;
+        particle.position.x = (random(randSeed, float(currentTime) * 0.001) * 2.0 - 1.0) * width;
+        particle.position.y = (random(randSeed + 1.0, float(currentTime) * 0.001) * 2.0 - 1.0) * height;
+        particle.position.z = (random(randSeed + 2.0, float(currentTime) * 0.001) * 2.0 - 1.0) * depth;
 
         // Set random velocity
-        particle.velocity.x = (random(randSeed + 3.0, currentTime) * 2.0 - 1.0) * particleMaxVelocity;
-        particle.velocity.y = (random(randSeed + 4.0, currentTime) * 2.0 - 1.0) * particleMaxVelocity;
-        particle.velocity.z = (random(randSeed + 5.0, currentTime) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.x = (random(randSeed + 3.0, float(currentTime) * 0.001) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.y = (random(randSeed + 4.0, float(currentTime) * 0.001) * 2.0 - 1.0) * particleMaxVelocity;
+        particle.velocity.z = (random(randSeed + 5.0, float(currentTime) * 0.001) * 2.0 - 1.0) * particleMaxVelocity;
 
         // Assign a random lifetime, ensure it's at least 0.1
-        particle.lifetime = max(0.1, mix(0.1, particleMaxLifetime, random(randSeed + 6.0, currentTime)));
+        particle.lifetime = max(0.1, mix(0.1, particleMaxLifetime, random(randSeed + 6.0, float(currentTime) * 0.001)));
 
         // Initialize the particle's spawn time and reset lifetime percentage
-        particle.spawnTime = currentTime;
+        particle.spawnTime = float(currentTime) * 0.001;// Convert back to seconds
         particle.lifetimePercentage = 0.0;
     }
 
@@ -156,7 +155,7 @@ void main() {
         }
 
         // Calculate the elapsed time and update the lifetime percentage
-        float elapsedTime = currentTime - particle.spawnTime;
+        float elapsedTime = float(currentTime) * 0.001 - particle.spawnTime;
         if (particle.lifetime > 0.0) {
             particle.lifetimePercentage = clamp(elapsedTime / particle.lifetime, 0.0, 1.0);
         } else {
