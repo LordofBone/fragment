@@ -31,9 +31,12 @@ class ParticleRenderer(AbstractRenderer):
         self.feedback_vbo = None
         self.ssbo = None
         self.particle_size = self.dynamic_attrs.get('particle_size', 2.0)  # Default particle size
-        self.height = self.dynamic_attrs.get('height', 1.0)  # Default height for the particle field
-        self.width = self.dynamic_attrs.get('width', 1.0)  # Default width for the particle field
-        self.depth = self.dynamic_attrs.get('depth', 1.0)  # Default depth for the particle field
+        self.max_height = self.dynamic_attrs.get('max_height', 1.0)  # Default height for the particle field
+        self.max_width = self.dynamic_attrs.get('max_width', 1.0)  # Default width for the particle field
+        self.max_depth = self.dynamic_attrs.get('max_depth', 1.0)  # Default depth for the particle field
+        self.min_height = self.dynamic_attrs.get('min_height', 1.0)  # Default height for the particle field
+        self.min_width = self.dynamic_attrs.get('min_width', 1.0)  # Default width for the particle field
+        self.min_depth = self.dynamic_attrs.get('min_depth', 1.0)  # Default depth for the particle field
         self.start_time = time.time()  # Store the start time (epoch)
         self.last_time = self.start_time  # Store the last frame time for delta time calculations
 
@@ -192,10 +195,10 @@ class ParticleRenderer(AbstractRenderer):
 
     def generate_initial_data(self, num_particles=0):
         current_time = time.time()
-        particle_positions = np.random.uniform(-self.width, self.width, (num_particles, 3)).astype(
+        particle_positions = np.random.uniform(self.min_width, self.max_width, (num_particles, 3)).astype(
             np.float32)
-        particle_positions[:, 1] = np.random.uniform(-self.height, self.height, num_particles)
-        particle_positions[:, 2] = np.random.uniform(-self.depth, self.depth, num_particles)
+        particle_positions[:, 1] = np.random.uniform(self.min_height, self.max_height, num_particles)
+        particle_positions[:, 2] = np.random.uniform(self.min_depth, self.max_depth, num_particles)
 
         particle_velocities = np.random.uniform(-0.5, 0.5, (num_particles, 3)).astype(np.float32)
 
@@ -396,9 +399,12 @@ class ParticleRenderer(AbstractRenderer):
             print(f"particlePressure: {self.dynamic_attrs.get('particle_pressure', 1.0)}")
             print(f"particleViscosity: {self.dynamic_attrs.get('particle_viscosity', 0.5)}")
             print(f"fluidSimulation: {self.dynamic_attrs.get('fluid_simulation', False)}")
-            print(f"width: {self.width}")
-            print(f"height: {self.height}")
-            print(f"depth: {self.depth}")
+            print(f"max_width: {self.max_width}")
+            print(f"max_height: {self.max_height}")
+            print(f"max_depth: {self.max_depth}")
+            print(f"min_width: {self.min_width}")
+            print(f"min_height: {self.min_height}")
+            print(f"min_depth: {self.min_depth}")
 
         # New uniforms for particle batch size, generator, and max particles
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "maxParticles"), self.max_particles)
@@ -441,9 +447,12 @@ class ParticleRenderer(AbstractRenderer):
                     self.dynamic_attrs.get("particle_viscosity", 0.5))
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "fluidSimulation"),
                     int(self.dynamic_attrs.get("fluid_simulation", 0)))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "width"), np.float32(self.width))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "height"), np.float32(self.height))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "depth"), np.float32(self.depth))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxWidth"), np.float32(self.max_width))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxHeight"), np.float32(self.max_height))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxDepth"), np.float32(self.max_depth))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minWidth"), np.float32(self.min_width))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minHeight"), np.float32(self.min_height))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minDepth"), np.float32(self.min_depth))
 
     def set_cpu_uniforms(self):
         """
