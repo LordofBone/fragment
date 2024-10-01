@@ -11,6 +11,15 @@ class ParticleRenderer(AbstractRenderer):
     def __init__(self, particles_max=100, particle_batch_size=1, particle_render_mode='transform_feedback',
                  particle_generator=False, generator_delay=0.0, particle_type='point',
                  **kwargs):
+        """
+        :param particles_max: Maximum number of particles that can be generated and managed.
+        :param particle_batch_size: Number of particles to generate in each batch.
+        :param particle_render_mode: Mode used to render particles (e.g., 'transform_feedback').
+        :param particle_generator: Boolean indicating whether the particle system is in generator mode.
+        :param generator_delay: Delay between particle generations in seconds.
+        :param particle_type: Type of primitive used for particles (e.g., 'point').
+        :param kwargs: Additional keyword arguments that can be passed to customize the particle system's behavior.
+        """
         super().__init__(**kwargs)
         self.max_particles = particles_max
         self.total_particles = self.max_particles  # Always process all particles
@@ -41,6 +50,16 @@ class ParticleRenderer(AbstractRenderer):
         self.last_time = self.start_time  # Store the last frame time for delta time calculations
 
         self.particle_ground_plane_height = self.dynamic_attrs.get('particle_ground_plane_height', 0.0)
+
+        # Set up particle initial velocity ranges
+        self.min_initial_velocity_x = self.dynamic_attrs.get('min_initial_velocity_x', -0.5)
+        self.max_initial_velocity_x = self.dynamic_attrs.get('max_initial_velocity_x', 0.5)
+        self.min_initial_velocity_y = self.dynamic_attrs.get('min_initial_velocity_y', -0.5)
+        self.max_initial_velocity_y = self.dynamic_attrs.get('max_initial_velocity_y', 0.5)
+        self.min_initial_velocity_z = self.dynamic_attrs.get('min_initial_velocity_z', -0.5)
+        self.max_initial_velocity_z = self.dynamic_attrs.get('max_initial_velocity_z', 0.5)
+
+        # Set up particle absolute max velocity
         self.particle_max_velocity = self.dynamic_attrs.get('particle_max_velocity', 10.0)
         self.particle_max_lifetime = self.dynamic_attrs.get('particle_max_lifetime', 5.0)
         self.particle_spawn_time_jitter = self.dynamic_attrs.get('particle_spawn_time_jitter', False)
@@ -195,12 +214,19 @@ class ParticleRenderer(AbstractRenderer):
 
     def generate_initial_data(self, num_particles=0):
         current_time = time.time()
-        particle_positions = np.random.uniform(self.min_width, self.max_width, (num_particles, 3)).astype(
-            np.float32)
+
+        particle_positions = np.zeros((num_particles, 3), dtype=np.float32)
+        particle_positions[:, 0] = np.random.uniform(self.min_width, self.max_width, num_particles)
         particle_positions[:, 1] = np.random.uniform(self.min_height, self.max_height, num_particles)
         particle_positions[:, 2] = np.random.uniform(self.min_depth, self.max_depth, num_particles)
 
-        particle_velocities = np.random.uniform(-0.5, 0.5, (num_particles, 3)).astype(np.float32)
+        particle_velocities = np.zeros((num_particles, 3), dtype=np.float32)
+        particle_velocities[:, 0] = np.random.uniform(self.min_initial_velocity_x, self.max_initial_velocity_x,
+                                                      num_particles)
+        particle_velocities[:, 1] = np.random.uniform(self.min_initial_velocity_y, self.max_initial_velocity_y,
+                                                      num_particles)
+        particle_velocities[:, 2] = np.random.uniform(self.min_initial_velocity_z, self.max_initial_velocity_z,
+                                                      num_particles)
 
         if self.particle_spawn_time_jitter:
             jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
@@ -459,6 +485,20 @@ class ParticleRenderer(AbstractRenderer):
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxY"), np.float32(self.max_height))
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "minZ"), np.float32(self.min_depth))
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxZ"), np.float32(self.max_depth))
+
+        # Set min and max initial velocity values
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minInitialVelocityX"),
+                    np.float32(self.min_initial_velocity_x))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityX"),
+                    np.float32(self.max_initial_velocity_x))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minInitialVelocityY"),
+                    np.float32(self.min_initial_velocity_y))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityY"),
+                    np.float32(self.max_initial_velocity_y))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minInitialVelocityZ"),
+                    np.float32(self.min_initial_velocity_z))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityZ"),
+                    np.float32(self.max_initial_velocity_z))
 
     def set_cpu_uniforms(self):
         """
