@@ -419,6 +419,11 @@ class ParticleRenderer(AbstractRenderer):
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "deltaTime"), np.float32(self.delta_time))
         current_time_ms = int((time.time() - self.start_time) * 1000)
         glUniform1ui(glGetUniformLocation(self.compute_shader_program, "currentTime"), np.uint32(current_time_ms)),
+        # Set spawn time jitter uniforms
+        glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleSpawnTimeJitter"),
+                    int(self.particle_spawn_time_jitter))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxSpawnTimeJitter"),
+                    np.float32(self.particle_max_spawn_time_jitter))
         glUniform3fv(
             glGetUniformLocation(self.compute_shader_program, "particleGravity"),
             1,
