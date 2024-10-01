@@ -43,6 +43,13 @@ uniform float maxY;
 uniform float minZ;
 uniform float maxZ;
 
+uniform float minInitialVelocityX;
+uniform float maxInitialVelocityX;
+uniform float minInitialVelocityY;
+uniform float maxInitialVelocityY;
+uniform float minInitialVelocityZ;
+uniform float maxInitialVelocityZ;
+
 uniform bool particleSpawnTimeJitter;
 uniform float particleMaxSpawnTimeJitter;
 
@@ -111,10 +118,13 @@ void main() {
         particle.position.y = mix(minY, maxY, randY);
         particle.position.z = mix(minZ, maxZ, randZ);
 
-        // Generate random velocities between -0.5 and 0.5
-        particle.velocity.x = random(randSeed + 3.0, float(currentTime) * 0.001) - 0.5;
-        particle.velocity.y = random(randSeed + 4.0, float(currentTime) * 0.001) - 0.5;
-        particle.velocity.z = random(randSeed + 5.0, float(currentTime) * 0.001) - 0.5;
+        // Generate random initial velocities
+        float randVelX = random(randSeed + 3.0, float(currentTime) * 0.001);
+        float randVelY = random(randSeed + 4.0, float(currentTime) * 0.001);
+        float randVelZ = random(randSeed + 5.0, float(currentTime) * 0.001);
+        particle.velocity.x = mix(minInitialVelocityX, maxInitialVelocityX, randVelX);
+        particle.velocity.y = mix(minInitialVelocityY, maxInitialVelocityY, randVelY);
+        particle.velocity.z = mix(minInitialVelocityZ, maxInitialVelocityZ, randVelZ);
 
         // Assign lifetime
         if (particleMaxLifetime > 0.0) {
