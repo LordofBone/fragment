@@ -23,24 +23,29 @@ layout(std430, binding = 1) buffer GenerationData {
 // Specify workgroup size
 layout(local_size_x = 128) in;
 
-// Uniforms for time and other parameters
 uniform uint currentTime;
 uniform uint generatorDelay;
+uniform float deltaTime;
 uniform float particleMaxLifetime;
 uniform vec3 particleGravity;
-uniform float deltaTime;
 uniform float particleMaxVelocity;
 uniform float particleBounceFactor;
 uniform vec3 particleGroundPlaneNormal;
 uniform float particleGroundPlaneHeight;
-uniform float width;
-uniform float height;
-uniform float depth;
 uniform int maxParticles;
 uniform bool particleGenerator;
 uniform int particleBatchSize;
 
-// Optional fluid simulation parameters
+uniform float minX;
+uniform float maxX;
+uniform float minY;
+uniform float maxY;
+uniform float minZ;
+uniform float maxZ;
+
+uniform bool particleSpawnTimeJitter;
+uniform float particleMaxSpawnTimeJitter;
+
 uniform float particlePressure;
 uniform float particleViscosity;
 uniform bool fluidSimulation;
@@ -60,7 +65,6 @@ vec3 calculateFluidForces(vec3 velocity) {
     return pressureForce + viscosityForce;
 }
 
-// Main compute shader function
 void main() {
     uint index = gl_GlobalInvocationID.x;
 
@@ -79,7 +83,6 @@ void main() {
     // Always set particleID
     particle.particleID = float(index);
 
-    // Declare isExpired
     bool isExpired = (particle.lifetimePercentage >= 1.0);
 
     bool shouldGenerate = false;
@@ -100,21 +103,36 @@ void main() {
     if (shouldGenerate) {
         float randSeed = particle.particleID * 0.1 + float(currentTime) * 0.001;
 
-        // Set random initial position within the bounds (width, height, depth)
-        particle.position.x = (random(randSeed, float(currentTime) * 0.001) * 2.0 - 1.0) * width;
-        particle.position.y = (random(randSeed + 1.0, float(currentTime) * 0.001) * 2.0 - 1.0) * height;
-        particle.position.z = (random(randSeed + 2.0, float(currentTime) * 0.001) * 2.0 - 1.0) * depth;
+        // Generate random positions
+        float randX = random(randSeed + 0.0, float(currentTime) * 0.001);
+        float randY = random(randSeed + 1.0, float(currentTime) * 0.001);
+        float randZ = random(randSeed + 2.0, float(currentTime) * 0.001);
+        particle.position.x = mix(minX, maxX, randX);
+        particle.position.y = mix(minY, maxY, randY);
+        particle.position.z = mix(minZ, maxZ, randZ);
 
-        // Set random velocity
-        particle.velocity.x = (random(randSeed + 3.0, float(currentTime) * 0.001) * 2.0 - 1.0) * particleMaxVelocity;
-        particle.velocity.y = (random(randSeed + 4.0, float(currentTime) * 0.001) * 2.0 - 1.0) * particleMaxVelocity;
-        particle.velocity.z = (random(randSeed + 5.0, float(currentTime) * 0.001) * 2.0 - 1.0) * particleMaxVelocity;
+        // Generate random velocities between -0.5 and 0.5
+        particle.velocity.x = random(randSeed + 3.0, float(currentTime) * 0.001) - 0.5;
+        particle.velocity.y = random(randSeed + 4.0, float(currentTime) * 0.001) - 0.5;
+        particle.velocity.z = random(randSeed + 5.0, float(currentTime) * 0.001) - 0.5;
 
-        // Assign a random lifetime, ensure it's at least 0.1
-        particle.lifetime = max(0.1, mix(0.1, particleMaxLifetime, random(randSeed + 6.0, float(currentTime) * 0.001)));
+        // Assign lifetime
+        if (particleMaxLifetime > 0.0) {
+            float randLifetime = random(randSeed + 6.0, float(currentTime) * 0.001);
+            particle.lifetime = mix(0.1, particleMaxLifetime, randLifetime);
 
-        // Initialize the particle's spawn time and reset lifetime percentage
-        particle.spawnTime = float(currentTime) * 0.001;// Convert back to seconds
+        } else {
+            particle.lifetime = 0.0;
+        }
+
+        // Initialize spawn time with optional jitter
+        particle.spawnTime = float(currentTime) * 0.001;
+        if (particleSpawnTimeJitter) {
+            float randJitter = random(randSeed + 7.0, float(currentTime) * 0.001);
+            float jitterValue = randJitter * particleMaxSpawnTimeJitter;
+            particle.spawnTime += jitterValue;
+        }
+
         particle.lifetimePercentage = 0.0;
     }
 
@@ -159,7 +177,7 @@ void main() {
         if (particle.lifetime > 0.0) {
             particle.lifetimePercentage = clamp(elapsedTime / particle.lifetime, 0.0, 1.0);
         } else {
-            particle.lifetimePercentage = 1.0;// Expire immediately if lifetime is zero
+            particle.lifetimePercentage = 1.0;
         }
 
         // Handle precision issues
