@@ -557,15 +557,7 @@ class ParticleRenderer(AbstractRenderer):
             num_gen_particles = min(num_free_slots, self.particle_batch_size)
 
             # Generate new particles
-            new_particles = np.zeros((num_gen_particles, 10), dtype=np.float32)
-            new_particles[:, 0:3] = np.random.uniform(-self.width, self.width, (num_gen_particles, 3))
-            new_particles[:, 1] = np.random.uniform(-self.height, self.height, num_gen_particles)
-            new_particles[:, 2] = np.random.uniform(-self.depth, self.depth, num_gen_particles)
-            new_particles[:, 3:6] = np.random.uniform(-0.5, 0.5, (num_gen_particles, 3))
-            new_particles[:, 6] = current_time  # Spawn time
-            new_particles[:, 7] = np.random.uniform(0.1, self.particle_max_lifetime, num_gen_particles)  # Lifetime
-            new_particles[:, 8] = np.arange(self.generated_particles,
-                                            self.generated_particles + num_gen_particles)  # Particle ID
+            new_particles = self.stack_initial_data_tf_cpu(num_gen_particles)
 
             # Insert new particles into free slots
             expired_indices = np.where(self.cpu_particles[:, 7] == 0)[0]
