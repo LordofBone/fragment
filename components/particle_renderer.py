@@ -126,7 +126,7 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.shader_program)
 
-            tf_particles = self.stack_initial_data_tf_cpu()
+            tf_particles = self.stack_initial_data_tf_cpu(self.particle_batch_size)
 
             self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
@@ -152,7 +152,7 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.compute_shader_program)
 
-            c_particles = self.stack_initial_data_compute_shader()
+            c_particles = self.stack_initial_data_compute_shader(self.particle_batch_size)
 
             self.ssbo = glGenBuffers(1)
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
@@ -172,7 +172,7 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.shader_program)
 
-            self.cpu_particles = self.stack_initial_data_tf_cpu()
+            self.cpu_particles = self.stack_initial_data_tf_cpu(self.particle_batch_size)
 
             self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
@@ -227,11 +227,9 @@ class ParticleRenderer(AbstractRenderer):
 
         return particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages
 
-    def stack_initial_data_compute_shader(self):
-        # Ensure we don't generate more particles than max_particles
-        self.particle_batch_size = min(self.particle_batch_size, self.max_particles)
+    def stack_initial_data_compute_shader(self, num_particles=0):
         particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages = self.generate_initial_data(
-            self.particle_batch_size)
+            num_particles)
 
         # Blank particle IDs for compute shader; these are generated within the shader
         particle_ids = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
@@ -255,11 +253,9 @@ class ParticleRenderer(AbstractRenderer):
 
         return data
 
-    def stack_initial_data_tf_cpu(self):
-        # Ensure we don't generate more particles than max_particles
-        self.particle_batch_size = min(self.particle_batch_size, self.max_particles)
+    def stack_initial_data_tf_cpu(self, num_particles=0):
         particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, lifetime_percentages = self.generate_initial_data(
-            self.particle_batch_size)
+            num_particles)
 
         data = np.hstack((particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids,
                           lifetime_percentages)).astype(np.float32)
@@ -531,13 +527,8 @@ class ParticleRenderer(AbstractRenderer):
 
         num_gen_particles = min(num_free_slots, self.particle_batch_size)
 
-        gen_positions, gen_velocities, gen_spawn_times, gen_lifetimes, gen_ids, gen_lifetime_percentages = self.generate_initial_data(
+        new_particles = self.stack_initial_data_tf_cpu(
             num_gen_particles)
-
-        new_particles = np.hstack((
-            gen_positions, gen_velocities, gen_spawn_times,
-            gen_lifetimes, gen_ids, gen_lifetime_percentages
-        )).astype(np.float32)
 
         # Write new particles into the buffer at the positions of free slots
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
