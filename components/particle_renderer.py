@@ -447,12 +447,13 @@ class ParticleRenderer(AbstractRenderer):
                     self.dynamic_attrs.get("particle_viscosity", 0.5))
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "fluidSimulation"),
                     int(self.dynamic_attrs.get("fluid_simulation", 0)))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxWidth"), np.float32(self.max_width))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxHeight"), np.float32(self.max_height))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxDepth"), np.float32(self.max_depth))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minWidth"), np.float32(self.min_width))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minHeight"), np.float32(self.min_height))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minDepth"), np.float32(self.min_depth))
+        # Pass min and max position values to the compute shader
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minX"), np.float32(self.min_width))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxX"), np.float32(self.max_width))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minY"), np.float32(self.min_height))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxY"), np.float32(self.max_height))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minZ"), np.float32(self.min_depth))
+        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxZ"), np.float32(self.max_depth))
 
     def set_cpu_uniforms(self):
         """
