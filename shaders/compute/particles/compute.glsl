@@ -17,14 +17,14 @@ layout(std430, binding = 0) buffer ParticleBuffer {
 
 // Buffer for generation data
 layout(std430, binding = 1) buffer GenerationData {
-    uint lastGenerationTime;
+    uint particlesGenerated;
 };
 
 // Specify workgroup size
 layout(local_size_x = 128) in;
 
-uniform uint currentTime;
-uniform uint generatorDelay;
+// Uniforms
+uniform float currentTime;// Time in seconds
 uniform float deltaTime;
 uniform float particleMaxLifetime;
 uniform vec3 particleGravity;
@@ -34,7 +34,8 @@ uniform vec3 particleGroundPlaneNormal;
 uniform float particleGroundPlaneHeight;
 uniform int maxParticles;
 uniform bool particleGenerator;
-uniform int particleBatchSize;
+uniform uint particleBatchSize;
+uniform bool shouldGenerate;// New uniform to control generation
 
 uniform float minX;
 uniform float maxX;
@@ -57,8 +58,8 @@ uniform float particlePressure;
 uniform float particleViscosity;
 uniform bool fluidSimulation;
 
-// Shared variable for counting generated particles in this frame
-shared uint particlesGenerated;
+// **Move the shared variable declaration to the global scope**
+shared uint particlesGeneratedInWorkgroup;
 
 // Function to generate random values based on particle ID
 float random(float seed, float time) {
@@ -77,14 +78,6 @@ void main() {
 
     if (index >= uint(maxParticles)) return;// Avoid updating more particles than allowed
 
-    // Initialize the shared counter to 0 only once per workgroup
-    if (gl_LocalInvocationID.x == 0) {
-        particlesGenerated = 0;
-    }
-
-    // Synchronize to ensure all threads see the initialized value
-    barrier();
-
     Particle particle = particles[index];
 
     // Always set particleID
@@ -92,58 +85,57 @@ void main() {
 
     bool isExpired = (particle.lifetimePercentage >= 1.0);
 
-    bool shouldGenerate = false;
-
-    if (particleGenerator && isExpired) {
-        uint timeSinceLastGen = currentTime - lastGenerationTime;
-        if (timeSinceLastGen >= generatorDelay) {
-            // Atomically increment the particlesGenerated counter and check if we can generate more particles
-            uint generated = atomicAdd(particlesGenerated, 1);
-            if (generated < uint(particleBatchSize)) {
-                shouldGenerate = true;
-                // Atomically update the lastGenerationTime
-                atomicMax(lastGenerationTime, currentTime);
-            }
-        }
+    // Initialize the shared counter to 0 only once per workgroup
+    if (gl_LocalInvocationID.x == 0) {
+        particlesGeneratedInWorkgroup = 0u;
     }
 
-    if (shouldGenerate) {
-        float randSeed = particle.particleID * 0.1 + float(currentTime) * 0.001;
+    // Synchronize to ensure all threads in the workgroup see the updated value
+    barrier();
+    if (shouldGenerate && particleGenerator && isExpired) {
+        // Atomically increment the particlesGenerated counter and check if we can generate more particles
+        uint globalGenerated = atomicAdd(particlesGenerated, 1u);
+        if (globalGenerated < particleBatchSize) {
+            // Atomically increment the local workgroup counter
+            uint localGenerated = atomicAdd(particlesGeneratedInWorkgroup, 1u);
 
-        // Generate random positions
-        float randX = random(randSeed + 0.0, float(currentTime) * 0.001);
-        float randY = random(randSeed + 1.0, float(currentTime) * 0.001);
-        float randZ = random(randSeed + 2.0, float(currentTime) * 0.001);
-        particle.position.x = mix(minX, maxX, randX);
-        particle.position.y = mix(minY, maxY, randY);
-        particle.position.z = mix(minZ, maxZ, randZ);
+            // Regenerate the particle
+            float randSeed = particle.particleID * 0.1 + currentTime;
 
-        // Generate random initial velocities
-        float randVelX = random(randSeed + 3.0, float(currentTime) * 0.001);
-        float randVelY = random(randSeed + 4.0, float(currentTime) * 0.001);
-        float randVelZ = random(randSeed + 5.0, float(currentTime) * 0.001);
-        particle.velocity.x = mix(minInitialVelocityX, maxInitialVelocityX, randVelX);
-        particle.velocity.y = mix(minInitialVelocityY, maxInitialVelocityY, randVelY);
-        particle.velocity.z = mix(minInitialVelocityZ, maxInitialVelocityZ, randVelZ);
+            // Generate random positions
+            float randX = random(randSeed + 0.0, currentTime);
+            float randY = random(randSeed + 1.0, currentTime);
+            float randZ = random(randSeed + 2.0, currentTime);
+            particle.position.x = mix(minX, maxX, randX);
+            particle.position.y = mix(minY, maxY, randY);
+            particle.position.z = mix(minZ, maxZ, randZ);
 
-        // Assign lifetime
-        if (particleMaxLifetime > 0.0) {
-            float randLifetime = random(randSeed + 6.0, float(currentTime) * 0.001);
-            particle.lifetime = mix(0.1, particleMaxLifetime, randLifetime);
+            // Generate random initial velocities
+            float randVelX = random(randSeed + 3.0, currentTime);
+            float randVelY = random(randSeed + 4.0, currentTime);
+            float randVelZ = random(randSeed + 5.0, currentTime);
+            particle.velocity.x = mix(minInitialVelocityX, maxInitialVelocityX, randVelX);
+            particle.velocity.y = mix(minInitialVelocityY, maxInitialVelocityY, randVelY);
+            particle.velocity.z = mix(minInitialVelocityZ, maxInitialVelocityZ, randVelZ);
 
-        } else {
-            particle.lifetime = 0.0;
+            // Assign lifetime
+            if (particleMaxLifetime > 0.0) {
+                float randLifetime = random(randSeed + 6.0, currentTime);
+                particle.lifetime = mix(0.1, particleMaxLifetime, randLifetime);
+            } else {
+                particle.lifetime = 0.0;
+            }
+
+            // Initialize spawn time with optional jitter
+            particle.spawnTime = currentTime;
+            if (particleSpawnTimeJitter) {
+                float randJitter = random(randSeed + 7.0, currentTime);
+                float jitterValue = randJitter * particleMaxSpawnTimeJitter;
+                particle.spawnTime += jitterValue;
+            }
+
+            particle.lifetimePercentage = 0.0;
         }
-
-        // Initialize spawn time with optional jitter
-        particle.spawnTime = float(currentTime) * 0.001;
-        if (particleSpawnTimeJitter) {
-            float randJitter = random(randSeed + 7.0, float(currentTime) * 0.001);
-            float jitterValue = randJitter * particleMaxSpawnTimeJitter;
-            particle.spawnTime += jitterValue;
-        }
-
-        particle.lifetimePercentage = 0.0;
     }
 
     // Process the particles that are currently active
@@ -183,11 +175,11 @@ void main() {
         }
 
         // Calculate the elapsed time and update the lifetime percentage
-        float elapsedTime = float(currentTime) * 0.001 - particle.spawnTime;
+        float elapsedTime = currentTime - particle.spawnTime;
         if (particle.lifetime > 0.0) {
             particle.lifetimePercentage = clamp(elapsedTime / particle.lifetime, 0.0, 1.0);
         } else {
-            particle.lifetimePercentage = 1.0;
+            particle.lifetimePercentage = 1.0;// Expire immediately if lifetime is zero
         }
 
         // Handle precision issues
