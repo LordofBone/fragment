@@ -702,7 +702,7 @@ class ParticleRenderer(AbstractRenderer):
 
                 # Update lifetime percentage (now correctly calculated)
                 lifetime_percentage = elapsed_time / lifetime
-                lifetime_percentage = max(0.0, min(lifetime_percentage, 1.0))  # Clamp between 0.0 and 1.0
+                lifetime_percentage = max(0.0, min(float(lifetime_percentage), 1.0))  # Clamp between 0.0 and 1.0
                 self.cpu_particles[i, 9] = lifetime_percentage  # Write back to the particle array
 
                 # Expire particle if its lifetime is over
