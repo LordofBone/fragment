@@ -5,6 +5,7 @@ layout (location = 1) in vec3 velocity;// Input particle velocity
 layout (location = 2) in float spawnTime;// Time when the particle was created
 layout (location = 3) in float particleLifetime;// The lifetime of the particle (0.0 means no expiration)
 layout (location = 4) in float particleID;// The ID of the particle
+layout (location = 5) in float particleWeight;// The weight of the particle
 
 uniform float currentTime;// The global time for tracking particle lifetime
 uniform float deltaTime;// Time elapsed between frames
@@ -17,8 +18,6 @@ uniform float particlePressure;// Pressure force for fluid dynamics
 uniform float particleViscosity;// Viscosity force for fluid dynamics
 uniform float particleSize;// Size of the particle
 uniform vec3 particleColor;// Base color of the particle
-uniform float minWeight;// Minimum weight of particles
-uniform float maxWeight;// Maximum weight of particles
 uniform bool fluidSimulation;// Flag to enable water simulation
 
 // Camera uniforms for view and projection matrices
@@ -35,7 +34,8 @@ out vec3 tfVelocity;
 out float tfSpawnTime;
 out float tfParticleLifetime;
 out float tfParticleID;
-out float tfLifetimePercentage;// New output variable for transform feedback
+out float tfLifetimePercentage;
+out float tfParticleWeight;
 out float lifetimePercentageToFragment;// For fragment shader
 
 out vec3 fragColor;// Output color to the fragment shader
@@ -50,11 +50,8 @@ vec3 calculateFluidForces(vec3 velocity) {
 }
 
 void main() {
-    // Generate a random weight for this particle
-    float weight = mix(minWeight, maxWeight, fract(sin(particleID) * 43758.5453));
-
     // Adjust gravity by weight (heavier particles are less affected by gravity)
-    vec3 adjustedGravity = particleGravity / weight;
+    vec3 adjustedGravity = particleGravity / particleWeight;
 
     // Apply gravity scaled by weight
     vec3 newVelocity = velocity + adjustedGravity * deltaTime;
@@ -130,6 +127,7 @@ void main() {
     tfSpawnTime = spawnTime;
     tfParticleLifetime = particleLifetime;
     tfParticleID = particleID;
+    tfParticleWeight = particleWeight;
 
     // Set the final position of the particle using view and projection matrices
     vec4 worldPosition = model * vec4(newPosition, 1.0);
