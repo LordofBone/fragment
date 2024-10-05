@@ -575,8 +575,8 @@ class ParticleRenderer(AbstractRenderer):
             self._update_particles_compute_shader()
         elif self.particle_render_mode == 'transform_feedback':
             self._update_particles_transform_feedback()
-            if self.particle_generator:
-                self._remove_expired_particles_transform_feedback()
+            self._remove_expired_particles_transform_feedback()
+            if self.particle_generator and self.should_generate:
                 self._generate_new_particles_transform_feedback()
         elif self.particle_render_mode == 'cpu':
             self._update_particles_cpu()
@@ -604,17 +604,12 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _generate_new_particles_transform_feedback(self):
-        if not self.should_generate:
-            return  # Not enough time has passed, do not generate new particles yet
-
         # Calculate how many new particles we can generate
         num_free_slots = len(self.free_slots)
         if num_free_slots <= 0:
             return  # No free slots available
 
         # Ensure we don't generate more particles than max_particles or free slots
-        self.particle_batch_size = min(num_free_slots, self.particle_batch_size)
-
         num_gen_particles = min(num_free_slots, self.particle_batch_size)
 
         new_particles = self.stack_initial_data_tf_cpu(
@@ -625,7 +620,7 @@ class ParticleRenderer(AbstractRenderer):
         float_size = self.float_size
         particle_stride = self.stride_size_tf * float_size
 
-        for i in range(self.particle_batch_size):
+        for i in range(num_gen_particles):
             slot_index = self.free_slots.pop(0)
             offset = slot_index * particle_stride
             particle_data = new_particles[i]
