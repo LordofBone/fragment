@@ -74,7 +74,7 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_spawn_time_jitter = self.dynamic_attrs.get('particle_spawn_time_jitter', False)
         self.particle_max_spawn_time_jitter = self.dynamic_attrs.get('particle_max_spawn_time_jitter', 5.0)
 
-        self.free_slots = list(range(self.max_particles))  # All slots are initially free
+        self.free_slots = []
 
         # Only used in CPU mode
         self.cpu_particles = np.zeros((self.max_particles, 10), dtype=np.float32)  # Store particle attributes
@@ -597,6 +597,7 @@ class ParticleRenderer(AbstractRenderer):
         lifetime_percentages = particle_data_np[:, 10]
         # Find indices of expired particles
         expired_indices = np.where(lifetime_percentages >= 1.0)[0]
+        self.free_slots = list(set(self.free_slots + expired_indices.tolist()))
         # Add expired indices to free_slots, avoid duplicates
         for idx in expired_indices:
             if idx not in self.free_slots:
