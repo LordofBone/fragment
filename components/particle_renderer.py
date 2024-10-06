@@ -574,8 +574,8 @@ class ParticleRenderer(AbstractRenderer):
         if self.particle_render_mode == 'compute_shader':
             self._update_particles_compute_shader()
         elif self.particle_render_mode == 'transform_feedback':
-            self._update_particles_transform_feedback()
             self._remove_expired_particles_transform_feedback()
+            self._update_particles_transform_feedback()
             if self.particle_generator and self.should_generate:
                 self._generate_new_particles_transform_feedback()
         elif self.particle_render_mode == 'cpu':
