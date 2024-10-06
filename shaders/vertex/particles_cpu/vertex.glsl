@@ -1,6 +1,6 @@
 #version 430
 
-layout (location = 0) in vec3 position;// Input particle position
+layout (location = 0) in vec4 position;// Input particle position
 layout (location = 1) in float lifetimePercentage;// Lifetime percentage from CPU
 layout (location = 2) in float particleID;// The ID of the particle
 
@@ -22,11 +22,11 @@ out float particleIDOut;
 
 void main() {
     // Apply transformations: model, view, projection
-    vec4 worldPosition = model * vec4(position, 1.0);
+    vec4 worldPosition = model * position;
     gl_Position = projection * view * worldPosition;
 
     // Adjust particle size based on distance from the camera
-    vec3 particleToCamera = cameraPosition - position;
+    vec3 particleToCamera = cameraPosition - position.xyz;
     float distanceFromCamera = length(particleToCamera);
     float adjustedSize = particleSize / distanceFromCamera;
 
