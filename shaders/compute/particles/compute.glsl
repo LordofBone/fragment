@@ -7,6 +7,7 @@ struct Particle {
     float spawnTime;// 1 float (4 bytes)
     float lifetime;// 1 float (4 bytes)
     float particleID;// 1 float (4 bytes)
+    float particleWeight;// 1 float (4 bytes)
     float lifetimePercentage;// 1 float (4 bytes)
 };
 
@@ -126,6 +127,9 @@ void main() {
                 particle.lifetime = 0.0;
             }
 
+            // Generate random weight
+            particle.particleWeight = mix(0.1, 1.0, random(randSeed + 8.0, currentTime));
+
             // Initialize spawn time with optional jitter
             particle.spawnTime = currentTime;
             if (particleSpawnTimeJitter) {
@@ -140,8 +144,11 @@ void main() {
 
     // Process the particles that are currently active
     if (particle.lifetimePercentage < 1.0) {
-        // Apply gravity
-        particle.velocity += particleGravity * deltaTime;
+        // Adjust gravity by weight (heavier particles are less affected by gravity)
+        vec3 adjustedGravity = particleGravity / particle.particleWeight;
+
+        // Apply gravity scaled by weight
+        particle.velocity += adjustedGravity * deltaTime;
 
         // Apply fluid simulation forces if enabled
         if (fluidSimulation) {
