@@ -2,8 +2,8 @@
 
 // Define the particle structure
 struct Particle {
-    vec3 position;// 3 floats (12 bytes + 4 bytes padding)
-    vec3 velocity;// 3 floats (12 bytes + 4 bytes padding)
+    vec4 position;// Use only the first 3 components (x, y, z)
+    vec4 velocity;// Use only the first 3 components (x, y, z)
     float spawnTime;// 1 float (4 bytes)
     float lifetime;// 1 float (4 bytes)
     float particleID;// 1 float (4 bytes)
@@ -30,6 +30,8 @@ uniform float deltaTime;
 uniform float particleMaxLifetime;
 uniform vec3 particleGravity;
 uniform float particleMaxVelocity;
+uniform float particleMinWeight;
+uniform float particleMaxWeight;
 uniform float particleBounceFactor;
 uniform vec3 particleGroundPlaneNormal;
 uniform float particleGroundPlaneHeight;
@@ -128,7 +130,7 @@ void main() {
             }
 
             // Generate random weight
-            particle.particleWeight = mix(0.1, 1.0, random(randSeed + 8.0, currentTime));
+            particle.particleWeight = mix(particleMinWeight, particleMaxWeight, random(randSeed + 8.0, currentTime));
 
             // Initialize spawn time with optional jitter
             particle.spawnTime = currentTime;
@@ -148,37 +150,37 @@ void main() {
         vec3 adjustedGravity = particleGravity / particle.particleWeight;
 
         // Apply gravity scaled by weight
-        particle.velocity += adjustedGravity * deltaTime;
+        particle.velocity.xyz += adjustedGravity * deltaTime;
 
         // Apply fluid simulation forces if enabled
         if (fluidSimulation) {
-            vec3 fluidForces = calculateFluidForces(particle.velocity);
-            particle.velocity += fluidForces * deltaTime;
+            vec3 fluidForces = calculateFluidForces(particle.velocity.xyz);
+            particle.velocity.xyz += fluidForces * deltaTime;
         }
 
         // Clamp the velocity to the maximum allowed value
-        float speed = length(particle.velocity);
+        float speed = length(particle.velocity.xyz);
         if (speed > particleMaxVelocity) {
-            particle.velocity = normalize(particle.velocity) * particleMaxVelocity;
+            particle.velocity.xyz = normalize(particle.velocity.xyz) * particleMaxVelocity;
         }
 
         // Update position based on velocity
-        particle.position += particle.velocity * deltaTime;
+        particle.position.xyz += particle.velocity.xyz * deltaTime;
 
         // Check for collision with the ground plane
-        float distanceToGround = dot(particle.position, particleGroundPlaneNormal) - particleGroundPlaneHeight;
+        float distanceToGround = dot(particle.position.xyz, particleGroundPlaneNormal) - particleGroundPlaneHeight;
         if (distanceToGround < 0.0) {
             // Reflect the velocity based on the ground plane normal
-            particle.velocity = reflect(particle.velocity, particleGroundPlaneNormal) * particleBounceFactor;
+            particle.velocity.xyz = reflect(particle.velocity.xyz, particleGroundPlaneNormal) * particleBounceFactor;
 
             // Clamp the reflected velocity to the maximum allowed value
-            speed = length(particle.velocity);
+            speed = length(particle.velocity.xyz);
             if (speed > particleMaxVelocity) {
-                particle.velocity = normalize(particle.velocity) * particleMaxVelocity;
+                particle.velocity.xyz = normalize(particle.velocity.xyz) * particleMaxVelocity;
             }
 
             // Prevent the particle from penetrating the ground plane
-            particle.position -= particleGroundPlaneNormal * distanceToGround;
+            particle.position.xyz -= particleGroundPlaneNormal * distanceToGround;
         }
 
         // Calculate the elapsed time and update the lifetime percentage
@@ -195,7 +197,7 @@ void main() {
         }
     } else {
         // If particle expired and not regenerated, reset velocity
-        particle.velocity = vec3(0.0);
+        particle.velocity.xyz = vec3(0.0);
     }
 
     // Write the updated particle data back to the buffer
