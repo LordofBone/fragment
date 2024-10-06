@@ -1,7 +1,7 @@
 #version 430
 
-layout (location = 0) in vec3 position;// Input particle position
-layout (location = 1) in vec3 velocity;// Input particle velocity
+layout (location = 0) in vec4 position;// Input particle position (use only x, y, z)
+layout (location = 1) in vec4 velocity;// Input particle velocity (use only x, y, z)
 layout (location = 2) in float spawnTime;// Time when the particle was created
 layout (location = 3) in float particleLifetime;// The lifetime of the particle (0.0 means no expiration)
 layout (location = 4) in float particleID;// The ID of the particle
@@ -29,8 +29,8 @@ uniform vec3 cameraPosition;// Position of the camera in world space
 uniform mat4 model;// Model matrix
 
 // Output variables for transform feedback
-out vec3 tfPosition;
-out vec3 tfVelocity;
+out vec4 tfPosition;
+out vec4 tfVelocity;
 out float tfSpawnTime;
 out float tfParticleLifetime;
 out float tfParticleID;
@@ -54,12 +54,12 @@ void main() {
     vec3 adjustedGravity = particleGravity / particleWeight;
 
     // Apply gravity scaled by weight
-    vec3 newVelocity = velocity + adjustedGravity * deltaTime;
+    vec3 newVelocity = velocity.xyz + adjustedGravity * deltaTime;
 
     // Conditionally apply fluid simulation forces if the flag is true
     if (fluidSimulation) {
         // Apply fluid forces (pressure and viscosity)
-        vec3 fluidForces = calculateFluidForces(velocity);
+        vec3 fluidForces = calculateFluidForces(velocity.xyz);
         newVelocity += fluidForces * deltaTime;
     }
 
@@ -70,7 +70,7 @@ void main() {
     }
 
     // Update position based on the clamped velocity
-    vec3 newPosition = position + newVelocity * deltaTime;
+    vec3 newPosition = position.xyz + newVelocity * deltaTime;
 
     // Check for collision with the ground plane
     float distanceToGround = dot(newPosition, particleGroundPlaneNormal) - particleGroundPlaneHeight;
@@ -109,8 +109,6 @@ void main() {
         lifetimePercentageToFragment = 0.0;
     }
 
-    tfLifetimePercentage = lifetimePercentageToFragment;// For transform feedback
-
     // Adjust particle size based on distance from the camera
     vec3 particleToCamera = cameraPosition - newPosition;
     float distanceFromCamera = length(particleToCamera);
@@ -120,8 +118,8 @@ void main() {
     gl_PointSize = adjustedSize;
 
     // Output the updated position and velocity for transform feedback
-    tfPosition = newPosition;
-    tfVelocity = newVelocity;
+    tfPosition = vec4(newPosition, 1.0);
+    tfVelocity = vec4(newVelocity, 0.0);
 
     // Pass the spawn time, lifetime, and particle ID
     tfSpawnTime = spawnTime;
