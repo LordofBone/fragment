@@ -407,6 +407,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Enable and set the vertex attribute arrays
         glEnableVertexAttribArray(position_loc)
+        # This is strange as the position is a vec4 but only works when 3 floats are set here for the size
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride,
                               ctypes.c_void_p(0))
 
