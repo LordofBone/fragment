@@ -40,8 +40,13 @@ class ParticleRenderer(AbstractRenderer):
             self.should_generate = False
 
         self.float_size = 4  # Size of a float in bytes
-        self.stride_size_tf = 11  # Number of floats per particle (position, velocity, spawn time, lifetime, ID, weights, lifetimePercentage)
-        self.stride_size_cpu = 5  # Number of floats per particle for CPU mode (position, lifetimePercentage)
+        self.stride_length_tf_compute = 13  # Number of floats per particle (position, velocity, spawn time, lifetime, ID, weights, lifetimePercentage)
+        self.stride_length_cpu = 6  # Number of floats per particle for CPU mode (position, lifetimePercentage)
+        self.particle_byte_size = self.stride_length_tf_compute * self.float_size
+        self.buffer_size = self.max_particles * self.particle_byte_size  # Total buffer size in bytes
+
+        self.particle_byte_size_cpu = self.stride_length_cpu * self.float_size
+        self.buffer_size_cpu = self.max_particles * self.particle_byte_size_cpu  # Total buffer size in bytes
 
         self.vao = None
         self.vbo = None
@@ -149,6 +154,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniformMatrix4fv(model_matrix_location, 1, GL_FALSE, glm.value_ptr(self.model_matrix))
 
     def create_buffers(self):
+        particles = self.stack_initial_data(self.max_particles)
 
         if self.particle_render_mode == 'transform_feedback':
             """
@@ -157,20 +163,16 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.shader_program)
 
-            tf_particles = self.stack_initial_data_tf_cpu(self.particle_batch_size)
-
             self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
 
-            buffer_size = self.max_particles * self.stride_size_tf * self.float_size  # Allocate enough space for max particles
-
             # Initialize the VBO with the initial particle data
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferData(GL_ARRAY_BUFFER, buffer_size, tf_particles, GL_DYNAMIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, self.buffer_size, particles, GL_DYNAMIC_DRAW)
 
             # Initialize the feedback VBO
             glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-            glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, self.buffer_size, None, GL_DYNAMIC_DRAW)
 
             # Set up vertex attribute pointers
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -183,12 +185,10 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.compute_shader_program)
 
-            c_particles = self.stack_initial_data_compute_shader(self.max_particles)
-
             # Create the SSBO for particle data
             self.ssbo = glGenBuffers(1)
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
-            glBufferData(GL_SHADER_STORAGE_BUFFER, c_particles.nbytes, c_particles, GL_DYNAMIC_COPY)
+            glBufferData(GL_SHADER_STORAGE_BUFFER, particles.nbytes, particles, GL_DYNAMIC_COPY)
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
@@ -212,7 +212,7 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.shader_program)
 
-            self.cpu_particles = self.stack_initial_data_tf_cpu(self.particle_batch_size)
+            self.cpu_particles = particles
 
             self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
@@ -239,12 +239,12 @@ class ParticleRenderer(AbstractRenderer):
         """
         self.current_time = time.time()
 
-        particle_positions = np.zeros((num_particles, 3), dtype=np.float32)
+        particle_positions = np.zeros((num_particles, 4), dtype=np.float32)
         particle_positions[:, 0] = np.random.uniform(self.min_width, self.max_width, num_particles)
         particle_positions[:, 1] = np.random.uniform(self.min_height, self.max_height, num_particles)
         particle_positions[:, 2] = np.random.uniform(self.min_depth, self.max_depth, num_particles)
 
-        particle_velocities = np.zeros((num_particles, 3), dtype=np.float32)
+        particle_velocities = np.zeros((num_particles, 4), dtype=np.float32)
         particle_velocities[:, 0] = np.random.uniform(self.min_initial_velocity_x, self.max_initial_velocity_x,
                                                       num_particles)
         particle_velocities[:, 1] = np.random.uniform(self.min_initial_velocity_y, self.max_initial_velocity_y,
@@ -283,40 +283,7 @@ class ParticleRenderer(AbstractRenderer):
 
         return particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages
 
-    def stack_initial_data_compute_shader(self, num_particles=0):
-        """
-        Prepare the initial data for the compute shader, including padding for alignment.
-
-        :param num_particles: Number of particles to generate data for.
-        :return: Numpy array containing the stacked particle data.
-        """
-        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages = self.generate_initial_data(
-            num_particles)
-
-        # Blank particle IDs for compute shader; these are generated within the shader
-        particle_ids = np.zeros((self.particle_batch_size, 1), dtype=np.float32)
-
-        # Padding after position and velocity data (SSBO vec3s are 16 bytes aligned, 3 x 4 bytes + 4 bytes padding)
-        position_padding = velocity_padding = np.zeros((num_particles, 1), dtype=np.float32)
-
-        # Combine all data, with padding for alignment
-        data = np.hstack((
-            particle_positions,  # Columns 0-2 (3 floats)
-            position_padding,  # Column 3 (padding)
-            particle_velocities,  # Columns 4-6 (3 floats)
-            velocity_padding,  # Column 7 (padding)
-            # Bizarrely these two appear to get swapped when they land in the compute shader? Might be something else going on here, but this works.
-            lifetimes,  # Column 9
-            spawn_times,  # Column 8
-            # Back to normal ordering (matches compute shader)
-            particle_ids,  # Column 10
-            weights,  # Column 11
-            lifetime_percentages,  # Column 12
-        )).astype(np.float32)
-
-        return data
-
-    def stack_initial_data_tf_cpu(self, num_particles=0):
+    def stack_initial_data(self, num_particles=0):
         particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages = self.generate_initial_data(
             num_particles)
 
@@ -335,8 +302,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Setup vertex attribute pointers for position and lifetimePercentage.
         """
-        float_size = self.float_size  # Size of a float in bytes
-        vertex_stride = self.stride_size_tf * float_size
+        vertex_stride = self.stride_length_tf_compute * self.float_size
 
         # Ensure the correct shader program (vertex/fragment) is active
         glUseProgram(self.shader_program)
@@ -360,22 +326,24 @@ class ParticleRenderer(AbstractRenderer):
 
         # Enable and set the vertex attribute arrays for position, velocity, spawn time, lifetime, particle ID, and weight
         glEnableVertexAttribArray(position_loc)
-        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
+        glVertexAttribPointer(position_loc, 4, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
 
         glEnableVertexAttribArray(velocity_loc)
-        glVertexAttribPointer(velocity_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(3 * float_size))
+        glVertexAttribPointer(velocity_loc, 4, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(4 * self.float_size))
 
         glEnableVertexAttribArray(spawn_time_loc)
-        glVertexAttribPointer(spawn_time_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(6 * float_size))
+        glVertexAttribPointer(spawn_time_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
+                              ctypes.c_void_p(8 * self.float_size))
 
         glEnableVertexAttribArray(lifetime_loc)
-        glVertexAttribPointer(lifetime_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(7 * float_size))
+        glVertexAttribPointer(lifetime_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(9 * self.float_size))
 
         glEnableVertexAttribArray(particle_id_loc)
-        glVertexAttribPointer(particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(8 * float_size))
+        glVertexAttribPointer(particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
+                              ctypes.c_void_p(10 * self.float_size))
 
         glEnableVertexAttribArray(weight_loc)
-        glVertexAttribPointer(weight_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(9 * float_size))
+        glVertexAttribPointer(weight_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(11 * self.float_size))
 
         if self.debug_mode:
             self._check_vertex_attrib_pointer_setup()
@@ -421,8 +389,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Setup vertex attribute pointers for position and any other required data for rendering particles.
         """
-        float_size = self.float_size  # Size of a float in bytes
-        vertex_stride = self.stride_size_cpu * float_size  # We only need position data for now (3 floats per vertex)
+        vertex_stride = self.stride_length_cpu * self.float_size
 
         # Ensure the correct shader program (vertex/fragment) is active
         glUseProgram(self.shader_program)
@@ -440,17 +407,18 @@ class ParticleRenderer(AbstractRenderer):
 
         # Enable and set the vertex attribute arrays
         glEnableVertexAttribArray(position_loc)
-        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
+        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride,
+                              ctypes.c_void_p(0))
 
         # Enable and set the vertex attribute array for lifetime percentage
         glEnableVertexAttribArray(lifetime_percentage_loc)
         glVertexAttribPointer(lifetime_percentage_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
-                              ctypes.c_void_p(3 * float_size))
+                              ctypes.c_void_p(4 * self.float_size))
 
         # Enable and set the vertex attribute array for particle ID
         glEnableVertexAttribArray(particle_id_loc)
         glVertexAttribPointer(particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
-                              ctypes.c_void_p(4 * float_size))
+                              ctypes.c_void_p(5 * self.float_size))
 
         if self.debug_mode:
             print(
@@ -590,9 +558,9 @@ class ParticleRenderer(AbstractRenderer):
 
     def _remove_expired_particles_transform_feedback(self):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-        buffer_size = self.max_particles * self.stride_size_tf * 4  # Total buffer size in bytes
-        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, buffer_size)
-        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_size_tf)
+        # buffer_size = self.max_particles * self.stride_size_tf_compute * 4  # Total buffer size in bytes
+        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size)
+        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_length_tf_compute)
         # Extract lifetimePercentage column
         lifetime_percentages = particle_data_np[:, 10]
         # Find indices of expired particles
@@ -613,13 +581,12 @@ class ParticleRenderer(AbstractRenderer):
         # Ensure we don't generate more particles than max_particles or free slots
         num_gen_particles = min(num_free_slots, self.particle_batch_size)
 
-        new_particles = self.stack_initial_data_tf_cpu(
+        new_particles = self.stack_initial_data(
             num_gen_particles)
 
         # Write new particles into the buffer at the positions of free slots
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        float_size = self.float_size
-        particle_stride = self.stride_size_tf * float_size
+        particle_stride = self.stride_length_tf_compute * self.float_size
 
         for i in range(num_gen_particles):
             slot_index = self.free_slots.pop(0)
@@ -637,16 +604,16 @@ class ParticleRenderer(AbstractRenderer):
         Generate new particles if there are free slots available.
         """
         self.current_time = time.time()
-        num_free_slots = np.sum(self.cpu_particles[:, 7] == 0)  # Count expired particles
+        num_free_slots = np.sum(self.cpu_particles[:, 9] == 0)  # Count expired particles
 
         if num_free_slots > 0:
             num_gen_particles = min(num_free_slots, self.particle_batch_size)
 
             # Generate new particles
-            new_particles = self.stack_initial_data_tf_cpu(num_gen_particles)
+            new_particles = self.stack_initial_data(num_gen_particles)
 
             # Insert new particles into free slots
-            expired_indices = np.where(self.cpu_particles[:, 7] == 0)[0]
+            expired_indices = np.where(self.cpu_particles[:, 9] == 0)[0]
 
             for i in range(num_gen_particles):
                 idx = expired_indices[i]
@@ -669,52 +636,50 @@ class ParticleRenderer(AbstractRenderer):
         # Update active particles
         for i in range(len(self.cpu_particles)):
             # Explicitly copy position and velocity to avoid referencing issues
-            position = self.cpu_particles[i, 0:3].copy()  # Create a copy of the position array
-            velocity = self.cpu_particles[i, 3:6].copy()  # Create a copy of the velocity array
-            spawn_time = self.cpu_particles[i, 6]  # No need to copy as it's a single float
-            lifetime = self.cpu_particles[i, 7]  # No need to copy as it's a single float
-
-            # Calculate the time that has passed since the particle was spawned (relative to particle system start time)
-            elapsed_time = current_time - spawn_time
+            position = self.cpu_particles[i, 0:4].copy()  # Create a copy of the position array
+            velocity = self.cpu_particles[i, 4:8].copy()  # Create a copy of the velocity array
+            spawn_time = self.cpu_particles[i, 8]  # No need to copy as it's a single float
+            lifetime = self.cpu_particles[i, 9]  # No need to copy as it's a single float
+            particle_id = self.cpu_particles[i, 10]
+            weight = self.cpu_particles[i, 11]
+            lifetime_percentage = self.cpu_particles[i, 12]
 
             if lifetime > 0.0:
-                # Generate a random weight for this particle (similar to shader logic)
-                particle_id = self.cpu_particles[i, 8]
-                weight = np.interp(np.sin(particle_id * 43758.5453) % 1.0, [0, 1],
-                                   [self.particle_min_weight, self.particle_max_weight])
+                # Calculate the time that has passed since the particle was spawned (relative to particle system start time)
+                elapsed_time = current_time - spawn_time
 
                 # Adjust gravity by weight (heavier particles are less affected by gravity)
-                adjusted_gravity = self.particle_gravity / weight
+                adjusted_gravity = np.append(self.particle_gravity / weight, 0.0)  # Add 0.0 for the w component
                 velocity += adjusted_gravity * self.delta_time
 
                 # Apply fluid forces if fluid simulation is enabled
                 if self.fluid_simulation:
                     # Calculate fluid pressure and viscosity forces
-                    pressure_force = -velocity / np.linalg.norm(velocity) * self.particle_pressure if np.linalg.norm(
-                        velocity) != 0 else 0
+                    pressure_force = (-velocity / np.linalg.norm(velocity) * self.particle_pressure) if np.linalg.norm(
+                        velocity) != 0 else np.zeros(4)
                     viscosity_force = -velocity * self.particle_viscosity
                     velocity += (pressure_force + viscosity_force) * self.delta_time
 
                 # Clamp velocity to the max velocity
-                speed = np.linalg.norm(velocity)
+                speed = np.linalg.norm(velocity[:3])  # Only consider x, y, z components for speed
                 if speed > self.particle_max_velocity:
-                    velocity = velocity / speed * self.particle_max_velocity
+                    velocity[:3] = (velocity[:3] / speed) * self.particle_max_velocity
 
                 # Update position based on velocity
                 position += velocity * self.delta_time
 
                 # Check for collision with the ground plane
-                distance_to_ground = np.dot(position,
+                distance_to_ground = np.dot(position[:3],
                                             self.particle_ground_plane_normal) - self.particle_ground_plane_height
 
                 if distance_to_ground < 0.0:  # Particle is below or at the ground
                     # Reflect the velocity based on the ground plane normal
-                    velocity = velocity - 2 * np.dot(velocity,
-                                                     self.particle_ground_plane_normal) * self.particle_ground_plane_normal
-                    velocity *= self.particle_bounce_factor  # Apply the bounce factor
+                    velocity[:3] = velocity[:3] - 2 * np.dot(velocity[:3],
+                                                             self.particle_ground_plane_normal) * self.particle_ground_plane_normal
+                    velocity[:3] *= self.particle_bounce_factor  # Apply the bounce factor
 
                     # Prevent the particle from sinking below the ground
-                    position -= self.particle_ground_plane_normal * distance_to_ground
+                    position[:3] -= self.particle_ground_plane_normal * distance_to_ground
 
                     # Ensure the particle bounces with a minimum upward velocity to avoid sticking
                     if abs(velocity[1]) < 0.1:  # Assuming Y-axis is up/down, adjust threshold as needed
@@ -723,15 +688,15 @@ class ParticleRenderer(AbstractRenderer):
                 # Update lifetime percentage (now correctly calculated)
                 lifetime_percentage = elapsed_time / lifetime
                 lifetime_percentage = max(0.0, min(float(lifetime_percentage), 1.0))  # Clamp between 0.0 and 1.0
-                self.cpu_particles[i, 9] = lifetime_percentage  # Write back to the particle array
+                self.cpu_particles[i, 12] = lifetime_percentage  # Write back to the particle array
 
                 # Expire particle if its lifetime is over
                 if lifetime_percentage >= 1.0:
-                    self.cpu_particles[i, 7] = 0.0  # Expire particle by setting its lifetime to 0
+                    self.cpu_particles[i, 9] = 0.0  # Expire particle by setting its lifetime to 0
 
                 # Write back the updated position and velocity to the particle array
-                self.cpu_particles[i, 0:3] = position
-                self.cpu_particles[i, 3:6] = velocity
+                self.cpu_particles[i, 0:4] = position
+                self.cpu_particles[i, 4:8] = velocity
 
             # Debug output to track lifetime, weight, and velocity
             if self.debug_mode:
@@ -743,10 +708,10 @@ class ParticleRenderer(AbstractRenderer):
 
         # Create a combined array to upload position and lifetime percentage
         particle_data_to_upload = np.hstack((
-            self.cpu_particles[:, 0:3],  # Position
-            self.cpu_particles[:, 9:10],  # Lifetime percentage
-            self.cpu_particles[:, 8:9],  # Particle ID
-        ))
+            self.cpu_particles[:, 0:4],  # Position (shape: [num_particles, 4])
+            self.cpu_particles[:, 12].reshape(-1, 1),  # Lifetime percentage (reshaped to [num_particles, 1])
+            self.cpu_particles[:, 10].reshape(-1, 1),  # Particle ID (reshaped to [num_particles, 1])
+        )).astype(np.float32)
 
         # Upload data to the GPU
         glBufferSubData(GL_ARRAY_BUFFER, 0, particle_data_to_upload.nbytes, particle_data_to_upload)
@@ -804,21 +769,18 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
 
         # Get the size of the buffer in bytes
-        buffer_size = glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE)
-        print(f"Feedback VBO Buffer Size: {buffer_size} bytes")
+        print(f"Feedback VBO Buffer Size: {self.buffer_size} bytes")
 
         # Calculate the number of particles
-        float_size = self.float_size  # Size of a float in bytes (4 bytes)
-        particle_size = self.stride_size_tf * float_size  # Size of one particle in bytes
-        num_particles = buffer_size // particle_size
+        num_particles = self.buffer_size // self.particle_byte_size
         print(f"Number of particles in the feedback VBO: {num_particles}")
 
         # Read back the buffer data
-        data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, buffer_size)
+        data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size)
 
         # Convert the data to a NumPy array
         particle_data = np.frombuffer(data, dtype=np.float32)
-        particle_data = particle_data.reshape((num_particles, self.stride_size_tf))
+        particle_data = particle_data.reshape((num_particles, self.stride_length_tf_compute))
 
         # Now you can print or process the particle data
         print("Particle Data:")
@@ -835,22 +797,18 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
 
         # Get the size of the buffer in bytes
-        buffer_size = glGetBufferParameteriv(GL_SHADER_STORAGE_BUFFER, GL_BUFFER_SIZE)
-        print(f"SSBO Buffer Size: {buffer_size} bytes")
+        print(f"SSBO Buffer Size: {self.buffer_size} bytes")
 
         # Calculate the number of particles
-        float_size = self.float_size  # 4 bytes per float
-        stride_size = self.stride_size_tf  # Number of floats per particle (12)
-        particle_size = stride_size * float_size
-        num_particles = buffer_size // particle_size
+        num_particles = self.buffer_size // self.particle_byte_size
         print(f"Number of particles in the SSBO: {num_particles}")
 
         # Read back the buffer data
-        data = glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, buffer_size)
+        data = glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, self.buffer_size)
 
         # Convert the data to a NumPy array
         particle_data = np.frombuffer(data, dtype=np.float32)
-        particle_data = particle_data.reshape((num_particles, stride_size))
+        particle_data = particle_data.reshape((num_particles, self.stride_length_tf_compute))
 
         print("Particle Data:")
         print(particle_data)
