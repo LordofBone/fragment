@@ -156,6 +156,9 @@ class ParticleRenderer(AbstractRenderer):
     def create_buffers(self):
         particles = self.stack_initial_data(self.max_particles)
 
+        if self.debug_mode:
+            print(f"Initial Particle data: {particles}")
+
         if self.particle_render_mode == 'transform_feedback':
             """
             Setup buffers for transform feedback-based particle rendering.
