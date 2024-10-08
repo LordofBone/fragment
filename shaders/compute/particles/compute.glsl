@@ -115,6 +115,7 @@ void main() {
             particle.position.x = mix(minX, maxX, randX);
             particle.position.y = mix(minY, maxY, randY);
             particle.position.z = mix(minZ, maxZ, randZ);
+            particle.position.w = 1.0;
 
             // Generate random initial velocities
             float randVelX = random(randSeed + 3.0, currentTime);
@@ -123,6 +124,7 @@ void main() {
             particle.velocity.x = mix(minInitialVelocityX, maxInitialVelocityX, randVelX);
             particle.velocity.y = mix(minInitialVelocityY, maxInitialVelocityY, randVelY);
             particle.velocity.z = mix(minInitialVelocityZ, maxInitialVelocityZ, randVelZ);
+            particle.velocity.w = 0.0;
 
             // Assign lifetime
             if (particleMaxLifetime > 0.0) {
