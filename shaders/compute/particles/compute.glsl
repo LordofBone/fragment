@@ -61,7 +61,7 @@ uniform float particlePressure;
 uniform float particleViscosity;
 uniform bool fluidSimulation;
 
-// **Move the shared variable declaration to the global scope**
+// Shared variable for particles generated in the workgroup
 shared uint particlesGeneratedInWorkgroup;
 
 // Function to generate random values based on particle ID
@@ -71,7 +71,10 @@ float random(float seed, float time) {
 
 // Function to calculate fluid forces (simple pressure and viscosity model)
 vec3 calculateFluidForces(vec3 velocity) {
-    vec3 pressureForce = -normalize(velocity) * particlePressure;
+    vec3 pressureForce = vec3(0.0);
+    if (length(velocity) > 0.0) {
+        pressureForce = -normalize(velocity) * particlePressure;
+    }
     vec3 viscosityForce = -velocity * particleViscosity;
     return pressureForce + viscosityForce;
 }
@@ -146,10 +149,8 @@ void main() {
 
     // Process the particles that are currently active
     if (particle.lifetimePercentage < 1.0) {
-        // Adjust gravity by weight (heavier particles are less affected by gravity)
-        vec3 adjustedGravity = particleGravity / particle.particleWeight;
-
-        // Apply gravity scaled by weight
+        // Scale gravity based on weight (optional)
+        vec3 adjustedGravity = particleGravity * particle.particleWeight;
         particle.velocity.xyz += adjustedGravity * deltaTime;
 
         // Apply fluid simulation forces if enabled
