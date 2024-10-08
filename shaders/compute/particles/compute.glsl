@@ -129,7 +129,7 @@ void main() {
                 particle.lifetime = 0.0;
             }
 
-            // Generate random weight
+            // Generate random weight; within min and max values
             particle.particleWeight = mix(particleMinWeight, particleMaxWeight, random(randSeed + 8.0, currentTime));
 
             // Initialize spawn time with optional jitter
