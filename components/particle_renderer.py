@@ -40,11 +40,14 @@ class ParticleRenderer(AbstractRenderer):
             self.should_generate = False
 
         self.float_size = 4  # Size of a float in bytes
-        self.stride_length_tf_compute = 13  # Number of floats per particle (position, velocity, spawn time, lifetime, ID, weights, lifetimePercentage)
-        self.stride_length_cpu = 6  # Number of floats per particle for CPU mode (position, lifetimePercentage)
-        self.particle_byte_size = self.stride_length_tf_compute * self.float_size
-        self.buffer_size = self.max_particles * self.particle_byte_size  # Total buffer size in bytes
 
+        # Set up specific particle attributes for transform feedback mode, these are computed in the stack_initial_data method
+        self.stride_length_tf_compute = None
+        self.particle_byte_size_tf_compute = None
+        self.buffer_size_tf_compute = None
+
+        # Set up specific particle attributes for CPU mode
+        self.stride_length_cpu = 6  # Number of floats per particle for CPU mode (position, lifetimePercentage)
         self.particle_byte_size_cpu = self.stride_length_cpu * self.float_size
         self.buffer_size_cpu = self.max_particles * self.particle_byte_size_cpu  # Total buffer size in bytes
 
@@ -154,16 +157,13 @@ class ParticleRenderer(AbstractRenderer):
         glUniformMatrix4fv(model_matrix_location, 1, GL_FALSE, glm.value_ptr(self.model_matrix))
 
     def create_buffers(self):
-        particles = self.stack_initial_data(self.max_particles)
-
-        if self.debug_mode:
-            print(f"Initial Particle data: {particles}")
-
         if self.particle_render_mode == 'transform_feedback':
             """
             Setup buffers for transform feedback-based particle rendering.
             This method creates a VAO and VBO for storing particle data and feedback data.
             """
+            particles = self.stack_initial_data(self.max_particles)
+
             glUseProgram(self.shader_program)
 
             self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
@@ -171,11 +171,11 @@ class ParticleRenderer(AbstractRenderer):
 
             # Initialize the VBO with the initial particle data
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferData(GL_ARRAY_BUFFER, self.buffer_size, particles, GL_DYNAMIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, particles, GL_DYNAMIC_DRAW)
 
             # Initialize the feedback VBO
             glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-            glBufferData(GL_ARRAY_BUFFER, self.buffer_size, None, GL_DYNAMIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, None, GL_DYNAMIC_DRAW)
 
             # Set up vertex attribute pointers
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -186,6 +186,8 @@ class ParticleRenderer(AbstractRenderer):
             This method creates a Shader Storage Buffer Object (SSBO) for storing particle data
             and binding it to the appropriate buffer base.
             """
+            particles = self.stack_initial_data(self.max_particles, pad_to_multiple_of_16=True)
+
             glUseProgram(self.compute_shader_program)
 
             # Create the SSBO for particle data
@@ -215,6 +217,8 @@ class ParticleRenderer(AbstractRenderer):
             """
             glUseProgram(self.shader_program)
 
+            particles = self.stack_initial_data(self.max_particles)
+
             self.cpu_particles = particles
 
             self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
@@ -232,6 +236,9 @@ class ParticleRenderer(AbstractRenderer):
             glBindVertexArray(0)  # Unbind VAO
         else:
             raise ValueError(f"Unknown render mode: {self.particle_render_mode}")
+
+        if self.debug_mode:
+            print(f"Initial Particle data: {particles}")
 
     def generate_initial_data(self, num_particles=0):
         """
@@ -286,19 +293,43 @@ class ParticleRenderer(AbstractRenderer):
 
         return particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages
 
-    def stack_initial_data(self, num_particles=0):
+    def stack_initial_data(self, num_particles=0, pad_to_multiple_of_16=False):
         particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages = self.generate_initial_data(
             num_particles)
 
-        data = np.hstack((
+        # Gather the arrays to be concatenated
+        arrays_to_stack = [
             particle_positions,
             particle_velocities,
             spawn_times,
             lifetimes,
             particle_ids,
             weights,
-            lifetime_percentages
-        )).astype(np.float32)
+            lifetime_percentages,
+        ]
+
+        # Compute the total number of floats per particle so far
+        # Each array contributes a certain number of floats per particle
+        total_floats_per_particle = sum(arr.shape[1] for arr in arrays_to_stack)
+
+        if pad_to_multiple_of_16:
+            # Each 16 bytes is 4 floats (since 1 float = 4 bytes)
+            # Find the smallest multiple of 4 floats greater than or equal to total_floats_per_particle
+            floats_per_particle_padded = ((total_floats_per_particle + 3) // 4) * 4
+            padding_floats_needed = floats_per_particle_padded - total_floats_per_particle
+
+            if padding_floats_needed > 0:
+                padding = np.zeros((num_particles, padding_floats_needed), dtype=np.float32)
+                arrays_to_stack.append(padding)
+        else:
+            padding_floats_needed = 0
+
+        # Update stride length and buffer size
+        self.stride_length_tf_compute = total_floats_per_particle + padding_floats_needed
+        self.particle_byte_size_tf_compute = self.stride_length_tf_compute * self.float_size
+        self.buffer_size_tf_compute = self.max_particles * self.particle_byte_size_tf_compute
+
+        data = np.hstack(arrays_to_stack).astype(np.float32)
         return data
 
     def _setup_vertex_attributes(self):
@@ -563,7 +594,7 @@ class ParticleRenderer(AbstractRenderer):
     def _remove_expired_particles_transform_feedback(self):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
         # buffer_size = self.max_particles * self.stride_size_tf_compute * 4  # Total buffer size in bytes
-        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size)
+        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size_tf_compute)
         particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_length_tf_compute)
         # Extract lifetimePercentage column
         lifetime_percentages = particle_data_np[:, 10]
@@ -735,9 +766,10 @@ class ParticleRenderer(AbstractRenderer):
         num_workgroups = (self.max_particles + 127) // 128
         glDispatchCompute(num_workgroups, 1, 1)
 
-        # Make sure compute shader writes are complete
+        # Ensure compute shader has finished writing to the SSBO before rendering
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
 
+        # Reset particlesGenerated counter if necessary
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.generation_data_buffer)
         zero_data = np.array([0], dtype=np.uint32)
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, zero_data.nbytes, zero_data)
@@ -773,14 +805,14 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
 
         # Get the size of the buffer in bytes
-        print(f"Feedback VBO Buffer Size: {self.buffer_size} bytes")
+        print(f"Feedback VBO Buffer Size: {self.buffer_size_tf_compute} bytes")
 
         # Calculate the number of particles
-        num_particles = self.buffer_size // self.particle_byte_size
+        num_particles = self.buffer_size_tf_compute // self.particle_byte_size_tf_compute
         print(f"Number of particles in the feedback VBO: {num_particles}")
 
         # Read back the buffer data
-        data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size)
+        data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size_tf_compute)
 
         # Convert the data to a NumPy array
         particle_data = np.frombuffer(data, dtype=np.float32)
@@ -801,14 +833,14 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
 
         # Get the size of the buffer in bytes
-        print(f"SSBO Buffer Size: {self.buffer_size} bytes")
+        print(f"SSBO Buffer Size: {self.buffer_size_tf_compute} bytes")
 
         # Calculate the number of particles
-        num_particles = self.buffer_size // self.particle_byte_size
+        num_particles = self.buffer_size_tf_compute // self.particle_byte_size_tf_compute
         print(f"Number of particles in the SSBO: {num_particles}")
 
         # Read back the buffer data
-        data = glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, self.buffer_size)
+        data = glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, self.buffer_size_tf_compute)
 
         # Convert the data to a NumPy array
         particle_data = np.frombuffer(data, dtype=np.float32)
