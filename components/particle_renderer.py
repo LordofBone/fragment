@@ -249,7 +249,8 @@ class ParticleRenderer(AbstractRenderer):
         particle_positions[:, 0] = np.random.uniform(self.min_width, self.max_width, num_particles)
         particle_positions[:, 1] = np.random.uniform(self.min_height, self.max_height, num_particles)
         particle_positions[:, 2] = np.random.uniform(self.min_depth, self.max_depth, num_particles)
-        particle_positions[:, 3] = 1.0  # Set w-component to 1.0
+        particle_positions[:,
+        3] = 1.0  # Set w-component to 1.0 (required for calculations for worldPosition vec4 in vertex shaders)
 
         particle_velocities = np.zeros((num_particles, 4), dtype=np.float32)
         particle_velocities[:, 0] = np.random.uniform(self.min_initial_velocity_x, self.max_initial_velocity_x,
