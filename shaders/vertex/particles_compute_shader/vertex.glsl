@@ -2,12 +2,13 @@
 
 // Define the particle structure (same as in the compute shader)
 struct Particle {
-    vec3 position;
-    vec3 velocity;
-    float spawnTime;
-    float lifetime;
-    float particleID;
-    float lifetimePercentage;
+    vec4 position;// Use only the first 3 components (x, y, z)
+    vec4 velocity;// Use only the first 3 components (x, y, z)
+    float spawnTime;// 1 float (4 bytes)
+    float lifetime;// 1 float (4 bytes)
+    float particleID;// 1 float (4 bytes)
+    float particleWeight;// 1 float (4 bytes)
+    float lifetimePercentage;// 1 float (4 bytes)
 };
 
 // Bind the particle buffer as a shader storage buffer
@@ -40,14 +41,14 @@ void main() {
         // Discard the vertex if the particle is expired
         gl_Position = vec4(0.0);
     } else {
-        vec4 worldPosition = model * vec4(particle.position, 1.0);
+        vec4 worldPosition = model * particle.position;
         gl_Position = projection * view * worldPosition;
 
         // Pass the lifetime percentage to the fragment shader
         lifetimePercentageToFragment = particle.lifetimePercentage;
 
         // Adjust particle size based on distance from the camera
-        vec3 particleToCamera = cameraPosition - particle.position;
+        vec3 particleToCamera = cameraPosition - particle.position.xyz;
         float distanceFromCamera = length(particleToCamera);
         float adjustedSize = particleSize / distanceFromCamera;
 
