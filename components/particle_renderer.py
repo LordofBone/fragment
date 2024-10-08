@@ -663,6 +663,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Update particle data on the CPU.
         Simulate particle movement, gravity, collisions, lifetime, weight, and fluid forces.
+        Particles with lifetime == 0.0 are immortal.
         """
         current_time = time.time() - self.start_time  # Relative time since particle system started
 
@@ -681,47 +682,47 @@ class ParticleRenderer(AbstractRenderer):
             weight = self.cpu_particles[i, 11]
             lifetime_percentage = self.cpu_particles[i, 12]
 
+            # Calculate the time that has passed since the particle was spawned (relative to particle system start time)
+            elapsed_time = current_time - spawn_time
+
+            # Adjust gravity by weight (heavier particles are less affected by gravity)
+            adjusted_gravity = np.append(self.particle_gravity / weight, 0.0)  # Add 0.0 for the w component
+            velocity += adjusted_gravity * self.delta_time
+
+            # Apply fluid forces if fluid simulation is enabled
+            if self.fluid_simulation:
+                # Calculate fluid pressure and viscosity forces
+                pressure_force = (-velocity / np.linalg.norm(velocity) * self.particle_pressure) if np.linalg.norm(
+                    velocity) != 0 else np.zeros(4)
+                viscosity_force = -velocity * self.particle_viscosity
+                velocity += (pressure_force + viscosity_force) * self.delta_time
+
+            # Clamp velocity to the max velocity
+            speed = np.linalg.norm(velocity[:3])  # Only consider x, y, z components for speed
+            if speed > self.particle_max_velocity:
+                velocity[:3] = (velocity[:3] / speed) * self.particle_max_velocity
+
+            # Update position based on velocity
+            position += velocity * self.delta_time
+
+            # Check for collision with the ground plane
+            distance_to_ground = np.dot(position[:3],
+                                        self.particle_ground_plane_normal) - self.particle_ground_plane_height
+
+            if distance_to_ground < 0.0:  # Particle is below or at the ground
+                # Reflect the velocity based on the ground plane normal
+                velocity[:3] = velocity[:3] - 2 * np.dot(velocity[:3],
+                                                         self.particle_ground_plane_normal) * self.particle_ground_plane_normal
+                velocity[:3] *= self.particle_bounce_factor  # Apply the bounce factor
+
+                # Prevent the particle from sinking below the ground
+                position[:3] -= self.particle_ground_plane_normal * distance_to_ground
+
+                # Ensure the particle bounces with a minimum upward velocity to avoid sticking
+                if abs(velocity[1]) < 0.1:  # Assuming Y-axis is up/down, adjust threshold as needed
+                    velocity[1] = 0.1  # Small positive value to ensure it moves upward
+
             if lifetime > 0.0:
-                # Calculate the time that has passed since the particle was spawned (relative to particle system start time)
-                elapsed_time = current_time - spawn_time
-
-                # Adjust gravity by weight (heavier particles are less affected by gravity)
-                adjusted_gravity = np.append(self.particle_gravity / weight, 0.0)  # Add 0.0 for the w component
-                velocity += adjusted_gravity * self.delta_time
-
-                # Apply fluid forces if fluid simulation is enabled
-                if self.fluid_simulation:
-                    # Calculate fluid pressure and viscosity forces
-                    pressure_force = (-velocity / np.linalg.norm(velocity) * self.particle_pressure) if np.linalg.norm(
-                        velocity) != 0 else np.zeros(4)
-                    viscosity_force = -velocity * self.particle_viscosity
-                    velocity += (pressure_force + viscosity_force) * self.delta_time
-
-                # Clamp velocity to the max velocity
-                speed = np.linalg.norm(velocity[:3])  # Only consider x, y, z components for speed
-                if speed > self.particle_max_velocity:
-                    velocity[:3] = (velocity[:3] / speed) * self.particle_max_velocity
-
-                # Update position based on velocity
-                position += velocity * self.delta_time
-
-                # Check for collision with the ground plane
-                distance_to_ground = np.dot(position[:3],
-                                            self.particle_ground_plane_normal) - self.particle_ground_plane_height
-
-                if distance_to_ground < 0.0:  # Particle is below or at the ground
-                    # Reflect the velocity based on the ground plane normal
-                    velocity[:3] = velocity[:3] - 2 * np.dot(velocity[:3],
-                                                             self.particle_ground_plane_normal) * self.particle_ground_plane_normal
-                    velocity[:3] *= self.particle_bounce_factor  # Apply the bounce factor
-
-                    # Prevent the particle from sinking below the ground
-                    position[:3] -= self.particle_ground_plane_normal * distance_to_ground
-
-                    # Ensure the particle bounces with a minimum upward velocity to avoid sticking
-                    if abs(velocity[1]) < 0.1:  # Assuming Y-axis is up/down, adjust threshold as needed
-                        velocity[1] = 0.1  # Small positive value to ensure it moves upward
-
                 # Update lifetime percentage (now correctly calculated)
                 lifetime_percentage = elapsed_time / lifetime
                 lifetime_percentage = max(0.0, min(float(lifetime_percentage), 1.0))  # Clamp between 0.0 and 1.0
@@ -731,9 +732,9 @@ class ParticleRenderer(AbstractRenderer):
                 if lifetime_percentage >= 1.0:
                     self.cpu_particles[i, 9] = 0.0  # Expire particle by setting its lifetime to 0
 
-                # Write back the updated position and velocity to the particle array
-                self.cpu_particles[i, 0:4] = position
-                self.cpu_particles[i, 4:8] = velocity
+            # Write back the updated position and velocity to the particle array
+            self.cpu_particles[i, 0:4] = position
+            self.cpu_particles[i, 4:8] = velocity
 
             # Debug output to track lifetime, weight, and velocity
             if self.debug_mode:
