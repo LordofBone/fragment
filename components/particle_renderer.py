@@ -595,7 +595,6 @@ class ParticleRenderer(AbstractRenderer):
 
     def _remove_expired_particles_transform_feedback(self):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-        # buffer_size = self.max_particles * self.stride_size_tf_compute * 4  # Total buffer size in bytes
         particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size_tf_compute)
         particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_length_tf_compute)
         # Extract lifetimePercentage column
