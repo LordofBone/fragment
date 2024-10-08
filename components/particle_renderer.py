@@ -598,7 +598,7 @@ class ParticleRenderer(AbstractRenderer):
         particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size_tf_compute)
         particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_length_tf_compute)
         # Extract lifetimePercentage column
-        lifetime_percentages = particle_data_np[:, 10]
+        lifetime_percentages = particle_data_np[:, 12]
         # Find indices of expired particles
         expired_indices = np.where(lifetime_percentages >= 1.0)[0]
         self.free_slots = list(set(self.free_slots + expired_indices.tolist()))
@@ -622,11 +622,10 @@ class ParticleRenderer(AbstractRenderer):
 
         # Write new particles into the buffer at the positions of free slots
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        particle_stride = self.stride_length_tf_compute * self.float_size
 
         for i in range(num_gen_particles):
             slot_index = self.free_slots.pop(0)
-            offset = slot_index * particle_stride
+            offset = slot_index * self.stride_length_tf_compute * self.float_size
             particle_data = new_particles[i]
             glBufferSubData(GL_ARRAY_BUFFER, offset, particle_data.nbytes, particle_data)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
