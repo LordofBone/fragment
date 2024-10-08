@@ -639,7 +639,7 @@ class ParticleRenderer(AbstractRenderer):
         Generate new particles if there are free slots available.
         """
         self.current_time = time.time()
-        num_free_slots = np.sum(self.cpu_particles[:, 9] == 0)  # Count expired particles
+        num_free_slots = np.sum(self.cpu_particles[:, 12] >= 1.0)  # Count expired particles
 
         if num_free_slots > 0:
             num_gen_particles = min(num_free_slots, self.particle_batch_size)
@@ -648,7 +648,7 @@ class ParticleRenderer(AbstractRenderer):
             new_particles = self.stack_initial_data(num_gen_particles)
 
             # Insert new particles into free slots
-            expired_indices = np.where(self.cpu_particles[:, 9] == 0)[0]
+            expired_indices = np.where(self.cpu_particles[:, 12] >= 1.0)[0]
 
             for i in range(num_gen_particles):
                 idx = expired_indices[i]
