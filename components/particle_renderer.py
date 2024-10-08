@@ -157,13 +157,13 @@ class ParticleRenderer(AbstractRenderer):
         glUniformMatrix4fv(model_matrix_location, 1, GL_FALSE, glm.value_ptr(self.model_matrix))
 
     def create_buffers(self):
-        particles = self.stack_initial_data(self.max_particles)
-
         if self.particle_render_mode == 'transform_feedback':
             """
             Setup buffers for transform feedback-based particle rendering.
             This method creates a VAO and VBO for storing particle data and feedback data.
             """
+            particles = self.stack_initial_data(self.max_particles)
+
             glUseProgram(self.shader_program)
 
             self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
@@ -186,6 +186,8 @@ class ParticleRenderer(AbstractRenderer):
             This method creates a Shader Storage Buffer Object (SSBO) for storing particle data
             and binding it to the appropriate buffer base.
             """
+            particles = self.stack_initial_data(self.max_particles, pad_to_multiple_of_16=True)
+
             glUseProgram(self.compute_shader_program)
 
             # Create the SSBO for particle data
@@ -213,9 +215,11 @@ class ParticleRenderer(AbstractRenderer):
             Setup buffers for vertex/fragment shader-based particle rendering using CPU-generated data.
             This method sets up the VAO and VBO needed for rendering particles based on CPU-calculated data.
             """
-            glUseProgram(self.shader_program)
+            particles = self.stack_initial_data(self.max_particles)
 
             self.cpu_particles = particles
+
+            glUseProgram(self.shader_program)
 
             self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
@@ -291,32 +295,43 @@ class ParticleRenderer(AbstractRenderer):
 
         return particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages
 
-    def stack_initial_data(self, num_particles=0):
+    def stack_initial_data(self, num_particles=0, pad_to_multiple_of_16=False):
         particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages = self.generate_initial_data(
             num_particles)
 
-        # List of arrays to be stacked
-        pre_data_arrays = [
+        # Gather the arrays to be concatenated
+        arrays_to_stack = [
             particle_positions,
             particle_velocities,
             spawn_times,
             lifetimes,
             particle_ids,
             weights,
-            lifetime_percentages
+            lifetime_percentages,
         ]
 
-        # Compute the total number of floats per particle
-        total_floats_per_particle = sum(arr.shape[1] for arr in pre_data_arrays)
+        # Compute the total number of floats per particle so far
+        # Each array contributes a certain number of floats per particle
+        total_floats_per_particle = sum(arr.shape[1] for arr in arrays_to_stack)
+
+        if pad_to_multiple_of_16:
+            # Each 16 bytes is 4 floats (since 1 float = 4 bytes)
+            # Find the smallest multiple of 4 floats greater than or equal to total_floats_per_particle
+            floats_per_particle_padded = ((total_floats_per_particle + 3) // 4) * 4
+            padding_floats_needed = floats_per_particle_padded - total_floats_per_particle
+
+            if padding_floats_needed > 0:
+                padding = np.zeros((num_particles, padding_floats_needed), dtype=np.float32)
+                arrays_to_stack.append(padding)
+        else:
+            padding_floats_needed = 0
 
         # Update stride length and buffer size
-        self.stride_length_tf_compute = total_floats_per_particle
+        self.stride_length_tf_compute = total_floats_per_particle + padding_floats_needed
         self.particle_byte_size_tf_compute = self.stride_length_tf_compute * self.float_size
         self.buffer_size_tf_compute = self.max_particles * self.particle_byte_size_tf_compute
 
-        # Stack the arrays horizontally to form the particle data
-        data = np.hstack(pre_data_arrays).astype(np.float32)
-
+        data = np.hstack(arrays_to_stack).astype(np.float32)
         return data
 
     def _setup_vertex_attributes(self):
