@@ -162,7 +162,7 @@ class ParticleRenderer(AbstractRenderer):
             Setup buffers for transform feedback-based particle rendering.
             This method creates a VAO and VBO for storing particle data and feedback data.
             """
-            particles = self.stack_initial_data(self.max_particles)
+            particles = self.stack_initial_data(self.particle_batch_size)
 
             glUseProgram(self.shader_program)
 
@@ -186,7 +186,7 @@ class ParticleRenderer(AbstractRenderer):
             This method creates a Shader Storage Buffer Object (SSBO) for storing particle data
             and binding it to the appropriate buffer base.
             """
-            particles = self.stack_initial_data(self.max_particles, pad_to_multiple_of_16=True)
+            particles = self.stack_initial_data(self.particle_batch_size, pad_to_multiple_of_16=True)
 
             glUseProgram(self.compute_shader_program)
 
@@ -215,7 +215,7 @@ class ParticleRenderer(AbstractRenderer):
             Setup buffers for vertex/fragment shader-based particle rendering using CPU-generated data.
             This method sets up the VAO and VBO needed for rendering particles based on CPU-calculated data.
             """
-            particles = self.stack_initial_data(self.max_particles)
+            particles = self.stack_initial_data(self.particle_batch_size)
 
             self.cpu_particles = particles
 
