@@ -190,8 +190,6 @@ void main() {
         float elapsedTime = currentTime - particle.spawnTime;
         if (particle.lifetime > 0.0) {
             particle.lifetimePercentage = clamp(elapsedTime / particle.lifetime, 0.0, 1.0);
-        } else {
-            particle.lifetimePercentage = 1.0;// Expire immediately if lifetime is zero
         }
 
         // Handle precision issues
