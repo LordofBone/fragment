@@ -728,7 +728,7 @@ class ParticleRenderer(AbstractRenderer):
 
                 # Expire particle if its lifetime is over
                 if lifetime_percentage >= 1.0:
-                    self.cpu_particles[i, 9] = 0.0  # Expire particle by setting its lifetime to 0
+                    position = np.array([10000.0, 10000.0, 10000.0, 1.0])  # Move particle off-screen
 
             # Write back the updated position and velocity to the particle array
             self.cpu_particles[i, 0:4] = position
