@@ -24,6 +24,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         super().__init__(**kwargs)
         self.max_particles = particles_max
+        self.active_particles = 0  # Number of currently active particles
         self.total_particles = self.max_particles  # Always process all particles
         self.particle_batch_size = min(particle_batch_size, particles_max)
         self.particle_render_mode = particle_render_mode
@@ -45,6 +46,8 @@ class ParticleRenderer(AbstractRenderer):
         self.stride_length_tf_compute = None
         self.particle_byte_size_tf_compute = None
         self.buffer_size_tf_compute = None
+
+        self.total_floats_per_particle = None  # Total number of floats per particle
 
         # Set up specific particle attributes for CPU mode
         self.stride_length_cpu = 6  # Number of floats per particle for CPU mode (position, lifetimePercentage)
@@ -215,18 +218,35 @@ class ParticleRenderer(AbstractRenderer):
             Setup buffers for vertex/fragment shader-based particle rendering using CPU-generated data.
             This method sets up the VAO and VBO needed for rendering particles based on CPU-calculated data.
             """
-            particles = self.stack_initial_data(self.particle_batch_size)
+            # Generate initial batch of particles
+            initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
+            particles = self.stack_initial_data(initial_batch_size)
 
-            self.cpu_particles = particles
+            # Initialize the buffer to hold all potential particles
+            self.cpu_particles = np.zeros((self.max_particles, self.total_floats_per_particle), dtype=np.float32)
+
+            # Set lifetimePercentage to 1.0 for inactive particles
+            self.cpu_particles[:, 12] = 1.0  # Index 12 is lifetimePercentage
+
+            # Optionally, set positions of inactive particles off-screen
+            self.cpu_particles[:, 0:3] = 10000.0  # Set x, y, z positions to a large value
+
+            # Insert the initial particles into the cpu_particles array
+            self.cpu_particles[:initial_batch_size, :] = particles  # Copy over all attributes
+            self.cpu_particles[:initial_batch_size, 12] = 0.0  # Set lifetimePercentage to 0.0 for active particles
+
+            # Update active particles count
+            self.active_particles = initial_batch_size
 
             glUseProgram(self.shader_program)
 
             self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
             glBindVertexArray(self.vao)
 
-            # Upload the empty data to the GPU, will update this every frame with CPU-calculated values
+            # Allocate buffer for the maximum number of particles
+            buffer_size = self.max_particles * self.particle_byte_size_cpu
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferData(GL_ARRAY_BUFFER, self.cpu_particles.nbytes, self.cpu_particles, GL_DYNAMIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
 
             self.set_cpu_uniforms()
 
@@ -312,13 +332,13 @@ class ParticleRenderer(AbstractRenderer):
 
         # Compute the total number of floats per particle so far
         # Each array contributes a certain number of floats per particle
-        total_floats_per_particle = sum(arr.shape[1] for arr in arrays_to_stack)
+        self.total_floats_per_particle = sum(arr.shape[1] for arr in arrays_to_stack)
 
         if pad_to_multiple_of_16:
             # Each 16 bytes is 4 floats (since 1 float = 4 bytes)
             # Find the smallest multiple of 4 floats greater than or equal to total_floats_per_particle
-            floats_per_particle_padded = ((total_floats_per_particle + 3) // 4) * 4
-            padding_floats_needed = floats_per_particle_padded - total_floats_per_particle
+            floats_per_particle_padded = ((self.total_floats_per_particle + 3) // 4) * 4
+            padding_floats_needed = floats_per_particle_padded - self.total_floats_per_particle
 
             if padding_floats_needed > 0:
                 padding = np.zeros((num_particles, padding_floats_needed), dtype=np.float32)
@@ -327,7 +347,7 @@ class ParticleRenderer(AbstractRenderer):
             padding_floats_needed = 0
 
         # Update stride length and buffer size
-        self.stride_length_tf_compute = total_floats_per_particle + padding_floats_needed
+        self.stride_length_tf_compute = self.total_floats_per_particle + padding_floats_needed
         self.particle_byte_size_tf_compute = self.stride_length_tf_compute * self.float_size
         self.buffer_size_tf_compute = self.max_particles * self.particle_byte_size_tf_compute
 
@@ -636,10 +656,9 @@ class ParticleRenderer(AbstractRenderer):
 
     def _generate_particles_cpu(self):
         """
-        Generate new particles if there are free slots available.
+        Generate new particles if there is capacity available.
         """
-        self.current_time = time.time()
-        num_free_slots = np.sum(self.cpu_particles[:, 12] >= 1.0)  # Count expired particles
+        num_free_slots = self.max_particles - self.active_particles  # Available capacity
 
         if num_free_slots > 0:
             num_gen_particles = min(num_free_slots, self.particle_batch_size)
@@ -647,15 +666,14 @@ class ParticleRenderer(AbstractRenderer):
             # Generate new particles
             new_particles = self.stack_initial_data(num_gen_particles)
 
-            # Insert new particles into free slots
-            expired_indices = np.where(self.cpu_particles[:, 12] >= 1.0)[0]
+            # Insert new particles into available slots (at the end of active particles)
+            start_idx = self.active_particles
+            end_idx = self.active_particles + num_gen_particles
+            self.cpu_particles[start_idx:end_idx, :13] = new_particles  # Copy data
+            self.cpu_particles[start_idx:end_idx, 12] = 0.0  # Set lifetimePercentage to 0.0 for new particles
 
-            for i in range(num_gen_particles):
-                idx = expired_indices[i]
-                self.cpu_particles[idx] = new_particles[i]
-
+            self.active_particles += num_gen_particles
             self.generated_particles += num_gen_particles
-            self.last_generation_time = self.current_time
 
     def _update_particles_cpu(self):
         """
@@ -665,33 +683,29 @@ class ParticleRenderer(AbstractRenderer):
         """
         current_time = time.time() - self.start_time  # Relative time since particle system started
 
-        if self.debug_mode:
-            print(f"Number of particles: {len(self.cpu_particles)}")
-            print(f"Particle data: {self.cpu_particles}")
-
-        # Update active particles
-        for i in range(len(self.cpu_particles)):
+        i = 0
+        while i < self.active_particles:
             # Explicitly copy position and velocity to avoid referencing issues
-            position = self.cpu_particles[i, 0:4].copy()  # Create a copy of the position array
-            velocity = self.cpu_particles[i, 4:8].copy()  # Create a copy of the velocity array
-            spawn_time = self.cpu_particles[i, 8]  # No need to copy as it's a single float
-            lifetime = self.cpu_particles[i, 9]  # No need to copy as it's a single float
-            particle_id = self.cpu_particles[i, 10]
-            weight = self.cpu_particles[i, 11]
-            lifetime_percentage = self.cpu_particles[i, 12]
+            position = self.cpu_particles[i, 0:4].copy()  # Position (x, y, z, w)
+            velocity = self.cpu_particles[i, 4:8].copy()  # Velocity (x, y, z, w)
+            spawn_time = self.cpu_particles[i, 8]  # Spawn time
+            lifetime = self.cpu_particles[i, 9]  # Lifetime
+            particle_id = self.cpu_particles[i, 10]  # Particle ID
+            weight = self.cpu_particles[i, 11]  # Weight
+            lifetime_percentage = self.cpu_particles[i, 12]  # Lifetime percentage
 
-            # Calculate the time that has passed since the particle was spawned (relative to particle system start time)
+            # Calculate the time that has passed since the particle was spawned
             elapsed_time = current_time - spawn_time
 
-            # Adjust gravity by weight (heavier particles are less affected by gravity)
-            adjusted_gravity = np.append(self.particle_gravity / weight, 0.0)  # Add 0.0 for the w component
+            # Adjust gravity by weight
+            adjusted_gravity = np.append(self.particle_gravity * weight, 0.0)  # Add 0.0 for the w component
             velocity += adjusted_gravity * self.delta_time
 
             # Apply fluid forces if fluid simulation is enabled
             if self.fluid_simulation:
                 # Calculate fluid pressure and viscosity forces
-                pressure_force = (-velocity / np.linalg.norm(velocity) * self.particle_pressure) if np.linalg.norm(
-                    velocity) != 0 else np.zeros(4)
+                speed = np.linalg.norm(velocity[:3])
+                pressure_force = (-velocity / speed * self.particle_pressure) if speed != 0 else np.zeros(4)
                 viscosity_force = -velocity * self.particle_viscosity
                 velocity += (pressure_force + viscosity_force) * self.delta_time
 
@@ -717,36 +731,56 @@ class ParticleRenderer(AbstractRenderer):
                 position[:3] -= self.particle_ground_plane_normal * distance_to_ground
 
                 # Ensure the particle bounces with a minimum upward velocity to avoid sticking
-                if abs(velocity[1]) < 0.1:  # Assuming Y-axis is up/down, adjust threshold as needed
+                if abs(velocity[1]) < 0.1:  # Assuming Y-axis is up/down
                     velocity[1] = 0.1  # Small positive value to ensure it moves upward
 
-            if lifetime > 0.0:
-                # Update lifetime percentage (now correctly calculated)
+            # Update lifetime percentage
+            if lifetime > 0.0 and lifetime_percentage < 1.0:
                 lifetime_percentage = elapsed_time / lifetime
                 lifetime_percentage = max(0.0, min(float(lifetime_percentage), 1.0))  # Clamp between 0.0 and 1.0
-                self.cpu_particles[i, 12] = lifetime_percentage  # Write back to the particle array
 
                 # Expire particle if its lifetime is over
                 if lifetime_percentage >= 1.0:
-                    position = np.array([10000.0, 10000.0, 10000.0, 1.0])  # Move particle off-screen
+                    # Mark particle as inactive
+                    self.active_particles -= 1
+
+                    if i != self.active_particles:
+                        # Swap with the last active particle
+                        self.cpu_particles[i], self.cpu_particles[self.active_particles] = \
+                            self.cpu_particles[self.active_particles], self.cpu_particles[i]
+                        # Do not increment i, as we need to process the swapped particle
+                        continue
+                    else:
+                        # No need to swap, move to next particle
+                        i += 1
+                        continue
+            else:
+                # For immortal particles, keep lifetime percentage at 0.0
+                lifetime_percentage = 0.0
+
+            # Write back the updated lifetime percentage
+            self.cpu_particles[i, 12] = lifetime_percentage
 
             # Write back the updated position and velocity to the particle array
             self.cpu_particles[i, 0:4] = position
             self.cpu_particles[i, 4:8] = velocity
+
+            # Move to the next particle
+            i += 1
 
             # Debug output to track lifetime, weight, and velocity
             if self.debug_mode:
                 print(
                     f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, ID {particle_id}, Lifetime Percentage {lifetime_percentage}")
 
-        # Upload the CPU-calculated particle data (positions, colors, etc.) to the GPU for rendering.
+        # Upload the CPU-calculated particle data (positions, lifetime percentage, and IDs) to the GPU for rendering.
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 
-        # Create a combined array to upload position and lifetime percentage
+        # Only upload data for active particles
         particle_data_to_upload = np.hstack((
-            self.cpu_particles[:, 0:4],  # Position (shape: [num_particles, 4])
-            self.cpu_particles[:, 12].reshape(-1, 1),  # Lifetime percentage (reshaped to [num_particles, 1])
-            self.cpu_particles[:, 10].reshape(-1, 1),  # Particle ID (reshaped to [num_particles, 1])
+            self.cpu_particles[:self.active_particles, 0:4],  # Position
+            self.cpu_particles[:self.active_particles, 12].reshape(-1, 1),  # Lifetime percentage
+            self.cpu_particles[:self.active_particles, 10].reshape(-1, 1),  # Particle ID
         )).astype(np.float32)
 
         # Upload data to the GPU
@@ -896,5 +930,7 @@ class ParticleRenderer(AbstractRenderer):
         # Get the primitive type from the mapping, default to GL_POINTS if not found
         primitive = primitive_types.get(self.particle_type, GL_POINTS)
 
-        glDrawArrays(primitive, 0, self.total_particles)  # Draw all particles with the selected primitive
+        # glDrawArrays(primitive, 0, self.total_particles)  # Draw all particles with the selected primitive
+        glDrawArrays(primitive, 0, self.active_particles)  # Draw only active particles
+
         glBindVertexArray(0)
