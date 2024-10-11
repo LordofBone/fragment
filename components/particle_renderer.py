@@ -221,9 +221,13 @@ class ParticleRenderer(AbstractRenderer):
             # Generate initial batch of particles
             initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
             particles = self.stack_initial_data(initial_batch_size)
+            # print(f"Initial Particle data: {particles}")
 
             # Initialize the buffer to hold all potential particles
             self.cpu_particles = np.zeros((self.max_particles, self.total_floats_per_particle), dtype=np.float32)
+
+            # Assign particle IDs based on slot indices
+            self.cpu_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
 
             # Set lifetimePercentage to 1.0 for inactive particles
             self.cpu_particles[:, 12] = 1.0  # Index 12 is lifetimePercentage
@@ -231,11 +235,15 @@ class ParticleRenderer(AbstractRenderer):
             # Optionally, set positions of inactive particles off-screen
             self.cpu_particles[:, 0:3] = 10000.0  # Set x, y, z positions to a large value
 
-            # Insert the initial particles into the cpu_particles array
-            self.cpu_particles[:initial_batch_size, :] = particles  # Copy over all attributes
-            self.cpu_particles[:initial_batch_size, 12] = 0.0  # Set lifetimePercentage to 0.0 for active particles
+            # Insert the initial particles into the cpu_particles array, excluding 'particleID'
+            self.cpu_particles[:initial_batch_size, :10] = particles[:, :10]  # Copy attributes up to 'particleID'
 
-            # Update active particles count
+            # Insert the initial particles weight param into cpu_particles array
+            self.cpu_particles[:initial_batch_size, 11] = particles[:, 11]
+
+            # Set lifetimePercentage to 0.0 for active particles
+            self.cpu_particles[:initial_batch_size, 12] = 0.0  # Lifetime percentage
+
             self.active_particles = initial_batch_size
 
             glUseProgram(self.shader_program)
@@ -611,7 +619,7 @@ class ParticleRenderer(AbstractRenderer):
         if self.debug_mode and self.particle_render_mode != 'compute_shader':
             # Calculate and print the number of active particles
             num_active_particles = self.max_particles - len(self.free_slots)
-            print(f"Number of active particles: {num_active_particles}")
+            print(f"Number of active particles: {self.active_particles}")
 
     def _remove_expired_particles_transform_feedback(self):
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
@@ -656,23 +664,40 @@ class ParticleRenderer(AbstractRenderer):
 
     def _generate_particles_cpu(self):
         """
-        Generate new particles if there is capacity available.
+        Generate new particles if there are free slots available.
         """
-        num_free_slots = self.max_particles - self.active_particles  # Available capacity
+        num_free_slots = len(self.free_slots)
+        available_capacity = self.max_particles - self.active_particles
+        total_free_capacity = num_free_slots + available_capacity
 
-        if num_free_slots > 0:
-            num_gen_particles = min(num_free_slots, self.particle_batch_size)
+        if total_free_capacity > 0:
+            num_gen_particles = min(total_free_capacity, self.particle_batch_size)
 
             # Generate new particles
             new_particles = self.stack_initial_data(num_gen_particles)
 
-            # Insert new particles into available slots (at the end of active particles)
-            start_idx = self.active_particles
-            end_idx = self.active_particles + num_gen_particles
-            self.cpu_particles[start_idx:end_idx, :13] = new_particles  # Copy data
-            self.cpu_particles[start_idx:end_idx, 12] = 0.0  # Set lifetimePercentage to 0.0 for new particles
+            # Insert new particles into free slots first
+            num_slots_to_fill = min(num_free_slots, num_gen_particles)
+            for i in range(num_slots_to_fill):
+                slot_idx = self.free_slots.pop(0)
+                # Copy over attributes up to 'particleID'
+                self.cpu_particles[slot_idx, :10] = new_particles[i, :10]
+                # Preserve 'particleID' at index 10
+                self.cpu_particles[slot_idx, 12] = 0.0  # Lifetime percentage
+                self.active_particles += 1
 
-            self.active_particles += num_gen_particles
+            # If there are still particles to generate, insert them at the end
+            remaining_particles = num_gen_particles - num_slots_to_fill
+            if remaining_particles > 0:
+                start_idx = self.active_particles
+                end_idx = self.active_particles + remaining_particles
+                self.cpu_particles[start_idx:end_idx, :10] = new_particles[num_slots_to_fill:num_gen_particles, :10]
+                # Copy weight from new_particles[:, 11] to cpu_particles[:, 11]
+                self.cpu_particles[start_idx:end_idx, 11] = new_particles[:, 11]
+                # 'particleID's are already assigned based on slot indices
+                self.cpu_particles[start_idx:end_idx, 12] = 0.0  # Lifetime percentage
+                self.active_particles += remaining_particles
+
             self.generated_particles += num_gen_particles
 
     def _update_particles_cpu(self):
@@ -713,7 +738,6 @@ class ParticleRenderer(AbstractRenderer):
             speed = np.linalg.norm(velocity[:3])  # Only consider x, y, z components for speed
             if speed > self.particle_max_velocity:
                 velocity[:3] = (velocity[:3] / speed) * self.particle_max_velocity
-
             # Update position based on velocity
             position += velocity * self.delta_time
 
@@ -736,24 +760,27 @@ class ParticleRenderer(AbstractRenderer):
 
             # Update lifetime percentage
             if lifetime > 0.0 and lifetime_percentage < 1.0:
+                # if lifetime > 0.0:
                 lifetime_percentage = elapsed_time / lifetime
                 lifetime_percentage = max(0.0, min(float(lifetime_percentage), 1.0))  # Clamp between 0.0 and 1.0
 
                 # Expire particle if its lifetime is over
                 if lifetime_percentage >= 1.0:
-                    # Mark particle as inactive
+                    # Particle has expired
+                    self.cpu_particles[i, 12] = 1.0  # Lifetime percentage
+                    self.free_slots.append(i)
                     self.active_particles -= 1
 
                     if i != self.active_particles:
-                        # Swap with the last active particle
-                        self.cpu_particles[i], self.cpu_particles[self.active_particles] = \
-                            self.cpu_particles[self.active_particles], self.cpu_particles[i]
-                        # Do not increment i, as we need to process the swapped particle
-                        continue
+                        # Move last active particle to this slot
+                        self.cpu_particles[i, :12] = self.cpu_particles[self.active_particles, :12]
+                        # 'particleID's are preserved because they are based on slot indices
+                        continue  # Process the swapped particle at index i
                     else:
-                        # No need to swap, move to next particle
-                        i += 1
-                        continue
+                        break  # No more active particles to process
+                else:
+                    i += 1
+                    continue
             else:
                 # For immortal particles, keep lifetime percentage at 0.0
                 lifetime_percentage = 0.0
