@@ -103,6 +103,8 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_min_weight = self.dynamic_attrs.get('particle_min_weight', 0.01)
         self.particle_max_weight = self.dynamic_attrs.get('particle_max_weight', 0.1)
         self.fluid_simulation = self.dynamic_attrs.get('fluid_simulation', False)
+        # Currently fluid force multiplier is only used in CPU mode
+        self.fluid_force_multiplier = self.dynamic_attrs.get('fluid_force_multiplier', 1.0)
         self.particle_pressure = self.dynamic_attrs.get('particle_pressure', 1.0)
         self.particle_viscosity = self.dynamic_attrs.get('particle_viscosity', 0.5)
 
@@ -709,17 +711,24 @@ class ParticleRenderer(AbstractRenderer):
             if lifetime_percentage >= 1.0:
                 continue  # Skip expired particles
 
-            # Adjust gravity by weight
-            adjusted_gravity = np.append(self.particle_gravity * weight, 0.0)  # Add 0.0 for the w component
-            velocity += adjusted_gravity * self.delta_time
+            # Apply gravity
+            adjusted_gravity = self.particle_gravity[:3] * weight
+            velocity[:3] += adjusted_gravity * self.delta_time
 
             # Apply fluid forces if fluid simulation is enabled
             if self.fluid_simulation:
-                # Calculate fluid pressure and viscosity forces
-                speed = np.linalg.norm(velocity[:3])
-                pressure_force = (-velocity / speed * self.particle_pressure) if speed != 0 else np.zeros(4)
-                viscosity_force = -velocity * self.particle_viscosity
-                velocity += (pressure_force + viscosity_force) * self.delta_time
+                # Calculate fluid damping forces
+                pressure_force = -velocity[:3] * self.particle_pressure
+                viscosity_force = -velocity[:3] * self.particle_viscosity
+                total_fluid_force = pressure_force + viscosity_force
+
+                # Optionally clamp the total fluid force
+                max_fluid_force = np.linalg.norm(adjusted_gravity) * self.fluid_force_multiplier
+                total_fluid_force_norm = np.linalg.norm(total_fluid_force)
+                if total_fluid_force_norm > max_fluid_force:
+                    total_fluid_force = (total_fluid_force / total_fluid_force_norm) * max_fluid_force
+
+                velocity[:3] += total_fluid_force * self.delta_time
 
             # Clamp velocity to the max velocity
             speed = np.linalg.norm(velocity[:3])  # Only consider x, y, z components for speed
