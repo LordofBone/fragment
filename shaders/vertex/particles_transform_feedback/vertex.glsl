@@ -51,7 +51,7 @@ vec3 calculateFluidForces(vec3 velocity) {
 
 void main() {
     // Adjust gravity by weight (heavier particles are less affected by gravity)
-    vec3 adjustedGravity = particleGravity / particleWeight;
+    vec3 adjustedGravity = particleGravity * particleWeight;
 
     // Apply gravity scaled by weight
     vec3 newVelocity = velocity.xyz + adjustedGravity * deltaTime;
