@@ -167,7 +167,32 @@ class ParticleRenderer(AbstractRenderer):
             Setup buffers for transform feedback-based particle rendering.
             This method creates a VAO and VBO for storing particle data and feedback data.
             """
-            particles = self.stack_initial_data(self.particle_batch_size)
+            # Generate initial batch of particles
+            initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
+            particles = self.stack_initial_data(initial_batch_size)
+
+            # Initialize the buffer to hold all potential particles
+            tf_particles = np.zeros((self.max_particles, self.total_floats_per_particle), dtype=np.float32)
+
+            # Assign particle IDs based on slot indices
+            tf_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
+
+            # Set lifetimePercentage to 1.0 for inactive particles
+            tf_particles[:, 12] = 1.0  # Index 12 is lifetimePercentage
+
+            # Optionally, set positions of inactive particles off-screen
+            tf_particles[:, 0:3] = 10000.0  # Set x, y, z positions to a large value
+
+            # Insert the initial particles into the cpu_particles array, excluding 'particleID'
+            tf_particles[:initial_batch_size, :10] = particles[:, :10]  # Copy attributes up to 'particleID'
+
+            # Insert the initial particles weight param into cpu_particles array
+            tf_particles[:initial_batch_size, 11] = particles[:, 11]
+
+            # Set lifetimePercentage to 0.0 for active particles
+            tf_particles[:initial_batch_size, 12] = 0.0  # Lifetime percentage
+
+            self.active_particles = initial_batch_size
 
             glUseProgram(self.shader_program)
 
@@ -176,7 +201,7 @@ class ParticleRenderer(AbstractRenderer):
 
             # Initialize the VBO with the initial particle data
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, particles, GL_DYNAMIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, tf_particles, GL_DYNAMIC_DRAW)
 
             # Initialize the feedback VBO
             glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
