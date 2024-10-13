@@ -647,18 +647,38 @@ class ParticleRenderer(AbstractRenderer):
             print(f"Number of active particles: {self.active_particles}")
 
     def _remove_expired_particles_transform_feedback(self):
+        """
+        Read back the lifetimePercentage of particles to update self.active_particles and self.free_slots.
+        """
         glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size_tf_compute)
-        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_length_tf_compute)
-        # Extract lifetimePercentage column
-        lifetime_percentages = particle_data_np[:, 12]
-        # Find indices of expired particles
+
+        # Map the buffer to access data directly
+        data_ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY)
+
+        if data_ptr:
+            # Convert data pointer to NumPy array
+            data = np.frombuffer(
+                (ctypes.c_float * (self.stride_length_tf_compute * self.max_particles)).from_address(data_ptr),
+                dtype=np.float32)
+            data = data.reshape(self.max_particles, self.stride_length_tf_compute)
+            # Extract lifetimePercentage column (index 12)
+            lifetime_percentages = data[:, 12]
+            glUnmapBuffer(GL_ARRAY_BUFFER)
+        else:
+            print("Failed to map buffer for reading lifetimePercentage.")
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
+            return
+
+        # Find indices of active and expired particles
+        active_indices = np.where(lifetime_percentages < 1.0)[0]
         expired_indices = np.where(lifetime_percentages >= 1.0)[0]
-        self.free_slots = list(set(self.free_slots + expired_indices.tolist()))
-        # Add expired indices to free_slots, avoid duplicates
-        for idx in expired_indices:
-            if idx not in self.free_slots:
-                self.free_slots.append(idx)
+
+        # Update self.active_particles
+        self.active_particles = len(active_indices)
+
+        # Update free_slots
+        self.free_slots = expired_indices.tolist()
+
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     def _generate_new_particles_transform_feedback(self):
@@ -857,14 +877,15 @@ class ParticleRenderer(AbstractRenderer):
 
         # Start capturing transform feedback
         glBeginTransformFeedback(GL_POINTS)
-        glDrawArrays(GL_POINTS, 0, self.total_particles)  # Process all particles
+
+        glDrawArrays(GL_POINTS, 0, self.active_particles)  # Process all particles
         glEndTransformFeedback()
 
         # Disable rasterizer discard
         glDisable(GL_RASTERIZER_DISCARD)
 
         # Ensure that the buffer is synchronized before the next frame
-        glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
+        glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
 
         # Swap the VBOs (this swaps the input and feedback buffers for the next frame)
         self.vbo, self.feedback_vbo = self.feedback_vbo, self.vbo
@@ -963,7 +984,6 @@ class ParticleRenderer(AbstractRenderer):
         # Get the primitive type from the mapping, default to GL_POINTS if not found
         primitive = primitive_types.get(self.particle_type, GL_POINTS)
 
-        # glDrawArrays(primitive, 0, self.total_particles)  # Draw all particles with the selected primitive
         glDrawArrays(primitive, 0, self.active_particles)  # Draw only active particles
 
         glBindVertexArray(0)
