@@ -620,7 +620,7 @@ class ParticleRenderer(AbstractRenderer):
         # Determine if we should generate a new batch of particles (applies to compute shader and cpu modes)
         if self.generator_delay > 0.0:
             time_since_last_generation = self.current_time - self.last_generation_time
-            if self.particle_generator and self.generator_delay > 0.0:
+            if self.particle_generator:
                 if time_since_last_generation >= self.generator_delay:
                     self.should_generate = True
                     self.last_generation_time = self.current_time
@@ -633,10 +633,10 @@ class ParticleRenderer(AbstractRenderer):
         if self.particle_render_mode == 'compute_shader':
             self._update_particles_compute_shader()
         elif self.particle_render_mode == 'transform_feedback':
-            self._remove_expired_particles_transform_feedback()
-            self._update_particles_transform_feedback()
             if self.particle_generator and self.should_generate:
                 self._generate_new_particles_transform_feedback()
+            self._remove_expired_particles_transform_feedback()
+            self._update_particles_transform_feedback()
         elif self.particle_render_mode == 'cpu':
             if self.particle_generator and self.should_generate:
                 self._generate_particles_cpu()
