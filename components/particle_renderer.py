@@ -650,7 +650,10 @@ class ParticleRenderer(AbstractRenderer):
         """
         Read back the lifetimePercentage of particles to update self.active_particles and self.free_slots.
         """
-        glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+
+        # Ensure synchronization before reading
+        glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
 
         # Map the buffer to access data directly
         data_ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY)
