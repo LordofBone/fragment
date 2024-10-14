@@ -737,6 +737,7 @@ class ParticleRenderer(AbstractRenderer):
             self.cpu_particles[slot_idx, 12] = 0.0  # Lifetime percentage
 
         self.generated_particles += num_gen_particles
+        self.active_particles += self.generated_particles
 
     def _update_particles_cpu(self):
         """
