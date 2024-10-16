@@ -25,6 +25,7 @@ class ParticleRenderer(AbstractRenderer):
         super().__init__(**kwargs)
         self.max_particles = particles_max
         self.active_particles = 0  # Number of currently active particles
+        self.particles_to_render = 0  # Number of particles to render
         self.total_particles = self.max_particles  # Always process all particles
         self.particle_batch_size = min(particle_batch_size, particles_max)
         self.particle_render_mode = particle_render_mode
@@ -193,6 +194,7 @@ class ParticleRenderer(AbstractRenderer):
             tf_particles[:initial_batch_size, 12] = 0.0  # Lifetime percentage
 
             self.active_particles = initial_batch_size
+            self.generated_particles += self.active_particles
 
             glUseProgram(self.shader_program)
 
@@ -205,7 +207,7 @@ class ParticleRenderer(AbstractRenderer):
 
             # Initialize the feedback VBO
             glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, None, GL_DYNAMIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, tf_particles, GL_DYNAMIC_DRAW)
 
             # Set up vertex attribute pointers
             glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -271,6 +273,7 @@ class ParticleRenderer(AbstractRenderer):
             self.cpu_particles[:initial_batch_size, 12] = 0.0  # Lifetime percentage
 
             self.active_particles = initial_batch_size
+            self.generated_particles += self.active_particles
 
             glUseProgram(self.shader_program)
 
@@ -402,16 +405,17 @@ class ParticleRenderer(AbstractRenderer):
         velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
         spawn_time_loc = glGetAttribLocation(self.shader_program, "spawnTime")
         lifetime_loc = glGetAttribLocation(self.shader_program, "particleLifetime")
-        weight_loc = glGetAttribLocation(self.shader_program, "particleWeight")
         particle_id_loc = glGetAttribLocation(self.shader_program, "particleID")
+        weight_loc = glGetAttribLocation(self.shader_program, "particleWeight")
+        lifetime_percentage_loc = glGetAttribLocation(self.shader_program, "lifetimePercentage")
 
         # Ensure all attributes are found
-        if position_loc == -1 or velocity_loc == -1 or spawn_time_loc == -1 or lifetime_loc == -1 or particle_id_loc == -1 or weight_loc == -1:
+        if position_loc == -1 or velocity_loc == -1 or spawn_time_loc == -1 or lifetime_loc == -1 or particle_id_loc == -1 or weight_loc == -1 or lifetime_percentage_loc == -1:
             # Print attribute locations for debugging
             print(f"position_loc: {position_loc}, velocity_loc: {velocity_loc}, spawn_time_loc: {spawn_time_loc}, "
-                  f"lifetime_loc: {lifetime_loc}, particle_id_loc: {particle_id_loc}, weight_loc: {weight_loc}")
+                  f"lifetime_loc: {lifetime_loc}, particle_id_loc: {particle_id_loc}, weight_loc: {weight_loc}, particle_percentage_id_loc: {lifetime_percentage_loc}")
             raise RuntimeError(
-                "Position, Velocity, Spawn Time, Lifetime, Particle ID, or Weight attribute not found in shader program."
+                "Position, Velocity, Spawn Time, Lifetime, Particle ID, Particle Lifetime Percentage or Weight attribute not found in shader program."
             )
 
         # Enable and set the vertex attribute arrays for position, velocity, spawn time, lifetime, particle ID, and weight
@@ -435,6 +439,10 @@ class ParticleRenderer(AbstractRenderer):
         glEnableVertexAttribArray(weight_loc)
         glVertexAttribPointer(weight_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(11 * self.float_size))
 
+        glEnableVertexAttribArray(lifetime_percentage_loc)
+        glVertexAttribPointer(lifetime_percentage_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
+                              ctypes.c_void_p(12 * self.float_size))
+
         if self.debug_mode:
             self._check_vertex_attrib_pointer_setup()
 
@@ -448,6 +456,7 @@ class ParticleRenderer(AbstractRenderer):
         lifetime_loc = glGetAttribLocation(self.shader_program, "particleLifetime")
         particle_id_loc = glGetAttribLocation(self.shader_program, "particleID")
         particle_weight_loc = glGetAttribLocation(self.shader_program, "particleWeight")
+        particle_lifetime_percentage_loc = glGetAttribLocation(self.shader_program, "lifetimePercentage")
 
         # Stride and offset values
         position_stride = glGetVertexAttribiv(position_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
@@ -456,6 +465,8 @@ class ParticleRenderer(AbstractRenderer):
         lifetime_stride = glGetVertexAttribiv(lifetime_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
         particle_id_stride = glGetVertexAttribiv(particle_id_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
         particle_weight_stride = glGetVertexAttribiv(particle_weight_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
+        particle_lifetime_percentage_stride = glGetVertexAttribiv(particle_lifetime_percentage_loc,
+                                                                  GL_VERTEX_ATTRIB_ARRAY_STRIDE)
 
         position_offset = glGetVertexAttribPointerv(position_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         velocity_offset = glGetVertexAttribPointerv(velocity_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
@@ -463,6 +474,8 @@ class ParticleRenderer(AbstractRenderer):
         lifetime_offset = glGetVertexAttribPointerv(lifetime_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         particle_id_offset = glGetVertexAttribPointerv(particle_id_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         particle_weight_offset = glGetVertexAttribPointerv(particle_weight_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
+        particle_lifetime_percentage_offset = glGetVertexAttribPointerv(particle_lifetime_percentage_loc,
+                                                                        GL_VERTEX_ATTRIB_ARRAY_POINTER)
 
         print(f"Position Attributes in _check_vertex_attrib_pointer_setup")
         print(f"Position Attribute: Location = {position_loc}, Stride = {position_stride}, Offset = {position_offset}")
@@ -474,6 +487,8 @@ class ParticleRenderer(AbstractRenderer):
             f"Particle ID Attribute: Location = {particle_id_loc}, Stride = {particle_id_stride}, Offset = {particle_id_offset}")
         print(
             f"Particle Weight Attribute: Location = {particle_weight_loc}, Stride = {particle_weight_stride}, Offset = {particle_weight_offset}")
+        print(
+            f"Particle Lifetime Percentage Attribute: Location = {particle_lifetime_percentage_loc}, Stride = {particle_lifetime_percentage_stride}, Offset = {particle_lifetime_percentage_offset}")
 
     def _setup_vertex_attributes_cpu(self):
         """
@@ -645,32 +660,17 @@ class ParticleRenderer(AbstractRenderer):
         if self.debug_mode and self.particle_render_mode != 'compute_shader':
             # Calculate and print the number of active particles
             print(f"Number of active particles: {self.active_particles}")
+        print(f"Number of active particles: {self.active_particles}")
 
     def _remove_expired_particles_transform_feedback(self):
-        """
-        Read back the lifetimePercentage of particles to update self.active_particles and self.free_slots.
-        """
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 
-        # Ensure synchronization before reading
-        glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
-
         # Map the buffer to access data directly
-        data_ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY)
+        particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size_tf_compute)
+        particle_data_np = np.frombuffer(particle_data, dtype=np.float32).reshape(-1, self.stride_length_tf_compute)
 
-        if data_ptr:
-            # Convert data pointer to NumPy array
-            data = np.frombuffer(
-                (ctypes.c_float * (self.stride_length_tf_compute * self.max_particles)).from_address(data_ptr),
-                dtype=np.float32)
-            data = data.reshape(self.max_particles, self.stride_length_tf_compute)
-            # Extract lifetimePercentage column (index 12)
-            lifetime_percentages = data[:, 12]
-            glUnmapBuffer(GL_ARRAY_BUFFER)
-        else:
-            print("Failed to map buffer for reading lifetimePercentage.")
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-            return
+        # Extract lifetimePercentage column
+        lifetime_percentages = particle_data_np[:, 12]
 
         # Find indices of active and expired particles
         active_indices = np.where(lifetime_percentages < 1.0)[0]
@@ -680,7 +680,7 @@ class ParticleRenderer(AbstractRenderer):
         self.active_particles = len(active_indices)
 
         # Update free_slots
-        self.free_slots = expired_indices.tolist()
+        self.free_slots = list(set(self.free_slots + expired_indices.tolist()))
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
@@ -813,6 +813,7 @@ class ParticleRenderer(AbstractRenderer):
                     # Particle has expired
                     self.cpu_particles[i, 12] = 1.0  # Lifetime percentage
                     self.free_slots.append(i)  # Add index to free slots
+                    self.active_particles -= 1  # Decrement active particles count
                     continue  # Move to the next particle
 
             else:
@@ -846,6 +847,8 @@ class ParticleRenderer(AbstractRenderer):
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)  # Unbind the buffer
 
+        self.particles_to_render = self.active_particles
+
     def _update_particles_compute_shader(self):
         """
         Update the particle system by dispatching the compute shader, respecting particle generator logic.
@@ -876,23 +879,23 @@ class ParticleRenderer(AbstractRenderer):
         # Enable rasterizer discard to avoid rendering particles to the screen
         glEnable(GL_RASTERIZER_DISCARD)
 
-        # Bind the feedback VBO to capture transform feedback output
-        glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, self.feedback_vbo)
+        # Bind the buffer as both the source and target for transform feedback
+        glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, self.vbo)
 
         # Start capturing transform feedback
         glBeginTransformFeedback(GL_POINTS)
-
-        glDrawArrays(GL_POINTS, 0, self.active_particles)  # Process all particles
+        glDrawArrays(GL_POINTS, 0, self.max_particles)  # Process all particles
         glEndTransformFeedback()
 
         # Disable rasterizer discard
         glDisable(GL_RASTERIZER_DISCARD)
 
         # Ensure that the buffer is synchronized before the next frame
-        glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
+        glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
 
-        # Swap the VBOs (this swaps the input and feedback buffers for the next frame)
-        self.vbo, self.feedback_vbo = self.feedback_vbo, self.vbo
+        glBindVertexArray(0)
+
+        self.particles_to_render = self.max_particles
 
     def print_vao_contents_transform_feedback(self):
         # Bind the feedback VBO (the buffer with the updated particle data)
@@ -988,6 +991,6 @@ class ParticleRenderer(AbstractRenderer):
         # Get the primitive type from the mapping, default to GL_POINTS if not found
         primitive = primitive_types.get(self.particle_type, GL_POINTS)
 
-        glDrawArrays(primitive, 0, self.active_particles)  # Draw only active particles
+        glDrawArrays(primitive, 0, self.particles_to_render)  # Draw only active particles
 
         glBindVertexArray(0)
