@@ -6,6 +6,7 @@ layout (location = 2) in float spawnTime;// Time when the particle was created
 layout (location = 3) in float particleLifetime;// The lifetime of the particle (0.0 means no expiration)
 layout (location = 4) in float particleID;// The ID of the particle
 layout (location = 5) in float particleWeight;// The weight of the particle
+layout (location = 6) in float lifetimePercentage;// The percentage of the particle's lifetime
 
 uniform float currentTime;// The global time for tracking particle lifetime
 uniform float deltaTime;// Time elapsed between frames
@@ -50,6 +51,22 @@ vec3 calculateFluidForces(vec3 velocity) {
 }
 
 void main() {
+    if (lifetimePercentage >= 1.0) {
+        // Particle has expired, set outputs accordingly
+        tfLifetimePercentage = 1.0;
+        lifetimePercentageToFragment = 1.0;
+        gl_PointSize = 0.0;
+        tfParticleID = particleID;
+
+        // Pass the color to the fragment shader
+        fragColor = particleColor;
+
+        // Pass the particle ID to the fragment shader
+        particleIDOut = particleID;
+
+        return;
+    }
+
     // Adjust gravity by weight
     vec3 adjustedGravity = particleGravity * particleWeight;
 
