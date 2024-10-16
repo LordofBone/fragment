@@ -732,9 +732,7 @@ class ParticleRenderer(AbstractRenderer):
         # Insert new particles into free slots
         for i in range(num_gen_particles):
             slot_idx = self.free_slots.pop(0)
-            self.cpu_particles[slot_idx, :10] = new_particles[i, :10]
-            self.cpu_particles[slot_idx, 11] = new_particles[i, 11]
-            self.cpu_particles[slot_idx, 12] = 0.0  # Lifetime percentage
+            self.cpu_particles[slot_idx, :] = new_particles[i, :]
 
         self.generated_particles += num_gen_particles
         self.active_particles += self.generated_particles
