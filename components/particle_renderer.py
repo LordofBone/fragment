@@ -735,7 +735,7 @@ class ParticleRenderer(AbstractRenderer):
             self.cpu_particles[slot_idx, :] = new_particles[i, :]
 
         self.generated_particles += num_gen_particles
-        self.active_particles += self.generated_particles
+        self.active_particles += num_gen_particles
 
     def _update_particles_cpu(self):
         """
@@ -811,7 +811,6 @@ class ParticleRenderer(AbstractRenderer):
                     # Particle has expired
                     self.cpu_particles[i, 12] = 1.0  # Lifetime percentage
                     self.free_slots.append(i)  # Add index to free slots
-                    self.active_particles -= 1  # Decrement active particles count
                     continue  # Move to the next particle
 
             else:
