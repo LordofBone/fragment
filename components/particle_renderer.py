@@ -684,7 +684,6 @@ class ParticleRenderer(AbstractRenderer):
         if self.debug_mode and self.particle_render_mode != 'compute_shader':
             # Calculate and print the number of active particles
             print(f"Number of active particles: {self.active_particles}")
-        print(f"Number of active particles: {self.active_particles}")
 
     def _remove_expired_particles_transform_feedback(self):
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
