@@ -163,163 +163,118 @@ class ParticleRenderer(AbstractRenderer):
         glUniformMatrix4fv(model_matrix_location, 1, GL_FALSE, glm.value_ptr(self.model_matrix))
 
     def create_buffers(self):
+        """
+        Create buffers based on the particle render mode (transform_feedback, compute_shader, or cpu).
+        """
+        initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
+        particles = self.stack_initial_data(initial_batch_size,
+                                            pad_to_multiple_of_16=(self.particle_render_mode == 'compute_shader'))
+        # Initialize the particle buffer
+        particle_data = self.initialize_particle_data(initial_batch_size, particles)
+
         if self.particle_render_mode == 'transform_feedback':
-            """
-            Setup buffers for transform feedback-based particle rendering.
-            This method creates a VAO and VBO for storing particle data and feedback data.
-            """
-            # Generate initial batch of particles
-            initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
-            particles = self.stack_initial_data(initial_batch_size)
-
-            # Initialize the buffer to hold all potential particles
-            tf_particles = np.zeros((self.max_particles, self.stride_length_tf_compute), dtype=np.float32)
-
-            # Assign particle IDs based on slot indices
-            tf_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
-
-            # Set lifetimePercentage to 1.0 for inactive particles
-            tf_particles[:, 12] = 1.0  # Index 12 is lifetimePercentage
-
-            # Optionally, set positions of inactive particles off-screen
-            tf_particles[:, 0:3] = 10000.0  # Set x, y, z positions to a large value
-
-            # Insert the initial particles into the cpu_particles array, excluding 'particleID'
-            tf_particles[:initial_batch_size, :10] = particles[:, :10]  # Copy attributes up to 'particleID'
-
-            # Insert the initial particles weight param into cpu_particles array
-            tf_particles[:initial_batch_size, 11] = particles[:, 11]
-
-            # Set lifetimePercentage to 0.0 for active particles
-            tf_particles[:initial_batch_size, 12] = 0.0  # Lifetime percentage
-
-            self.active_particles = initial_batch_size
-            self.generated_particles += self.active_particles
-
-            glUseProgram(self.shader_program)
-
-            self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
-            glBindVertexArray(self.vao)
-
-            # Initialize the VBO with the initial particle data
-            glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, tf_particles, GL_DYNAMIC_DRAW)
-
-            # Initialize the feedback VBO
-            glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, tf_particles, GL_DYNAMIC_DRAW)
-
-            # Set up vertex attribute pointers
-            glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            self._setup_vertex_attributes()
+            self.setup_transform_feedback_buffers(particle_data)
         elif self.particle_render_mode == 'compute_shader':
-            """
-            Setup buffers for compute shader-based particle rendering.
-            This method creates a Shader Storage Buffer Object (SSBO) for storing particle data
-            and binding it to the appropriate buffer base.
-            """
-            initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
-            particles = self.stack_initial_data(initial_batch_size, pad_to_multiple_of_16=True)
-
-            # Initialize the buffer to hold all potential particles
-            compute_particles = np.zeros((self.max_particles, self.stride_length_tf_compute), dtype=np.float32)
-
-            # Assign particle IDs based on slot indices
-            compute_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
-
-            # Set lifetimePercentage to 1.0 for inactive particles
-            compute_particles[:, 12] = 1.0  # Index 12 is lifetimePercentage
-
-            # Optionally, set positions of inactive particles off-screen
-            compute_particles[:, 0:3] = 10000.0  # Set x, y, z positions to a large value
-
-            # Insert the initial particles into the cpu_particles array, excluding 'particleID'
-            compute_particles[:initial_batch_size, :10] = particles[:, :10]  # Copy attributes up to 'particleID'
-
-            # Insert the initial particles weight param into cpu_particles array
-            compute_particles[:initial_batch_size, 11] = particles[:, 11]
-
-            # Set lifetimePercentage to 0.0 for active particles
-            compute_particles[:initial_batch_size, 12] = 0.0  # Lifetime percentage
-
-            self.active_particles = initial_batch_size
-
-            glUseProgram(self.compute_shader_program)
-
-            # Create the SSBO for particle data
-            self.ssbo = glGenBuffers(1)
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
-            glBufferData(GL_SHADER_STORAGE_BUFFER, compute_particles.nbytes, compute_particles, GL_DYNAMIC_COPY)
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
-
-            # Create the SSBO for generation data (particlesGenerated)
-            generation_data = np.zeros(1, dtype=np.uint32)  # Only 'particlesGenerated' needed
-            self.generation_data_buffer = glGenBuffers(1)
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.generation_data_buffer)
-            glBufferData(GL_SHADER_STORAGE_BUFFER, generation_data.nbytes, generation_data, GL_DYNAMIC_DRAW)
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, self.generation_data_buffer)
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
-
-            # Set up the VAO for rendering
-            self.vao = glGenVertexArrays(1)
-            glBindVertexArray(self.vao)
-            glBindBuffer(GL_ARRAY_BUFFER, self.ssbo)
-            glBindVertexArray(0)
+            self.setup_compute_shader_buffers(particle_data)
         elif self.particle_render_mode == 'cpu':
-            """
-            Setup buffers for vertex/fragment shader-based particle rendering using CPU-generated data.
-            This method sets up the VAO and VBO needed for rendering particles based on CPU-calculated data.
-            """
-            # Generate initial batch of particles
-            initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
-            particles = self.stack_initial_data(initial_batch_size)
-
-            # Initialize the buffer to hold all potential particles
-            self.cpu_particles = np.zeros((self.max_particles, self.stride_length_tf_compute), dtype=np.float32)
-
-            # Assign particle IDs based on slot indices
-            self.cpu_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
-
-            # Set lifetimePercentage to 1.0 for inactive particles
-            self.cpu_particles[:, 12] = 1.0  # Index 12 is lifetimePercentage
-
-            # Optionally, set positions of inactive particles off-screen
-            self.cpu_particles[:, 0:3] = 10000.0  # Set x, y, z positions to a large value
-
-            # Insert the initial particles into the cpu_particles array, excluding 'particleID'
-            self.cpu_particles[:initial_batch_size, :10] = particles[:, :10]  # Copy attributes up to 'particleID'
-
-            # Insert the initial particles weight param into cpu_particles array
-            self.cpu_particles[:initial_batch_size, 11] = particles[:, 11]
-
-            # Set lifetimePercentage to 0.0 for active particles
-            self.cpu_particles[:initial_batch_size, 12] = 0.0  # Lifetime percentage
-
-            self.active_particles = initial_batch_size
-            self.generated_particles += self.active_particles
-
-            glUseProgram(self.shader_program)
-
-            self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
-            glBindVertexArray(self.vao)
-
-            # Allocate buffer for the maximum number of particles
-            buffer_size = self.max_particles * self.particle_byte_size_cpu
-            glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-            glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
-
-            self.set_cpu_uniforms()
-
-            # Set up the vertex attributes
-            self._setup_vertex_attributes_cpu()
-
-            glBindVertexArray(0)  # Unbind VAO
+            self.setup_cpu_buffers(particle_data)
         else:
             raise ValueError(f"Unknown render mode: {self.particle_render_mode}")
 
         if self.debug_mode:
             print(f"Initial Particle data: {particles}")
+
+    def initialize_particle_data(self, initial_batch_size, particles):
+        """
+        Initialize particle data for the selected render mode.
+        """
+        particle_data = np.zeros((self.max_particles, self.stride_length_tf_compute), dtype=np.float32)
+
+        # Assign particle IDs based on slot indices
+        particle_data[:, 10] = np.arange(self.max_particles, dtype=np.float32)
+
+        # Set lifetimePercentage to 1.0 for inactive particles
+        particle_data[:, 12] = 1.0  # Inactive particles
+
+        # Optionally, set positions of inactive particles off-screen
+        particle_data[:, 0:3] = 10000.0  # Set x, y, z positions to a large value
+
+        # Insert the initial particles into the buffer
+        particle_data[:initial_batch_size, :10] = particles[:, :10]  # Copy attributes up to 'particleID'
+        particle_data[:initial_batch_size, 11] = particles[:, 11]  # Copy weight
+        particle_data[:initial_batch_size, 12] = 0.0  # Active particles
+
+        self.active_particles = initial_batch_size
+        self.generated_particles += self.active_particles
+        return particle_data
+
+    def setup_transform_feedback_buffers(self, particle_data):
+        """
+        Setup buffers for transform feedback-based particle rendering.
+        """
+        glUseProgram(self.shader_program)
+
+        self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
+        glBindVertexArray(self.vao)
+
+        # Initialize the VBO with the particle data
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, particle_data, GL_DYNAMIC_DRAW)
+
+        # Set up vertex attribute pointers
+        self._setup_vertex_attributes()
+
+        glBindVertexArray(0)
+
+    def setup_compute_shader_buffers(self, particle_data):
+        """
+        Setup buffers for compute shader-based particle rendering.
+        """
+        glUseProgram(self.compute_shader_program)
+
+        # Create the SSBO for particle data
+        self.ssbo = glGenBuffers(1)
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
+        glBufferData(GL_SHADER_STORAGE_BUFFER, particle_data.nbytes, particle_data, GL_DYNAMIC_COPY)
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+
+        # Create the SSBO for generation data (particlesGenerated)
+        generation_data = np.zeros(1, dtype=np.uint32)  # Only 'particlesGenerated' needed
+        self.generation_data_buffer = glGenBuffers(1)
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.generation_data_buffer)
+        glBufferData(GL_SHADER_STORAGE_BUFFER, generation_data.nbytes, generation_data, GL_DYNAMIC_DRAW)
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, self.generation_data_buffer)
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+
+        # Set up the VAO for rendering
+        self.vao = glGenVertexArrays(1)
+        glBindVertexArray(self.vao)
+        glBindBuffer(GL_ARRAY_BUFFER, self.ssbo)
+        glBindVertexArray(0)
+
+    def setup_cpu_buffers(self, particle_data):
+        """
+        Setup buffers for CPU-based particle rendering.
+        """
+        self.cpu_particles = particle_data
+
+        glUseProgram(self.shader_program)
+
+        self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
+        glBindVertexArray(self.vao)
+
+        # Allocate buffer for the maximum number of particles
+        buffer_size = self.max_particles * self.particle_byte_size_cpu
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
+
+        self.set_cpu_uniforms()
+
+        # Set up the vertex attributes
+        self._setup_vertex_attributes_cpu()
+
+        glBindVertexArray(0)
 
     def generate_initial_data(self, num_particles=0):
         """
