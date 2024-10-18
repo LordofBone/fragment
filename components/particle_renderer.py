@@ -218,14 +218,38 @@ class ParticleRenderer(AbstractRenderer):
             This method creates a Shader Storage Buffer Object (SSBO) for storing particle data
             and binding it to the appropriate buffer base.
             """
-            particles = self.stack_initial_data(self.particle_batch_size, pad_to_multiple_of_16=True)
+            initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
+            particles = self.stack_initial_data(initial_batch_size, pad_to_multiple_of_16=True)
+
+            # Initialize the buffer to hold all potential particles
+            compute_particles = np.zeros((self.max_particles, self.total_floats_per_particle), dtype=np.float32)
+
+            # Assign particle IDs based on slot indices
+            compute_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
+
+            # Set lifetimePercentage to 1.0 for inactive particles
+            compute_particles[:, 12] = 1.0  # Index 12 is lifetimePercentage
+
+            # Optionally, set positions of inactive particles off-screen
+            compute_particles[:, 0:3] = 10000.0  # Set x, y, z positions to a large value
+
+            # Insert the initial particles into the cpu_particles array, excluding 'particleID'
+            compute_particles[:initial_batch_size, :10] = particles[:, :10]  # Copy attributes up to 'particleID'
+
+            # Insert the initial particles weight param into cpu_particles array
+            compute_particles[:initial_batch_size, 11] = particles[:, 11]
+
+            # Set lifetimePercentage to 0.0 for active particles
+            compute_particles[:initial_batch_size, 12] = 0.0  # Lifetime percentage
+
+            self.active_particles = initial_batch_size
 
             glUseProgram(self.compute_shader_program)
 
             # Create the SSBO for particle data
             self.ssbo = glGenBuffers(1)
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
-            glBufferData(GL_SHADER_STORAGE_BUFFER, particles.nbytes, particles, GL_DYNAMIC_COPY)
+            glBufferData(GL_SHADER_STORAGE_BUFFER, compute_particles.nbytes, compute_particles, GL_DYNAMIC_COPY)
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, self.ssbo)
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
@@ -869,6 +893,8 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
         glUseProgram(self.shader_program)  # Switch back to the vertex/fragment shader
+
+        self.particles_to_render = self.max_particles
 
     def _update_particles_transform_feedback(self):
         glBindVertexArray(self.vao)
