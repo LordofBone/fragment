@@ -173,7 +173,7 @@ class ParticleRenderer(AbstractRenderer):
             particles = self.stack_initial_data(initial_batch_size)
 
             # Initialize the buffer to hold all potential particles
-            tf_particles = np.zeros((self.max_particles, self.total_floats_per_particle), dtype=np.float32)
+            tf_particles = np.zeros((self.max_particles, self.stride_length_tf_compute), dtype=np.float32)
 
             # Assign particle IDs based on slot indices
             tf_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
@@ -222,7 +222,7 @@ class ParticleRenderer(AbstractRenderer):
             particles = self.stack_initial_data(initial_batch_size, pad_to_multiple_of_16=True)
 
             # Initialize the buffer to hold all potential particles
-            compute_particles = np.zeros((self.max_particles, self.total_floats_per_particle), dtype=np.float32)
+            compute_particles = np.zeros((self.max_particles, self.stride_length_tf_compute), dtype=np.float32)
 
             # Assign particle IDs based on slot indices
             compute_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
@@ -276,7 +276,7 @@ class ParticleRenderer(AbstractRenderer):
             particles = self.stack_initial_data(initial_batch_size)
 
             # Initialize the buffer to hold all potential particles
-            self.cpu_particles = np.zeros((self.max_particles, self.total_floats_per_particle), dtype=np.float32)
+            self.cpu_particles = np.zeros((self.max_particles, self.stride_length_tf_compute), dtype=np.float32)
 
             # Assign particle IDs based on slot indices
             self.cpu_particles[:, 10] = np.arange(self.max_particles, dtype=np.float32)
