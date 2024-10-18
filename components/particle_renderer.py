@@ -946,7 +946,7 @@ class ParticleRenderer(AbstractRenderer):
 
     def print_ssbo_contents_compute_shader(self):
         """
-        Debug function to print the contents of the SSBO.
+        Debug function to print the contents of the SSBO and count active particles.
         """
         # Bind the SSBO
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, self.ssbo)
@@ -954,22 +954,30 @@ class ParticleRenderer(AbstractRenderer):
         # Get the size of the buffer in bytes
         print(f"SSBO Buffer Size: {self.buffer_size_tf_compute} bytes")
 
-        # Calculate the number of particles
-        num_particles = self.buffer_size_tf_compute // self.particle_byte_size_tf_compute
-        print(f"Number of particles in the SSBO: {num_particles}")
-
         # Read back the buffer data
         data = glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, self.buffer_size_tf_compute)
 
         # Convert the data to a NumPy array
         particle_data = np.frombuffer(data, dtype=np.float32)
-        particle_data = particle_data.reshape((num_particles, self.stride_length_tf_compute))
+        particle_data = particle_data.reshape((self.max_particles, self.stride_length_tf_compute))
 
-        print("Particle Data:")
-        print(particle_data)
+        # Check how many particles are active based on lifetimePercentage < 1.0
+        active_particles_mask = particle_data[:, 12] < 1.0  # Lifetime percentage at index 12
+        active_particles_count = np.sum(active_particles_mask)
+
+        print(f"Number of active particles: {active_particles_count}")
+        print(f"Number of total particles in the SSBO: {self.max_particles}")
+
+        # Optionally, you can print out data of only active particles
+        active_particle_data = particle_data[active_particles_mask]
+        print("Active Particle Data:")
+        print(active_particle_data)
 
         # Unbind the buffer
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+
+        # Update the active particle count in your class if needed
+        self.active_particles = active_particles_count
 
     def print_cpu_particles(self):
         print(f"Number of particles: {self.active_particles}")
