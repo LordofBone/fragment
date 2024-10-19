@@ -18,13 +18,13 @@ texture_manager = TextureManager()
 
 def check_gl_error(context, debug_mode):
     if debug_mode:
-        error = glGetError()
-        if error != GL_NO_ERROR:
-            raise RuntimeError(f"OpenGL error in {context}: {error}")
+        gl_error = glGetError()
+        if gl_error != GL_NO_ERROR:
+            raise RuntimeError(f"OpenGL error in {context}: {gl_error}")
 
 
 def common_funcs(func):
-    def wrapper(self, *args, **kwargs):
+    def render_config(self, *args, **kwargs):
         glUseProgram(self.shader_program)
         check_gl_error("glUseProgram", self.debug_mode)
 
@@ -42,8 +42,8 @@ def common_funcs(func):
             glDisable(GL_DEPTH_TEST)
         check_gl_error("Depth testing setup", self.debug_mode)
 
-        viewPosition = self.camera_position
-        glUniform3fv(glGetUniformLocation(self.shader_program, "viewPosition"), 1, glm.value_ptr(viewPosition))
+        view_position = self.camera_position
+        glUniform3fv(glGetUniformLocation(self.shader_program, "viewPosition"), 1, glm.value_ptr(view_position))
         check_gl_error("Setting viewPosition uniform", self.debug_mode)
 
         # Culling setup
@@ -88,7 +88,7 @@ def common_funcs(func):
 
         return result
 
-    return wrapper
+    return render_config
 
 
 class AbstractRenderer(ABC):
@@ -142,6 +142,15 @@ class AbstractRenderer(ABC):
             **kwargs,
     ):
         # Use the memory address of the instance as a unique identifier
+        self.planar_texture = None
+        self.planar_framebuffer = None
+        self.planar_camera_position = None
+        self.planar_camera_rotation = None
+        self.planar_view = None
+        self.planar_projection = None
+        self.environmentMap = None
+        self.view = None
+        self.projection = None
         self.identifier = self
 
         # Proceed with other initializations
@@ -265,7 +274,7 @@ class AbstractRenderer(ABC):
         self.set_constant_uniforms()
 
     def setup_planar_camera(self):
-        texture_unit = texture_manager.get_texture_unit(self.identifier, "planar_camera")
+        texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
         glActiveTexture(GL_TEXTURE0 + texture_unit)
         self.planar_framebuffer = glGenFramebuffers(1)
         self.planar_texture = glGenTextures(1)
@@ -450,7 +459,7 @@ class AbstractRenderer(ABC):
             self.load_and_set_texture("displacement", "displacementMap")
 
         self.environmentMap = glGenTextures(1)
-        env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
+        env_map_unit = texture_manager.get_texture_unit(str(self.identifier), "environment")
         glActiveTexture(GL_TEXTURE0 + env_map_unit)
         if self.cubemap_folder:
             self.load_cubemap(self.cubemap_folder, self.environmentMap)
@@ -460,7 +469,7 @@ class AbstractRenderer(ABC):
     def load_and_set_texture(self, texture_type, uniform_name):
         """Helper method to load a texture and set the corresponding uniform."""
         texture_map = glGenTextures(1)
-        texture_unit = texture_manager.get_texture_unit(self.identifier, texture_type)
+        texture_unit = texture_manager.get_texture_unit(str(self.identifier), texture_type)
         glActiveTexture(GL_TEXTURE0 + texture_unit)
         self.load_texture(self.texture_paths[texture_type], texture_map)
         glBindTexture(GL_TEXTURE_2D, texture_map)
@@ -637,7 +646,7 @@ class AbstractRenderer(ABC):
         )
 
         if self.screen_texture:
-            screen_texture_unit = texture_manager.get_texture_unit(self.identifier, "planar_camera")
+            screen_texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
             glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), screen_texture_unit)
 
         glUniform1i(
@@ -670,76 +679,6 @@ class AbstractRenderer(ABC):
 
         glUniform1f(glGetUniformLocation(self.shader_program, "time"),
                     pygame.time.get_ticks() / 1000.0)
-
-        glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleSize"),
-            self.dynamic_attrs.get("particle_size", 2.0),
-        )
-
-        glUniform1i(
-            glGetUniformLocation(self.shader_program, "particleFadeToColor"),
-            int(self.dynamic_attrs.get("particle_fade_to_color", 0))
-        )
-
-        glUniform3fv(
-            glGetUniformLocation(self.shader_program, "particleFadeColor"),
-            1,
-            glm.value_ptr(self.shader_particle_fade_color),
-        )
-
-        glUniform1f(
-            glGetUniformLocation(self.shader_program, "minWeight"),
-            self.dynamic_attrs.get("particle_min_weight", 0.5),
-        )
-
-        glUniform1f(
-            glGetUniformLocation(self.shader_program, "maxWeight"),
-            self.dynamic_attrs.get("particle_max_weight", 1.0),
-        )
-
-        glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleMaxVelocity"),
-            self.dynamic_attrs.get("particle_max_velocity", 10.0),
-        )
-
-        glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleBounceFactor"),
-            self.dynamic_attrs.get("particle_bounce_factor", 0.6),
-        )
-
-        glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleGroundPlaneHeight"),
-            self.dynamic_attrs.get("particle_ground_plane_height", 0.0),
-        )
-
-        glUniform3fv(
-            glGetUniformLocation(self.shader_program, "particleColor"),
-            1,
-            glm.value_ptr(self.shader_particle_color),
-        )
-
-        glUniform3fv(
-            glGetUniformLocation(self.shader_program, "particleGravity"),
-            1,
-            glm.value_ptr(self.shader_particle_gravity),
-        )
-
-        glUniform1i(
-            glGetUniformLocation(self.shader_program, "fluidSimulation"),
-            int(self.dynamic_attrs.get("fluid_simulation", 0))
-        )
-
-        glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"),
-                    self.dynamic_attrs.get("particle_pressure", 1.0))
-
-        glUniform1f(glGetUniformLocation(self.shader_program, "particleViscosity"),
-                    self.dynamic_attrs.get("particle_viscosity", 0.5))
-
-        glUniform3fv(
-            glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
-            1,
-            glm.value_ptr(self.shader_particle_ground_plane_normal),
-        )
 
     def update_camera(self, delta_time):
         if self.auto_camera:
