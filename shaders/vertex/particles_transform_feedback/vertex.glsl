@@ -39,6 +39,7 @@ out float lifetimePercentageToFragment;// For fragment shader
 
 out vec3 fragColor;// Output color to the fragment shader
 flat out float particleIDOut;// Pass the particle ID to the fragment shader
+out vec3 fragPos;// Particle's position in world space
 
 // Function to simulate fluid forces (pressure and viscosity)
 vec3 calculateFluidForces(vec3 velocity) {
@@ -77,6 +78,7 @@ void main() {
         lifetimePercentageToFragment = 1.0;
         tfParticleID = particleID;
         particleIDOut = particleID;
+        fragPos = (model * position).xyz;
         return;
     }
 
@@ -130,4 +132,7 @@ void main() {
     // Set the final position of the particle using view and projection matrices
     vec4 worldPosition = model * vec4(newPosition, 1.0);
     gl_Position = projection * view * worldPosition;
+
+    // Pass the fragment position in world space
+    fragPos = worldPosition.xyz;
 }

@@ -18,7 +18,8 @@ uniform vec3 particleColor;// Base color of the particle
 // Output to the fragment shader
 out vec3 fragColor;
 out float lifetimePercentageToFragment;
-out float particleIDOut;
+flat out float particleIDOut;
+out vec3 fragPos;// Particle's position in world space
 
 void main() {
     // Apply transformations: model, view, projection
@@ -26,7 +27,7 @@ void main() {
     gl_Position = projection * view * worldPosition;
 
     // Adjust particle size based on distance from the camera
-    vec3 particleToCamera = cameraPosition - position.xyz;
+    vec3 particleToCamera = cameraPosition - worldPosition.xyz;
     float distanceFromCamera = length(particleToCamera);
     float adjustedSize = particleSize / distanceFromCamera;
 
@@ -37,4 +38,7 @@ void main() {
     fragColor = particleColor;
     lifetimePercentageToFragment = lifetimePercentage;
     particleIDOut = particleID;
+
+    // Pass the fragment position in world space
+    fragPos = worldPosition.xyz;
 }

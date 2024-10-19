@@ -31,6 +31,7 @@ uniform vec3 particleColor;// Base color of the particle
 out float lifetimePercentageToFragment;
 out vec3 fragColor;
 flat out float particleIDOut;// Particle ID passed to the fragment shader
+out vec3 fragPos;// Particle's position in world space
 
 void main() {
     uint index = gl_VertexID;// Use the vertex ID to access the correct particle
@@ -48,7 +49,7 @@ void main() {
         lifetimePercentageToFragment = particle.lifetimePercentage;
 
         // Adjust particle size based on distance from the camera
-        vec3 particleToCamera = cameraPosition - particle.position.xyz;
+        vec3 particleToCamera = cameraPosition - worldPosition.xyz;
         float distanceFromCamera = length(particleToCamera);
         float adjustedSize = particleSize / distanceFromCamera;
 
@@ -57,6 +58,9 @@ void main() {
 
         // Pass the particle ID to the fragment shader
         particleIDOut = particle.particleID;
+
+        // Pass the fragment position in world space
+        fragPos = worldPosition.xyz;
 
         // Set point size if using points
         gl_PointSize = adjustedSize;
