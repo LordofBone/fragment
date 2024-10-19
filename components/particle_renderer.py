@@ -509,6 +509,73 @@ class ParticleRenderer(AbstractRenderer):
             print(
                 f"Position attribute location: {position_loc}, Lifetime percentage location: {lifetime_percentage_loc}, Lifetime ID location: {particle_id_loc}")
 
+    def set_general_shader_uniforms(self):
+        """
+        Set up general uniforms for the particle renderer.
+        """
+        glUseProgram(self.shader_program)
+
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "particleSize"),
+            self.dynamic_attrs.get("particle_size", 2.0),
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_program, "particleFadeToColor"),
+            int(self.dynamic_attrs.get("particle_fade_to_color", 0))
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "particleFadeColor"),
+            1,
+            glm.value_ptr(self.shader_particle_fade_color),
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_program, "smoothEdges"),
+            int(self.dynamic_attrs.get("particle_smooth_edges", 0))
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "minWeight"),
+            self.dynamic_attrs.get("particle_min_weight", 0.5),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "maxWeight"),
+            self.dynamic_attrs.get("particle_max_weight", 1.0),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "particleMaxVelocity"),
+            self.dynamic_attrs.get("particle_max_velocity", 10.0),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "particleBounceFactor"),
+            self.dynamic_attrs.get("particle_bounce_factor", 0.6),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_program, "particleGroundPlaneHeight"),
+            self.dynamic_attrs.get("particle_ground_plane_height", 0.0),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "particleColor"),
+            1,
+            glm.value_ptr(self.shader_particle_color),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "particleGravity"),
+            1,
+            glm.value_ptr(self.shader_particle_gravity),
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_program, "fluidSimulation"),
+            int(self.dynamic_attrs.get("fluid_simulation", 0))
+        )
+        glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"),
+                    self.dynamic_attrs.get("particle_pressure", 1.0))
+        glUniform1f(glGetUniformLocation(self.shader_program, "particleViscosity"),
+                    self.dynamic_attrs.get("particle_viscosity", 0.5))
+        glUniform3fv(
+            glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
+            1,
+            glm.value_ptr(self.shader_particle_ground_plane_normal),
+        )
+
     def set_compute_uniforms(self):
         """
         Set up the uniforms for the compute shader.
@@ -944,6 +1011,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Render the particle system.
         """
+        self.set_general_shader_uniforms()
         self.set_view_projection_matrices()
         self.update_particles()
         glBindVertexArray(self.vao)
