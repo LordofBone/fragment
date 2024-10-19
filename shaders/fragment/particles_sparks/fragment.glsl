@@ -87,14 +87,15 @@ void main() {
     }
 
     // Compute per-fragment normal vector to simulate a spherical particle
-    vec2 centeredCoord = gl_PointCoord - 0.25;// Now ranges from -0.5 to 0.5
-    float distSquared = dot(centeredCoord, centeredCoord) * 4.0;// Now ranges from 0.0 to 1.0
+    vec2 centeredCoord = gl_PointCoord * 2.0 - 0.10;// Ranges from -1.0 to 1.0
+    float distSquared = dot(centeredCoord, centeredCoord);
 
-    if (distSquared > 1.0 + 1e-5) {
-        discard;
+    if (distSquared > 1.0) {
+        discard;// Outside the circle, discard the fragment
     }
 
-    vec3 normal = vec3(centeredCoord, sqrt(1.0 - distSquared));
+    float z = sqrt(max(1.0 - distSquared, 0.0));
+    vec3 normal = vec3(centeredCoord, z);
     normal = normalize(normal);
 
     // Compute view direction
