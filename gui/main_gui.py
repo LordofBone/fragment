@@ -1,6 +1,7 @@
 import threading
 import tkinter
 import tkinter.messagebox
+from queue import Queue
 
 import customtkinter
 
@@ -105,6 +106,12 @@ class App(customtkinter.CTk):
                           "Water - Reflection Test"]:
             self.benchmark_listbox.insert(tkinter.END, benchmark)
 
+        # Progress bar for benchmark loading
+        self.loading_progress_bar = customtkinter.CTkProgressBar(self.tabview.tab("Benchmark Selection"),
+                                                                 mode="indeterminate")
+        self.loading_progress_bar.grid(row=2, column=0, padx=20, pady=(10, 20), sticky="nsew")
+        self.loading_progress_bar.grid_remove()  # Hide it initially
+
         # Results tab
         self.results_textbox = customtkinter.CTkTextbox(self.tabview.tab("Results"), width=400, height=300)
         self.results_textbox.grid(row=0, column=0, padx=20, pady=(20, 20), sticky="nsew")
@@ -116,6 +123,9 @@ class App(customtkinter.CTk):
         self.texture_quality_optionmenu.set("High")
         self.shadow_quality_optionmenu.set("Medium")
         self.enable_vsync_checkbox.select()
+
+        # Initialize benchmark completion queue
+        self.benchmark_queue = Queue()
 
     def run_benchmark(self):
         # Get selected benchmarks from the Listbox
@@ -137,25 +147,50 @@ class App(customtkinter.CTk):
 
         for benchmark_name in selected_benchmarks:
             if benchmark_name in benchmark_functions:
+                # Show the progress bar
+                self.loading_progress_bar.grid()
+                self.loading_progress_bar.start()
+
+                # Run the benchmark in a new thread
                 threading.Thread(target=benchmark_functions[benchmark_name]).start()
+
+                # Start a thread to monitor when the benchmark finishes
+                threading.Thread(target=self.check_benchmark_status, args=(benchmark_name,)).start()
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
+
+    def check_benchmark_status(self, benchmark_name):
+        # Wait until the benchmark name appears in the queue
+        while True:
+            try:
+                finished_benchmark = self.benchmark_queue.get(timeout=0.1)
+                if finished_benchmark == benchmark_name:
+                    self.after(0, self.loading_progress_bar.stop)
+                    self.after(0, self.loading_progress_bar.grid_remove)
+                    break
+            except:
+                continue
 
     def run_pyramid_benchmark(self):
         from benchmarks.pyramid5 import run_benchmark
         run_benchmark()
+        # Signal that the benchmark has finished
+        self.benchmark_queue.put("Pyramid 5 - EMBM Test")
 
     def run_sphere_benchmark(self):
         from benchmarks.sphere import run_benchmark
         run_benchmark()
+        self.benchmark_queue.put("Sphere - Transparency Shader Test")
 
     def run_tyre_benchmark(self):
         from benchmarks.tyre import run_benchmark
         run_benchmark()
+        self.benchmark_queue.put("Tyre - Rubber Shader Test")
 
     def run_water_benchmark(self):
         from benchmarks.water import run_benchmark
         run_benchmark()
+        self.benchmark_queue.put("Water - Reflection Test")
 
     def demo_mode(self):
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
