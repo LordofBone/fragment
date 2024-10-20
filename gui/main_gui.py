@@ -196,11 +196,12 @@ class App(customtkinter.CTk):
                 self.loading_progress_bar.grid()
                 self.loading_progress_bar.start()
 
-                # Run the benchmark in a new thread
-                threading.Thread(target=benchmark_functions[benchmark_name]).start()
+                # In run_benchmark method
+                threading.Thread(target=benchmark_functions[benchmark_name], daemon=True).start()
 
-                # Start a thread to monitor when the benchmark finishes
-                threading.Thread(target=self.check_benchmark_status, args=(benchmark_name,)).start()
+                # In check_benchmark_status method
+                threading.Thread(target=self.check_benchmark_status, args=(benchmark_name,), daemon=True).start()
+
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
 
@@ -365,6 +366,16 @@ class App(customtkinter.CTk):
         self.display_results()
 
     def exit_app(self):
-        # Any cleanup code goes here if needed
+        # Stop the loading progress bar if it's running
+        if self.loading_progress_bar:
+            self.loading_progress_bar.stop()
+        # Cancel all pending 'after' callbacks
+        after_ids = self.tk.call('after', 'info')
+        for after_id in self.tk.splitlist(after_ids):
+            try:
+                self.after_cancel(after_id)
+            except:
+                pass
+        # Proceed to exit
         self.quit()
         self.destroy()
