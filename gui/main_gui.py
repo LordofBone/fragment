@@ -61,34 +61,34 @@ class App(customtkinter.CTk):
         # Main content area
         self.tabview = customtkinter.CTkTabview(self, width=600)
         self.tabview.grid(row=0, column=1, columnspan=4, rowspan=5, padx=(20, 20), pady=(20, 20), sticky="nsew")
-        self.tabview.add("Graphics Settings")
+        self.tabview.add("Settings")
         self.tabview.add("Scenarios")
         self.tabview.add("Results")
 
         # Graphics settings tab
-        self.tabview.tab("Graphics Settings").grid_columnconfigure(0, weight=1)
-        self.resolution_label = customtkinter.CTkLabel(self.tabview.tab("Graphics Settings"), text="Resolution:")
+        self.tabview.tab("Settings").grid_columnconfigure(0, weight=1)
+        self.resolution_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Resolution:")
         self.resolution_label.grid(row=0, column=0, padx=20, pady=(20, 10))
-        self.resolution_optionmenu = customtkinter.CTkOptionMenu(self.tabview.tab("Graphics Settings"),
+        self.resolution_optionmenu = customtkinter.CTkOptionMenu(self.tabview.tab("Settings"),
                                                                  values=["640x480", "800x600", "1024x768", "1280x720",
                                                                          "1920x1080"])
         self.resolution_optionmenu.grid(row=0, column=1, padx=20, pady=(20, 10))
 
-        self.texture_quality_label = customtkinter.CTkLabel(self.tabview.tab("Graphics Settings"),
+        self.texture_quality_label = customtkinter.CTkLabel(self.tabview.tab("Settings"),
                                                             text="Texture Quality:")
         self.texture_quality_label.grid(row=1, column=0, padx=20, pady=(20, 10))
-        self.texture_quality_optionmenu = customtkinter.CTkOptionMenu(self.tabview.tab("Graphics Settings"),
+        self.texture_quality_optionmenu = customtkinter.CTkOptionMenu(self.tabview.tab("Settings"),
                                                                       values=["Low", "Medium", "High", "Ultra"])
         self.texture_quality_optionmenu.grid(row=1, column=1, padx=20, pady=(20, 10))
 
-        self.shadow_quality_label = customtkinter.CTkLabel(self.tabview.tab("Graphics Settings"),
+        self.shadow_quality_label = customtkinter.CTkLabel(self.tabview.tab("Settings"),
                                                            text="Shadow Quality:")
         self.shadow_quality_label.grid(row=2, column=0, padx=20, pady=(20, 10))
-        self.shadow_quality_optionmenu = customtkinter.CTkOptionMenu(self.tabview.tab("Graphics Settings"),
+        self.shadow_quality_optionmenu = customtkinter.CTkOptionMenu(self.tabview.tab("Settings"),
                                                                      values=["Low", "Medium", "High", "Ultra"])
         self.shadow_quality_optionmenu.grid(row=2, column=1, padx=20, pady=(20, 10))
 
-        self.enable_vsync_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Graphics Settings"),
+        self.enable_vsync_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"),
                                                                text="Enable V-Sync")
         self.enable_vsync_checkbox.grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 10))
 
