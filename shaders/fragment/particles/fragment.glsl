@@ -39,11 +39,14 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColo
         // Light attenuation
         float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
 
+        // Diffuse shading
         float diff = max(dot(normal, lightDir), 0.0);
         diffuse += attenuation * lightColors[i] * diff * baseColor * lightStrengths[i];
 
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+        // Blinn-Phong specular shading
+        vec3 halfwayDir = normalize(lightDir + viewDir);
+        float specAngle = max(dot(normal, halfwayDir), 0.0);
+        float spec = pow(specAngle, shininess);
         specular += attenuation * spec * lightColors[i] * lightStrengths[i];
     }
 
