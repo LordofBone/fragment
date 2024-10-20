@@ -62,7 +62,7 @@ class App(customtkinter.CTk):
         self.tabview = customtkinter.CTkTabview(self, width=600)
         self.tabview.grid(row=0, column=1, columnspan=4, rowspan=5, padx=(20, 20), pady=(20, 20), sticky="nsew")
         self.tabview.add("Graphics Settings")
-        self.tabview.add("Benchmark Selection")
+        self.tabview.add("Scenarios")
         self.tabview.add("Results")
 
         # Graphics settings tab
@@ -93,8 +93,8 @@ class App(customtkinter.CTk):
         self.enable_vsync_checkbox.grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 10))
 
         # Benchmark selection tab
-        self.tabview.tab("Benchmark Selection").grid_columnconfigure(0, weight=1)
-        self.benchmark_list_label = customtkinter.CTkLabel(self.tabview.tab("Benchmark Selection"),
+        self.tabview.tab("Scenarios").grid_columnconfigure(0, weight=1)
+        self.benchmark_list_label = customtkinter.CTkLabel(self.tabview.tab("Scenarios"),
                                                            text="Select Benchmark Tests:")
         self.benchmark_list_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
@@ -108,19 +108,19 @@ class App(customtkinter.CTk):
         current_row = 1
         for benchmark in self.benchmarks:
             var = tkinter.BooleanVar(value=False)
-            checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Benchmark Selection"), text=benchmark, variable=var)
+            checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Scenarios"), text=benchmark, variable=var)
             checkbox.grid(row=current_row, column=0, padx=20, pady=(5, 5), sticky="w")
             self.benchmark_vars[benchmark] = var
             current_row += 1
 
         # 'Select All' button
-        self.select_all_button = customtkinter.CTkButton(self.tabview.tab("Benchmark Selection"), text="Select All",
+        self.select_all_button = customtkinter.CTkButton(self.tabview.tab("Scenarios"), text="Select All",
                                                          command=self.select_all_benchmarks)
         self.select_all_button.grid(row=current_row, column=0, padx=20, pady=(10, 10), sticky="w")
         current_row += 1
 
         # Progress bar for benchmark loading
-        self.loading_progress_bar = customtkinter.CTkProgressBar(self.tabview.tab("Benchmark Selection"),
+        self.loading_progress_bar = customtkinter.CTkProgressBar(self.tabview.tab("Scenarios"),
                                                                  mode="indeterminate")
         self.loading_progress_bar.grid(row=current_row, column=0, padx=20, pady=(10, 20), sticky="nsew")
         self.loading_progress_bar.grid_remove()  # Hide it initially
