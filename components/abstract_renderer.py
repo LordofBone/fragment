@@ -16,13 +16,35 @@ from components.texture_manager import TextureManager
 texture_manager = TextureManager()
 
 
-def common_funcs(func):
-    def wrapper(self, *args, **kwargs):
-        glUseProgram(self.shader_program)
-        glEnable(GL_DEPTH_TEST)
+def check_gl_error(context, debug_mode):
+    if debug_mode:
+        gl_error = glGetError()
+        if gl_error != GL_NO_ERROR:
+            raise RuntimeError(f"OpenGL error in {context}: {gl_error}")
 
-        viewPosition = self.camera_position
-        glUniform3fv(glGetUniformLocation(self.shader_program, "viewPosition"), 1, glm.value_ptr(viewPosition))
+
+def common_funcs(func):
+    def render_config(self, *args, **kwargs):
+        glUseProgram(self.shader_program)
+        check_gl_error("glUseProgram", self.debug_mode)
+
+        # Enable alpha blending
+        if self.alpha_blending:
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        else:
+            glDisable(GL_BLEND)
+
+        # Depth testing setup
+        if self.depth_testing:
+            glEnable(GL_DEPTH_TEST)
+        else:
+            glDisable(GL_DEPTH_TEST)
+        check_gl_error("Depth testing setup", self.debug_mode)
+
+        view_position = self.camera_position
+        glUniform3fv(glGetUniformLocation(self.shader_program, "viewPosition"), 1, glm.value_ptr(view_position))
+        check_gl_error("Setting viewPosition uniform", self.debug_mode)
 
         # Culling setup
         if self.culling:
@@ -31,24 +53,42 @@ def common_funcs(func):
             glFrontFace(self.front_face_winding)
         else:
             glDisable(GL_CULL_FACE)
+        check_gl_error("Culling setup", self.debug_mode)
 
         self.apply_transformations()
+        check_gl_error("apply_transformations", self.debug_mode)
+
         self.set_shader_uniforms()
+        check_gl_error("set_shader_uniforms", self.debug_mode)
+
         if self.lights_enabled:
             self.set_light_uniforms(self.shader_program)
+        check_gl_error("set_light_uniforms", self.debug_mode)
 
         result = func(self, *args, **kwargs)
+        check_gl_error("render function", self.debug_mode)
 
         # Unbind textures
         glBindTexture(GL_TEXTURE_2D, 0)
+        check_gl_error("Unbind textures", self.debug_mode)
+
+        # Disable alpha blending
+        if self.alpha_blending:
+            glDisable(GL_BLEND)
+
+        # Depth testing teardown
+        if self.depth_testing:
+            glDisable(GL_DEPTH_TEST)
+        check_gl_error("Depth testing teardown", self.debug_mode)
 
         # Culling teardown
         if self.culling:
             glDisable(GL_CULL_FACE)
+        check_gl_error("Culling teardown", self.debug_mode)
 
         return result
 
-    return wrapper
+    return render_config
 
 
 class AbstractRenderer(ABC):
@@ -72,6 +112,8 @@ class AbstractRenderer(ABC):
         apply_gamma_correction=False,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
+        alpha_blending=False,
+        depth_testing=True,
         culling=True,
         msaa_level=8,
         anisotropy=16.0,
@@ -82,6 +124,7 @@ class AbstractRenderer(ABC):
         window_size=(800, 600),
         phong_shading=False,
         opacity=1.0,
+        shininess=1.0,
         distortion_strength=0.3,
         reflection_strength=0.0,
         distortion_warped=False,
@@ -100,6 +143,15 @@ class AbstractRenderer(ABC):
         **kwargs,
     ):
         # Use the memory address of the instance as a unique identifier
+        self.planar_texture = None
+        self.planar_framebuffer = None
+        self.planar_camera_position = None
+        self.planar_camera_rotation = None
+        self.planar_view = None
+        self.planar_projection = None
+        self.environmentMap = None
+        self.view = None
+        self.projection = None
         self.identifier = self
 
         # Proceed with other initializations
@@ -128,6 +180,8 @@ class AbstractRenderer(ABC):
         self.auto_rotation_enabled = rotation_speed != 0.0
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
+        self.alpha_blending = alpha_blending
+        self.depth_testing = depth_testing
         self.culling = culling
         self.msaa_level = msaa_level
         self.anisotropy = anisotropy
@@ -138,9 +192,17 @@ class AbstractRenderer(ABC):
         self.window_size = window_size
 
         self.opacity = opacity
+        self.shininess = shininess
         self.distortion_strength = distortion_strength
         self.reflection_strength = reflection_strength
         self.distortion_warped = distortion_warped
+
+        self.shader_particle_color = glm.vec3(*self.dynamic_attrs.get("particle_color", (1.0, 0.5, 0.2)))
+        self.shader_particle_fade_color = glm.vec3(*self.dynamic_attrs.get("particle_fade_color", (0.0, 0.0, 0.0)))
+        self.shader_particle_gravity = glm.vec3(*self.dynamic_attrs.get("particle_gravity", (0.0, -9.81, 0.0)))
+        self.shader_particle_ground_plane_normal = glm.vec3(
+            *self.dynamic_attrs.get("particle_ground_plane_normal", (0.0, 1.0, 0.0))
+        )
 
         self.screen_texture = screen_texture
         self.planar_resolution = planar_resolution
@@ -164,6 +226,7 @@ class AbstractRenderer(ABC):
         self.vaos = []
 
         self.shader_program = None
+        self.compute_shader_program = None
 
         self.phong_shading = phong_shading
 
@@ -214,7 +277,7 @@ class AbstractRenderer(ABC):
         self.set_constant_uniforms()
 
     def setup_planar_camera(self):
-        texture_unit = texture_manager.get_texture_unit(self.identifier, "planar_camera")
+        texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
         glActiveTexture(GL_TEXTURE0 + texture_unit)
         self.planar_framebuffer = glGenFramebuffers(1)
         self.planar_texture = glGenTextures(1)
@@ -375,11 +438,20 @@ class AbstractRenderer(ABC):
         self.render()
 
     def init_shaders(self):
-        vertex_shader, fragment_shader = self.shader_names
-        vertex_shader_path = self.shaders["vertex"][vertex_shader]
-        fragment_shader_path = self.shaders["fragment"][fragment_shader]
-        shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path)
+        vertex_shader_path = None
+        fragment_shader_path = None
+        compute_shader_path = None
+
+        if "vertex" in self.shader_names:
+            vertex_shader_path = self.shaders["vertex"].get(self.shader_names["vertex"])
+        if "fragment" in self.shader_names:
+            fragment_shader_path = self.shaders["fragment"].get(self.shader_names["fragment"])
+        if "compute" in self.shader_names:
+            compute_shader_path = self.shaders["compute"].get(self.shader_names["compute"])
+
+        shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path)
         self.shader_program = shader_engine.shader_program
+        self.compute_shader_program = shader_engine.compute_shader_program
 
     def load_textures(self):
         """Load textures for the model."""
@@ -390,7 +462,7 @@ class AbstractRenderer(ABC):
             self.load_and_set_texture("displacement", "displacementMap")
 
         self.environmentMap = glGenTextures(1)
-        env_map_unit = texture_manager.get_texture_unit(self.identifier, "environment")
+        env_map_unit = texture_manager.get_texture_unit(str(self.identifier), "environment")
         glActiveTexture(GL_TEXTURE0 + env_map_unit)
         if self.cubemap_folder:
             self.load_cubemap(self.cubemap_folder, self.environmentMap)
@@ -400,7 +472,7 @@ class AbstractRenderer(ABC):
     def load_and_set_texture(self, texture_type, uniform_name):
         """Helper method to load a texture and set the corresponding uniform."""
         texture_map = glGenTextures(1)
-        texture_unit = texture_manager.get_texture_unit(self.identifier, texture_type)
+        texture_unit = texture_manager.get_texture_unit(str(self.identifier), texture_type)
         glActiveTexture(GL_TEXTURE0 + texture_unit)
         self.load_texture(self.texture_paths[texture_type], texture_map)
         glBindTexture(GL_TEXTURE_2D, texture_map)
@@ -526,24 +598,35 @@ class AbstractRenderer(ABC):
         glUseProgram(self.shader_program)
         glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"), self.texture_lod_bias)
         glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
+
         glUniform1i(glGetUniformLocation(self.shader_program, "applyToneMapping"), self.apply_tone_mapping)
+
         glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"), self.apply_gamma_correction)
 
     def set_shader_uniforms(self):
         glUseProgram(self.shader_program)
+
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "ambientColor"), 1, glm.value_ptr(self.ambient_lighting_strength)
         )
+
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(self.model_matrix)
         )
+
         glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(self.view))
+
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(self.projection)
         )
         glUniform1f(glGetUniformLocation(self.shader_program, "opacity"), self.opacity)
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.shininess)
+
         glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
+
         glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
+
         glUniform1f(glGetUniformLocation(self.shader_program, "warped"), self.distortion_warped)
 
         glUniform2f(
@@ -551,7 +634,7 @@ class AbstractRenderer(ABC):
         )
 
         if self.screen_texture:
-            screen_texture_unit = texture_manager.get_texture_unit(self.identifier, "planar_camera")
+            screen_texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
             glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), screen_texture_unit)
 
         glUniform1i(
@@ -560,10 +643,13 @@ class AbstractRenderer(ABC):
         )
 
         glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
+
         glUniform1f(
             glGetUniformLocation(self.shader_program, "waveAmplitude"), self.dynamic_attrs.get("wave_amplitude", 0.1)
         )
+
         glUniform1f(glGetUniformLocation(self.shader_program, "randomness"), self.dynamic_attrs.get("randomness", 0.8))
+
         glUniform1f(
             glGetUniformLocation(self.shader_program, "texCoordFrequency"),
             self.dynamic_attrs.get("tex_coord_frequency", 100.0),
@@ -573,6 +659,7 @@ class AbstractRenderer(ABC):
             self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
         )
         glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position))
+
         glUniform1f(glGetUniformLocation(self.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
     def update_camera(self, delta_time):

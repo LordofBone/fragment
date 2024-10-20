@@ -19,6 +19,8 @@ class RendererConfig:
         anisotropy=16.0,
         auto_camera=False,
         msaa_level=8,
+        alpha_blending=False,
+        depth_testing=True,
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
@@ -27,6 +29,8 @@ class RendererConfig:
         front_face_winding="CCW",
         shaders=None,
         phong_shading=False,
+        opacity=1.0,
+        shininess=1.0,
         ambient_lighting_strength=(0.0, 0.0, 0.0),
         planar_camera=False,
         planar_fov=45,
@@ -57,6 +61,8 @@ class RendererConfig:
         self.anisotropy = anisotropy
         self.auto_camera = auto_camera
         self.msaa_level = msaa_level
+        self.alpha_blending = alpha_blending
+        self.depth_testing = depth_testing
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
@@ -64,6 +70,8 @@ class RendererConfig:
         self.loop = loop
         self.front_face_winding = front_face_winding
         self.phong_shading = phong_shading
+        self.opacity = opacity
+        self.shininess = shininess
         self.ambient_lighting_strength = ambient_lighting_strength
         self.shaders = {}
 
@@ -98,7 +106,7 @@ class RendererConfig:
         if not os.path.exists(shader_root):
             raise FileNotFoundError(f"The shader root directory '{shader_root}' does not exist.")
 
-        for shader_type in ["vertex", "fragment"]:
+        for shader_type in ["vertex", "fragment", "compute"]:
             type_path = os.path.join(shader_root, shader_type)
             if not os.path.exists(type_path):
                 continue
@@ -126,8 +134,13 @@ class RendererConfig:
         apply_gamma_correction=False,
         width=10.0,
         height=10.0,
+        alpha_blending=None,
+        depth_testing=None,
+        culling=None,
         cubemap_folder=None,
         phong_shading=None,
+        opacity=1.0,
+        shininess=1.0,
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -157,8 +170,13 @@ class RendererConfig:
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
             "height": height,
+            "alpha_blending": alpha_blending,
+            "depth_testing": depth_testing,
+            "culling": culling,
             "cubemap_folder": cubemap_folder,
             "phong_shading": phong_shading,
+            "opacity": opacity,
+            "shininess": shininess,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
@@ -190,8 +208,13 @@ class RendererConfig:
         apply_gamma_correction=False,
         width=500.0,
         height=500.0,
+        alpha_blending=None,
+        depth_testing=None,
+        culling=None,
         cubemap_folder=None,
         phong_shading=None,
+        opacity=1.0,
+        shininess=1.0,
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -215,8 +238,13 @@ class RendererConfig:
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
             "height": height,
+            "alpha_blending": alpha_blending,
+            "depth_testing": depth_testing,
+            "culling": culling,
             "cubemap_folder": cubemap_folder,
             "phong_shading": phong_shading,
+            "opacity": opacity,
+            "shininess": shininess,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
@@ -256,3 +284,112 @@ class RendererConfig:
                 skybox_config[key] = value
 
         return skybox_config
+
+    def add_particle_renderer(
+        self,
+        particle_render_mode="transform_feedback",
+        shader_names=("particle_vertex", "particle_fragment"),
+        compute_shader_program=None,
+        alpha_blending=None,
+        phong_shading=None,
+        opacity=1.0,
+        # Lower shininess values create broader, more visible specular highlights; higher values create sharper, smaller highlights.
+        shininess=0.001,
+        depth_testing=None,
+        culling=None,
+        particle_generator=False,
+        generator_delay=0.0,
+        particles_max=100,
+        particle_batch_size=1,
+        particle_type="points",
+        particle_size=1.0,
+        particle_smooth_edges=False,
+        min_initial_velocity_x=-0.0,
+        max_initial_velocity_x=0.0,
+        min_initial_velocity_y=-0.0,
+        max_initial_velocity_y=0.0,
+        min_initial_velocity_z=-0.0,
+        max_initial_velocity_z=0.0,
+        particle_max_velocity=1.0,
+        particle_color=(1.0, 0.0, 0.0),
+        particle_fade_to_color=False,
+        particle_fade_color=(0.0, 1.0, 0.0),
+        particle_gravity=(0.0, -9.81, 0.0),
+        particle_bounce_factor=0.5,
+        particle_ground_plane_normal=(0.0, 1.0, 0.0),
+        particle_ground_plane_height=0.0,
+        particle_max_lifetime=5.0,
+        particle_max_weight=1.0,
+        particle_min_weight=0.1,
+        particle_spawn_time_jitter=False,
+        particle_max_spawn_time_jitter=5,
+        min_width=-0.5,
+        min_height=8.1,
+        min_depth=-0.5,
+        max_width=0.5,
+        max_height=10.1,
+        max_depth=0.5,
+        fluid_simulation=False,
+        particle_pressure=0.0,
+        particle_viscosity=0.0,
+        **kwargs,
+    ):
+        """Add a particle renderer to the configuration."""
+        particle_config = self.unpack()
+
+        particle_specifics = {
+            "alpha_blending": alpha_blending,
+            "phong_shading": phong_shading,
+            "opacity": opacity,
+            "shininess": shininess,
+            "depth_testing": depth_testing,
+            "culling": culling,
+            "particle_generator": particle_generator,
+            "generator_delay": generator_delay,
+            "particles_max": particles_max,
+            "particle_batch_size": particle_batch_size,
+            "particle_type": particle_type,
+            "particle_smooth_edges": particle_smooth_edges,
+            "particle_max_velocity": particle_max_velocity,
+            "particle_render_mode": particle_render_mode,
+            "shader_names": shader_names,
+            "compute_shader_program": compute_shader_program,
+            "particle_size": particle_size,
+            "min_initial_velocity_x": min_initial_velocity_x,
+            "max_initial_velocity_x": max_initial_velocity_x,
+            "min_initial_velocity_y": min_initial_velocity_y,
+            "max_initial_velocity_y": max_initial_velocity_y,
+            "min_initial_velocity_z": min_initial_velocity_z,
+            "max_initial_velocity_z": max_initial_velocity_z,
+            "particle_color": particle_color,
+            "particle_fade_to_color": particle_fade_to_color,
+            "particle_fade_color": particle_fade_color,
+            "particle_gravity": particle_gravity,
+            "particle_bounce_factor": particle_bounce_factor,
+            "particle_ground_plane_normal": particle_ground_plane_normal,
+            "particle_ground_plane_height": particle_ground_plane_height,
+            "particle_max_lifetime": particle_max_lifetime,
+            "particle_max_weight": particle_max_weight,
+            "particle_min_weight": particle_min_weight,
+            "particle_spawn_time_jitter": particle_spawn_time_jitter,
+            "particle_max_spawn_time_jitter": particle_max_spawn_time_jitter,
+            "min_width": min_width,
+            "min_height": min_height,
+            "min_depth": min_depth,
+            "max_width": max_width,
+            "max_height": max_height,
+            "max_depth": max_depth,
+            "fluid_simulation": fluid_simulation,
+            "particle_pressure": particle_pressure,
+            "particle_viscosity": particle_viscosity,
+        }
+
+        # Update the configuration with particle renderer specifics, preserving non-None values
+        particle_config.update({k: v for k, v in particle_specifics.items() if v is not None})
+
+        # Apply any additional keyword arguments passed in kwargs
+        for key, value in kwargs.items():
+            if key not in particle_config:
+                particle_config[key] = value
+
+        return particle_config

@@ -39,7 +39,10 @@ if __name__ == "__main__":
             "normal": "textures/normal/rubber_1.png",
             "displacement": "textures/displacement/rubber_1.png",
         },
-        shader_names=("standard", "rubber"),
+        shader_names={
+            "vertex": "standard",
+            "fragment": "rubber",
+        },
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,

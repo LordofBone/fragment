@@ -47,7 +47,10 @@ if __name__ == "__main__":
             "normal": "textures/normal/crystal.png",
             "displacement": "textures/displacement/crystal.png",
         },
-        shader_names=("standard", "stealth"),
+        shader_names={
+            "vertex": "standard",
+            "fragment": "stealth",
+        },
         opacity=0.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
@@ -69,7 +72,10 @@ if __name__ == "__main__":
             "normal": "textures/normal/metal_1.png",
             "displacement": "textures/displacement/metal_1.png",
         },
-        shader_names=("standard", "stealth"),
+        shader_names={
+            "vertex": "standard",
+            "fragment": "stealth",
+        },
         opacity=0.5,
         distortion_strength=0.2,
         reflection_strength=0.4,
@@ -90,13 +96,19 @@ if __name__ == "__main__":
             "normal": "textures/normal/crystal.png",
             "displacement": "textures/displacement/crystal.png",
         },
-        shader_names=("standard", "embm"),
+        shader_names={
+            "vertex": "standard",
+            "fragment": "embm",
+        },
         rotation_speed=2000.0,
     )
 
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
-        shader_names=("standard", "water"),
+        shader_names={
+            "vertex": "standard",
+            "fragment": "water",
+        },
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=600.0,
@@ -109,7 +121,10 @@ if __name__ == "__main__":
 
     # Add a skybox renderer
     skybox_config = base_config.add_skybox(
-        shader_names=("skybox", "skybox"),
+        shader_names={
+            "vertex": "skybox",
+            "fragment": "skybox",
+        },
     )
     instance.add_renderer("skybox", "skybox", **skybox_config)
 
@@ -120,7 +135,6 @@ if __name__ == "__main__":
     instance.add_renderer("model_opaque", "model", **opaque_pyramid_config)
 
     # Example transformations
-    instance.scene_construct.translate_renderer("model_rotating", (-3, 0, 0))  # Translate first model
     instance.scene_construct.translate_renderer("model_rotating", (0, 0, -3))  # Translate first model
     instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
