@@ -119,10 +119,15 @@ class App(customtkinter.CTk):
         self.select_all_button.grid(row=current_row, column=0, padx=20, pady=(10, 10), sticky="w")
         current_row += 1
 
+        self.deselect_all_button = customtkinter.CTkButton(self.tabview.tab("Scenarios"), text="Deselect All",
+                                                           command=self.deselect_all_benchmarks)
+        self.deselect_all_button.grid(row=current_row, column=0, padx=20, pady=(10, 10), sticky="w")
+        current_row += 1
+
         # Progress bar for benchmark loading
         self.loading_progress_bar = customtkinter.CTkProgressBar(self.tabview.tab("Scenarios"),
                                                                  mode="indeterminate")
-        self.loading_progress_bar.grid(row=current_row, column=0, padx=20, pady=(10, 20), sticky="nsew")
+        self.loading_progress_bar.grid(row=current_row, column=0, padx=20, pady=(10, 10), sticky="nsew")
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
         # Results tab
@@ -143,6 +148,10 @@ class App(customtkinter.CTk):
     def select_all_benchmarks(self):
         for var in self.benchmark_vars.values():
             var.set(True)
+
+    def deselect_all_benchmarks(self):
+        for var in self.benchmark_vars.values():
+            var.set(False)
 
     def run_benchmark(self):
         # Get selected benchmarks from the checkboxes
