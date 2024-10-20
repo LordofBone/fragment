@@ -5,6 +5,7 @@ import os
 class RendererConfig:
     def __init__(
         self,
+            window_title="Renderer",
         window_size=(800, 600),
         texture_paths=None,
         cubemap_folder=None,
@@ -46,6 +47,7 @@ class RendererConfig:
     ):
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2, 0.0, 0.0)]
+        self.window_title = window_title
         self.window_size = window_size
         self.texture_paths = texture_paths
         self.shaders = shaders
