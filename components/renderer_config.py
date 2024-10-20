@@ -293,7 +293,8 @@ class RendererConfig:
             alpha_blending=None,
             phong_shading=None,
             opacity=1.0,
-            shininess=1.0,
+            # Lower shininess values create broader, more visible specular highlights; higher values create sharper, smaller highlights.
+            shininess=0.001,
             depth_testing=None,
             culling=None,
             particle_generator=False,
