@@ -4,7 +4,7 @@ import tkinter.messagebox
 import customtkinter
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("../themes/314reactor.json")
+customtkinter.set_default_color_theme("themes/314reactor.json")
 
 
 class App(customtkinter.CTk):
