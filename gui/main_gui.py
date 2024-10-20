@@ -4,7 +4,7 @@ import tkinter.messagebox
 import customtkinter
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+customtkinter.set_default_color_theme("../themes/314reactor.json")
 
 
 class App(customtkinter.CTk):
@@ -100,7 +100,8 @@ class App(customtkinter.CTk):
         self.benchmark_listbox = tkinter.Listbox(self.tabview.tab("Benchmark Selection"), selectmode="multiple",
                                                  height=10)
         self.benchmark_listbox.grid(row=1, column=0, padx=20, pady=(20, 10), sticky="nsew")
-        for benchmark in ["Game 1 - Helicopter", "Game 2 - Adventure", "Fill Rate Test", "High Polygon Count Test"]:
+        for benchmark in ["Pyramid 5 - EMBM Test", "Sphere - Transparency Shader Test", "Tyre - Rubber Shader Test",
+                          "Water - Reflection Test"]:
             self.benchmark_listbox.insert(tkinter.END, benchmark)
 
         # Results tab
