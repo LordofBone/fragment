@@ -1,3 +1,4 @@
+import threading
 import tkinter
 import tkinter.messagebox
 
@@ -117,7 +118,44 @@ class App(customtkinter.CTk):
         self.enable_vsync_checkbox.select()
 
     def run_benchmark(self):
-        tkinter.messagebox.showinfo("Benchmark", "Running the selected benchmark...")
+        # Get selected benchmarks from the Listbox
+        selected_indices = self.benchmark_listbox.curselection()
+        if not selected_indices:
+            tkinter.messagebox.showwarning("No Selection", "Please select at least one benchmark.")
+            return
+
+        # Get the benchmark names
+        selected_benchmarks = [self.benchmark_listbox.get(i) for i in selected_indices]
+
+        # Map benchmark names to functions
+        benchmark_functions = {
+            "Pyramid 5 - EMBM Test": self.run_pyramid_benchmark,
+            "Sphere - Transparency Shader Test": self.run_sphere_benchmark,
+            "Tyre - Rubber Shader Test": self.run_tyre_benchmark,
+            "Water - Reflection Test": self.run_water_benchmark,
+        }
+
+        for benchmark_name in selected_benchmarks:
+            if benchmark_name in benchmark_functions:
+                threading.Thread(target=benchmark_functions[benchmark_name]).start()
+            else:
+                tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
+
+    def run_pyramid_benchmark(self):
+        from benchmarks.pyramid5 import run_benchmark
+        run_benchmark()
+
+    def run_sphere_benchmark(self):
+        from benchmarks.sphere import run_benchmark
+        run_benchmark()
+
+    def run_tyre_benchmark(self):
+        from benchmarks.tyre import run_benchmark
+        run_benchmark()
+
+    def run_water_benchmark(self):
+        from benchmarks.water import run_benchmark
+        run_benchmark()
 
     def demo_mode(self):
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
@@ -131,8 +169,3 @@ class App(customtkinter.CTk):
     def change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
-
-
-if __name__ == "__main__":
-    app = App()
-    app.mainloop()
