@@ -292,7 +292,7 @@
     ],
     "text_color": [
       "#444444",
-      "#CCCCCC"
+      "gray10"
     ],
     "text_color_disabled": [
       "gray74",
