@@ -4,6 +4,7 @@ from components.renderer_instancing import RenderingInstance
 if __name__ == "__main__":
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
+        window_title="Muon Shower",
         window_size=(800, 600),
         camera_positions=[(4.2, 6.2, 4.2, -60.0, 55.0)],
         camera_target=(0, 0, 0),

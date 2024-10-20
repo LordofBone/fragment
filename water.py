@@ -4,6 +4,7 @@ from components.renderer_instancing import RenderingInstance
 if __name__ == "__main__":
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
+        window_title="Water",
         window_size=(800, 600),
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[(4.2, 4.2, 4.2, -60.0, 55.0)],

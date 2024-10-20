@@ -4,6 +4,7 @@ from components.renderer_instancing import RenderingInstance
 if __name__ == "__main__":
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
+        window_title="Sphere",
         window_size=(800, 600),
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[
