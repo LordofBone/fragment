@@ -98,18 +98,31 @@ class App(customtkinter.CTk):
                                                            text="Select Benchmark Tests:")
         self.benchmark_list_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
-        # Using tkinter Listbox
-        self.benchmark_listbox = tkinter.Listbox(self.tabview.tab("Benchmark Selection"), selectmode="multiple",
-                                                 height=10)
-        self.benchmark_listbox.grid(row=1, column=0, padx=20, pady=(20, 10), sticky="nsew")
-        for benchmark in ["Pyramid 5 - EMBM Test", "Sphere - Transparency Shader Test", "Tyre - Rubber Shader Test",
-                          "Water - Reflection Test", "Muon Shower", "Water Pyramid"]:
-            self.benchmark_listbox.insert(tkinter.END, benchmark)
+        # List of benchmarks
+        self.benchmarks = ["Pyramid 5 - EMBM Test", "Sphere - Transparency Shader Test",
+                           "Tyre - Rubber Shader Test", "Water - Reflection Test",
+                           "Muon Shower", "Water Pyramid"]
+
+        # Dictionary to hold the state variables for each checkbox
+        self.benchmark_vars = {}
+        current_row = 1
+        for benchmark in self.benchmarks:
+            var = tkinter.BooleanVar(value=False)
+            checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Benchmark Selection"), text=benchmark, variable=var)
+            checkbox.grid(row=current_row, column=0, padx=20, pady=(5, 5), sticky="w")
+            self.benchmark_vars[benchmark] = var
+            current_row += 1
+
+        # 'Select All' button
+        self.select_all_button = customtkinter.CTkButton(self.tabview.tab("Benchmark Selection"), text="Select All",
+                                                         command=self.select_all_benchmarks)
+        self.select_all_button.grid(row=current_row, column=0, padx=20, pady=(10, 10), sticky="w")
+        current_row += 1
 
         # Progress bar for benchmark loading
         self.loading_progress_bar = customtkinter.CTkProgressBar(self.tabview.tab("Benchmark Selection"),
                                                                  mode="indeterminate")
-        self.loading_progress_bar.grid(row=2, column=0, padx=20, pady=(10, 20), sticky="nsew")
+        self.loading_progress_bar.grid(row=current_row, column=0, padx=20, pady=(10, 20), sticky="nsew")
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
         # Results tab
@@ -127,15 +140,16 @@ class App(customtkinter.CTk):
         # Initialize benchmark completion queue
         self.benchmark_queue = Queue()
 
+    def select_all_benchmarks(self):
+        for var in self.benchmark_vars.values():
+            var.set(True)
+
     def run_benchmark(self):
-        # Get selected benchmarks from the Listbox
-        selected_indices = self.benchmark_listbox.curselection()
-        if not selected_indices:
+        # Get selected benchmarks from the checkboxes
+        selected_benchmarks = [benchmark for benchmark, var in self.benchmark_vars.items() if var.get()]
+        if not selected_benchmarks:
             tkinter.messagebox.showwarning("No Selection", "Please select at least one benchmark.")
             return
-
-        # Get the benchmark names
-        selected_benchmarks = [self.benchmark_listbox.get(i) for i in selected_indices]
 
         # Map benchmark names to functions
         benchmark_functions = {
