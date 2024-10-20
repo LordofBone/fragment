@@ -29,6 +29,8 @@ class RendererConfig:
             front_face_winding="CCW",
             shaders=None,
             phong_shading=False,
+            opacity=1.0,
+            shininess=1.0,
             ambient_lighting_strength=(0.0, 0.0, 0.0),
             planar_camera=False,
             planar_fov=45,
@@ -68,6 +70,8 @@ class RendererConfig:
         self.loop = loop
         self.front_face_winding = front_face_winding
         self.phong_shading = phong_shading
+        self.opacity = opacity
+        self.shininess = shininess
         self.ambient_lighting_strength = ambient_lighting_strength
         self.shaders = {}
 
