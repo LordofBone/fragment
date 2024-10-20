@@ -251,7 +251,7 @@ class App(customtkinter.CTk):
 
     def display_results(self):
         import matplotlib.style as style
-        style.use('mpl20')  # Use a modern style
+        style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
 
         # Get current appearance mode
         current_mode = customtkinter.get_appearance_mode()
