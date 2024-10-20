@@ -4,6 +4,9 @@ import tkinter.messagebox
 from queue import Queue
 
 import customtkinter
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("themes/314reactor.json")
@@ -131,8 +134,8 @@ class App(customtkinter.CTk):
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
         # Results tab
-        self.results_textbox = customtkinter.CTkTextbox(self.tabview.tab("Results"), width=400, height=300)
-        self.results_textbox.grid(row=0, column=0, padx=20, pady=(20, 20), sticky="nsew")
+        self.results_textbox = customtkinter.CTkTextbox(self.tabview.tab("Results"), width=400, height=100)
+        self.results_textbox.grid(row=1, column=0, padx=20, pady=(20, 20), sticky="nsew")
 
         # Set default values
         self.appearance_mode_optionemenu.set("System")
@@ -144,6 +147,10 @@ class App(customtkinter.CTk):
 
         # Initialize benchmark completion queue
         self.benchmark_queue = Queue()
+
+        # Prepare the graph canvas for results
+        self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 4))  # Two subplots
+        self.canvas = None
 
     def select_all_benchmarks(self):
         for var in self.benchmark_vars.values():
@@ -230,8 +237,42 @@ class App(customtkinter.CTk):
     def demo_mode(self):
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
 
-    def view_results(self):
-        self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n- Game 1: 85.3 FPS\n- Game 2: 60.5 FPS\n...")
+    def display_results(self):
+        # Simulated FPS data
+        benchmarks = ["Pyramid 5", "Sphere", "Tyre", "Water", "Muon Shower", "Water Pyramid"]
+        fps_data = [85.3, 60.5, 72.8, 65.4, 90.1, 78.5]
+
+        # Time series data for CPU/GPU usage
+        time = np.arange(0, 100, 1)
+        cpu_usage = np.sin(time / 10) * 10 + 50
+        gpu_usage = np.cos(time / 10) * 10 + 50
+
+        # Clear old data
+        self.axs[0].cla()
+        self.axs[1].cla()
+
+        # FPS Bar Graph
+        self.axs[0].bar(benchmarks, fps_data, color="dodgerblue")
+        self.axs[0].set_title("Average FPS per Benchmark")
+        self.axs[0].set_ylabel("FPS")
+        self.axs[0].set_ylim(0, 100)
+
+        # CPU/GPU Usage Line Graph
+        self.axs[1].plot(time, cpu_usage, label="CPU Usage", color="tomato", linestyle="--")
+        self.axs[1].plot(time, gpu_usage, label="GPU Usage", color="limegreen")
+        self.axs[1].set_title("CPU and GPU Usage Over Time")
+        self.axs[1].set_xlabel("Time (s)")
+        self.axs[1].set_ylabel("Usage (%)")
+        self.axs[1].legend()
+
+        if self.canvas is None:
+            self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
+            self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 0), sticky="nsew")
+        self.canvas.draw()
+
+        # Insert text results
+        self.results_textbox.delete('1.0', tkinter.END)
+        self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n- Pyramid 5: 85.3 FPS\n- Sphere: 60.5 FPS\n...")
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -239,3 +280,6 @@ class App(customtkinter.CTk):
     def change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
+
+    def view_results(self):
+        self.display_results()
