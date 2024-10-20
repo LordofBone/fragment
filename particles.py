@@ -44,23 +44,26 @@ if __name__ == "__main__":
 
         # shader_names={
         #     'vertex': 'particles_cpu',
-        #     'fragment': 'particles_sparks',
+        #     'fragment': 'particles',
         #     'compute': None,
         # },
         # shader_names={
         #     'vertex': 'particles_transform_feedback',
-        #     'fragment': 'particles_sparks',
+        #     'fragment': 'particles',
         #     'compute': None,
         # },
         shader_names={
             'vertex': 'particles_compute_shader',
-            'fragment': 'particles_sparks',
+            'fragment': 'particles',
             'compute': 'particles',
         },
 
         particle_generator=True,
         generator_delay=0.0,
         particle_size=36.0,
+
+        opacity=1.0,
+        shininess=32.0,
 
         min_initial_velocity_x=-3.0,
         max_initial_velocity_x=3.0,
