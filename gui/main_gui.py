@@ -3,6 +3,7 @@ import tkinter
 import tkinter.messagebox
 from queue import Queue
 
+import _tkinter
 import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
@@ -366,16 +367,30 @@ class App(customtkinter.CTk):
         self.display_results()
 
     def exit_app(self):
-        # Stop the loading progress bar if it's running
-        if self.loading_progress_bar:
-            self.loading_progress_bar.stop()
-        # Cancel all pending 'after' callbacks
-        after_ids = self.tk.call('after', 'info')
-        for after_id in self.tk.splitlist(after_ids):
-            try:
-                self.after_cancel(after_id)
-            except:
-                pass
-        # Proceed to exit
-        self.quit()
-        self.destroy()
+        try:
+            # Stop the loading progress bar if it's running
+            if self.loading_progress_bar:
+                self.loading_progress_bar.stop()
+
+            # Cancel all pending 'after' callbacks
+            after_ids = self.tk.call('after', 'info')
+            for after_id in self.tk.splitlist(after_ids):
+                try:
+                    self.after_cancel(after_id)
+                except:
+                    pass
+
+            # Close and destroy the matplotlib canvas if it exists
+            if self.canvas is not None:
+                self.canvas.get_tk_widget().destroy()
+                self.canvas = None
+
+            # Quit the main loop
+            self.quit()
+
+            # Safely destroy the window and exit
+            self.destroy()
+
+        except _tkinter.TclError:
+            # Ignore the TclError since it's non-critical and only affects cleanup
+            pass
