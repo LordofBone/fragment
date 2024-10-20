@@ -46,7 +46,9 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColo
         // Blinn-Phong specular shading
         vec3 halfwayDir = normalize(lightDir + viewDir);
         float specAngle = max(dot(normal, halfwayDir), 0.0);
-        float spec = pow(specAngle, shininess);
+
+        // Correct the calculation for shininess to give higher values more shine
+        float spec = pow(specAngle, max(shininess, 0.0));// Ensure shininess doesn't reduce specular to lower than 0
         specular += attenuation * spec * lightColors[i] * lightStrengths[i];
     }
 
