@@ -9,8 +9,21 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 class ParticleRenderer(AbstractRenderer):
     def __init__(self, particles_max=100, particle_batch_size=1, particle_render_mode='transform_feedback',
-                 particle_generator=False, generator_delay=0.0, particle_type='point',
+                 particle_generator=False, generator_delay=0.0, particle_type='point', particle_size=2.0,
+                 particle_smooth_edges=False,
+                 max_height=1.0,
+                 max_width=1.0, max_depth=1.0, min_height=1.0, min_width=1.0, min_depth=1.0,
+                 particle_ground_plane_height=0.0, min_initial_velocity_x=-0.5, max_initial_velocity_x=0.5,
+                 min_initial_velocity_y=-0.5, max_initial_velocity_y=0.5, min_initial_velocity_z=-0.5,
+                 max_initial_velocity_z=0.5, particle_max_velocity=10.0, particle_max_lifetime=5.0,
+                 particle_spawn_time_jitter=False, particle_max_spawn_time_jitter=0.0, particle_color=(1.0, 0.5, 0.2),
+                 particle_fade_to_color=False, shader_particle_fade_color=(0.0, 1.0, 0.0),
+                 particle_gravity=(0.0, -9.81, 0.0), particle_bounce_factor=0.6,
+                 particle_ground_plane_normal=(0.0, 1.0, 0.0),
+                 particle_min_weight=0.5, particle_max_weight=1.0, fluid_simulation=False, fluid_force_multiplier=1.0,
+                 particle_pressure=1.0, particle_viscosity=0.5,
                  **kwargs):
+
         """
         Initialize the ParticleRenderer with various parameters.
 
@@ -60,54 +73,55 @@ class ParticleRenderer(AbstractRenderer):
         self.feedback_vbo = None
         self.ssbo = None
         self.generation_data_buffer = None
-        self.particle_size = self.dynamic_attrs.get('particle_size', 2.0)  # Default particle size
-        self.max_height = self.dynamic_attrs.get('max_height', 1.0)  # Default height for the particle field
-        self.max_width = self.dynamic_attrs.get('max_width', 1.0)  # Default width for the particle field
-        self.max_depth = self.dynamic_attrs.get('max_depth', 1.0)  # Default depth for the particle field
-        self.min_height = self.dynamic_attrs.get('min_height', 1.0)  # Default height for the particle field
-        self.min_width = self.dynamic_attrs.get('min_width', 1.0)  # Default width for the particle field
-        self.min_depth = self.dynamic_attrs.get('min_depth', 1.0)  # Default depth for the particle field
+        self.particle_size = particle_size  # Default particle size
+        self.particle_smooth_edges = particle_smooth_edges  # Smooth edges for particles
+
+        self.max_height = max_height  # Default height for the particle field
+        self.max_width = max_width  # Default width for the particle field
+        self.max_depth = max_depth  # Default depth for the particle field
+        self.min_height = min_height  # Default height for the particle field
+        self.min_width = min_width  # Default width for the particle field
+        self.min_depth = min_depth  # Default depth for the particle field
         self.start_time = time.time()  # Store the start time (epoch)
         self.last_time = self.start_time  # Store the last frame time for delta time calculations
 
-        self.particle_ground_plane_height = self.dynamic_attrs.get('particle_ground_plane_height', 0.0)
+        self.particle_ground_plane_height = particle_ground_plane_height
 
         # Set up particle initial velocity ranges
-        self.min_initial_velocity_x = self.dynamic_attrs.get('min_initial_velocity_x', -0.5)
-        self.max_initial_velocity_x = self.dynamic_attrs.get('max_initial_velocity_x', 0.5)
-        self.min_initial_velocity_y = self.dynamic_attrs.get('min_initial_velocity_y', -0.5)
-        self.max_initial_velocity_y = self.dynamic_attrs.get('max_initial_velocity_y', 0.5)
-        self.min_initial_velocity_z = self.dynamic_attrs.get('min_initial_velocity_z', -0.5)
-        self.max_initial_velocity_z = self.dynamic_attrs.get('max_initial_velocity_z', 0.5)
+        self.min_initial_velocity_x = min_initial_velocity_x
+        self.max_initial_velocity_x = max_initial_velocity_x
+        self.min_initial_velocity_y = min_initial_velocity_y
+        self.max_initial_velocity_y = max_initial_velocity_y
+        self.min_initial_velocity_z = min_initial_velocity_z
+        self.max_initial_velocity_z = max_initial_velocity_z
 
         # Set up particle absolute max velocity
-        self.particle_max_velocity = self.dynamic_attrs.get('particle_max_velocity', 10.0)
-        self.particle_max_lifetime = self.dynamic_attrs.get('particle_max_lifetime', 5.0)
-        self.particle_spawn_time_jitter = self.dynamic_attrs.get('particle_spawn_time_jitter', False)
-        self.particle_max_spawn_time_jitter = self.dynamic_attrs.get('particle_max_spawn_time_jitter', 5.0)
+        self.particle_max_velocity = particle_max_velocity
+        self.particle_max_lifetime = particle_max_lifetime
+        self.particle_spawn_time_jitter = particle_spawn_time_jitter
+        self.particle_max_spawn_time_jitter = particle_max_spawn_time_jitter
 
         self.free_slots = []
 
         # Only used in CPU mode
         self.cpu_particles = np.zeros((self.max_particles, 10), dtype=np.float32)  # Store particle attributes
-        self.particle_color = glm.vec3(*self.dynamic_attrs.get("particle_color", (1.0, 0.5, 0.2)))
+        self.particle_color = glm.vec3(*particle_color)
+        self.particle_fade_to_color = particle_fade_to_color
+        self.shader_particle_fade_color = glm.vec3(*shader_particle_fade_color)
 
         self.particle_positions = None
         self.particle_velocities = None
-        self.particle_gravity = np.array(self.dynamic_attrs.get('particle_gravity', (0.0, -9.81, 0.0)),
-                                         dtype=np.float32)
-        self.particle_bounce_factor = self.dynamic_attrs.get('particle_bounce_factor', 0.6)
-        self.particle_ground_plane_normal = np.array(
-            self.dynamic_attrs.get('particle_ground_plane_normal', (0.0, 1.0, 0.0)),
-            dtype=np.float32)
+        self.particle_gravity = np.array(particle_gravity, dtype=np.float32)
+        self.particle_bounce_factor = particle_bounce_factor
+        self.particle_ground_plane_normal = np.array(particle_ground_plane_normal, dtype=np.float32)
 
-        self.particle_min_weight = self.dynamic_attrs.get('particle_min_weight', 0.01)
-        self.particle_max_weight = self.dynamic_attrs.get('particle_max_weight', 0.1)
-        self.fluid_simulation = self.dynamic_attrs.get('fluid_simulation', False)
+        self.particle_min_weight = particle_min_weight
+        self.particle_max_weight = particle_max_weight
+        self.fluid_simulation = fluid_simulation
         # Currently fluid force multiplier is only used in CPU mode
-        self.fluid_force_multiplier = self.dynamic_attrs.get('fluid_force_multiplier', 1.0)
-        self.particle_pressure = self.dynamic_attrs.get('particle_pressure', 1.0)
-        self.particle_viscosity = self.dynamic_attrs.get('particle_viscosity', 0.5)
+        self.fluid_force_multiplier = fluid_force_multiplier
+        self.particle_pressure = particle_pressure
+        self.particle_viscosity = particle_viscosity
 
         self.current_time = time.time()
         self.delta_time = min(self.current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
@@ -517,11 +531,11 @@ class ParticleRenderer(AbstractRenderer):
 
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleSize"),
-            self.dynamic_attrs.get("particle_size", 2.0),
+            self.particle_size,
         )
         glUniform1i(
             glGetUniformLocation(self.shader_program, "particleFadeToColor"),
-            int(self.dynamic_attrs.get("particle_fade_to_color", 0))
+            int(self.particle_fade_to_color)
         )
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleFadeColor"),
@@ -530,27 +544,27 @@ class ParticleRenderer(AbstractRenderer):
         )
         glUniform1i(
             glGetUniformLocation(self.shader_program, "smoothEdges"),
-            int(self.dynamic_attrs.get("particle_smooth_edges", 0))
+            int(self.particle_smooth_edges)
         )
         glUniform1f(
             glGetUniformLocation(self.shader_program, "minWeight"),
-            self.dynamic_attrs.get("particle_min_weight", 0.5),
+            self.particle_min_weight,
         )
         glUniform1f(
             glGetUniformLocation(self.shader_program, "maxWeight"),
-            self.dynamic_attrs.get("particle_max_weight", 1.0),
+            self.particle_max_weight,
         )
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleMaxVelocity"),
-            self.dynamic_attrs.get("particle_max_velocity", 10.0),
+            self.particle_max_velocity,
         )
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleBounceFactor"),
-            self.dynamic_attrs.get("particle_bounce_factor", 0.6),
+            self.particle_bounce_factor,
         )
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleGroundPlaneHeight"),
-            self.dynamic_attrs.get("particle_ground_plane_height", 0.0),
+            self.particle_ground_plane_height,
         )
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleColor"),
@@ -564,12 +578,12 @@ class ParticleRenderer(AbstractRenderer):
         )
         glUniform1i(
             glGetUniformLocation(self.shader_program, "fluidSimulation"),
-            int(self.dynamic_attrs.get("fluid_simulation", 0))
+            int(self.fluid_simulation)
         )
         glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"),
-                    self.dynamic_attrs.get("particle_pressure", 1.0))
+                    self.particle_pressure)
         glUniform1f(glGetUniformLocation(self.shader_program, "particleViscosity"),
-                    self.dynamic_attrs.get("particle_viscosity", 0.5))
+                    self.particle_viscosity)
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
             1,
