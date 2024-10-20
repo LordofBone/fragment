@@ -19,10 +19,7 @@ if __name__ == "__main__":
         auto_camera=True,
         msaa_level=8,
         alpha_blending=True,
-        opacity=1.0,
-        shininess=0.0,
         culling=True,
-        phong_shading=True,
         debug_mode=False,
     )
 
@@ -79,6 +76,9 @@ if __name__ == "__main__":
         particle_color=(1.0, 0.7, 0.2),
         particle_fade_to_color=False,
         particle_fade_color=(0.0, 1.0, 0.0),
+        phong_shading=True,
+        opacity=1.0,
+        shininess=0.0,
         particle_gravity=(0.0, -9.81, 0.0),
         particle_bounce_factor=0.65,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
