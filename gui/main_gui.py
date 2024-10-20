@@ -24,15 +24,14 @@ class App(customtkinter.CTk):
         self.geometry(f"{1200}x700")
 
         # Configure grid layout (6 rows, 5 columns)
-        self.grid_columnconfigure(0, weight=0)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure((2, 3, 4), weight=0)
-        self.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.grid_columnconfigure(0, weight=0)  # Sidebar column
+        self.grid_columnconfigure((1, 2, 3, 4), weight=1)  # Main content columns
+        self.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)  # Main content rows
         self.grid_rowconfigure(5, weight=0)  # Row for the loading bar
 
         # Create sidebar frame with widgets
         self.sidebar_frame = customtkinter.CTkFrame(self, width=200, corner_radius=0)
-        self.sidebar_frame.grid(row=0, column=0, rowspan=5, sticky="nsew")
+        self.sidebar_frame.grid(row=0, column=0, rowspan=6, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
 
         # Sidebar Logo
@@ -90,7 +89,7 @@ class App(customtkinter.CTk):
         # Main content area
         self.tabview = customtkinter.CTkTabview(self, width=600)
         self.tabview.grid(
-            row=0, column=1, columnspan=4, rowspan=5, padx=(20, 20), pady=(20, 20), sticky="nsew"
+            row=0, column=1, columnspan=4, rowspan=5, padx=(20, 20), pady=(20, 0), sticky="nsew"
         )
         self.tabview.add("Settings")
         self.tabview.add("Scenarios")
@@ -210,10 +209,10 @@ class App(customtkinter.CTk):
         # Handle window close event
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
 
-        # Move the loading progress bar to the bottom of the main window
+        # Move the loading progress bar to the bottom of the right side panel
         self.loading_progress_bar = customtkinter.CTkProgressBar(self, mode="indeterminate")
         self.loading_progress_bar.grid(
-            row=5, column=0, columnspan=5, padx=20, pady=(0, 10), sticky="ew"
+            row=5, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew"
         )
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
