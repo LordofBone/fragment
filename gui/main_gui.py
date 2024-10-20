@@ -258,13 +258,9 @@ class App(customtkinter.CTk):
         if current_mode == "Dark":
             bar_color = "skyblue"
             line_colors = ["yellow", "cyan"]
-            chart_bg_color = "#2c2c2c"
-            text_color = "#b0b0b0"
         else:
             bar_color = "blue"
             line_colors = ["red", "green"]
-            chart_bg_color = "#f0f0f0"
-            text_color = "#202020"
 
         # Simulated FPS data
         benchmarks = ["Pyramid 5", "Sphere", "Tyre", "Water", "Muon Shower", "Water Pyramid"]
@@ -276,8 +272,6 @@ class App(customtkinter.CTk):
         gpu_usage = np.cos(time / 10) * 10 + 50
 
         # Create figure and axes
-        figure_width = self.tabview.winfo_width() / 100
-        figure_height = self.tabview.winfo_height() / 100
         self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 4))
 
         # FPS Bar Graph
@@ -300,7 +294,9 @@ class App(customtkinter.CTk):
         if self.canvas is None:
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
             self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 0), sticky="nsew")
-        self.canvas.draw()
+        else:
+            self.canvas.figure = self.fig
+            self.canvas.draw()
 
         # Insert text results
         self.results_textbox.delete('1.0', tkinter.END)
@@ -308,6 +304,7 @@ class App(customtkinter.CTk):
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
+        self.adjust_chart_mode(new_appearance_mode)
 
     def change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
@@ -315,7 +312,7 @@ class App(customtkinter.CTk):
 
     def adjust_chart_mode(self, mode):
         # If the figure and axes do not exist yet, return
-        if not hasattr(self, 'fig') or not hasattr(self, 'axs'):
+        if not hasattr(self, 'fig') or not hasattr(self, 'axs') or self.fig is None or self.axs is None:
             return
 
         if mode == "Dark":
@@ -352,7 +349,9 @@ class App(customtkinter.CTk):
         for line, color in zip(lines, line_colors):
             line.set_color(color)
 
-        # self.canvas.draw()
+        # Redraw the canvas to update the chart display
+        if self.canvas is not None:
+            self.canvas.draw()
 
     def view_results(self):
         self.display_results()
