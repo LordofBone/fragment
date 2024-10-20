@@ -17,6 +17,7 @@ uniform vec3 lightPositions[10];// Array of light positions in world space
 uniform vec3 lightColors[10];// Array of light colors
 uniform float lightStrengths[10];// Array of light strengths
 uniform vec3 viewPosition;// Position of the camera/viewer in world space
+uniform float opacity;// Base opacity of the particle color
 uniform float shininess;// Shininess factor for specular reflection
 uniform bool phongShading;// Flag to control Phong shading
 
@@ -109,13 +110,17 @@ void main() {
         finalColorRGB = computeDiffuseLighting(normal, fragPos, baseColor);
     }
 
-    // Calculate alpha based on lifetime and smooth edges
-    float alpha;
+    // Calculate alpha based on lifetime, smooth edges, and base opacity
+    float alphaBase;
     if (smoothEdges) {
-        alpha = clamp(1.0 - lifetimePercentageToFragment - distSquared, 0.0, 1.0);
+        float edgeFactor = 1.0 - distSquared;
+        alphaBase = edgeFactor * (1.0 - lifetimePercentageToFragment);
     } else {
-        alpha = clamp(1.0 - lifetimePercentageToFragment, 0.0, 1.0);
+        alphaBase = 1.0 - lifetimePercentageToFragment;
     }
+
+    // Incorporate `opacity` parameter
+    float alpha = clamp(alphaBase * opacity, 0.0, 1.0);
 
     // Output the final color with the calculated alpha
     finalColor = vec4(finalColorRGB, alpha);
