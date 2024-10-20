@@ -103,7 +103,7 @@ class App(customtkinter.CTk):
                                                  height=10)
         self.benchmark_listbox.grid(row=1, column=0, padx=20, pady=(20, 10), sticky="nsew")
         for benchmark in ["Pyramid 5 - EMBM Test", "Sphere - Transparency Shader Test", "Tyre - Rubber Shader Test",
-                          "Water - Reflection Test"]:
+                          "Water - Reflection Test", "Muon Shower", "Water Pyramid"]:
             self.benchmark_listbox.insert(tkinter.END, benchmark)
 
         # Progress bar for benchmark loading
@@ -143,6 +143,8 @@ class App(customtkinter.CTk):
             "Sphere - Transparency Shader Test": self.run_sphere_benchmark,
             "Tyre - Rubber Shader Test": self.run_tyre_benchmark,
             "Water - Reflection Test": self.run_water_benchmark,
+            "Muon Shower": self.run_muon_shower_benchmark,
+            "Water Pyramid": self.run_water_pyramid_benchmark,
         }
 
         for benchmark_name in selected_benchmarks:
@@ -191,6 +193,16 @@ class App(customtkinter.CTk):
         from benchmarks.water import run_benchmark
         run_benchmark()
         self.benchmark_queue.put("Water - Reflection Test")
+
+    def run_muon_shower_benchmark(self):
+        from benchmarks.muon_shower import run_benchmark
+        run_benchmark()
+        self.benchmark_queue.put("Muon Shower")
+
+    def run_water_pyramid_benchmark(self):
+        from benchmarks.water_pyramid import run_benchmark
+        run_benchmark()
+        self.benchmark_queue.put("Water Pyramid")
 
     def demo_mode(self):
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
