@@ -1,7 +1,8 @@
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
-if __name__ == "__main__":
+
+def run_benchmark():
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Muon Shower",
