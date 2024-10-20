@@ -61,12 +61,20 @@ class App(customtkinter.CTk):
                                                                command=self.change_scaling_event)
         self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
 
+        # Exit button at the bottom right
+        self.exit_button = customtkinter.CTkButton(self.sidebar_frame, text="Exit", command=self.exit_app)
+        self.exit_button.grid(row=9, column=0, padx=20, pady=(10, 10), sticky="se")
+
         # Main content area
         self.tabview = customtkinter.CTkTabview(self, width=600)
         self.tabview.grid(row=0, column=1, columnspan=4, rowspan=5, padx=(20, 20), pady=(20, 20), sticky="nsew")
         self.tabview.add("Settings")
         self.tabview.add("Scenarios")
         self.tabview.add("Results")
+
+        # Configure Results tab to expand
+        self.tabview.tab("Results").grid_rowconfigure(0, weight=1)
+        self.tabview.tab("Results").grid_columnconfigure(0, weight=1)
 
         # Graphics settings tab
         self.tabview.tab("Settings").grid_columnconfigure(0, weight=1)
@@ -149,8 +157,12 @@ class App(customtkinter.CTk):
         self.benchmark_queue = Queue()
 
         # Prepare the graph canvas for results
-        self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 4))  # Two subplots
+        self.fig = None  # Will be created in display_results
+        self.axs = None
         self.canvas = None
+
+        # Handle window close event
+        self.protocol("WM_DELETE_WINDOW", self.exit_app)
 
     def select_all_benchmarks(self):
         for var in self.benchmark_vars.values():
@@ -238,6 +250,22 @@ class App(customtkinter.CTk):
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
 
     def display_results(self):
+        import matplotlib.style as style
+        style.use('mpl20')  # Use a modern style
+
+        # Get current appearance mode
+        current_mode = customtkinter.get_appearance_mode()
+        if current_mode == "Dark":
+            bar_color = "skyblue"
+            line_colors = ["yellow", "cyan"]
+            chart_bg_color = "#2c2c2c"
+            text_color = "#b0b0b0"
+        else:
+            bar_color = "blue"
+            line_colors = ["red", "green"]
+            chart_bg_color = "#f0f0f0"
+            text_color = "#202020"
+
         # Simulated FPS data
         benchmarks = ["Pyramid 5", "Sphere", "Tyre", "Water", "Muon Shower", "Water Pyramid"]
         fps_data = [85.3, 60.5, 72.8, 65.4, 90.1, 78.5]
@@ -247,23 +275,27 @@ class App(customtkinter.CTk):
         cpu_usage = np.sin(time / 10) * 10 + 50
         gpu_usage = np.cos(time / 10) * 10 + 50
 
-        # Clear old data
-        self.axs[0].cla()
-        self.axs[1].cla()
+        # Create figure and axes
+        figure_width = self.tabview.winfo_width() / 100
+        figure_height = self.tabview.winfo_height() / 100
+        self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 4))
 
         # FPS Bar Graph
-        self.axs[0].bar(benchmarks, fps_data, color="dodgerblue")
+        self.axs[0].bar(benchmarks, fps_data, color=bar_color)
         self.axs[0].set_title("Average FPS per Benchmark")
         self.axs[0].set_ylabel("FPS")
         self.axs[0].set_ylim(0, 100)
 
         # CPU/GPU Usage Line Graph
-        self.axs[1].plot(time, cpu_usage, label="CPU Usage", color="tomato", linestyle="--")
-        self.axs[1].plot(time, gpu_usage, label="GPU Usage", color="limegreen")
+        self.axs[1].plot(time, cpu_usage, label="CPU Usage", linestyle="--")
+        self.axs[1].plot(time, gpu_usage, label="GPU Usage")
         self.axs[1].set_title("CPU and GPU Usage Over Time")
         self.axs[1].set_xlabel("Time (s)")
         self.axs[1].set_ylabel("Usage (%)")
         self.axs[1].legend()
+
+        # Adjust colors
+        self.adjust_chart_mode(current_mode)
 
         if self.canvas is None:
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
@@ -281,5 +313,51 @@ class App(customtkinter.CTk):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
 
+    def adjust_chart_mode(self, mode):
+        # If the figure and axes do not exist yet, return
+        if not hasattr(self, 'fig') or not hasattr(self, 'axs'):
+            return
+
+        if mode == "Dark":
+            chart_bg_color = "#2c2c2c"
+            text_color = "#b0b0b0"
+            bar_color = "skyblue"
+            line_colors = ["yellow", "cyan"]
+        else:
+            chart_bg_color = "#f0f0f0"
+            text_color = "#202020"
+            bar_color = "blue"
+            line_colors = ["red", "green"]
+
+        # Set face color of the figure
+        self.fig.patch.set_facecolor(chart_bg_color)
+        # Set face color of the axes and adjust text colors
+        for ax in self.axs:
+            ax.set_facecolor(chart_bg_color)
+            ax.tick_params(axis='x', colors=text_color)
+            ax.tick_params(axis='y', colors=text_color)
+            ax.xaxis.label.set_color(text_color)
+            ax.yaxis.label.set_color(text_color)
+            ax.title.set_color(text_color)
+            for spine in ax.spines.values():
+                spine.set_edgecolor(text_color)
+
+        # Update bar chart colors
+        bars = self.axs[0].patches
+        for bar in bars:
+            bar.set_color(bar_color)
+
+        # Update line chart colors
+        lines = self.axs[1].get_lines()
+        for line, color in zip(lines, line_colors):
+            line.set_color(color)
+
+        # self.canvas.draw()
+
     def view_results(self):
         self.display_results()
+
+    def exit_app(self):
+        # Any cleanup code goes here if needed
+        self.quit()
+        self.destroy()
