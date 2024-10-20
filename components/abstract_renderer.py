@@ -124,6 +124,7 @@ class AbstractRenderer(ABC):
             window_size=(800, 600),
             phong_shading=False,
             opacity=1.0,
+            shininess=1.0,
             distortion_strength=0.3,
             reflection_strength=0.0,
             distortion_warped=False,
@@ -191,6 +192,7 @@ class AbstractRenderer(ABC):
         self.window_size = window_size
 
         self.opacity = opacity
+        self.shininess = shininess
         self.distortion_strength = distortion_strength
         self.reflection_strength = reflection_strength
         self.distortion_warped = distortion_warped
@@ -631,6 +633,9 @@ class AbstractRenderer(ABC):
         )
         glUniform1f(glGetUniformLocation(self.shader_program, "opacity"),
                     self.opacity)
+
+        glUniform1f(glGetUniformLocation(self.shader_program, "shininess"),
+                    self.shininess)
 
         glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"),
                     self.distortion_strength)
