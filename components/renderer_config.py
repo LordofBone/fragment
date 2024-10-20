@@ -5,7 +5,7 @@ import os
 class RendererConfig:
     def __init__(
         self,
-            window_title="Renderer",
+        window_title="Renderer",
         window_size=(800, 600),
         texture_paths=None,
         cubemap_folder=None,
