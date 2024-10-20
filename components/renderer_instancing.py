@@ -18,7 +18,7 @@ class RenderingInstance:
 
     def setup(self):
         self.render_window = RendererWindow(
-            window_size=self.config.window_size, title="Renderer", msaa_level=self.config.msaa_level
+            window_size=self.config.window_size, title=self.config.window_title, msaa_level=self.config.msaa_level
         )
 
         for renderer in self.scene_construct.renderers.values():
