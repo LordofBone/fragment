@@ -19,6 +19,8 @@ if __name__ == "__main__":
         auto_camera=True,
         msaa_level=8,
         alpha_blending=True,
+        opacity=1.0,
+        shininess=0.0,
         culling=True,
         phong_shading=True,
         debug_mode=False,
@@ -61,9 +63,6 @@ if __name__ == "__main__":
         particle_generator=True,
         generator_delay=0.0,
         particle_size=36.0,
-
-        opacity=1.0,
-        shininess=32.0,
 
         min_initial_velocity_x=-3.0,
         max_initial_velocity_x=3.0,
