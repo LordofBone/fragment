@@ -253,6 +253,13 @@ class App(customtkinter.CTk):
     def display_results(self):
         plot_style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
 
+        # Clear previous canvas if it exists
+        if self.canvas is not None:
+            self.canvas.get_tk_widget().destroy()
+            self.canvas = None
+            self.fig = None
+            self.axs = None
+
         # Get current appearance mode
         current_mode = customtkinter.get_appearance_mode()
         if current_mode == "Dark":
@@ -271,7 +278,7 @@ class App(customtkinter.CTk):
         cpu_usage = np.sin(time / 10) * 10 + 50
         gpu_usage = np.cos(time / 10) * 10 + 50
 
-        # Create figure and axes
+        # Create new figure and axes
         self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 4))
 
         # FPS Bar Graph
@@ -288,15 +295,13 @@ class App(customtkinter.CTk):
         self.axs[1].set_ylabel("Usage (%)")
         self.axs[1].legend()
 
-        # Adjust colors
+        # Adjust colors based on appearance mode
         self.adjust_chart_mode()
 
-        if self.canvas is None:
-            self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
-            self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 0), sticky="nsew")
-        else:
-            self.canvas.figure = self.fig
-            self.canvas.draw()
+        # Create a new canvas and display it
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
+        self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 0), sticky="nsew")
+        self.canvas.draw()
 
         # Insert text results
         self.results_textbox.delete('1.0', tkinter.END)
