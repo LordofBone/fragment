@@ -5,6 +5,7 @@ from queue import Queue
 
 import customtkinter
 import matplotlib.pyplot as plt
+import matplotlib.style as plot_style
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -250,8 +251,7 @@ class App(customtkinter.CTk):
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
 
     def display_results(self):
-        import matplotlib.style as style
-        style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
+        plot_style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
 
         # Get current appearance mode
         current_mode = customtkinter.get_appearance_mode()
@@ -289,7 +289,7 @@ class App(customtkinter.CTk):
         self.axs[1].legend()
 
         # Adjust colors
-        self.adjust_chart_mode(current_mode)
+        self.adjust_chart_mode()
 
         if self.canvas is None:
             self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
@@ -304,13 +304,16 @@ class App(customtkinter.CTk):
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
-        self.adjust_chart_mode(new_appearance_mode)
+        self.adjust_chart_mode()
 
     def change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
 
-    def adjust_chart_mode(self, mode):
+    def adjust_chart_mode(self):
+        # Get the effective appearance mode
+        mode = customtkinter.get_appearance_mode()
+
         # If the figure and axes do not exist yet, return
         if not hasattr(self, 'fig') or not hasattr(self, 'axs') or self.fig is None or self.axs is None:
             return
