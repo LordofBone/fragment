@@ -9,6 +9,10 @@ if __name__ == "__main__":
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=60,
+        lights=[
+            {"position": (3.0, 1.0, 4.0), "color": (0.0, 1.0, 0.0), "strength": 1.0},
+            {"position": (0.0, 1.0, 8.0), "color": (1.0, 0.0, 1.0), "strength": 1.0},
+        ],
         near_plane=0.1,
         far_plane=5000,
         anisotropy=16.0,
@@ -16,6 +20,7 @@ if __name__ == "__main__":
         msaa_level=8,
         alpha_blending=True,
         culling=True,
+        phong_shading=True,
         debug_mode=False,
     )
 
@@ -55,7 +60,7 @@ if __name__ == "__main__":
 
         particle_generator=True,
         generator_delay=0.0,
-        particle_size=18.0,
+        particle_size=36.0,
 
         min_initial_velocity_x=-3.0,
         max_initial_velocity_x=3.0,
@@ -68,6 +73,7 @@ if __name__ == "__main__":
         particle_max_lifetime=15.0,  # Set max lifetime to a realistic value
         particle_max_weight=1.5,  # Set max weight to a realistic value
         particle_min_weight=0.5,  # Set min weight to a realistic value
+        particle_smooth_edges=False,
         particle_color=(1.0, 0.7, 0.2),
         particle_fade_to_color=False,
         particle_fade_color=(0.0, 1.0, 0.0),
