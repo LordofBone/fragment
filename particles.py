@@ -33,14 +33,11 @@ if __name__ == "__main__":
     particle_config = base_config.add_particle_renderer(
         particles_max=600,
         particle_batch_size=150,
-
         # available_particle_types = ['points','lines','line_strip','line_loop','lines_adjacency','line_strip_adjacency','triangles','triangle_strip','triangle_fan','triangles_adjacency','triangle_strip_adjacency','patches']
-        particle_type='points',
-
+        particle_type="points",
         # particle_render_mode='cpu',  # Options: 'transform_feedback', 'cpu', 'compute_shader'
         # particle_render_mode='transform_feedback',
-        particle_render_mode='compute_shader',
-
+        particle_render_mode="compute_shader",
         # shader_names={
         #     'vertex': 'particles_cpu',
         #     'fragment': 'particles',
@@ -52,22 +49,19 @@ if __name__ == "__main__":
         #     'compute': None,
         # },
         shader_names={
-            'vertex': 'particles_compute_shader',
-            'fragment': 'particles',
-            'compute': 'particles',
+            "vertex": "particles_compute_shader",
+            "fragment": "particles",
+            "compute": "particles",
         },
-
         particle_generator=True,
         generator_delay=0.0,
         particle_size=36.0,
-
         min_initial_velocity_x=-3.0,
         max_initial_velocity_x=3.0,
         min_initial_velocity_y=-0.0,
         max_initial_velocity_y=20.0,
         min_initial_velocity_z=-3.0,
         max_initial_velocity_z=3.0,
-
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
         particle_max_lifetime=15.0,  # Set max lifetime to a realistic value
         particle_max_weight=1.5,  # Set max weight to a realistic value
@@ -83,13 +77,11 @@ if __name__ == "__main__":
         particle_bounce_factor=0.65,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
         particle_ground_plane_height=1.0,  # Height of the ground plane (y = 0)
-
         fluid_simulation=False,  # Enable fluid simulation
         particle_pressure=6.5,  # Pressure factor for the particles
         particle_viscosity=5.1,  # Viscosity factor for the particles
         particle_spawn_time_jitter=True,  # Jitter for spawn time
         particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
-
         min_width=-0.1,  # Adjusted for a realistic spread along X and Z-axes
         min_height=-0.1,  # Adjusted for a realistic spread along Y-axis
         min_depth=-0.1,  # Adjusted for a realistic spread along X and Z-axes

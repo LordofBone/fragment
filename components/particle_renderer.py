@@ -8,22 +8,47 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
-    def __init__(self, particles_max=100, particle_batch_size=1, particle_render_mode='transform_feedback',
-                 particle_generator=False, generator_delay=0.0, particle_type='point', particle_size=2.0,
-                 particle_smooth_edges=False,
-                 max_height=1.0,
-                 max_width=1.0, max_depth=1.0, min_height=1.0, min_width=1.0, min_depth=1.0,
-                 particle_ground_plane_height=0.0, min_initial_velocity_x=-0.5, max_initial_velocity_x=0.5,
-                 min_initial_velocity_y=-0.5, max_initial_velocity_y=0.5, min_initial_velocity_z=-0.5,
-                 max_initial_velocity_z=0.5, particle_max_velocity=10.0, particle_max_lifetime=5.0,
-                 particle_spawn_time_jitter=False, particle_max_spawn_time_jitter=0.0, particle_color=(1.0, 0.5, 0.2),
-                 particle_fade_to_color=False, shader_particle_fade_color=(0.0, 1.0, 0.0),
-                 particle_gravity=(0.0, -9.81, 0.0), particle_bounce_factor=0.6,
-                 particle_ground_plane_normal=(0.0, 1.0, 0.0),
-                 particle_min_weight=0.5, particle_max_weight=1.0, fluid_simulation=False, fluid_force_multiplier=1.0,
-                 particle_pressure=1.0, particle_viscosity=0.5,
-                 **kwargs):
-
+    def __init__(
+        self,
+        particles_max=100,
+        particle_batch_size=1,
+        particle_render_mode="transform_feedback",
+        particle_generator=False,
+        generator_delay=0.0,
+        particle_type="point",
+        particle_size=2.0,
+        particle_smooth_edges=False,
+        max_height=1.0,
+        max_width=1.0,
+        max_depth=1.0,
+        min_height=1.0,
+        min_width=1.0,
+        min_depth=1.0,
+        particle_ground_plane_height=0.0,
+        min_initial_velocity_x=-0.5,
+        max_initial_velocity_x=0.5,
+        min_initial_velocity_y=-0.5,
+        max_initial_velocity_y=0.5,
+        min_initial_velocity_z=-0.5,
+        max_initial_velocity_z=0.5,
+        particle_max_velocity=10.0,
+        particle_max_lifetime=5.0,
+        particle_spawn_time_jitter=False,
+        particle_max_spawn_time_jitter=0.0,
+        particle_color=(1.0, 0.5, 0.2),
+        particle_fade_to_color=False,
+        shader_particle_fade_color=(0.0, 1.0, 0.0),
+        particle_gravity=(0.0, -9.81, 0.0),
+        particle_bounce_factor=0.6,
+        particle_ground_plane_normal=(0.0, 1.0, 0.0),
+        particle_min_weight=0.5,
+        particle_max_weight=1.0,
+        fluid_simulation=False,
+        fluid_force_multiplier=1.0,
+        particle_pressure=1.0,
+        particle_viscosity=0.5,
+        **kwargs,
+    ):
         """
         Initialize the ParticleRenderer with various parameters.
 
@@ -142,12 +167,20 @@ class ParticleRenderer(AbstractRenderer):
         Handles shader linking and setup for transform feedback if that mode is enabled.
         """
         super().init_shaders()
-        if self.particle_render_mode == 'transform_feedback':
+        if self.particle_render_mode == "transform_feedback":
             # Add lifetimePercentage to the list of variables to capture
-            varyings = ["tfPosition", "tfVelocity", "tfSpawnTime", "tfParticleLifetime", "tfParticleID",
-                        "tfParticleWeight", "tfLifetimePercentage"]
+            varyings = [
+                "tfPosition",
+                "tfVelocity",
+                "tfSpawnTime",
+                "tfParticleLifetime",
+                "tfParticleID",
+                "tfParticleWeight",
+                "tfLifetimePercentage",
+            ]
             varyings_c = (ctypes.POINTER(ctypes.c_char) * len(varyings))(
-                *[ctypes.create_string_buffer(v.encode('utf-8')) for v in varyings])
+                *[ctypes.create_string_buffer(v.encode("utf-8")) for v in varyings]
+            )
             glTransformFeedbackVaryings(self.shader_program, len(varyings), varyings_c, GL_INTERLEAVED_ATTRIBS)
             glLinkProgram(self.shader_program)
 
@@ -181,16 +214,17 @@ class ParticleRenderer(AbstractRenderer):
         Create buffers based on the particle render mode (transform_feedback, compute_shader, or cpu).
         """
         initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
-        particles = self.stack_initial_data(initial_batch_size,
-                                            pad_to_multiple_of_16=(self.particle_render_mode == 'compute_shader'))
+        particles = self.stack_initial_data(
+            initial_batch_size, pad_to_multiple_of_16=(self.particle_render_mode == "compute_shader")
+        )
         # Initialize the particle buffer
         particle_data = self.initialize_particle_data(initial_batch_size, particles)
 
-        if self.particle_render_mode == 'transform_feedback':
+        if self.particle_render_mode == "transform_feedback":
             self.setup_transform_feedback_buffers(particle_data)
-        elif self.particle_render_mode == 'compute_shader':
+        elif self.particle_render_mode == "compute_shader":
             self.setup_compute_shader_buffers(particle_data)
-        elif self.particle_render_mode == 'cpu':
+        elif self.particle_render_mode == "cpu":
             self.setup_cpu_buffers(particle_data)
         else:
             raise ValueError(f"Unknown render mode: {self.particle_render_mode}")
@@ -303,35 +337,42 @@ class ParticleRenderer(AbstractRenderer):
         particle_positions[:, 0] = np.random.uniform(self.min_width, self.max_width, num_particles)
         particle_positions[:, 1] = np.random.uniform(self.min_height, self.max_height, num_particles)
         particle_positions[:, 2] = np.random.uniform(self.min_depth, self.max_depth, num_particles)
-        particle_positions[:,
-        3] = 1.0  # Set w-component to 1.0 (required for calculations for worldPosition vec4 in vertex shaders)
+        particle_positions[:, 3] = (
+            1.0  # Set w-component to 1.0 (required for calculations for worldPosition vec4 in vertex shaders)
+        )
 
         particle_velocities = np.zeros((num_particles, 4), dtype=np.float32)
-        particle_velocities[:, 0] = np.random.uniform(self.min_initial_velocity_x, self.max_initial_velocity_x,
-                                                      num_particles)
-        particle_velocities[:, 1] = np.random.uniform(self.min_initial_velocity_y, self.max_initial_velocity_y,
-                                                      num_particles)
-        particle_velocities[:, 2] = np.random.uniform(self.min_initial_velocity_z, self.max_initial_velocity_z,
-                                                      num_particles)
+        particle_velocities[:, 0] = np.random.uniform(
+            self.min_initial_velocity_x, self.max_initial_velocity_x, num_particles
+        )
+        particle_velocities[:, 1] = np.random.uniform(
+            self.min_initial_velocity_y, self.max_initial_velocity_y, num_particles
+        )
+        particle_velocities[:, 2] = np.random.uniform(
+            self.min_initial_velocity_z, self.max_initial_velocity_z, num_particles
+        )
 
         if self.particle_spawn_time_jitter:
-            jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter,
-                                              (num_particles, 1)).astype(np.float32)
-            spawn_times = np.full((num_particles, 1), self.current_time - self.start_time,
-                                  dtype=np.float32) + jitter_values
+            jitter_values = np.random.uniform(0, self.particle_max_spawn_time_jitter, (num_particles, 1)).astype(
+                np.float32
+            )
+            spawn_times = (
+                np.full((num_particles, 1), self.current_time - self.start_time, dtype=np.float32) + jitter_values
+            )
         else:
             spawn_times = np.full((num_particles, 1), self.current_time - self.start_time, dtype=np.float32)
 
         if self.particle_max_lifetime > 0.0:
-            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_particles, 1)).astype(
-                np.float32)
+            lifetimes = np.random.uniform(0.1, self.particle_max_lifetime, (num_particles, 1)).astype(np.float32)
         else:
             lifetimes = np.full((num_particles, 1), 0.0, dtype=np.float32)
 
-        particle_ids = np.arange(self.generated_particles, self.generated_particles + num_particles,
-                                 dtype=np.float32).reshape(-1, 1)
+        particle_ids = np.arange(
+            self.generated_particles, self.generated_particles + num_particles, dtype=np.float32
+        ).reshape(-1, 1)
         weights = np.random.uniform(self.particle_min_weight, self.particle_max_weight, (num_particles, 1)).astype(
-            np.float32)
+            np.float32
+        )
         lifetime_percentages = np.zeros((num_particles, 1), dtype=np.float32)
 
         if self.debug_mode:
@@ -343,11 +384,20 @@ class ParticleRenderer(AbstractRenderer):
             print(f"Generated Weights: {weights}")
             print(f"Generated Lifetime percentages: {lifetime_percentages}")
 
-        return particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages
+        return (
+            particle_positions,
+            particle_velocities,
+            spawn_times,
+            lifetimes,
+            particle_ids,
+            weights,
+            lifetime_percentages,
+        )
 
     def stack_initial_data(self, num_particles=0, pad_to_multiple_of_16=False):
-        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages = self.generate_initial_data(
-            num_particles)
+        particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages = (
+            self.generate_initial_data(num_particles)
+        )
 
         # Gather the arrays to be concatenated
         arrays_to_stack = [
@@ -403,10 +453,20 @@ class ParticleRenderer(AbstractRenderer):
         lifetime_percentage_loc = glGetAttribLocation(self.shader_program, "lifetimePercentage")
 
         # Ensure all attributes are found
-        if position_loc == -1 or velocity_loc == -1 or spawn_time_loc == -1 or lifetime_loc == -1 or particle_id_loc == -1 or weight_loc == -1 or lifetime_percentage_loc == -1:
+        if (
+            position_loc == -1
+            or velocity_loc == -1
+            or spawn_time_loc == -1
+            or lifetime_loc == -1
+            or particle_id_loc == -1
+            or weight_loc == -1
+            or lifetime_percentage_loc == -1
+        ):
             # Print attribute locations for debugging
-            print(f"position_loc: {position_loc}, velocity_loc: {velocity_loc}, spawn_time_loc: {spawn_time_loc}, "
-                  f"lifetime_loc: {lifetime_loc}, particle_id_loc: {particle_id_loc}, weight_loc: {weight_loc}, particle_percentage_id_loc: {lifetime_percentage_loc}")
+            print(
+                f"position_loc: {position_loc}, velocity_loc: {velocity_loc}, spawn_time_loc: {spawn_time_loc}, "
+                f"lifetime_loc: {lifetime_loc}, particle_id_loc: {particle_id_loc}, weight_loc: {weight_loc}, particle_percentage_id_loc: {lifetime_percentage_loc}"
+            )
             raise RuntimeError(
                 "Position, Velocity, Spawn Time, Lifetime, Particle ID, Particle Lifetime Percentage or Weight attribute not found in shader program."
             )
@@ -419,22 +479,25 @@ class ParticleRenderer(AbstractRenderer):
         glVertexAttribPointer(velocity_loc, 4, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(4 * self.float_size))
 
         glEnableVertexAttribArray(spawn_time_loc)
-        glVertexAttribPointer(spawn_time_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
-                              ctypes.c_void_p(8 * self.float_size))
+        glVertexAttribPointer(
+            spawn_time_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(8 * self.float_size)
+        )
 
         glEnableVertexAttribArray(lifetime_loc)
         glVertexAttribPointer(lifetime_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(9 * self.float_size))
 
         glEnableVertexAttribArray(particle_id_loc)
-        glVertexAttribPointer(particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
-                              ctypes.c_void_p(10 * self.float_size))
+        glVertexAttribPointer(
+            particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(10 * self.float_size)
+        )
 
         glEnableVertexAttribArray(weight_loc)
         glVertexAttribPointer(weight_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(11 * self.float_size))
 
         glEnableVertexAttribArray(lifetime_percentage_loc)
-        glVertexAttribPointer(lifetime_percentage_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
-                              ctypes.c_void_p(12 * self.float_size))
+        glVertexAttribPointer(
+            lifetime_percentage_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(12 * self.float_size)
+        )
 
         if self.debug_mode:
             self._check_vertex_attrib_pointer_setup()
@@ -458,8 +521,9 @@ class ParticleRenderer(AbstractRenderer):
         lifetime_stride = glGetVertexAttribiv(lifetime_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
         particle_id_stride = glGetVertexAttribiv(particle_id_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
         particle_weight_stride = glGetVertexAttribiv(particle_weight_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
-        particle_lifetime_percentage_stride = glGetVertexAttribiv(particle_lifetime_percentage_loc,
-                                                                  GL_VERTEX_ATTRIB_ARRAY_STRIDE)
+        particle_lifetime_percentage_stride = glGetVertexAttribiv(
+            particle_lifetime_percentage_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE
+        )
 
         position_offset = glGetVertexAttribPointerv(position_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         velocity_offset = glGetVertexAttribPointerv(velocity_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
@@ -467,21 +531,26 @@ class ParticleRenderer(AbstractRenderer):
         lifetime_offset = glGetVertexAttribPointerv(lifetime_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         particle_id_offset = glGetVertexAttribPointerv(particle_id_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
         particle_weight_offset = glGetVertexAttribPointerv(particle_weight_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER)
-        particle_lifetime_percentage_offset = glGetVertexAttribPointerv(particle_lifetime_percentage_loc,
-                                                                        GL_VERTEX_ATTRIB_ARRAY_POINTER)
+        particle_lifetime_percentage_offset = glGetVertexAttribPointerv(
+            particle_lifetime_percentage_loc, GL_VERTEX_ATTRIB_ARRAY_POINTER
+        )
 
-        print(f"Position Attributes in _check_vertex_attrib_pointer_setup")
+        print("Position Attributes in _check_vertex_attrib_pointer_setup")
         print(f"Position Attribute: Location = {position_loc}, Stride = {position_stride}, Offset = {position_offset}")
         print(f"Velocity Attribute: Location = {velocity_loc}, Stride = {velocity_stride}, Offset = {velocity_offset}")
         print(
-            f"Spawn Time Attribute: Location = {spawn_time_loc}, Stride = {spawn_time_stride}, Offset = {spawn_time_offset}")
+            f"Spawn Time Attribute: Location = {spawn_time_loc}, Stride = {spawn_time_stride}, Offset = {spawn_time_offset}"
+        )
         print(f"Lifetime Attribute: Location = {lifetime_loc}, Stride = {lifetime_stride}, Offset = {lifetime_offset}")
         print(
-            f"Particle ID Attribute: Location = {particle_id_loc}, Stride = {particle_id_stride}, Offset = {particle_id_offset}")
+            f"Particle ID Attribute: Location = {particle_id_loc}, Stride = {particle_id_stride}, Offset = {particle_id_offset}"
+        )
         print(
-            f"Particle Weight Attribute: Location = {particle_weight_loc}, Stride = {particle_weight_stride}, Offset = {particle_weight_offset}")
+            f"Particle Weight Attribute: Location = {particle_weight_loc}, Stride = {particle_weight_stride}, Offset = {particle_weight_offset}"
+        )
         print(
-            f"Particle Lifetime Percentage Attribute: Location = {particle_lifetime_percentage_loc}, Stride = {particle_lifetime_percentage_stride}, Offset = {particle_lifetime_percentage_offset}")
+            f"Particle Lifetime Percentage Attribute: Location = {particle_lifetime_percentage_loc}, Stride = {particle_lifetime_percentage_stride}, Offset = {particle_lifetime_percentage_offset}"
+        )
 
     def _setup_vertex_attributes_cpu(self):
         """
@@ -499,29 +568,29 @@ class ParticleRenderer(AbstractRenderer):
 
         # Ensure attributes are found
         if position_loc == -1 or lifetime_percentage_loc == -1 or particle_id_loc == -1:
-            raise RuntimeError(
-                "Position, Lifetime Percentage, or Particle ID attribute not found in shader program."
-            )
+            raise RuntimeError("Position, Lifetime Percentage, or Particle ID attribute not found in shader program.")
 
         # Enable and set the vertex attribute arrays
         glEnableVertexAttribArray(position_loc)
         # This is strange as the position is a vec4 but only works when 3 floats are set here for the size
-        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride,
-                              ctypes.c_void_p(0))
+        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
 
         # Enable and set the vertex attribute array for lifetime percentage
         glEnableVertexAttribArray(lifetime_percentage_loc)
-        glVertexAttribPointer(lifetime_percentage_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
-                              ctypes.c_void_p(4 * self.float_size))
+        glVertexAttribPointer(
+            lifetime_percentage_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(4 * self.float_size)
+        )
 
         # Enable and set the vertex attribute array for particle ID
         glEnableVertexAttribArray(particle_id_loc)
-        glVertexAttribPointer(particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride,
-                              ctypes.c_void_p(5 * self.float_size))
+        glVertexAttribPointer(
+            particle_id_loc, 1, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(5 * self.float_size)
+        )
 
         if self.debug_mode:
             print(
-                f"Position attribute location: {position_loc}, Lifetime percentage location: {lifetime_percentage_loc}, Lifetime ID location: {particle_id_loc}")
+                f"Position attribute location: {position_loc}, Lifetime percentage location: {lifetime_percentage_loc}, Lifetime ID location: {particle_id_loc}"
+            )
 
     def set_general_shader_uniforms(self):
         """
@@ -533,19 +602,13 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_program, "particleSize"),
             self.particle_size,
         )
-        glUniform1i(
-            glGetUniformLocation(self.shader_program, "particleFadeToColor"),
-            int(self.particle_fade_to_color)
-        )
+        glUniform1i(glGetUniformLocation(self.shader_program, "particleFadeToColor"), int(self.particle_fade_to_color))
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleFadeColor"),
             1,
             glm.value_ptr(self.shader_particle_fade_color),
         )
-        glUniform1i(
-            glGetUniformLocation(self.shader_program, "smoothEdges"),
-            int(self.particle_smooth_edges)
-        )
+        glUniform1i(glGetUniformLocation(self.shader_program, "smoothEdges"), int(self.particle_smooth_edges))
         glUniform1f(
             glGetUniformLocation(self.shader_program, "minWeight"),
             self.particle_min_weight,
@@ -576,14 +639,9 @@ class ParticleRenderer(AbstractRenderer):
             1,
             glm.value_ptr(self.shader_particle_gravity),
         )
-        glUniform1i(
-            glGetUniformLocation(self.shader_program, "fluidSimulation"),
-            int(self.fluid_simulation)
-        )
-        glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"),
-                    self.particle_pressure)
-        glUniform1f(glGetUniformLocation(self.shader_program, "particleViscosity"),
-                    self.particle_viscosity)
+        glUniform1i(glGetUniformLocation(self.shader_program, "fluidSimulation"), int(self.fluid_simulation))
+        glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"), self.particle_pressure)
+        glUniform1f(glGetUniformLocation(self.shader_program, "particleViscosity"), self.particle_viscosity)
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
             1,
@@ -604,42 +662,65 @@ class ParticleRenderer(AbstractRenderer):
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "currentTime"), np.float32(current_time_sec))
 
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "deltaTime"), np.float32(self.delta_time))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxLifetime"),
-                    np.float32(self.particle_max_lifetime))
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleMaxLifetime"),
+            np.float32(self.particle_max_lifetime),
+        )
 
         glUniform1i(glGetUniformLocation(self.compute_shader_program, "maxParticles"), self.max_particles)
-        glUniform1ui(glGetUniformLocation(self.compute_shader_program, "particleBatchSize"),
-                     np.uint32(self.particle_batch_size))
-        glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleGenerator"),
-                    int(self.particle_generator))
+        glUniform1ui(
+            glGetUniformLocation(self.compute_shader_program, "particleBatchSize"), np.uint32(self.particle_batch_size)
+        )
+        glUniform1i(
+            glGetUniformLocation(self.compute_shader_program, "particleGenerator"), int(self.particle_generator)
+        )
 
         # Set spawn time jitter uniforms
-        glUniform1i(glGetUniformLocation(self.compute_shader_program, "particleSpawnTimeJitter"),
-                    int(self.particle_spawn_time_jitter))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxSpawnTimeJitter"),
-                    np.float32(self.particle_max_spawn_time_jitter))
+        glUniform1i(
+            glGetUniformLocation(self.compute_shader_program, "particleSpawnTimeJitter"),
+            int(self.particle_spawn_time_jitter),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleMaxSpawnTimeJitter"),
+            np.float32(self.particle_max_spawn_time_jitter),
+        )
 
         # Set particle properties
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMinWeight"),
-                    np.float32(self.particle_min_weight))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxWeight"),
-                    np.float32(self.particle_max_weight))
-        glUniform3fv(glGetUniformLocation(self.compute_shader_program, "particleGravity"), 1,
-                     glm.value_ptr(self.shader_particle_gravity))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleMaxVelocity"),
-                    np.float32(self.particle_max_velocity))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleBounceFactor"),
-                    np.float32(self.particle_bounce_factor))
-        glUniform3fv(glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneNormal"), 1,
-                     glm.value_ptr(self.shader_particle_ground_plane_normal))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneHeight"),
-                    np.float32(self.particle_ground_plane_height))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particlePressure"),
-                    np.float32(self.particle_pressure))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "particleViscosity"),
-                    np.float32(self.particle_viscosity))
-        glUniform1i(glGetUniformLocation(self.compute_shader_program, "fluidSimulation"),
-                    int(self.fluid_simulation))
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleMinWeight"), np.float32(self.particle_min_weight)
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleMaxWeight"), np.float32(self.particle_max_weight)
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.compute_shader_program, "particleGravity"),
+            1,
+            glm.value_ptr(self.shader_particle_gravity),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleMaxVelocity"),
+            np.float32(self.particle_max_velocity),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleBounceFactor"),
+            np.float32(self.particle_bounce_factor),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneNormal"),
+            1,
+            glm.value_ptr(self.shader_particle_ground_plane_normal),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneHeight"),
+            np.float32(self.particle_ground_plane_height),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particlePressure"), np.float32(self.particle_pressure)
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "particleViscosity"), np.float32(self.particle_viscosity)
+        )
+        glUniform1i(glGetUniformLocation(self.compute_shader_program, "fluidSimulation"), int(self.fluid_simulation))
 
         # Pass min and max position values to the compute shader
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "minX"), np.float32(self.min_width))
@@ -650,18 +731,30 @@ class ParticleRenderer(AbstractRenderer):
         glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxZ"), np.float32(self.max_depth))
 
         # Set min and max initial velocity values
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minInitialVelocityX"),
-                    np.float32(self.min_initial_velocity_x))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityX"),
-                    np.float32(self.max_initial_velocity_x))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minInitialVelocityY"),
-                    np.float32(self.min_initial_velocity_y))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityY"),
-                    np.float32(self.max_initial_velocity_y))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minInitialVelocityZ"),
-                    np.float32(self.min_initial_velocity_z))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityZ"),
-                    np.float32(self.max_initial_velocity_z))
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "minInitialVelocityX"),
+            np.float32(self.min_initial_velocity_x),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityX"),
+            np.float32(self.max_initial_velocity_x),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "minInitialVelocityY"),
+            np.float32(self.min_initial_velocity_y),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityY"),
+            np.float32(self.max_initial_velocity_y),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "minInitialVelocityZ"),
+            np.float32(self.min_initial_velocity_z),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityZ"),
+            np.float32(self.max_initial_velocity_z),
+        )
 
     def set_cpu_uniforms(self):
         """
@@ -674,7 +767,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(glGetUniformLocation(self.shader_program, "particleColor"), 1, glm.value_ptr(self.particle_color))
 
         if self.debug_mode:
-            print(f"Set particle uniforms for CPU mode.")
+            print("Set particle uniforms for CPU mode.")
             print(f"particleSize: {self.particle_size}")
             print(f"particleColor: {self.particle_color}")
 
@@ -705,19 +798,19 @@ class ParticleRenderer(AbstractRenderer):
                 self.should_generate = False
 
         # Update particles based on the selected mode
-        if self.particle_render_mode == 'compute_shader':
+        if self.particle_render_mode == "compute_shader":
             self._update_particles_compute_shader()
-        elif self.particle_render_mode == 'transform_feedback':
+        elif self.particle_render_mode == "transform_feedback":
             if self.particle_generator and self.should_generate:
                 self._generate_new_particles_transform_feedback()
             self._remove_expired_particles_transform_feedback()
             self._update_particles_transform_feedback()
-        elif self.particle_render_mode == 'cpu':
+        elif self.particle_render_mode == "cpu":
             if self.particle_generator and self.should_generate:
                 self._generate_particles_cpu()
             self._update_particles_cpu()
 
-        if self.debug_mode and self.particle_render_mode != 'compute_shader':
+        if self.debug_mode and self.particle_render_mode != "compute_shader":
             # Calculate and print the number of active particles
             print(f"Number of active particles: {self.active_particles}")
 
@@ -752,8 +845,7 @@ class ParticleRenderer(AbstractRenderer):
         # Ensure we don't generate more particles than max_particles or free slots
         num_gen_particles = min(num_free_slots, self.particle_batch_size)
 
-        new_particles = self.stack_initial_data(
-            num_gen_particles)
+        new_particles = self.stack_initial_data(num_gen_particles)
 
         # Write new particles into the buffer at the positions of free slots
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -844,13 +936,16 @@ class ParticleRenderer(AbstractRenderer):
             position += velocity * self.delta_time
 
             # Check for collision with the ground plane
-            distance_to_ground = np.dot(position[:3],
-                                        self.particle_ground_plane_normal) - self.particle_ground_plane_height
+            distance_to_ground = (
+                np.dot(position[:3], self.particle_ground_plane_normal) - self.particle_ground_plane_height
+            )
 
             if distance_to_ground < 0.0:  # Particle is below or at the ground
                 # Reflect the velocity based on the ground plane normal
-                velocity[:3] = velocity[:3] - 2 * np.dot(velocity[:3],
-                                                         self.particle_ground_plane_normal) * self.particle_ground_plane_normal
+                velocity[:3] = (
+                    velocity[:3]
+                    - 2 * np.dot(velocity[:3], self.particle_ground_plane_normal) * self.particle_ground_plane_normal
+                )
                 velocity[:3] *= self.particle_bounce_factor  # Apply the bounce factor
 
                 # Prevent the particle from sinking below the ground
@@ -886,17 +981,20 @@ class ParticleRenderer(AbstractRenderer):
             # Debug output to track lifetime, weight, and velocity
             if self.debug_mode:
                 print(
-                    f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, ID {particle_id}, Lifetime Percentage {lifetime_percentage}")
+                    f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, ID {particle_id}, Lifetime Percentage {lifetime_percentage}"
+                )
 
         # Upload the CPU-calculated particle data (positions, lifetime percentage, and IDs) to the GPU for rendering.
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 
         # Only upload data for active particles
-        particle_data_to_upload = np.hstack((
-            self.cpu_particles[:self.active_particles, 0:4],  # Position
-            self.cpu_particles[:self.active_particles, 12].reshape(-1, 1),  # Lifetime percentage
-            self.cpu_particles[:self.active_particles, 10].reshape(-1, 1),  # Particle ID
-        )).astype(np.float32)
+        particle_data_to_upload = np.hstack(
+            (
+                self.cpu_particles[: self.active_particles, 0:4],  # Position
+                self.cpu_particles[: self.active_particles, 12].reshape(-1, 1),  # Lifetime percentage
+                self.cpu_particles[: self.active_particles, 10].reshape(-1, 1),  # Particle ID
+            )
+        ).astype(np.float32)
 
         # Upload data to the GPU
         glBufferSubData(GL_ARRAY_BUFFER, 0, particle_data_to_upload.nbytes, particle_data_to_upload)
@@ -1032,27 +1130,27 @@ class ParticleRenderer(AbstractRenderer):
 
         # After rendering, print the SSBO contents if debug mode is enabled
         if self.debug_mode:
-            if self.particle_render_mode == 'transform_feedback':
+            if self.particle_render_mode == "transform_feedback":
                 self.print_vao_contents_transform_feedback()
-            elif self.particle_render_mode == 'compute_shader':
+            elif self.particle_render_mode == "compute_shader":
                 self.print_ssbo_contents_compute_shader()
-            elif self.particle_render_mode == 'cpu':
+            elif self.particle_render_mode == "cpu":
                 self.print_cpu_particles()
 
         # Define a mapping from particle types to OpenGL primitives
         primitive_types = {
-            'points': GL_POINTS,
-            'lines': GL_LINES,
-            'line_strip': GL_LINE_STRIP,
-            'line_loop': GL_LINE_LOOP,
-            'lines_adjacency': GL_LINES_ADJACENCY,
-            'line_strip_adjacency': GL_LINE_STRIP_ADJACENCY,
-            'triangles': GL_TRIANGLES,
-            'triangle_strip': GL_TRIANGLE_STRIP,
-            'triangle_fan': GL_TRIANGLE_FAN,
-            'triangles_adjacency': GL_TRIANGLES_ADJACENCY,
-            'triangle_strip_adjacency': GL_TRIANGLE_STRIP_ADJACENCY,
-            'patches': GL_PATCHES,
+            "points": GL_POINTS,
+            "lines": GL_LINES,
+            "line_strip": GL_LINE_STRIP,
+            "line_loop": GL_LINE_LOOP,
+            "lines_adjacency": GL_LINES_ADJACENCY,
+            "line_strip_adjacency": GL_LINE_STRIP_ADJACENCY,
+            "triangles": GL_TRIANGLES,
+            "triangle_strip": GL_TRIANGLE_STRIP,
+            "triangle_fan": GL_TRIANGLE_FAN,
+            "triangles_adjacency": GL_TRIANGLES_ADJACENCY,
+            "triangle_strip_adjacency": GL_TRIANGLE_STRIP_ADJACENCY,
+            "patches": GL_PATCHES,
         }
 
         # Get the primitive type from the mapping, default to GL_POINTS if not found

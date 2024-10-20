@@ -48,8 +48,8 @@ if __name__ == "__main__":
             "displacement": "textures/displacement/crystal.png",
         },
         shader_names={
-            'vertex': 'standard',
-            'fragment': 'stealth',
+            "vertex": "standard",
+            "fragment": "stealth",
         },
         opacity=0.0,
         distortion_strength=0.2,
@@ -73,8 +73,8 @@ if __name__ == "__main__":
             "displacement": "textures/displacement/metal_1.png",
         },
         shader_names={
-            'vertex': 'standard',
-            'fragment': 'stealth',
+            "vertex": "standard",
+            "fragment": "stealth",
         },
         opacity=0.5,
         distortion_strength=0.2,
@@ -97,8 +97,8 @@ if __name__ == "__main__":
             "displacement": "textures/displacement/crystal.png",
         },
         shader_names={
-            'vertex': 'standard',
-            'fragment': 'embm',
+            "vertex": "standard",
+            "fragment": "embm",
         },
         rotation_speed=2000.0,
     )
@@ -106,8 +106,8 @@ if __name__ == "__main__":
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
         shader_names={
-            'vertex': 'standard',
-            'fragment': 'water',
+            "vertex": "standard",
+            "fragment": "water",
         },
         wave_speed=6.0,
         wave_amplitude=0.8,
@@ -122,10 +122,9 @@ if __name__ == "__main__":
     # Add a skybox renderer
     skybox_config = base_config.add_skybox(
         shader_names={
-            'vertex': 'skybox',
-            'fragment': 'skybox',
+            "vertex": "skybox",
+            "fragment": "skybox",
         },
-
     )
     instance.add_renderer("skybox", "skybox", **skybox_config)
 

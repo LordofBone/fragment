@@ -29,8 +29,8 @@ if __name__ == "__main__":
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
         shader_names={
-            'vertex': 'standard',
-            'fragment': 'water',
+            "vertex": "standard",
+            "fragment": "water",
         },
         wave_speed=6.0,
         wave_amplitude=0.8,

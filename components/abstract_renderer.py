@@ -93,54 +93,54 @@ def common_funcs(func):
 
 class AbstractRenderer(ABC):
     def __init__(
-            self,
-            shader_names,
-            shaders=None,
-            texture_paths=None,
-            cubemap_folder=None,
-            camera_positions=None,
-            camera_target=(0, 0, 0),
-            up_vector=(0, 1, 0),
-            fov=45,
-            near_plane=0.1,
-            far_plane=100,
-            ambient_lighting_strength=(0.0, 0.0, 0.0),
-            lights=None,
-            rotation_speed=2000.0,
-            rotation_axis=(0, 3, 0),
-            apply_tone_mapping=False,
-            apply_gamma_correction=False,
-            texture_lod_bias=0.0,
-            env_map_lod_bias=0.0,
-            alpha_blending=False,
-            depth_testing=True,
-            culling=True,
-            msaa_level=8,
-            anisotropy=16.0,
-            auto_camera=False,
-            move_speed=1.0,
-            loop=True,
-            front_face_winding="CCW",
-            window_size=(800, 600),
-            phong_shading=False,
-            opacity=1.0,
-            shininess=1.0,
-            distortion_strength=0.3,
-            reflection_strength=0.0,
-            distortion_warped=False,
-            screen_texture=None,
-            planar_camera=False,
-            planar_resolution=(1024, 1024),
-            planar_fov=45,
-            planar_near_plane=0.1,
-            planar_far_plane=100,
-            planar_camera_position_rotation=(0, 0, 0, 0, 0),
-            planar_relative_to_camera=False,
-            planar_camera_lens_rotation=0.0,
-            lens_rotations=None,
-            screen_facing_planar_texture=False,
-            debug_mode=False,
-            **kwargs,
+        self,
+        shader_names,
+        shaders=None,
+        texture_paths=None,
+        cubemap_folder=None,
+        camera_positions=None,
+        camera_target=(0, 0, 0),
+        up_vector=(0, 1, 0),
+        fov=45,
+        near_plane=0.1,
+        far_plane=100,
+        ambient_lighting_strength=(0.0, 0.0, 0.0),
+        lights=None,
+        rotation_speed=2000.0,
+        rotation_axis=(0, 3, 0),
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
+        texture_lod_bias=0.0,
+        env_map_lod_bias=0.0,
+        alpha_blending=False,
+        depth_testing=True,
+        culling=True,
+        msaa_level=8,
+        anisotropy=16.0,
+        auto_camera=False,
+        move_speed=1.0,
+        loop=True,
+        front_face_winding="CCW",
+        window_size=(800, 600),
+        phong_shading=False,
+        opacity=1.0,
+        shininess=1.0,
+        distortion_strength=0.3,
+        reflection_strength=0.0,
+        distortion_warped=False,
+        screen_texture=None,
+        planar_camera=False,
+        planar_resolution=(1024, 1024),
+        planar_fov=45,
+        planar_near_plane=0.1,
+        planar_far_plane=100,
+        planar_camera_position_rotation=(0, 0, 0, 0, 0),
+        planar_relative_to_camera=False,
+        planar_camera_lens_rotation=0.0,
+        lens_rotations=None,
+        screen_facing_planar_texture=False,
+        debug_mode=False,
+        **kwargs,
     ):
         # Use the memory address of the instance as a unique identifier
         self.planar_texture = None
@@ -201,7 +201,8 @@ class AbstractRenderer(ABC):
         self.shader_particle_fade_color = glm.vec3(*self.dynamic_attrs.get("particle_fade_color", (0.0, 0.0, 0.0)))
         self.shader_particle_gravity = glm.vec3(*self.dynamic_attrs.get("particle_gravity", (0.0, -9.81, 0.0)))
         self.shader_particle_ground_plane_normal = glm.vec3(
-            *self.dynamic_attrs.get("particle_ground_plane_normal", (0.0, 1.0, 0.0)))
+            *self.dynamic_attrs.get("particle_ground_plane_normal", (0.0, 1.0, 0.0))
+        )
 
         self.screen_texture = screen_texture
         self.planar_resolution = planar_resolution
@@ -328,8 +329,8 @@ class AbstractRenderer(ABC):
 
             # Planar camera position is relative to the object's position and adjusted direction based on camera distance
             self.planar_camera_position = (
-                                                  self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
-                                          ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
+                self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
+            ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
 
             # Calculate the relative rotation based on the main camera's orientation
             self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:]) + glm.vec2(
@@ -441,12 +442,12 @@ class AbstractRenderer(ABC):
         fragment_shader_path = None
         compute_shader_path = None
 
-        if 'vertex' in self.shader_names:
-            vertex_shader_path = self.shaders["vertex"].get(self.shader_names['vertex'])
-        if 'fragment' in self.shader_names:
-            fragment_shader_path = self.shaders["fragment"].get(self.shader_names['fragment'])
-        if 'compute' in self.shader_names:
-            compute_shader_path = self.shaders["compute"].get(self.shader_names['compute'])
+        if "vertex" in self.shader_names:
+            vertex_shader_path = self.shaders["vertex"].get(self.shader_names["vertex"])
+        if "fragment" in self.shader_names:
+            fragment_shader_path = self.shaders["fragment"].get(self.shader_names["fragment"])
+        if "compute" in self.shader_names:
+            compute_shader_path = self.shaders["compute"].get(self.shader_names["compute"])
 
         shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path)
         self.shader_program = shader_engine.shader_program
@@ -595,56 +596,38 @@ class AbstractRenderer(ABC):
 
     def set_constant_uniforms(self):
         glUseProgram(self.shader_program)
-        glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"),
-                    self.texture_lod_bias)
-        glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"),
-                    self.env_map_lod_bias)
+        glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"), self.texture_lod_bias)
+        glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
 
-        glUniform1i(glGetUniformLocation(self.shader_program, "applyToneMapping"),
-                    self.apply_tone_mapping)
+        glUniform1i(glGetUniformLocation(self.shader_program, "applyToneMapping"), self.apply_tone_mapping)
 
-        glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"),
-                    self.apply_gamma_correction)
+        glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"), self.apply_gamma_correction)
 
     def set_shader_uniforms(self):
         glUseProgram(self.shader_program)
 
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "ambientColor"),
-            1,
-            glm.value_ptr(self.ambient_lighting_strength)
+            glGetUniformLocation(self.shader_program, "ambientColor"), 1, glm.value_ptr(self.ambient_lighting_strength)
         )
 
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE,
-            glm.value_ptr(self.model_matrix)
+            glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(self.model_matrix)
         )
 
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"),
-                           1,
-                           GL_FALSE,
-                           glm.value_ptr(self.view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(self.view))
 
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_program, "projection"),
-            1,
-            GL_FALSE,
-            glm.value_ptr(self.projection)
+            glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(self.projection)
         )
-        glUniform1f(glGetUniformLocation(self.shader_program, "opacity"),
-                    self.opacity)
+        glUniform1f(glGetUniformLocation(self.shader_program, "opacity"), self.opacity)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "shininess"),
-                    self.shininess)
+        glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.shininess)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"),
-                    self.distortion_strength)
+        glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"),
-                    self.reflection_strength)
+        glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "warped"),
-                    self.distortion_warped)
+        glUniform1f(glGetUniformLocation(self.shader_program, "warped"), self.distortion_warped)
 
         glUniform2f(
             glGetUniformLocation(self.shader_program, "screenResolution"), self.window_size[0], self.window_size[1]
@@ -659,16 +642,13 @@ class AbstractRenderer(ABC):
             int(self.screen_facing_planar_texture),
         )
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"),
-                    self.dynamic_attrs.get("wave_speed", 10.0))
+        glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
 
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "waveAmplitude"),
-            self.dynamic_attrs.get("wave_amplitude", 0.1)
+            glGetUniformLocation(self.shader_program, "waveAmplitude"), self.dynamic_attrs.get("wave_amplitude", 0.1)
         )
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "randomness"),
-                    self.dynamic_attrs.get("randomness", 0.8))
+        glUniform1f(glGetUniformLocation(self.shader_program, "randomness"), self.dynamic_attrs.get("randomness", 0.8))
 
         glUniform1f(
             glGetUniformLocation(self.shader_program, "texCoordFrequency"),
@@ -678,12 +658,9 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_program, "texCoordAmplitude"),
             self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
         )
-        glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"),
-                     1,
-                     glm.value_ptr(self.camera_position))
+        glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position))
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "time"),
-                    pygame.time.get_ticks() / 1000.0)
+        glUniform1f(glGetUniformLocation(self.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
     def update_camera(self, delta_time):
         if self.auto_camera:

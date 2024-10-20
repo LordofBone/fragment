@@ -56,8 +56,8 @@ if __name__ == "__main__":
             "displacement": "textures/displacement/metal_1.png",
         },
         shader_names={
-            'vertex': 'standard',
-            'fragment': 'stealth',
+            "vertex": "standard",
+            "fragment": "stealth",
         },
         opacity=0.0,
         distortion_strength=0.2,
@@ -77,8 +77,8 @@ if __name__ == "__main__":
     # Define the configuration for the skybox
     skybox_config = base_config.add_skybox(
         shader_names={
-            'vertex': 'skybox',
-            'fragment': 'skybox',
+            "vertex": "skybox",
+            "fragment": "skybox",
         },
     )
 

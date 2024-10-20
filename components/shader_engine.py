@@ -74,7 +74,7 @@ class ShaderEngine:
             shader_type_str = {
                 GL_VERTEX_SHADER: "vertex",
                 GL_FRAGMENT_SHADER: "fragment",
-                GL_COMPUTE_SHADER: "compute"
+                GL_COMPUTE_SHADER: "compute",
             }.get(shader_type, "unknown")
             glDeleteShader(shader)
             raise RuntimeError(f"Error compiling {shader_type_str} shader: {log.decode()}")

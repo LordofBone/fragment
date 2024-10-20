@@ -38,8 +38,8 @@ if __name__ == "__main__":
             "displacement": "textures/displacement/crystal.png",
         },
         shader_names={
-            'vertex': 'standard',
-            'fragment': 'embm',
+            "vertex": "standard",
+            "fragment": "embm",
         },
         rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
