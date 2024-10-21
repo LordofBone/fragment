@@ -1,5 +1,3 @@
-import time
-
 import pygame
 from OpenGL.GL import *
 from OpenGL.GLUT import *
@@ -56,35 +54,17 @@ class RendererWindow:
         glWindowPos2i(self.window_size[0] - fps_surface.get_width() - 10, 20)
         glDrawPixels(fps_surface.get_width(), fps_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, fps_data)
 
-    def mainloop(self, render_callback):
-        """Main rendering loop."""
-        glEnable(GL_DEPTH_TEST)
-        last_time = time.time()
-        while self.running:
-            delta_time = self.calculate_delta_time(last_time)
-            last_time = time.time()
-
-            if self.handle_events():
-                self.running = False
-                break
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-            render_callback(delta_time)
-
-            self.draw_fps()
-            pygame.display.flip()
-            self.clock.tick(60)
-
-    def calculate_delta_time(self, last_time):
-        return time.time() - last_time
-
     def handle_events(self):
+        """Handle window events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return True
         return False
+
+    def display_flip(self):
+        """Update the display."""
+        pygame.display.flip()
 
     def shutdown(self):
         """Shutdown the renderer window."""
