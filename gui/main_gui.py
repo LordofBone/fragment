@@ -26,7 +26,8 @@ class App(customtkinter.CTk):
         # Configure grid layout (6 rows, 5 columns)
         self.grid_columnconfigure(0, weight=0)  # Sidebar column
         self.grid_columnconfigure((1, 2, 3, 4), weight=1)  # Main content columns
-        self.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)  # Main content rows
+        self.grid_rowconfigure((0, 1, 2, 3), weight=1)  # Main content rows
+        self.grid_rowconfigure(4, minsize=25)  # Adjust as needed to create space
         self.grid_rowconfigure(5, weight=0)  # Row for the loading bar
 
         # Create sidebar frame with widgets
@@ -86,10 +87,20 @@ class App(customtkinter.CTk):
         )
         self.exit_button.grid(row=9, column=0, padx=20, pady=(10, 10), sticky="se")
 
-        # Main content area
-        self.tabview = customtkinter.CTkTabview(self, width=600)
+        # Create main content frame
+        self.main_content_frame = customtkinter.CTkFrame(self)
+        self.main_content_frame.grid(
+            row=0, column=1, columnspan=4, rowspan=4, padx=(20, 20), pady=(20, 20), sticky="nsew"
+        )
+        self.main_content_frame.grid_rowconfigure(0, weight=1)
+        self.main_content_frame.grid_columnconfigure(0, weight=1)
+
+        self.main_content_frame.grid_propagate(False)
+
+        # Main content area (inside main_content_frame)
+        self.tabview = customtkinter.CTkTabview(self.main_content_frame, width=600)
         self.tabview.grid(
-            row=0, column=1, columnspan=4, rowspan=5, padx=(20, 20), pady=(20, 0), sticky="nsew"
+            row=0, column=0, padx=0, pady=0, sticky="nsew"
         )
         self.tabview.add("Settings")
         self.tabview.add("Scenarios")
@@ -209,10 +220,10 @@ class App(customtkinter.CTk):
         # Handle window close event
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
 
-        # Move the loading progress bar to the bottom of the right side panel
+        # Loading progress bar at the bottom of the right side panel
         self.loading_progress_bar = customtkinter.CTkProgressBar(self, mode="indeterminate")
         self.loading_progress_bar.grid(
-            row=5, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew"
+            row=4, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew"
         )
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
