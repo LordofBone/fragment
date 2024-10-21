@@ -143,12 +143,17 @@ class RenderingInstance:
     def shutdown(self):
         """Shut down the rendering instance and clean up resources."""
         self.running = False  # Stop the main loop
-        if self.render_window:
-            self.render_window.shutdown()
+
+        # First, shut down the renderers while the OpenGL context is still valid
         for renderer in self.scene_construct.renderers.values():
             renderer.shutdown()
+
         # Clean up OpenGL resources if needed
         for framebuffer, texture in self.framebuffers.values():
             glDeleteFramebuffers(1, [framebuffer])
             glDeleteTextures(1, [texture])
         self.framebuffers.clear()
+
+        # Finally, shut down the render window (this destroys the OpenGL context)
+        if self.render_window:
+            self.render_window.shutdown()
