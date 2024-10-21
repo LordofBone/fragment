@@ -8,6 +8,7 @@ import _tkinter
 import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
+import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
@@ -397,16 +398,11 @@ class App(customtkinter.CTk):
 
         num_benchmarks = len(self.benchmark_results)
         fig_height = 4 * num_benchmarks
-        self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(8, fig_height))
-
-        # Ensure axs is a 2D array
-        if num_benchmarks == 1:
-            self.axs = [self.axs]
+        # Set squeeze=False to ensure axs is always a 2D numpy array
+        self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(8, fig_height), squeeze=False)
 
         self.results_textbox.delete('1.0', tkinter.END)
-        self.results_textbox.insert(
-            tkinter.END, "Benchmark Results:\n\n"
-        )
+        self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
 
         for idx, (benchmark_name, data) in enumerate(self.benchmark_results.items()):
             fps_data = data['fps_data']
@@ -415,33 +411,29 @@ class App(customtkinter.CTk):
             time_data = range(len(fps_data))
 
             # FPS Line Graph
-            self.axs[idx][0].plot(time_data, fps_data, color=bar_color)
-            self.axs[idx][0].set_title(f"FPS Over Time - {benchmark_name}")
-            self.axs[idx][0].set_xlabel("Time (s)")
-            self.axs[idx][0].set_ylabel("FPS")
+            self.axs[idx, 0].plot(time_data, fps_data, color=bar_color)
+            self.axs[idx, 0].set_title(f"FPS Over Time - {benchmark_name}")
+            self.axs[idx, 0].set_xlabel("Time (s)")
+            self.axs[idx, 0].set_ylabel("FPS")
 
             # CPU/GPU Usage Line Graph
-            self.axs[idx][1].plot(time_data, cpu_usage_data, label="CPU Usage", linestyle="--", color=line_colors[0])
-            self.axs[idx][1].plot(time_data, gpu_usage_data, label="GPU Usage", color=line_colors[1])
-            self.axs[idx][1].set_title(f"CPU and GPU Usage Over Time - {benchmark_name}")
-            self.axs[idx][1].set_xlabel("Time (s)")
-            self.axs[idx][1].set_ylabel("Usage (%)")
-            self.axs[idx][1].legend()
-
-            # Adjust colors based on appearance mode
-            self.adjust_chart_mode()
+            self.axs[idx, 1].plot(time_data, cpu_usage_data, label="CPU Usage", linestyle="--", color=line_colors[0])
+            self.axs[idx, 1].plot(time_data, gpu_usage_data, label="GPU Usage", color=line_colors[1])
+            self.axs[idx, 1].set_title(f"CPU and GPU Usage Over Time - {benchmark_name}")
+            self.axs[idx, 1].set_xlabel("Time (s)")
+            self.axs[idx, 1].set_ylabel("Usage (%)")
+            self.axs[idx, 1].legend()
 
             # Insert text results
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
-            self.results_textbox.insert(
-                tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n"
-            )
+            self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n")
+
+        # Adjust colors based on appearance mode
+        self.adjust_chart_mode()
 
         # Create a new canvas and display it
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
-        self.canvas.get_tk_widget().grid(
-            row=0, column=0, padx=20, pady=(10, 0), sticky="nsew"
-        )
+        self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 0), sticky="nsew")
         self.canvas.draw()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
@@ -463,18 +455,18 @@ class App(customtkinter.CTk):
         if mode == "Dark":
             chart_bg_color = "#2c2c2c"
             text_color = "#b0b0b0"
-            bar_color = "skyblue"
-            line_colors = ["yellow", "cyan"]
         else:
             chart_bg_color = "#f0f0f0"
             text_color = "#202020"
-            bar_color = "blue"
-            line_colors = ["red", "green"]
 
         # Set face color of the figure
         self.fig.patch.set_facecolor(chart_bg_color)
+
+        # Flatten the axs array to iterate over all axes
+        axes_list = self.axs.flatten() if isinstance(self.axs, np.ndarray) else [self.axs]
+
         # Set face color of the axes and adjust text colors
-        for ax in self.axs:
+        for ax in axes_list:
             ax.set_facecolor(chart_bg_color)
             ax.tick_params(axis='x', colors=text_color)
             ax.tick_params(axis='y', colors=text_color)
@@ -483,16 +475,6 @@ class App(customtkinter.CTk):
             ax.title.set_color(text_color)
             for spine in ax.spines.values():
                 spine.set_edgecolor(text_color)
-
-        # Update bar chart colors
-        bars = self.axs[0].patches
-        for bar in bars:
-            bar.set_color(bar_color)
-
-        # Update line chart colors
-        lines = self.axs[1].get_lines()
-        for line, color in zip(lines, line_colors):
-            line.set_color(color)
 
         # Redraw the canvas to update the chart display
         if self.canvas is not None:
