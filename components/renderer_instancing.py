@@ -1,3 +1,5 @@
+import time
+
 from OpenGL.GL import *
 
 from components.model_renderer import ModelRenderer
@@ -95,17 +97,36 @@ class RenderingInstance:
             return max(o for _, o in self.render_order) + 1
         return 0
 
-    def run(self):
+    def run(self, duration=60, stats_queue=None):
         self.setup()
         self.running = True
+        start_time = time.time()
 
-        def render_callback(delta_time):
-            if not self.running:
-                return  # Exit the main loop if not running
+        while self.running and (time.time() - start_time) < duration:
+            delta_time = self.render_window.clock.tick(60) / 1000.0  # Targeting 60 FPS
+
+            # Handle events (e.g., window close)
+            if self.render_window.handle_events():
+                self.running = False
+                break
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
             self.render_planar_views()
             self.render_scene(delta_time)
 
-        self.render_window.mainloop(render_callback)
+            # Collect FPS data
+            current_fps = self.render_window.clock.get_fps()
+            if stats_queue:
+                stats_queue.put(('fps', current_fps))
+
+            # Update the display
+            self.render_window.display_flip()
+
+            # Sleep briefly to prevent high CPU usage
+            time.sleep(0.001)
+
+        self.shutdown()
 
     def render_planar_views(self):
         for renderer_name, _ in self.render_order:
