@@ -1,8 +1,7 @@
 import threading
-import time
 import tkinter
 import tkinter.messagebox
-from queue import Queue
+import webbrowser
 
 import _tkinter
 import customtkinter
@@ -221,9 +220,6 @@ class App(customtkinter.CTk):
         self.shadow_quality_optionmenu.set("Medium")
         self.enable_vsync_checkbox.select()
 
-        # Initialize benchmark completion queue
-        self.benchmark_queue = Queue()
-
         # Prepare the graph canvas for results
         self.fig = None  # Will be created in display_results
         self.axs = None
@@ -293,50 +289,6 @@ class App(customtkinter.CTk):
         # Switch to the "Results" tab
         self.after(0, lambda: self.tabview.set("Results"))
 
-    def check_benchmark_status(self, benchmark_name):
-        # Wait until the benchmark name appears in the queue
-        while True:
-            try:
-                finished_benchmark = self.benchmark_queue.get(timeout=0.1)
-                if finished_benchmark == benchmark_name:
-                    # Check if all benchmarks are completed
-                    if self.benchmark_queue.empty():
-                        self.after(0, self.hide_loading_bar)
-                    break
-            except:
-                continue
-
-    def run_pyramid_benchmark(self):
-        from benchmarks.pyramid5 import run_benchmark
-        run_benchmark()
-        # Signal that the benchmark has finished
-        self.benchmark_queue.put("Pyramid 5 - EMBM Test")
-
-    def run_sphere_benchmark(self):
-        from benchmarks.sphere import run_benchmark
-        run_benchmark()
-        self.benchmark_queue.put("Sphere - Transparency Shader Test")
-
-    def run_tyre_benchmark(self):
-        from benchmarks.tyre import run_benchmark
-        run_benchmark()
-        self.benchmark_queue.put("Tyre - Rubber Shader Test")
-
-    def run_water_benchmark(self):
-        from benchmarks.water import run_benchmark
-        run_benchmark()
-        self.benchmark_queue.put("Water - Reflection Test")
-
-    def run_muon_shower_benchmark(self):
-        from benchmarks.muon_shower import run_benchmark
-        run_benchmark()
-        self.benchmark_queue.put("Muon Shower")
-
-    def run_water_pyramid_benchmark(self):
-        from benchmarks.water_pyramid import run_benchmark
-        run_benchmark()
-        self.benchmark_queue.put("Water Pyramid")
-
     def demo_mode(self):
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
 
@@ -348,29 +300,50 @@ class App(customtkinter.CTk):
         self.loading_progress_bar.stop()
         self.loading_progress_bar.grid_remove()
 
+    def center_window(self, window):
+        window.update_idletasks()
+        width = window.winfo_width()
+        height = window.winfo_height()
+        x = (window.winfo_screenwidth() // 2) - (width // 2)
+        y = (window.winfo_screenheight() // 2) - (height // 2)
+        window.geometry(f'{width}x{height}+{x}+{y}')
+
     def show_about_info(self):
-        tkinter.messagebox.showinfo("About", "3D Benchmarking Tool\nVersion 1.0\nDeveloped by [Your Name]")
+        about_window = customtkinter.CTkToplevel(self)
+        about_window.title("About")
+        about_window.geometry("400x250")
+        about_window.resizable(False, False)
 
-    def run_with_loading_bar(self, func, *args, **kwargs):
-        # Start timing
-        start_time = time.time()
-        threading.Thread(
-            target=self._run_with_loading_bar_thread, args=(func, args, kwargs, start_time), daemon=True
-        ).start()
+        # Center the window over the parent window
+        self.center_window(about_window)
 
-    def _run_with_loading_bar_thread(self, func, args, kwargs, start_time):
-        # Wait for the threshold
-        threshold = 0.5  # Seconds
-        while time.time() - start_time < threshold:
-            time.sleep(0.1)
+        # Create labels
+        title_label = customtkinter.CTkLabel(about_window, text="3D Benchmarking Tool", font=("Arial", 16, "bold"))
+        title_label.pack(pady=(10, 5))
 
-        # Show the loading bar if the function is still running
-        self.after(0, self.show_loading_bar)
+        version_label = customtkinter.CTkLabel(about_window, text="Version 1.0", font=("Arial", 12))
+        version_label.pack(pady=(0, 5))
 
-        try:
-            func(*args, **kwargs)
-        finally:
-            self.after(0, self.hide_loading_bar)
+        developed_label = customtkinter.CTkLabel(about_window, text="Developed by 314reactor", font=("Arial", 12))
+        developed_label.pack(pady=(0, 10))
+
+        # Links
+        links = [
+            ("GitHub", "https://github.com/LordofBone"),
+            ("Hackster.io", "https://www.hackster.io/314reactor"),
+            ("Electromaker.io", "https://www.electromaker.io/profile/314Reactor"),
+        ]
+
+        for name, url in links:
+            link_label = customtkinter.CTkLabel(
+                about_window, text=name, font=("Arial", 12), text_color="blue", cursor="hand2"
+            )
+            link_label.pack()
+            link_label.bind("<Button-1>", lambda e, url=url: webbrowser.open_new(url))
+
+        # Close button
+        close_button = customtkinter.CTkButton(about_window, text="Close", command=about_window.destroy)
+        close_button.pack(pady=(10, 10))
 
     def generate_and_display_results(self):
         # Since we can't update Tkinter widgets from a thread, use 'after' method
@@ -441,6 +414,9 @@ class App(customtkinter.CTk):
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
         self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 0), sticky="nsew")
         self.canvas.draw()
+
+        # Now that the reports are displayed, hide the loading bar
+        self.hide_loading_bar()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
