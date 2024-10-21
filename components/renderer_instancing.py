@@ -15,10 +15,13 @@ class RenderingInstance:
         self.scene_construct = SceneConstructor()
         self.framebuffers = {}
         self.render_order = []
+        self.running = False  # Flag to control the main loop
 
     def setup(self):
         self.render_window = RendererWindow(
-            window_size=self.config.window_size, title=self.config.window_title, msaa_level=self.config.msaa_level
+            window_size=self.config.window_size,
+            title=self.config.window_title,
+            msaa_level=self.config.msaa_level
         )
 
         for renderer in self.scene_construct.renderers.values():
@@ -94,8 +97,11 @@ class RenderingInstance:
 
     def run(self):
         self.setup()
+        self.running = True
 
         def render_callback(delta_time):
+            if not self.running:
+                return  # Exit the main loop if not running
             self.render_planar_views()
             self.render_scene(delta_time)
 
@@ -112,3 +118,16 @@ class RenderingInstance:
             renderer = self.scene_construct.renderers[renderer_name]
             renderer.update_camera(delta_time)
             self.scene_construct.render(renderer_name)
+
+    def shutdown(self):
+        """Shut down the rendering instance and clean up resources."""
+        self.running = False  # Stop the main loop
+        if self.render_window:
+            self.render_window.shutdown()
+        for renderer in self.scene_construct.renderers.values():
+            renderer.shutdown()
+        # Clean up OpenGL resources if needed
+        for framebuffer, texture in self.framebuffers.values():
+            glDeleteFramebuffers(1, [framebuffer])
+            glDeleteTextures(1, [texture])
+        self.framebuffers.clear()
