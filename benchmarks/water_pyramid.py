@@ -2,7 +2,7 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark():
+def run_benchmark(duration=60, stats_queue=None):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Water Pyramid",
@@ -150,4 +150,4 @@ def run_benchmark():
     instance.scene_construct.set_auto_rotation("model_opaque", False)  # Disable auto-rotation for second model
 
     # Run the rendering instance
-    instance.run()
+    instance.run(duration=duration, stats_queue=stats_queue)
