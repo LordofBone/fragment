@@ -673,6 +673,19 @@ class AbstractRenderer(ABC):
             self.main_camera_lens_rotation = self.camera_controller.lens_rotations[0]
         self.setup_camera_matrices()
 
+    def shutdown(self):
+        """Clean up OpenGL resources used by the renderer."""
+        # Delete any VAOs and VBOs created
+        if hasattr(self, 'vaos') and self.vaos:
+            glDeleteVertexArrays(len(self.vaos), self.vaos)
+        if hasattr(self, 'vbos') and self.vbos:
+            glDeleteBuffers(len(self.vbos), self.vbos)
+        # Delete shader programs
+        if self.shader_program:
+            glDeleteProgram(self.shader_program)
+        if self.compute_shader_program:
+            glDeleteProgram(self.compute_shader_program)
+
     @abstractmethod
     def create_buffers(self):
         pass
