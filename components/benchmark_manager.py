@@ -1,9 +1,9 @@
 import multiprocessing
 
-import GPUtil  # For GPU usage
-import psutil  # For CPU usage
+import GPUtil
+import psutil
 
-from stats_collector import StatsCollector
+from components.stats_collector import StatsCollector
 
 
 class BenchmarkManager:
