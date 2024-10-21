@@ -62,11 +62,12 @@ class App(customtkinter.CTk):
         self.demo_button = customtkinter.CTkButton(
             self.sidebar_frame, text="Demo Mode", command=self.demo_mode
         )
-        self.demo_button.grid(row=2, column=0, padx=20, pady=10)
-        self.results_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="View Results", command=self.view_results
+        self.about_button = customtkinter.CTkButton(
+            self.sidebar_frame, text="About", command=self.show_about_info
         )
-        self.results_button.grid(row=3, column=0, padx=20, pady=10)
+        self.about_button.grid(row=3, column=0, padx=20, pady=10)
+
+        self.demo_button.grid(row=2, column=0, padx=20, pady=10)
 
         # Appearance mode option menu
         self.appearance_mode_label = customtkinter.CTkLabel(
@@ -287,6 +288,10 @@ class App(customtkinter.CTk):
         self.after(0, self.hide_loading_bar)
         # Store results
         self.benchmark_results = self.benchmark_manager.get_results()
+        # Display results
+        self.after(0, self.generate_and_display_results)
+        # Switch to the "Results" tab
+        self.after(0, lambda: self.tabview.set("Results"))
 
     def check_benchmark_status(self, benchmark_name):
         # Wait until the benchmark name appears in the queue
@@ -343,6 +348,9 @@ class App(customtkinter.CTk):
         self.loading_progress_bar.stop()
         self.loading_progress_bar.grid_remove()
 
+    def show_about_info(self):
+        tkinter.messagebox.showinfo("About", "3D Benchmarking Tool\nVersion 1.0\nDeveloped by [Your Name]")
+
     def run_with_loading_bar(self, func, *args, **kwargs):
         # Start timing
         start_time = time.time()
@@ -364,13 +372,11 @@ class App(customtkinter.CTk):
         finally:
             self.after(0, self.hide_loading_bar)
 
-    def view_results(self):
-        # Use run_with_loading_bar to handle the loading bar with threshold
-        self.run_with_loading_bar(self.generate_and_display_results)
-
     def generate_and_display_results(self):
         # Since we can't update Tkinter widgets from a thread, use 'after' method
         self.after(0, self.display_results)
+        # Switch to the "Results" tab
+        self.after(0, lambda: self.tabview.set("Results"))
 
     def display_results(self):
         plot_style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
