@@ -11,6 +11,7 @@ class RendererWindow:
         self.title = title
         self.msaa_level = msaa_level
         self.clock = None
+        self.running = True  # Control the main loop
 
         self.setup_pygame()
         self.clock = pygame.time.Clock()
@@ -59,12 +60,13 @@ class RendererWindow:
         """Main rendering loop."""
         glEnable(GL_DEPTH_TEST)
         last_time = time.time()
-        while True:
+        while self.running:
             delta_time = self.calculate_delta_time(last_time)
             last_time = time.time()
 
             if self.handle_events():
-                return
+                self.running = False
+                break
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -83,3 +85,8 @@ class RendererWindow:
                 pygame.quit()
                 return True
         return False
+
+    def shutdown(self):
+        """Shutdown the renderer window."""
+        self.running = False
+        pygame.quit()
