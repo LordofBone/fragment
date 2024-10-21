@@ -317,6 +317,12 @@ class App(customtkinter.CTk):
         # Center the window over the parent window
         self.center_window(about_window)
 
+        # Ensure the window opens over the top of the main window
+        about_window.transient(self)
+        about_window.lift()
+        about_window.focus_force()
+        about_window.grab_set()  # Prevent interaction with the main window
+
         # Create labels
         title_label = customtkinter.CTkLabel(about_window, text="3D Benchmarking Tool", font=("Arial", 16, "bold"))
         title_label.pack(pady=(10, 5))
