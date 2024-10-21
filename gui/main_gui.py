@@ -8,8 +8,15 @@ import _tkinter
 import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
-import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
+from benchmarks.pyramid5 import run_benchmark as run_pyramid_benchmark
+from benchmarks.sphere import run_benchmark as run_sphere_benchmark
+from benchmarks.tyre import run_benchmark as run_tyre_benchmark
+from benchmarks.water import run_benchmark as run_water_benchmark
+from benchmarks.water_pyramid import run_benchmark as run_water_pyramid_benchmark
+from components.benchmark_manager import BenchmarkManager
 
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
 customtkinter.set_default_color_theme("themes/314reactor.json")
@@ -18,6 +25,9 @@ customtkinter.set_default_color_theme("themes/314reactor.json")
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+
+        self.benchmark_manager = BenchmarkManager()
+        self.benchmark_results = {}  # Store results for display
 
         # Configure window
         self.title("3D Benchmarking Tool")
@@ -246,30 +256,36 @@ class App(customtkinter.CTk):
 
         # Map benchmark names to functions
         benchmark_functions = {
-            "Pyramid 5 - EMBM Test": self.run_pyramid_benchmark,
-            "Sphere - Transparency Shader Test": self.run_sphere_benchmark,
-            "Tyre - Rubber Shader Test": self.run_tyre_benchmark,
-            "Water - Reflection Test": self.run_water_benchmark,
-            "Muon Shower": self.run_muon_shower_benchmark,
-            "Water Pyramid": self.run_water_pyramid_benchmark,
+            "Pyramid 5 - EMBM Test": run_pyramid_benchmark,
+            "Sphere - Transparency Shader Test": run_sphere_benchmark,
+            "Tyre - Rubber Shader Test": run_tyre_benchmark,
+            "Water - Reflection Test": run_water_benchmark,
+            "Muon Shower": run_muon_shower_benchmark,
+            "Water Pyramid": run_water_pyramid_benchmark,
         }
+
+        # Clear previous results
+        self.benchmark_results = {}
+        self.benchmark_manager = BenchmarkManager()
+
+        for benchmark_name in selected_benchmarks:
+            if benchmark_name in benchmark_functions:
+                self.benchmark_manager.add_benchmark(benchmark_name, benchmark_functions[benchmark_name])
+            else:
+                tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
 
         # Show the loading bar
         self.show_loading_bar()
 
-        for benchmark_name in selected_benchmarks:
-            if benchmark_name in benchmark_functions:
-                # Run the benchmark in a new daemon thread
-                threading.Thread(
-                    target=benchmark_functions[benchmark_name], daemon=True
-                ).start()
+        # Run benchmarks in a separate thread to keep GUI responsive
+        threading.Thread(target=self.run_benchmarks_thread, daemon=True).start()
 
-                # Start a daemon thread to monitor when the benchmark finishes
-                threading.Thread(
-                    target=self.check_benchmark_status, args=(benchmark_name,), daemon=True
-                ).start()
-            else:
-                tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
+    def run_benchmarks_thread(self):
+        self.benchmark_manager.run_benchmarks()
+        # Hide the loading bar
+        self.after(0, self.hide_loading_bar)
+        # Store results
+        self.benchmark_results = self.benchmark_manager.get_results()
 
     def check_benchmark_status(self, benchmark_name):
         # Wait until the benchmark name appears in the queue
@@ -369,39 +385,57 @@ class App(customtkinter.CTk):
         current_mode = customtkinter.get_appearance_mode()
         if current_mode == "Dark":
             bar_color = "skyblue"
-            line_colors = ["yellow", "cyan"]
+            line_colors = ["yellow", "cyan", "magenta"]
         else:
             bar_color = "blue"
-            line_colors = ["red", "green"]
+            line_colors = ["red", "green", "purple"]
 
-        # Simulated FPS data
-        benchmarks = ["Pyramid 5", "Sphere", "Tyre", "Water", "Muon Shower", "Water Pyramid"]
-        fps_data = [85.3, 60.5, 72.8, 65.4, 90.1, 78.5]
+        # Get collected data
+        if not self.benchmark_results:
+            tkinter.messagebox.showinfo("No Data", "No benchmark data available. Please run benchmarks first.")
+            return
 
-        # Time series data for CPU/GPU usage
-        time_data = np.arange(0, 100, 1)
-        cpu_usage = np.sin(time_data / 10) * 10 + 50
-        gpu_usage = np.cos(time_data / 10) * 10 + 50
+        num_benchmarks = len(self.benchmark_results)
+        fig_height = 4 * num_benchmarks
+        self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(8, fig_height))
 
-        # Create new figure and axes
-        self.fig, self.axs = plt.subplots(1, 2, figsize=(8, 4))
+        # Ensure axs is a 2D array
+        if num_benchmarks == 1:
+            self.axs = [self.axs]
 
-        # FPS Bar Graph
-        self.axs[0].bar(benchmarks, fps_data, color=bar_color)
-        self.axs[0].set_title("Average FPS per Benchmark")
-        self.axs[0].set_ylabel("FPS")
-        self.axs[0].set_ylim(0, 100)
+        self.results_textbox.delete('1.0', tkinter.END)
+        self.results_textbox.insert(
+            tkinter.END, "Benchmark Results:\n\n"
+        )
 
-        # CPU/GPU Usage Line Graph
-        self.axs[1].plot(time_data, cpu_usage, label="CPU Usage", linestyle="--")
-        self.axs[1].plot(time_data, gpu_usage, label="GPU Usage")
-        self.axs[1].set_title("CPU and GPU Usage Over Time")
-        self.axs[1].set_xlabel("Time (s)")
-        self.axs[1].set_ylabel("Usage (%)")
-        self.axs[1].legend()
+        for idx, (benchmark_name, data) in enumerate(self.benchmark_results.items()):
+            fps_data = data['fps_data']
+            cpu_usage_data = data['cpu_usage_data']
+            gpu_usage_data = data['gpu_usage_data']
+            time_data = range(len(fps_data))
 
-        # Adjust colors based on appearance mode
-        self.adjust_chart_mode()
+            # FPS Line Graph
+            self.axs[idx][0].plot(time_data, fps_data, color=bar_color)
+            self.axs[idx][0].set_title(f"FPS Over Time - {benchmark_name}")
+            self.axs[idx][0].set_xlabel("Time (s)")
+            self.axs[idx][0].set_ylabel("FPS")
+
+            # CPU/GPU Usage Line Graph
+            self.axs[idx][1].plot(time_data, cpu_usage_data, label="CPU Usage", linestyle="--", color=line_colors[0])
+            self.axs[idx][1].plot(time_data, gpu_usage_data, label="GPU Usage", color=line_colors[1])
+            self.axs[idx][1].set_title(f"CPU and GPU Usage Over Time - {benchmark_name}")
+            self.axs[idx][1].set_xlabel("Time (s)")
+            self.axs[idx][1].set_ylabel("Usage (%)")
+            self.axs[idx][1].legend()
+
+            # Adjust colors based on appearance mode
+            self.adjust_chart_mode()
+
+            # Insert text results
+            avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
+            self.results_textbox.insert(
+                tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n"
+            )
 
         # Create a new canvas and display it
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
@@ -409,12 +443,6 @@ class App(customtkinter.CTk):
             row=0, column=0, padx=20, pady=(10, 0), sticky="nsew"
         )
         self.canvas.draw()
-
-        # Insert text results
-        self.results_textbox.delete('1.0', tkinter.END)
-        self.results_textbox.insert(
-            tkinter.END, "Benchmark Results:\n\n- Pyramid 5: 85.3 FPS\n- Sphere: 60.5 FPS\n..."
-        )
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
