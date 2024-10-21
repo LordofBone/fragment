@@ -1,10 +1,9 @@
-import threading
-import time
+import multiprocessing
 
-import GPUtil
-import psutil
+import GPUtil  # For GPU usage
+import psutil  # For CPU usage
 
-from components.stats_collector import StatsCollector
+from stats_collector import StatsCollector
 
 
 class BenchmarkManager:
@@ -26,29 +25,31 @@ class BenchmarkManager:
         # Reset stats collector for the current benchmark
         self.stats_collector.reset(self.current_benchmark)
 
-        # Start the stats collection in a separate thread
-        stats_thread = threading.Thread(target=self.collect_stats)
-        stats_thread.start()
+        # Create a multiprocessing Queue to collect stats
+        stats_queue = multiprocessing.Queue()
 
-        # Start the benchmark in the main thread
-        run_function(duration=60, stats_collector=self.stats_collector)
+        # Start the benchmark in a separate process
+        process = multiprocessing.Process(target=run_function, args=(60, stats_queue))
+        process.start()
 
-        # Wait for stats collection to finish
-        stats_thread.join()
+        # Collect stats while the process is running
+        while process.is_alive():
+            try:
+                # Non-blocking get from the queue
+                while not stats_queue.empty():
+                    message_type, data = stats_queue.get_nowait()
+                    if message_type == 'fps':
+                        self.stats_collector.set_current_fps(data)
+                # Collect CPU and GPU usage
+                cpu_usage = psutil.cpu_percent(interval=1)
+                gpu_usage = self.get_gpu_usage()
+                current_fps = self.stats_collector.get_current_fps()
+                self.stats_collector.add_data_point(current_fps, cpu_usage, gpu_usage)
+            except:
+                pass
 
-        # Save the collected data
+        process.join()
         self.stats_collector.save_data(self.current_benchmark)
-
-    def collect_stats(self):
-        # Collect stats for 60 seconds
-        end_time = time.time() + 60
-        while time.time() < end_time:
-            fps = self.stats_collector.get_current_fps()
-            cpu_usage = psutil.cpu_percent(interval=1)
-            gpu_usage = self.get_gpu_usage()
-
-            # Store the stats
-            self.stats_collector.add_data_point(fps, cpu_usage, gpu_usage)
 
     def get_gpu_usage(self):
         gpus = GPUtil.getGPUs()
