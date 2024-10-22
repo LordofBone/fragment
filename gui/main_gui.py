@@ -250,12 +250,27 @@ class App(customtkinter.CTk):
         # Construct the path to the image file
         image_path = os.path.join(self.image_folder, f"{benchmark_name}.png")
 
+        # Set fixed dimensions for image area (adjust these values as needed)
+        fixed_width = 640  # Set the desired width of the image area
+        fixed_height = 480  # Set the desired height of the image area
+
+        # Apply fixed dimensions to the label so it doesn't resize
+        self.image_area.configure(width=fixed_width, height=fixed_height)
+        self.image_area.grid_propagate(False)
+
         if os.path.exists(image_path):
             img = Image.open(image_path)
-            img_resized = img.resize((self.image_area.winfo_width(), self.image_area.winfo_height()), Image.LANCZOS)
-            self.displayed_image = CTkImage(light_image=img_resized,
-                                            dark_image=img_resized)  # Use CTkImage for better scaling
+
+            # Resize the image to the fixed dimensions
+            img_resized = img.resize((fixed_width, fixed_height), Image.LANCZOS)
+            self.displayed_image = CTkImage(light_image=img_resized, dark_image=img_resized,
+                                            size=(fixed_width, fixed_height))
+
+            # Now set the image without setting width/height again
             self.image_area.configure(image=self.displayed_image)
+
+            # Keep a reference to prevent garbage collection
+            self.image_area.image = self.displayed_image
         else:
             self.image_area.configure(image=None)  # Clear if no image found
 
