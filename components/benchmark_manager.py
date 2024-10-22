@@ -14,8 +14,12 @@ class BenchmarkManager:
         self.stop_event = stop_event  # Use the stop_event passed from App
         self.benchmark_stopped_by_user = False  # Flag to indicate if benchmark was stopped by user
 
-    def add_benchmark(self, name, run_function):
-        self.benchmarks.append({'name': name, 'run_function': run_function})
+    def add_benchmark(self, name, run_function, resolution):
+        self.benchmarks.append({
+            'name': name,
+            'run_function': run_function,
+            'resolution': resolution  # Add resolution to the benchmark
+        })
 
     def run_benchmarks(self):
         for benchmark in self.benchmarks:
@@ -24,20 +28,20 @@ class BenchmarkManager:
                 break
             self.current_benchmark = benchmark['name']
             print(f"Running benchmark: {self.current_benchmark}")
-            self.run_benchmark(benchmark['run_function'])
+            self.run_benchmark(benchmark['run_function'], benchmark['resolution'])  # Pass resolution
             if self.benchmark_stopped_by_user:
                 # Stop running further benchmarks
                 break
 
-    def run_benchmark(self, run_function):
+    def run_benchmark(self, run_function, resolution):
         # Reset stats collector for the current benchmark
         self.stats_collector.reset(self.current_benchmark)
 
         # Create a multiprocessing Queue to collect stats
         stats_queue = Queue()
 
-        # Start the benchmark in a separate process and pass the stop_event
-        process = Process(target=run_function, args=(60, stats_queue, self.stop_event))
+        # Start the benchmark in a separate process and pass the stop_event and resolution
+        process = Process(target=run_function, args=(60, stats_queue, self.stop_event, resolution))
         process.daemon = True  # Set the process as a daemon
         process.start()
 
