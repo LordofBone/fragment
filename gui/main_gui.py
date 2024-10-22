@@ -193,13 +193,16 @@ class App(customtkinter.CTk):
             "Water Pyramid - Mixed Test",
         ]
 
+        self.currently_selected_benchmark_name = None
+
         # Dictionary to hold the state variables for each checkbox
         self.benchmark_vars = {}
         current_row = 1
         for benchmark in self.benchmarks:
             var = tkinter.BooleanVar(value=False)
             checkbox = customtkinter.CTkCheckBox(
-                self.tabview.tab("Scenarios"), text=benchmark, variable=var
+                self.tabview.tab("Scenarios"), text=benchmark, variable=var,
+                command=lambda b=benchmark: self.set_current_benchmark(b)
             )
             checkbox.grid(row=current_row, column=0, padx=common_padx, pady=(10, 10), sticky="w")
             checkbox.bind("<Enter>", lambda e, b=benchmark: self.display_image(b))
@@ -246,36 +249,66 @@ class App(customtkinter.CTk):
         self.loading_progress_bar.grid(row=4, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew")
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
+        # Bind the window resize event
+        self.bind("<Configure>", self.on_window_resize)
+
     def display_image(self, benchmark_name):
+        self.currently_selected_benchmark_name = benchmark_name
+
         # Construct the path to the image file
         image_path = os.path.join(self.image_folder, f"{benchmark_name}.png")
-
-        # Set fixed dimensions for image area (adjust these values as needed)
-        fixed_width = 640  # Set the desired width of the image area
-        fixed_height = 480  # Set the desired height of the image area
-
-        # Apply fixed dimensions to the label so it doesn't resize
-        self.image_area.configure(width=fixed_width, height=fixed_height)
-        self.image_area.grid_propagate(False)
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
 
-            # Resize the image to the fixed dimensions
-            img_resized = img.resize((fixed_width, fixed_height), Image.LANCZOS)
-            self.displayed_image = CTkImage(light_image=img_resized, dark_image=img_resized,
-                                            size=(fixed_width, fixed_height))
+            # Get the original dimensions of the image
+            img_original_width, img_original_height = img.width, img.height
 
-            # Now set the image without setting width/height again
-            self.image_area.configure(image=self.displayed_image)
+            # Get the current window size
+            window_width = self.winfo_width()
+            window_height = self.winfo_height()
+
+            # Calculate the available width and height for the image
+            available_width = int(window_width * 0.4)  # For example, 40% of the window width
+            available_height = int(window_height * 0.5)  # For example, 50% of the window height
+
+            # Calculate the scale factor to maintain aspect ratio
+            width_scale = available_width / img_original_width
+            height_scale = available_height / img_original_height
+            scale_factor = min(width_scale, height_scale)  # Choose the smaller scale factor to fit both dimensions
+
+            # Scale the image dimensions while maintaining aspect ratio
+            image_area_width = int(img_original_width * scale_factor)
+            image_area_height = int(img_original_height * scale_factor)
+
+            # Resize the image based on the calculated dimensions
+            img_resized = img.resize((image_area_width, image_area_height), Image.LANCZOS)
+            self.displayed_image = CTkImage(light_image=img_resized, dark_image=img_resized,
+                                            size=(image_area_width, image_area_height))
+
+            # Apply the resized image and set the area size
+            self.image_area.configure(image=self.displayed_image, width=image_area_width, height=image_area_height)
 
             # Keep a reference to prevent garbage collection
             self.image_area.image = self.displayed_image
         else:
             self.image_area.configure(image=None)  # Clear if no image found
 
+    def on_window_resize(self, event=None):
+        # Redraw the image when the window size changes
+        currently_selected_benchmark_name = self.currently_selected_benchmark_name
+        for benchmark_name, var in self.benchmark_vars.items():
+            if var.get():  # Assuming there's a selected benchmark
+                currently_selected_benchmark_name = benchmark_name
+                break
+        if currently_selected_benchmark_name:
+            self.display_image(currently_selected_benchmark_name)
+
     def hide_image(self):
         self.image_area.configure(image=None)
+
+    def set_current_benchmark(self, benchmark_name):
+        self.currently_selected_benchmark_name = benchmark_name
 
     def select_all_benchmarks(self):
         for var in self.benchmark_vars.values():
