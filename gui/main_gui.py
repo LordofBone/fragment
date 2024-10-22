@@ -10,7 +10,8 @@ import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
-from PIL import Image, ImageTk
+from PIL import Image
+from customtkinter import CTkImage
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
@@ -250,8 +251,8 @@ class App(customtkinter.CTk):
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
-            img = img.resize((640, 480), Image.LANCZOS)  # Resize image to fit the image area
-            self.displayed_image = ImageTk.PhotoImage(img)
+            img_resized = img.resize((self.image_area.winfo_width(), self.image_area.winfo_height()), Image.LANCZOS)
+            self.displayed_image = CTkImage(img_resized)  # Use CTkImage for better scaling
             self.image_area.configure(image=self.displayed_image)
         else:
             self.image_area.configure(image=None)  # Clear if no image found
