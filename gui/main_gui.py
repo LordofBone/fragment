@@ -10,7 +10,7 @@ import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
-from PIL import Image
+from PIL import ImageFilter, Image
 from customtkinter import CTkImage
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -254,46 +254,69 @@ class App(customtkinter.CTk):
         self.bind("<Configure>", self.on_window_resize)
 
     def display_image(self, benchmark_name):
-        self.currently_selected_benchmark_name = benchmark_name
-
         # Construct the path to the image file
         image_path = os.path.join(self.image_folder, f"{benchmark_name}.png")
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
 
-            # Get the original dimensions of the image
-            img_original_width, img_original_height = img.width, img.height
+            # Add a drop shadow to the image
+            img_with_shadow = self.add_drop_shadow(img)
+
+            # Get the original dimensions of the image with shadow
+            img_original_width, img_original_height = img_with_shadow.width, img_with_shadow.height
 
             # Get the current window size
             window_width = self.winfo_width()
             window_height = self.winfo_height()
 
             # Calculate the available width and height for the image
-            available_width = int(window_width * 0.5)  # For example, 40% of the window width
-            available_height = int(window_height * 0.5)  # For example, 50% of the window height
+            available_width = int(window_width * 0.4)
+            available_height = int(window_height * 0.5)
 
             # Calculate the scale factor to maintain aspect ratio
             width_scale = available_width / img_original_width
             height_scale = available_height / img_original_height
-            scale_factor = min(width_scale, height_scale)  # Choose the smaller scale factor to fit both dimensions
+            scale_factor = min(width_scale, height_scale)
 
             # Scale the image dimensions while maintaining aspect ratio
             image_area_width = int(img_original_width * scale_factor)
             image_area_height = int(img_original_height * scale_factor)
 
-            # Resize the image based on the calculated dimensions
-            img_resized = img.resize((image_area_width, image_area_height), Image.LANCZOS)
+            # Resize the image with shadow based on the calculated dimensions
+            img_resized = img_with_shadow.resize((image_area_width, image_area_height), Image.LANCZOS)
             self.displayed_image = CTkImage(light_image=img_resized, dark_image=img_resized,
                                             size=(image_area_width, image_area_height))
 
-            # Apply the resized image and set the area size
+            # Apply the resized image with shadow and set the area size
             self.image_area.configure(image=self.displayed_image, width=image_area_width, height=image_area_height)
 
             # Keep a reference to prevent garbage collection
             self.image_area.image = self.displayed_image
         else:
             self.image_area.configure(image=None)  # Clear if no image found
+
+    def add_drop_shadow(self, image, shadow_offset=(10, 10), shadow_color=(0, 0, 0), blur_radius=10,
+                        shadow_opacity=100):
+        # Create a shadow image (black with opacity)
+        shadow = Image.new("RGBA", (image.width + shadow_offset[0], image.height + shadow_offset[1]),
+                           color=(0, 0, 0, 0))
+
+        # Create a shadow shape that matches the original image
+        shadow_image = Image.new("RGBA", image.size, color=shadow_color + (shadow_opacity,))
+
+        # Paste the shadow on the shadow canvas with an offset
+        shadow.paste(shadow_image, (shadow_offset[0], shadow_offset[1]))
+
+        # Apply a blur to the shadow to create the drop shadow effect
+        shadow = shadow.filter(ImageFilter.GaussianBlur(blur_radius))
+
+        # Create a base canvas to combine shadow and image
+        combined = Image.new("RGBA", shadow.size)
+        combined.paste(shadow, (0, 0), shadow)  # Paste shadow
+        combined.paste(image, (0, 0), image)  # Paste original image on top of shadow
+
+        return combined
 
     def on_window_resize(self, event=None):
         # Cancel any previous scheduled resizing
