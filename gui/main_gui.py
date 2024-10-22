@@ -173,8 +173,8 @@ class App(customtkinter.CTk):
             "Sphere - Transparency Shader Test",
             "Tyre - Rubber Shader Test",
             "Water - Reflection Test",
-            "Muon Shower",
-            "Water Pyramid",
+            "Muon Shower - Particle System Test",
+            "Water Pyramid - Mixed Test",
         ]
 
         # Dictionary to hold the state variables for each checkbox
@@ -260,8 +260,8 @@ class App(customtkinter.CTk):
             "Sphere - Transparency Shader Test": run_sphere_benchmark,
             "Tyre - Rubber Shader Test": run_tyre_benchmark,
             "Water - Reflection Test": run_water_benchmark,
-            "Muon Shower": run_muon_shower_benchmark,
-            "Water Pyramid": run_water_pyramid_benchmark,
+            "Muon Shower - Particle System Test": run_muon_shower_benchmark,
+            "Water Pyramid - Mixed Test": run_water_pyramid_benchmark,
         }
 
         # Clear previous results
