@@ -282,13 +282,18 @@ class App(customtkinter.CTk):
 
     def run_benchmarks_thread(self):
         self.benchmark_manager.run_benchmarks()
-        # Do not hide the loading bar here
-        # Store results
-        self.benchmark_results = self.benchmark_manager.get_results()
-        # Display results
-        self.after(0, self.generate_and_display_results)
-        # Switch to the "Results" tab
-        self.after(0, lambda: self.tabview.set("Results"))
+        # Hide the loading bar
+        self.after(0, self.hide_loading_bar)
+        if self.benchmark_manager.benchmark_stopped_by_user:
+            # Benchmark was stopped by user
+            self.after(0, lambda: tkinter.messagebox.showinfo("Benchmark Stopped", "Benchmark stopped by user."))
+        else:
+            # Store results
+            self.benchmark_results = self.benchmark_manager.get_results()
+            # Display results
+            self.after(0, self.generate_and_display_results)
+            # Switch to the "Results" tab
+            self.after(0, lambda: self.tabview.set("Results"))
 
     def demo_mode(self):
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
