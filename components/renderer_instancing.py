@@ -97,12 +97,15 @@ class RenderingInstance:
             return max(o for _, o in self.render_order) + 1
         return 0
 
-    def run(self, duration=60, stats_queue=None):
+    def run(self, duration=60, stats_queue=None, stop_event=None):
         self.setup()
         self.running = True
         start_time = time.time()
 
         while self.running and (time.time() - start_time) < duration:
+            if stop_event is not None and stop_event.is_set():
+                print("Benchmark stopped by user.")
+                break
             delta_time = self.render_window.clock.tick(60) / 1000.0  # Targeting 60 FPS
 
             # Handle events (e.g., window close)
