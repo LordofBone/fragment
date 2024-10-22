@@ -10,6 +10,7 @@ import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
+from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
@@ -31,6 +32,9 @@ class App(customtkinter.CTk):
         self.benchmark_manager = None  # Initialize as None
         self.benchmark_results = {}  # Store results for display
         self.stop_event = multiprocessing.Event()  # Event to signal stopping benchmarks
+        self.image_area = None  # Placeholder for the image display area
+        self.displayed_image = None  # To store the current image shown
+        self.image_folder = "images"  # Folder where benchmark images are stored
 
         # Configure window
         self.title("3D Benchmarking Tool")
@@ -167,6 +171,10 @@ class App(customtkinter.CTk):
         self.tabview.tab("Scenarios").grid_columnconfigure(0, weight=1)
         self.tabview.tab("Scenarios").grid_rowconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
 
+        # Image area to display benchmark previews
+        self.image_area = customtkinter.CTkLabel(self.tabview.tab("Scenarios"), text="")
+        self.image_area.grid(row=0, column=1, padx=common_padx, pady=common_pady, rowspan=7, sticky="nsew")
+
         # Benchmark selection tab elements
         self.benchmark_list_label = customtkinter.CTkLabel(
             self.tabview.tab("Scenarios"), text="Select Benchmark Tests:"
@@ -192,6 +200,8 @@ class App(customtkinter.CTk):
                 self.tabview.tab("Scenarios"), text=benchmark, variable=var
             )
             checkbox.grid(row=current_row, column=0, padx=common_padx, pady=(10, 10), sticky="w")
+            checkbox.bind("<Enter>", lambda e, b=benchmark: self.display_image(b))
+            checkbox.bind("<Leave>", lambda e: self.hide_image())
             self.benchmark_vars[benchmark] = var
             current_row += 1
 
@@ -233,6 +243,21 @@ class App(customtkinter.CTk):
         self.loading_progress_bar = customtkinter.CTkProgressBar(self, mode="indeterminate")
         self.loading_progress_bar.grid(row=4, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew")
         self.loading_progress_bar.grid_remove()  # Hide it initially
+
+    def display_image(self, benchmark_name):
+        # Construct the path to the image file
+        image_path = os.path.join(self.image_folder, f"{benchmark_name}.png")
+
+        if os.path.exists(image_path):
+            img = Image.open(image_path)
+            img = img.resize((300, 200), Image.LANCZOS)  # Resize image to fit the image area
+            self.displayed_image = ImageTk.PhotoImage(img)
+            self.image_area.configure(image=self.displayed_image)
+        else:
+            self.image_area.configure(image=None)  # Clear if no image found
+
+    def hide_image(self):
+        self.image_area.configure(image=None)
 
     def select_all_benchmarks(self):
         for var in self.benchmark_vars.values():
