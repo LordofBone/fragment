@@ -295,14 +295,18 @@ class App(customtkinter.CTk):
             self.image_area.configure(image=None)  # Clear if no image found
 
     def on_window_resize(self, event=None):
-        # Redraw the image when the window size changes
-        currently_selected_benchmark_name = self.currently_selected_benchmark_name
-        for benchmark_name, var in self.benchmark_vars.items():
-            if var.get():  # Assuming there's a selected benchmark
-                currently_selected_benchmark_name = benchmark_name
-                break
-        if currently_selected_benchmark_name:
-            self.display_image(currently_selected_benchmark_name)
+        # Cancel any previous scheduled resizing
+        if hasattr(self, '_resize_after_id'):
+            self.after_cancel(self._resize_after_id)
+
+        # Schedule a new resize to happen after 200 ms (or any delay you prefer)
+        self._resize_after_id = self.after(200, self.resize_image_after_window_resize)
+
+    def resize_image_after_window_resize(self):
+        # Check if there is a currently selected benchmark
+        if self.currently_selected_benchmark_name:
+            # Redraw the image after the window resize is completed
+            self.display_image(self.currently_selected_benchmark_name)
 
     def hide_image(self):
         self.image_area.configure(image=None)
@@ -555,6 +559,10 @@ class App(customtkinter.CTk):
 
     def exit_app(self):
         try:
+            # Cancel any pending resize operation
+            if hasattr(self, '_resize_after_id'):
+                self.after_cancel(self._resize_after_id)
+
             # Signal benchmarks to stop
             self.stop_event.set()
 
