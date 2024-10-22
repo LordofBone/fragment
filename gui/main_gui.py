@@ -175,6 +175,7 @@ class App(customtkinter.CTk):
         # Image area to display benchmark previews
         self.image_area = customtkinter.CTkLabel(self.tabview.tab("Scenarios"), text="")
         self.image_area.grid(row=0, column=1, padx=common_padx, pady=common_pady, rowspan=7, sticky="nsew")
+        self.tabview.tab("Scenarios").grid_columnconfigure(1, weight=1)  # Ensure image area expands
 
         # Benchmark selection tab elements
         self.benchmark_list_label = customtkinter.CTkLabel(
@@ -252,7 +253,8 @@ class App(customtkinter.CTk):
         if os.path.exists(image_path):
             img = Image.open(image_path)
             img_resized = img.resize((self.image_area.winfo_width(), self.image_area.winfo_height()), Image.LANCZOS)
-            self.displayed_image = CTkImage(img_resized)  # Use CTkImage for better scaling
+            self.displayed_image = CTkImage(light_image=img_resized,
+                                            dark_image=img_resized)  # Use CTkImage for better scaling
             self.image_area.configure(image=self.displayed_image)
         else:
             self.image_area.configure(image=None)  # Clear if no image found
