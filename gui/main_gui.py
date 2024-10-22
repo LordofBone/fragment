@@ -269,7 +269,7 @@ class App(customtkinter.CTk):
             window_height = self.winfo_height()
 
             # Calculate the available width and height for the image
-            available_width = int(window_width * 0.4)  # For example, 40% of the window width
+            available_width = int(window_width * 0.5)  # For example, 40% of the window width
             available_height = int(window_height * 0.5)  # For example, 50% of the window height
 
             # Calculate the scale factor to maintain aspect ratio
