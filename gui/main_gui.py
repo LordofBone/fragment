@@ -201,12 +201,13 @@ class App(customtkinter.CTk):
         for benchmark in self.benchmarks:
             var = tkinter.BooleanVar(value=False)
             checkbox = customtkinter.CTkCheckBox(
-                self.tabview.tab("Scenarios"), text=benchmark, variable=var,
-                command=lambda b=benchmark: self.set_current_benchmark(b)
+                self.tabview.tab("Scenarios"), text=benchmark, variable=var
             )
             checkbox.grid(row=current_row, column=0, padx=common_padx, pady=(10, 10), sticky="w")
+
+            # Bind <Enter> to display image when hovering over a checkbox
             checkbox.bind("<Enter>", lambda e, b=benchmark: self.display_image(b))
-            checkbox.bind("<Leave>", lambda e: self.hide_image())
+
             self.benchmark_vars[benchmark] = var
             current_row += 1
 
@@ -307,9 +308,6 @@ class App(customtkinter.CTk):
         if self.currently_selected_benchmark_name:
             # Redraw the image after the window resize is completed
             self.display_image(self.currently_selected_benchmark_name)
-
-    def hide_image(self):
-        self.image_area.configure(image=None)
 
     def set_current_benchmark(self, benchmark_name):
         self.currently_selected_benchmark_name = benchmark_name
