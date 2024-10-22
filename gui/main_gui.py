@@ -254,6 +254,8 @@ class App(customtkinter.CTk):
         self.bind("<Configure>", self.on_window_resize)
 
     def display_image(self, benchmark_name):
+        self.currently_selected_benchmark_name = benchmark_name
+
         # Construct the path to the image file
         image_path = os.path.join(self.image_folder, f"{benchmark_name}.png")
 
