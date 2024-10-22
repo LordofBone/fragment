@@ -250,7 +250,7 @@ class App(customtkinter.CTk):
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
-            img = img.resize((300, 200), Image.LANCZOS)  # Resize image to fit the image area
+            img = img.resize((640, 480), Image.LANCZOS)  # Resize image to fit the image area
             self.displayed_image = ImageTk.PhotoImage(img)
             self.image_area.configure(image=self.displayed_image)
         else:
