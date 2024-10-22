@@ -10,6 +10,7 @@ class RendererWindow:
         self.msaa_level = msaa_level
         self.clock = None
         self.running = True  # Control the main loop
+        self.should_close = False  # Flag to indicate window should close
 
         self.setup_pygame()
         self.clock = pygame.time.Clock()
@@ -55,12 +56,14 @@ class RendererWindow:
         glDrawPixels(fps_surface.get_width(), fps_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, fps_data)
 
     def handle_events(self):
-        """Handle window events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                return True
-        return False
+                self.should_close = True  # Set the flag instead of shutting down
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.should_close = True  # Set the flag if Escape is pressed
+
+        return self.should_close
 
     def display_flip(self):
         """Update the display."""
