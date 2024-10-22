@@ -110,6 +110,8 @@ class RenderingInstance:
 
             # Handle events (e.g., window close)
             if self.render_window.handle_events():
+                if stats_queue:
+                    stats_queue.put(('stopped_by_user', True))
                 self.running = False
                 break
 
