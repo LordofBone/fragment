@@ -112,9 +112,7 @@ class App(customtkinter.CTk):
 
         # Main content area (inside main_content_frame)
         self.tabview = customtkinter.CTkTabview(self.main_content_frame, width=600)
-        self.tabview.grid(
-            row=0, column=0, padx=0, pady=0, sticky="nsew"
-        )
+        self.tabview.grid(row=0, column=0, padx=0, pady=0, sticky="nsew")
         self.tabview.add("Settings")
         self.tabview.add("Scenarios")
         self.tabview.add("Results")
@@ -123,49 +121,57 @@ class App(customtkinter.CTk):
         self.tabview.tab("Results").grid_rowconfigure(0, weight=1)
         self.tabview.tab("Results").grid_columnconfigure(0, weight=1)
 
-        # Graphics settings tab
-        self.tabview.tab("Settings").grid_columnconfigure(0, weight=1)
+        # Configure Settings and Scenarios tab grid for consistency
+        common_padx = 30
+        common_pady = (20, 10)
+
+        # Settings tab grid layout
+        self.tabview.tab("Settings").grid_columnconfigure((0, 1), weight=1)
+        self.tabview.tab("Settings").grid_rowconfigure((0, 1, 2, 3), weight=1)
+
+        # Settings tab elements
         self.resolution_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="Resolution:"
         )
-        self.resolution_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        self.resolution_label.grid(row=0, column=0, padx=common_padx, pady=common_pady)
         self.resolution_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
             values=["640x480", "800x600", "1024x768", "1280x720", "1920x1080"],
         )
-        self.resolution_optionmenu.grid(row=0, column=1, padx=20, pady=(20, 10))
+        self.resolution_optionmenu.grid(row=0, column=1, padx=common_padx, pady=common_pady)
 
         self.texture_quality_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="Texture Quality:"
         )
-        self.texture_quality_label.grid(row=1, column=0, padx=20, pady=(20, 10))
+        self.texture_quality_label.grid(row=1, column=0, padx=common_padx, pady=common_pady)
         self.texture_quality_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"), values=["Low", "Medium", "High", "Ultra"]
         )
-        self.texture_quality_optionmenu.grid(row=1, column=1, padx=20, pady=(20, 10))
+        self.texture_quality_optionmenu.grid(row=1, column=1, padx=common_padx, pady=common_pady)
 
         self.shadow_quality_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="Shadow Quality:"
         )
-        self.shadow_quality_label.grid(row=2, column=0, padx=20, pady=(20, 10))
+        self.shadow_quality_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
         self.shadow_quality_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"), values=["Low", "Medium", "High", "Ultra"]
         )
-        self.shadow_quality_optionmenu.grid(row=2, column=1, padx=20, pady=(20, 10))
+        self.shadow_quality_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
 
         self.enable_vsync_checkbox = customtkinter.CTkCheckBox(
             self.tabview.tab("Settings"), text="Enable V-Sync"
         )
-        self.enable_vsync_checkbox.grid(
-            row=3, column=0, columnspan=2, padx=20, pady=(20, 10)
-        )
+        self.enable_vsync_checkbox.grid(row=3, column=0, columnspan=2, padx=common_padx, pady=common_pady)
 
-        # Benchmark selection tab
+        # Scenarios tab grid layout for consistency
         self.tabview.tab("Scenarios").grid_columnconfigure(0, weight=1)
+        self.tabview.tab("Scenarios").grid_rowconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
+
+        # Benchmark selection tab elements
         self.benchmark_list_label = customtkinter.CTkLabel(
             self.tabview.tab("Scenarios"), text="Select Benchmark Tests:"
         )
-        self.benchmark_list_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        self.benchmark_list_label.grid(row=0, column=0, padx=common_padx, pady=common_pady, sticky="w")
 
         # List of benchmarks
         self.benchmarks = [
@@ -185,28 +191,21 @@ class App(customtkinter.CTk):
             checkbox = customtkinter.CTkCheckBox(
                 self.tabview.tab("Scenarios"), text=benchmark, variable=var
             )
-            checkbox.grid(row=current_row, column=0, padx=20, pady=(5, 5), sticky="w")
+            checkbox.grid(row=current_row, column=0, padx=common_padx, pady=(10, 10), sticky="w")
             self.benchmark_vars[benchmark] = var
             current_row += 1
 
-        # 'Select All' button
+        # 'Select All' and 'Deselect All' buttons
         self.select_all_button = customtkinter.CTkButton(
             self.tabview.tab("Scenarios"), text="Select All", command=self.select_all_benchmarks
         )
-        self.select_all_button.grid(
-            row=current_row, column=0, padx=20, pady=(10, 10), sticky="w"
-        )
+        self.select_all_button.grid(row=current_row, column=0, padx=common_padx, pady=(20, 10), sticky="w")
         current_row += 1
 
         self.deselect_all_button = customtkinter.CTkButton(
-            self.tabview.tab("Scenarios"),
-            text="Deselect All",
-            command=self.deselect_all_benchmarks,
+            self.tabview.tab("Scenarios"), text="Deselect All", command=self.deselect_all_benchmarks
         )
-        self.deselect_all_button.grid(
-            row=current_row, column=0, padx=20, pady=(10, 10), sticky="w"
-        )
-        current_row += 1
+        self.deselect_all_button.grid(row=current_row, column=0, padx=common_padx, pady=(10, 20), sticky="w")
 
         # Results tab
         self.results_textbox = customtkinter.CTkTextbox(
@@ -232,9 +231,7 @@ class App(customtkinter.CTk):
 
         # Loading progress bar at the bottom of the right side panel
         self.loading_progress_bar = customtkinter.CTkProgressBar(self, mode="indeterminate")
-        self.loading_progress_bar.grid(
-            row=4, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew"
-        )
+        self.loading_progress_bar.grid(row=4, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew")
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
     def select_all_benchmarks(self):
