@@ -1,6 +1,7 @@
 from multiprocessing import Process, Queue
 
 import GPUtil
+import psutil
 
 from components.stats_collector import StatsCollector
 
@@ -40,8 +41,10 @@ class BenchmarkManager:
         process.daemon = True  # Set the process as a daemon
         process.start()
 
+        benchmark_running = True  # Control flag
+
         # Collect stats while the process is running
-        while process.is_alive():
+        while process.is_alive() and benchmark_running:
             if self.stop_event.is_set():
                 print("Stopping benchmark process...")
                 process.terminate()
@@ -57,8 +60,17 @@ class BenchmarkManager:
                         print("Benchmark stopped by user.")
                         self.benchmark_stopped_by_user = True
                         process.terminate()
-                        break
-            except:
+                        benchmark_running = False  # Stop data collection
+                        break  # Break inner loop
+                if not benchmark_running:
+                    break  # Break outer loop
+                # Collect CPU and GPU usage
+                cpu_usage = psutil.cpu_percent(interval=0.1)
+                gpu_usage = self.get_gpu_usage()
+                current_fps = self.stats_collector.get_current_fps()
+                self.stats_collector.add_data_point(current_fps, cpu_usage, gpu_usage)
+            except Exception as e:
+                print(f"Error during data collection: {e}")
                 pass
 
         process.join()
