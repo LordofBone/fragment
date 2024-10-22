@@ -1,4 +1,4 @@
-from multiprocessing import Process, Queue, Event
+from multiprocessing import Process, Queue
 
 import GPUtil
 import psutil
@@ -7,11 +7,11 @@ from components.stats_collector import StatsCollector
 
 
 class BenchmarkManager:
-    def __init__(self):
+    def __init__(self, stop_event):
         self.benchmarks = []
         self.stats_collector = StatsCollector()
         self.current_benchmark = None
-        self.stop_event = Event()  # Event to signal stopping benchmarks
+        self.stop_event = stop_event
 
     def add_benchmark(self, name, run_function):
         self.benchmarks.append({'name': name, 'run_function': run_function})
