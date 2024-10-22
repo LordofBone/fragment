@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import threading
 import tkinter
@@ -27,9 +28,9 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
-        self.benchmark_manager = BenchmarkManager()
+        self.benchmark_manager = None  # Initialize as None
         self.benchmark_results = {}  # Store results for display
-        self.stop_requested = False  # Flag to signal benchmarks to stop
+        self.stop_event = multiprocessing.Event()  # Event to signal stopping benchmarks
 
         # Configure window
         self.title("3D Benchmarking Tool")
@@ -265,8 +266,7 @@ class App(customtkinter.CTk):
 
         # Clear previous results
         self.benchmark_results = {}
-        self.benchmark_manager = BenchmarkManager()
-        self.benchmark_manager.app = self  # Pass reference to the App instance
+        self.benchmark_manager = BenchmarkManager(self.stop_event)  # Pass stop_event here
 
         for benchmark_name in selected_benchmarks:
             if benchmark_name in benchmark_functions:
@@ -471,7 +471,8 @@ class App(customtkinter.CTk):
 
     def exit_app(self):
         try:
-            self.stop_requested = True  # Signal benchmarks to stop
+            # Signal benchmarks to stop
+            self.stop_event.set()
 
             # Stop the loading progress bar if it's running
             if self.loading_progress_bar:
