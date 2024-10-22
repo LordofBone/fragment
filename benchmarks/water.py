@@ -2,11 +2,11 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(duration=60, stats_queue=None, stop_event=None):
+def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(800, 600)):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Water",
-        window_size=(800, 600),
+        window_size=resolution,
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[(4.2, 4.2, 4.2, -60.0, 55.0)],
         camera_target=(0, 0, 0),
