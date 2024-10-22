@@ -2,7 +2,7 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(800, 600)):
+def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Muon Shower",
@@ -19,7 +19,7 @@ def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(80
         far_plane=5000,
         anisotropy=16.0,
         auto_camera=True,
-        msaa_level=8,
+        msaa_level=msaa_level,
         alpha_blending=True,
         culling=True,
         debug_mode=False,

@@ -2,7 +2,7 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(800, 600)):
+def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Sphere",
@@ -38,7 +38,7 @@ def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(80
         ],
         anisotropy=16.0,
         move_speed=0.2,
-        msaa_level=8,
+        msaa_level=msaa_level,
         culling=True,
         texture_lod_bias=1.0,
         env_map_lod_bias=2.0,
