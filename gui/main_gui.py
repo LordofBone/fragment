@@ -251,6 +251,10 @@ class App(customtkinter.CTk):
             tkinter.messagebox.showwarning("No Selection", "Please select at least one benchmark.")
             return
 
+        # Retrieve the selected resolution from the GUI
+        resolution_str = self.resolution_optionmenu.get()
+        width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
+
         # Map benchmark names to functions
         benchmark_functions = {
             "Pyramid 5 - EMBM Test": run_pyramid_benchmark,
@@ -267,7 +271,9 @@ class App(customtkinter.CTk):
 
         for benchmark_name in selected_benchmarks:
             if benchmark_name in benchmark_functions:
-                self.benchmark_manager.add_benchmark(benchmark_name, benchmark_functions[benchmark_name])
+                # Pass the resolution directly to the benchmark manager
+                self.benchmark_manager.add_benchmark(benchmark_name, benchmark_functions[benchmark_name],
+                                                     (width, height))
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
 
