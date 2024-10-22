@@ -1,3 +1,4 @@
+import os
 import threading
 import tkinter
 import tkinter.messagebox
@@ -28,6 +29,7 @@ class App(customtkinter.CTk):
 
         self.benchmark_manager = BenchmarkManager()
         self.benchmark_results = {}  # Store results for display
+        self.stop_requested = False  # Flag to signal benchmarks to stop
 
         # Configure window
         self.title("3D Benchmarking Tool")
@@ -61,12 +63,11 @@ class App(customtkinter.CTk):
         self.demo_button = customtkinter.CTkButton(
             self.sidebar_frame, text="Demo Mode", command=self.demo_mode
         )
+        self.demo_button.grid(row=2, column=0, padx=20, pady=10)
         self.about_button = customtkinter.CTkButton(
             self.sidebar_frame, text="About", command=self.show_about_info
         )
         self.about_button.grid(row=3, column=0, padx=20, pady=10)
-
-        self.demo_button.grid(row=2, column=0, padx=20, pady=10)
 
         # Appearance mode option menu
         self.appearance_mode_label = customtkinter.CTkLabel(
@@ -265,6 +266,7 @@ class App(customtkinter.CTk):
         # Clear previous results
         self.benchmark_results = {}
         self.benchmark_manager = BenchmarkManager()
+        self.benchmark_manager.app = self  # Pass reference to the App instance
 
         for benchmark_name in selected_benchmarks:
             if benchmark_name in benchmark_functions:
@@ -280,8 +282,7 @@ class App(customtkinter.CTk):
 
     def run_benchmarks_thread(self):
         self.benchmark_manager.run_benchmarks()
-        # Hide the loading bar
-        self.after(0, self.hide_loading_bar)
+        # Do not hide the loading bar here
         # Store results
         self.benchmark_results = self.benchmark_manager.get_results()
         # Display results
@@ -321,7 +322,7 @@ class App(customtkinter.CTk):
         about_window.transient(self)
         about_window.lift()
         about_window.focus_force()
-        about_window.grab_set()  # Prevent interaction with the main window
+        about_window.grab_set()
 
         # Create labels
         title_label = customtkinter.CTkLabel(about_window, text="3D Benchmarking Tool", font=("Arial", 16, "bold"))
@@ -470,6 +471,8 @@ class App(customtkinter.CTk):
 
     def exit_app(self):
         try:
+            self.stop_requested = True  # Signal benchmarks to stop
+
             # Stop the loading progress bar if it's running
             if self.loading_progress_bar:
                 self.loading_progress_bar.stop()
@@ -496,3 +499,6 @@ class App(customtkinter.CTk):
         except _tkinter.TclError:
             # Ignore the TclError since it's non-critical and only affects cleanup
             pass
+        finally:
+            # Force exit the application
+            os._exit(0)
