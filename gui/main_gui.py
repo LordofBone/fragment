@@ -106,11 +106,11 @@ class App(customtkinter.CTk):
         )
         self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
 
-        # Exit button at the bottom right
+        # Exit button aligned with the other buttons
         self.exit_button = customtkinter.CTkButton(
             self.sidebar_frame, text="Exit", command=self.exit_app
         )
-        self.exit_button.grid(row=9, column=0, padx=20, pady=(10, 10), sticky="se")
+        self.exit_button.grid(row=9, column=0, padx=20, pady=10)  # Align with other buttons
 
         # Create main content frame
         self.main_content_frame = customtkinter.CTkFrame(self)
