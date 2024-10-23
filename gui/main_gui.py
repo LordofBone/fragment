@@ -231,11 +231,37 @@ class App(customtkinter.CTk):
         )
         self.deselect_all_button.grid(row=current_row, column=0, padx=common_padx, pady=(10, 20), sticky="w")
 
-        # Results tab
+        # Results tab with scrollable area
+        # Create a canvas and a scrollbar for the Results tab
+        self.results_canvas = tkinter.Canvas(self.tabview.tab("Results"))
+        self.results_canvas.grid(row=0, column=0, sticky="nsew")
+
+        self.results_scrollbar = customtkinter.CTkScrollbar(self.tabview.tab("Results"), orientation="vertical",
+                                                            command=self.results_canvas.yview)
+        self.results_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        self.results_canvas.configure(yscrollcommand=self.results_scrollbar.set)
+
+        # Create a frame inside the canvas to hold the results content
+        self.results_frame = customtkinter.CTkFrame(self.results_canvas)
+        self.results_canvas.create_window((0, 0), window=self.results_frame, anchor='nw')
+
+        # Configure grid weights
+        self.tabview.tab("Results").grid_rowconfigure(0, weight=1)
+        self.tabview.tab("Results").grid_columnconfigure(0, weight=1)
+        self.results_frame.grid_columnconfigure(0, weight=1)
+        self.results_frame.grid_rowconfigure(0, weight=0)  # For results_textbox
+        self.results_frame.grid_rowconfigure(1, weight=1)  # For canvas
+
+        # Initialize results_textbox inside results_frame with smaller font
         self.results_textbox = customtkinter.CTkTextbox(
-            self.tabview.tab("Results"), width=400, height=100
+            self.results_frame, width=400, height=100,
+            font=customtkinter.CTkFont(size=10)
         )
-        self.results_textbox.grid(row=1, column=0, padx=20, pady=(20, 20), sticky="nsew")
+        self.results_textbox.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
+
+        # Bind canvas configure event
+        self.results_canvas.bind("<Configure>", self.on_results_canvas_configure)
 
         # Set default values
         self.appearance_mode_optionemenu.set("System")
@@ -342,8 +368,10 @@ class App(customtkinter.CTk):
             # Redraw the image after the window resize is completed
             self.display_image(self.currently_selected_benchmark_name)
 
-    def set_current_benchmark(self, benchmark_name):
-        self.currently_selected_benchmark_name = benchmark_name
+    def on_results_canvas_configure(self, event):
+        # Update the scrollregion when the canvas size changes
+        self.results_canvas.itemconfig("all", width=event.width)
+        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
 
     def select_all_benchmarks(self):
         for var in self.benchmark_vars.values():
@@ -491,6 +519,16 @@ class App(customtkinter.CTk):
     def display_results(self):
         plot_style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
 
+        # Set font sizes for the plots
+        plt.rcParams.update({
+            'font.size': 8,  # Default text size
+            'axes.titlesize': 10,  # Axes title font size
+            'axes.labelsize': 9,  # Axes labels font size
+            'xtick.labelsize': 8,  # X-axis tick labels font size
+            'ytick.labelsize': 8,  # Y-axis tick labels font size
+            'legend.fontsize': 8,  # Legend font size
+        })
+
         # Clear previous canvas if it exists
         if self.canvas is not None:
             self.canvas.get_tk_widget().destroy()
@@ -548,9 +586,13 @@ class App(customtkinter.CTk):
         self.adjust_chart_mode()
 
         # Create a new canvas and display it
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.tabview.tab("Results"))
-        self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 0), sticky="nsew")
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.results_frame)
+        self.canvas.get_tk_widget().grid(row=1, column=0, padx=20, pady=(10, 20), sticky="nsew")
         self.canvas.draw()
+
+        # Update the scroll region
+        self.results_frame.update_idletasks()
+        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
 
         # Now that the reports are displayed, hide the loading bar
         self.hide_loading_bar()
