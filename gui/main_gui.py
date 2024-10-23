@@ -55,15 +55,16 @@ class App(customtkinter.CTk):
         self.sidebar_frame.grid(row=0, column=0, rowspan=6, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
 
-        # Sidebar Logo with Icon
-        icon_image = CTkImage(Image.open(os.path.join(self.image_folder, 'large_icon.ico')),
-                              size=(64, 64))  # Adjust size as needed
+        # Sidebar Logo with Icon and Drop Shadow
+        icon_image = Image.open(os.path.join(self.image_folder, 'large_icon.ico'))
+        icon_with_shadow = self.add_drop_shadow(icon_image, shadow_offset=(5, 5), blur_radius=8)
+        icon_ctkimage = CTkImage(icon_with_shadow, size=(64, 64))
 
         self.logo_label = customtkinter.CTkLabel(
             self.sidebar_frame,
             text="Fragment\nBenchmarking Tool",
             font=customtkinter.CTkFont(size=20, weight="bold"),
-            image=icon_image,  # Add the image to the label
+            image=icon_ctkimage,  # Add the image to the label
             compound="top",  # Display the image above the text
         )
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
@@ -442,15 +443,17 @@ class App(customtkinter.CTk):
         about_window.focus_force()
         about_window.grab_set()
 
-        # Load the large icon image
-        icon_image = CTkImage(Image.open(os.path.join(self.image_folder, 'large_icon.ico')), size=(64, 64))
+        # Load the large icon image with drop shadow
+        icon_image = Image.open(os.path.join(self.image_folder, 'large_icon.ico'))
+        icon_with_shadow = self.add_drop_shadow(icon_image, shadow_offset=(5, 5), blur_radius=8)
+        icon_ctkimage = CTkImage(icon_with_shadow, size=(64, 64))
 
         # Create the label with both icon and title
         title_label = customtkinter.CTkLabel(
             about_window,
             text="Fragment",
             font=("Arial", 16, "bold"),
-            image=icon_image,  # Add the icon to the label
+            image=icon_ctkimage,  # Add the icon to the label
             compound="top",  # Display the icon above the text
         )
         title_label.pack(pady=(10, 5))
