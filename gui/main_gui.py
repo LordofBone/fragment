@@ -38,7 +38,7 @@ class App(customtkinter.CTk):
         self.image_folder = "images"  # Folder where benchmark images are stored
 
         # Configure window
-        self.title("3D Benchmarking Tool")
+        self.title("Fragment")
         self.geometry(f"{1200}x700")
 
         # Configure grid layout (6 rows, 5 columns)
@@ -56,7 +56,7 @@ class App(customtkinter.CTk):
         # Sidebar Logo
         self.logo_label = customtkinter.CTkLabel(
             self.sidebar_frame,
-            text="3D Benchmark",
+            text="Fragment\nBenchmarking Tool",
             font=customtkinter.CTkFont(size=20, weight="bold"),
         )
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
