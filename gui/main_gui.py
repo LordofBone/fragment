@@ -1,6 +1,6 @@
 import multiprocessing
 import os
-import platform  # For platform detection
+import platform
 import threading
 import tkinter
 import tkinter.messagebox
@@ -236,18 +236,22 @@ class App(customtkinter.CTk):
         # Results tab with scrollable area
         # Create a frame for the results_textbox
         self.results_textbox_frame = customtkinter.CTkFrame(self.tabview.tab("Results"))
-        self.results_textbox_frame.grid(row=0, column=0, sticky="ew")
+        self.results_textbox_frame.grid(row=0, column=0, sticky="nsew")
+        self.results_textbox_frame.grid_columnconfigure(0, weight=1)
 
         # Initialize results_textbox inside results_textbox_frame with smaller font
         self.results_textbox = customtkinter.CTkTextbox(
             self.results_textbox_frame, width=400, height=100,
             font=customtkinter.CTkFont(size=10)
         )
-        self.results_textbox.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
+        self.results_textbox.grid(row=0, column=0, padx=20, pady=(10, 5), sticky="nsew")
 
         # Create a canvas and a scrollbar for the Results tab
         self.results_canvas = tkinter.Canvas(self.tabview.tab("Results"))
         self.results_canvas.grid(row=1, column=0, sticky="nsew")
+        self.results_canvas.grid_columnconfigure(0, weight=1)
+        self.results_canvas.grid_rowconfigure(0, weight=1)
+
         self.results_scrollbar = customtkinter.CTkScrollbar(
             self.tabview.tab("Results"), orientation="vertical",
             command=self.results_canvas.yview
@@ -261,7 +265,7 @@ class App(customtkinter.CTk):
 
         # Adjust grid configuration of results_frame
         self.results_frame.grid_columnconfigure(0, weight=1)
-        self.results_frame.grid_rowconfigure(0, weight=1)  # Only one row now
+        self.results_frame.grid_rowconfigure(0, weight=1)
 
         # Bind canvas configure event
         self.results_canvas.bind("<Configure>", self.on_results_canvas_configure)
@@ -635,12 +639,15 @@ class App(customtkinter.CTk):
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
             self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n")
 
+        # Adjust layout to minimize extra space
+        self.fig.tight_layout()
+
         # Adjust colors based on appearance mode
         self.adjust_chart_mode()
 
         # Create a new canvas and display it
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.results_frame)
-        self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 20), sticky="nsew")
+        self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(5, 10), sticky="nsew")
         self.canvas.draw()
 
         # Update the scroll region
@@ -676,6 +683,7 @@ class App(customtkinter.CTk):
 
         # Set face color of the figure
         self.fig.patch.set_facecolor(chart_bg_color)
+        self.fig.patch.set_edgecolor(chart_bg_color)
 
         # Flatten the axs array to iterate over all axes
         axes_list = self.axs.flatten() if isinstance(self.axs, np.ndarray) else [self.axs]
