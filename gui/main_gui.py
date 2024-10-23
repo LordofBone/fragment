@@ -1,6 +1,6 @@
 import multiprocessing
 import os
-import platform
+import platform  # Added for platform detection
 import threading
 import tkinter
 import tkinter.messagebox
@@ -304,6 +304,10 @@ class App(customtkinter.CTk):
 
         # Bind the window resize event
         self.bind("<Configure>", self.on_window_resize)
+
+    def on_results_canvas_configure(self, event):
+        # Update the scrollregion when the canvas size changes
+        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
 
     def _bind_mousewheel(self, event):
         system = platform.system()
