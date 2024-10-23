@@ -39,6 +39,7 @@ class App(customtkinter.CTk):
         self.image_area = None  # Placeholder for the image display area
         self.displayed_image = None  # To store the current image shown
         self.image_folder = "images"  # Folder where benchmark images are stored
+        self.chart_bg_color = "#f0f0f0"  # Default chart background color
 
         # Configure window
         self.title("Fragment")
@@ -604,13 +605,25 @@ class App(customtkinter.CTk):
 
         # Get collected data
         if not self.benchmark_results:
-            tkinter.messagebox.showinfo("No Data", "No benchmark data available. Please run benchmarks first.")
+            # No results, hide the scrollbar and adjust the canvas
+            self.results_scrollbar.grid_remove()
+            self.results_canvas.configure(yscrollcommand=None)
+            # Clear any previous content in results_frame
+            for widget in self.results_frame.winfo_children():
+                widget.destroy()
+            # Update scroll region
+            self.results_canvas.configure(scrollregion=(0, 0, 0, 0))
             return
+        else:
+            # There are results, ensure scrollbar is visible
+            self.results_scrollbar.grid()
+            self.results_canvas.configure(yscrollcommand=self.results_scrollbar.set)
 
         num_benchmarks = len(self.benchmark_results)
         fig_height = 4 * num_benchmarks
-        # Set squeeze=False to ensure axs is always a 2D numpy array
-        self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(8, fig_height), squeeze=False)
+
+        # Set a fixed figure size
+        self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(11, fig_height), squeeze=False)
 
         self.results_textbox.delete('1.0', tkinter.END)
         self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
@@ -640,7 +653,10 @@ class App(customtkinter.CTk):
             self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n")
 
         # Adjust layout to minimize extra space
-        self.fig.tight_layout()
+        try:
+            self.fig.tight_layout()
+        except Exception as e:
+            print(f"Error applying tight_layout: {e}")
 
         # Adjust colors based on appearance mode
         self.adjust_chart_mode()
@@ -648,6 +664,10 @@ class App(customtkinter.CTk):
         # Create a new canvas and display it
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.results_frame)
         self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(5, 10), sticky="nsew")
+
+        # Set the background color of the canvas widget
+        self.canvas.get_tk_widget().configure(bg=self.chart_bg_color, highlightthickness=0)
+
         self.canvas.draw()
 
         # Update the scroll region
@@ -675,29 +695,32 @@ class App(customtkinter.CTk):
             return
 
         if mode == "Dark":
-            chart_bg_color = "#2c2c2c"
+            self.chart_bg_color = "#2c2c2c"
             text_color = "#b0b0b0"
         else:
-            chart_bg_color = "#f0f0f0"
+            self.chart_bg_color = "#f0f0f0"
             text_color = "#202020"
 
         # Set face color of the figure
-        self.fig.patch.set_facecolor(chart_bg_color)
-        self.fig.patch.set_edgecolor(chart_bg_color)
+        self.fig.patch.set_facecolor(self.chart_bg_color)
+        self.fig.patch.set_edgecolor(self.chart_bg_color)
 
         # Flatten the axs array to iterate over all axes
         axes_list = self.axs.flatten() if isinstance(self.axs, np.ndarray) else [self.axs]
 
         # Set face color of the axes and adjust text colors
         for ax in axes_list:
-            ax.set_facecolor(chart_bg_color)
+            ax.set_facecolor(self.chart_bg_color)
             ax.tick_params(axis='x', colors=text_color)
             ax.tick_params(axis='y', colors=text_color)
             ax.xaxis.label.set_color(text_color)
             ax.yaxis.label.set_color(text_color)
             ax.title.set_color(text_color)
+            # Set the spines' edge color to match the background
             for spine in ax.spines.values():
-                spine.set_edgecolor(text_color)
+                spine.set_edgecolor(self.chart_bg_color)
+            # Remove grid lines if desired
+            ax.grid(False)
 
         # Redraw the canvas to update the chart display
         if self.canvas is not None:
