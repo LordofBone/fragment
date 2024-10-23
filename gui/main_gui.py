@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import platform
 import threading
 import tkinter
 import tkinter.messagebox
@@ -246,6 +247,19 @@ class App(customtkinter.CTk):
         self.results_frame = customtkinter.CTkFrame(self.results_canvas)
         self.results_canvas.create_window((0, 0), window=self.results_frame, anchor='nw')
 
+        # Get the current background color based on the theme
+        bg_color_list = customtkinter.ThemeManager.theme["CTkFrame"]["fg_color"]
+
+        # Determine the correct color based on the current appearance mode
+        if customtkinter.get_appearance_mode() == "Dark":
+            bg_color = bg_color_list[1]  # Dark mode color
+        else:
+            bg_color = bg_color_list[0]  # Light mode color
+
+        # Set the background color of the canvas and frame
+        self.results_canvas.configure(bg=bg_color, highlightthickness=0)
+        self.results_frame.configure(fg_color=bg_color)
+
         # Configure grid weights
         self.tabview.tab("Results").grid_rowconfigure(0, weight=1)
         self.tabview.tab("Results").grid_columnconfigure(0, weight=1)
@@ -262,6 +276,10 @@ class App(customtkinter.CTk):
 
         # Bind canvas configure event
         self.results_canvas.bind("<Configure>", self.on_results_canvas_configure)
+
+        # Bind mouse wheel events to the results_canvas
+        self.results_canvas.bind("<Enter>", self._bind_mousewheel)
+        self.results_canvas.bind("<Leave>", self._unbind_mousewheel)
 
         # Set default values
         self.appearance_mode_optionemenu.set("System")
@@ -286,6 +304,34 @@ class App(customtkinter.CTk):
 
         # Bind the window resize event
         self.bind("<Configure>", self.on_window_resize)
+
+    def _bind_mousewheel(self, event):
+        system = platform.system()
+        if system == 'Windows' or system == 'Darwin':
+            self.results_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        else:  # Linux
+            self.results_canvas.bind_all("<Button-4>", self._on_mousewheel)
+            self.results_canvas.bind_all("<Button-5>", self._on_mousewheel)
+
+    def _unbind_mousewheel(self, event):
+        system = platform.system()
+        if system == 'Windows' or system == 'Darwin':
+            self.results_canvas.unbind_all("<MouseWheel>")
+        else:  # Linux
+            self.results_canvas.unbind_all("<Button-4>")
+            self.results_canvas.unbind_all("<Button-5>")
+
+    def _on_mousewheel(self, event):
+        system = platform.system()
+        if system == 'Windows':
+            self.results_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        elif system == 'Darwin':
+            self.results_canvas.yview_scroll(int(-1 * (event.delta)), "units")
+        else:  # Linux
+            if event.num == 4:  # Scroll up
+                self.results_canvas.yview_scroll(-1, "units")
+            elif event.num == 5:  # Scroll down
+                self.results_canvas.yview_scroll(1, "units")
 
     def display_image(self, benchmark_name):
         self.currently_selected_benchmark_name = benchmark_name
