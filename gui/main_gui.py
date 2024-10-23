@@ -442,8 +442,17 @@ class App(customtkinter.CTk):
         about_window.focus_force()
         about_window.grab_set()
 
-        # Create labels
-        title_label = customtkinter.CTkLabel(about_window, text="Fragment", font=("Arial", 16, "bold"))
+        # Load the large icon image
+        icon_image = CTkImage(Image.open(os.path.join(self.image_folder, 'large_icon.ico')), size=(64, 64))
+
+        # Create the label with both icon and title
+        title_label = customtkinter.CTkLabel(
+            about_window,
+            text="Fragment",
+            font=("Arial", 16, "bold"),
+            image=icon_image,  # Add the icon to the label
+            compound="top",  # Display the icon above the text
+        )
         title_label.pack(pady=(10, 5))
 
         version_label = customtkinter.CTkLabel(about_window, text="Version 1.0", font=("Arial", 12))
