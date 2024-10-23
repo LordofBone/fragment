@@ -1,6 +1,6 @@
 import multiprocessing
 import os
-import platform  # Added for platform detection
+import platform  # For platform detection
 import threading
 import tkinter
 import tkinter.messagebox
@@ -132,7 +132,8 @@ class App(customtkinter.CTk):
         self.tabview.add("Results")
 
         # Configure Results tab to expand
-        self.tabview.tab("Results").grid_rowconfigure(0, weight=1)
+        self.tabview.tab("Results").grid_rowconfigure(0, weight=0)  # Row for text box
+        self.tabview.tab("Results").grid_rowconfigure(1, weight=1)  # Row for scrollable area
         self.tabview.tab("Results").grid_columnconfigure(0, weight=1)
 
         # Configure Settings and Scenarios tab grid for consistency
@@ -233,46 +234,34 @@ class App(customtkinter.CTk):
         self.deselect_all_button.grid(row=current_row, column=0, padx=common_padx, pady=(10, 20), sticky="w")
 
         # Results tab with scrollable area
+        # Create a frame for the results_textbox
+        self.results_textbox_frame = customtkinter.CTkFrame(self.tabview.tab("Results"))
+        self.results_textbox_frame.grid(row=0, column=0, sticky="ew")
+
+        # Initialize results_textbox inside results_textbox_frame with smaller font
+        self.results_textbox = customtkinter.CTkTextbox(
+            self.results_textbox_frame, width=400, height=100,
+            font=customtkinter.CTkFont(size=10)
+        )
+        self.results_textbox.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
+
         # Create a canvas and a scrollbar for the Results tab
         self.results_canvas = tkinter.Canvas(self.tabview.tab("Results"))
-        self.results_canvas.grid(row=0, column=0, sticky="nsew")
-
-        self.results_scrollbar = customtkinter.CTkScrollbar(self.tabview.tab("Results"), orientation="vertical",
-                                                            command=self.results_canvas.yview)
-        self.results_scrollbar.grid(row=0, column=1, sticky="ns")
-
+        self.results_canvas.grid(row=1, column=0, sticky="nsew")
+        self.results_scrollbar = customtkinter.CTkScrollbar(
+            self.tabview.tab("Results"), orientation="vertical",
+            command=self.results_canvas.yview
+        )
+        self.results_scrollbar.grid(row=1, column=1, sticky="ns")
         self.results_canvas.configure(yscrollcommand=self.results_scrollbar.set)
 
         # Create a frame inside the canvas to hold the results content
         self.results_frame = customtkinter.CTkFrame(self.results_canvas)
         self.results_canvas.create_window((0, 0), window=self.results_frame, anchor='nw')
 
-        # Get the current background color based on the theme
-        bg_color_list = customtkinter.ThemeManager.theme["CTkFrame"]["fg_color"]
-
-        # Determine the correct color based on the current appearance mode
-        if customtkinter.get_appearance_mode() == "Dark":
-            bg_color = bg_color_list[1]  # Dark mode color
-        else:
-            bg_color = bg_color_list[0]  # Light mode color
-
-        # Set the background color of the canvas and frame
-        self.results_canvas.configure(bg=bg_color, highlightthickness=0)
-        self.results_frame.configure(fg_color=bg_color)
-
-        # Configure grid weights
-        self.tabview.tab("Results").grid_rowconfigure(0, weight=1)
-        self.tabview.tab("Results").grid_columnconfigure(0, weight=1)
+        # Adjust grid configuration of results_frame
         self.results_frame.grid_columnconfigure(0, weight=1)
-        self.results_frame.grid_rowconfigure(0, weight=0)  # For results_textbox
-        self.results_frame.grid_rowconfigure(1, weight=1)  # For canvas
-
-        # Initialize results_textbox inside results_frame with smaller font
-        self.results_textbox = customtkinter.CTkTextbox(
-            self.results_frame, width=400, height=100,
-            font=customtkinter.CTkFont(size=10)
-        )
-        self.results_textbox.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
+        self.results_frame.grid_rowconfigure(0, weight=1)  # Only one row now
 
         # Bind canvas configure event
         self.results_canvas.bind("<Configure>", self.on_results_canvas_configure)
@@ -280,6 +269,9 @@ class App(customtkinter.CTk):
         # Bind mouse wheel events to the results_canvas
         self.results_canvas.bind("<Enter>", self._bind_mousewheel)
         self.results_canvas.bind("<Leave>", self._unbind_mousewheel)
+
+        # Call update_results_background during initialization
+        self.update_results_background()
 
         # Set default values
         self.appearance_mode_optionemenu.set("System")
@@ -305,9 +297,21 @@ class App(customtkinter.CTk):
         # Bind the window resize event
         self.bind("<Configure>", self.on_window_resize)
 
-    def on_results_canvas_configure(self, event):
-        # Update the scrollregion when the canvas size changes
-        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
+    def update_results_background(self):
+        # Get the current background color based on the theme
+        bg_color_list = customtkinter.ThemeManager.theme["CTkFrame"]["fg_color"]
+
+        # Determine the correct color based on the current appearance mode
+        if customtkinter.get_appearance_mode() == "Dark":
+            bg_color = bg_color_list[1]  # Dark mode color
+        else:
+            bg_color = bg_color_list[0]  # Light mode color
+
+        # Set the background color of the canvas and frames
+        self.results_canvas.configure(bg=bg_color, highlightthickness=0)
+        self.results_frame.configure(fg_color=bg_color)
+        self.results_textbox_frame.configure(fg_color=bg_color)
+        self.results_textbox.configure(bg_color=bg_color)  # Update textbox background if needed
 
     def _bind_mousewheel(self, event):
         system = platform.system()
@@ -420,7 +424,6 @@ class App(customtkinter.CTk):
 
     def on_results_canvas_configure(self, event):
         # Update the scrollregion when the canvas size changes
-        self.results_canvas.itemconfig("all", width=event.width)
         self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
 
     def select_all_benchmarks(self):
@@ -637,7 +640,7 @@ class App(customtkinter.CTk):
 
         # Create a new canvas and display it
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.results_frame)
-        self.canvas.get_tk_widget().grid(row=1, column=0, padx=20, pady=(10, 20), sticky="nsew")
+        self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(10, 20), sticky="nsew")
         self.canvas.draw()
 
         # Update the scroll region
@@ -650,6 +653,7 @@ class App(customtkinter.CTk):
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
         self.adjust_chart_mode()
+        self.update_results_background()  # Update the background colors
 
     def change_scaling_event(self, new_scaling: str):
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
