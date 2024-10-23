@@ -30,6 +30,8 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
+        self.wm_iconbitmap('images/small_icon.ico')
+
         self.benchmark_manager = None  # Initialize as None
         self.benchmark_results = {}  # Store results for display
         self.stop_event = multiprocessing.Event()  # Event to signal stopping benchmarks
@@ -53,11 +55,16 @@ class App(customtkinter.CTk):
         self.sidebar_frame.grid(row=0, column=0, rowspan=6, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
 
-        # Sidebar Logo
+        # Sidebar Logo with Icon
+        icon_image = CTkImage(Image.open(os.path.join(self.image_folder, 'large_icon.ico')),
+                              size=(64, 64))  # Adjust size as needed
+
         self.logo_label = customtkinter.CTkLabel(
             self.sidebar_frame,
             text="Fragment\nBenchmarking Tool",
             font=customtkinter.CTkFont(size=20, weight="bold"),
+            image=icon_image,  # Add the image to the label
+            compound="top",  # Display the image above the text
         )
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
