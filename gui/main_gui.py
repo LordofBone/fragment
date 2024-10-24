@@ -10,7 +10,6 @@ import _tkinter
 import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
-import numpy as np
 from PIL import ImageFilter, Image
 from customtkinter import CTkImage
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -316,7 +315,10 @@ class App(customtkinter.CTk):
         self.results_canvas.configure(bg=bg_color, highlightthickness=0)
         self.results_frame.configure(fg_color=bg_color)
         self.results_textbox_frame.configure(fg_color=bg_color)
-        self.results_textbox.configure(bg_color=bg_color)  # Update textbox background if needed
+        self.results_textbox.configure(bg_color=bg_color)
+
+        # Ensure the scrollbar matches as well
+        self.results_scrollbar.configure(fg_color=bg_color)
 
     def _bind_mousewheel(self, event):
         system = platform.system()
@@ -760,15 +762,12 @@ class App(customtkinter.CTk):
             self.chart_bg_color = "#f0f0f0"
             text_color = "#202020"
 
-        # Set face color of the figure
+        # Set the face color of the figure and canvas background to match
         self.fig.patch.set_facecolor(self.chart_bg_color)
         self.fig.patch.set_edgecolor(self.chart_bg_color)
 
-        # Flatten the axs array to iterate over all axes
-        axes_list = self.axs.flatten() if isinstance(self.axs, np.ndarray) else [self.axs]
-
         # Set face color of the axes and adjust text colors
-        for ax in axes_list:
+        for ax in self.axs.flatten():
             ax.set_facecolor(self.chart_bg_color)
             ax.tick_params(axis='x', colors=text_color)
             ax.tick_params(axis='y', colors=text_color)
@@ -778,10 +777,10 @@ class App(customtkinter.CTk):
             # Set the spines' edge color to match the background
             for spine in ax.spines.values():
                 spine.set_edgecolor(self.chart_bg_color)
-            # Remove grid lines if desired
+            # # Remove grid lines if desired
             ax.grid(False)
 
-        # Redraw the canvas to update the chart display
+        # Redraw the canvas
         if self.canvas is not None:
             self.canvas.draw()
 
