@@ -1,6 +1,5 @@
 import multiprocessing
 import os
-import platform
 import threading
 import tkinter
 import tkinter.messagebox
@@ -133,6 +132,7 @@ class App(customtkinter.CTk):
         self.tabview.tab("Results").grid_rowconfigure(0, weight=0)  # Textbox row
         self.tabview.tab("Results").grid_rowconfigure(1, weight=1)  # Results area row should resize
         self.tabview.tab("Results").grid_columnconfigure(0, weight=1)  # Allow the whole results area to expand
+        self.tabview.tab("Results").grid_columnconfigure(1, weight=0)  # Column for scrollbar (if any)
 
         # Configure Settings and Scenarios tab grid for consistency
         common_padx = 30
@@ -244,38 +244,11 @@ class App(customtkinter.CTk):
         )
         self.results_textbox.grid(row=0, column=0, padx=20, pady=(10, 5), sticky="nsew")
 
-        # Create a canvas and a scrollbar for the Results tab
-        self.results_canvas = tkinter.Canvas(self.tabview.tab("Results"))
-        self.results_canvas.grid(row=1, column=0, sticky="nsew")
-        # Ensure results_canvas and results_frame can expand with the parent
-        self.results_canvas.grid_columnconfigure(0, weight=1)
-        self.results_canvas.grid_rowconfigure(0, weight=1)
-
-        self.results_scrollbar = customtkinter.CTkScrollbar(self.tabview.tab("Results"), orientation="vertical",
-                                                            command=self.results_canvas.yview)
-        self.results_scrollbar.grid(row=1, column=1, sticky="ns")
-        self.results_canvas.configure(yscrollcommand=self.results_scrollbar.set)
-
-        # Results frame inside the canvas
-        self.results_frame = customtkinter.CTkFrame(self.results_canvas)
-        self.results_window = self.results_canvas.create_window((0, 0), window=self.results_frame, anchor='nw')
-
-        # Configure grid in results_frame
-        self.results_frame.grid_rowconfigure(0, weight=1)
+        # Replace Canvas and Scrollbar with CTkScrollableFrame
+        self.results_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Results"))
+        self.results_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
         self.results_frame.grid_columnconfigure(0, weight=1)
-
-        # Ensure the frame propagates size changes from its contents
-        self.results_frame.grid_propagate(True)
-
-        # Ensure canvas and frame resize dynamically
-        self.results_canvas.bind("<Configure>", self.on_results_canvas_configure)
-
-        # Bind mouse wheel events to the results_canvas
-        self.results_canvas.bind("<Enter>", self._bind_mousewheel)
-        self.results_canvas.bind("<Leave>", self._unbind_mousewheel)
-
-        # Call update_results_background during initialization
-        self.update_results_background()
+        self.results_frame.grid_rowconfigure(0, weight=1)
 
         # Set default values
         self.appearance_mode_optionemenu.set("System")
@@ -311,42 +284,10 @@ class App(customtkinter.CTk):
         else:
             bg_color = bg_color_list[0]  # Light mode color
 
-        # Set the background color of the canvas and frames
-        self.results_canvas.configure(bg=bg_color, highlightthickness=0)
-        self.results_frame.configure(fg_color=bg_color, bg_color=bg_color)
+        # Set the background color of the frames
+        self.results_frame.configure(fg_color=bg_color)
         self.results_textbox_frame.configure(fg_color=bg_color)
         self.results_textbox.configure(bg_color=bg_color)
-
-        # Ensure the scrollbar matches as well
-        self.results_scrollbar.configure(fg_color=bg_color)
-
-    def _bind_mousewheel(self, event):
-        system = platform.system()
-        if system == 'Windows' or system == 'Darwin':
-            self.results_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
-        else:  # Linux
-            self.results_canvas.bind_all("<Button-4>", self._on_mousewheel)
-            self.results_canvas.bind_all("<Button-5>", self._on_mousewheel)
-
-    def _unbind_mousewheel(self, event):
-        system = platform.system()
-        if system == 'Windows' or system == 'Darwin':
-            self.results_canvas.unbind_all("<MouseWheel>")
-        else:  # Linux
-            self.results_canvas.unbind_all("<Button-4>")
-            self.results_canvas.unbind_all("<Button-5>")
-
-    def _on_mousewheel(self, event):
-        system = platform.system()
-        if system == 'Windows':
-            self.results_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        elif system == 'Darwin':
-            self.results_canvas.yview_scroll(int(-1 * (event.delta)), "units")
-        else:  # Linux
-            if event.num == 4:  # Scroll up
-                self.results_canvas.yview_scroll(-1, "units")
-            elif event.num == 5:  # Scroll down
-                self.results_canvas.yview_scroll(1, "units")
 
     def display_image(self, benchmark_name):
         self.currently_selected_benchmark_name = benchmark_name
@@ -416,8 +357,6 @@ class App(customtkinter.CTk):
         return combined
 
     def on_window_resize(self, event=None):
-        self.results_frame.update_idletasks()
-
         # Cancel any previous scheduled resizing for the image
         if hasattr(self, '_image_resize_after_id'):
             self.after_cancel(self._image_resize_after_id)
@@ -432,29 +371,10 @@ class App(customtkinter.CTk):
         # Schedule a new canvas resize to happen after 200 ms (or any delay you prefer)
         self._canvas_resize_after_id = self.after(200, self._resize_canvas)
 
-        # Ensure the results_frame resizes with the window
-        if hasattr(self, '_frame_resize_after_id'):
-            self.after_cancel(self._frame_resize_after_id)
-
-        # Schedule the frame resize to maintain smooth resizing
-        self._frame_resize_after_id = self.after(200, self._resize_frame)
-
-        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
-
     def resize_image_after_window_resize(self):
         # Logic for resizing the image after the window resize
         if self.currently_selected_benchmark_name:
             self.display_image(self.currently_selected_benchmark_name)
-
-    def _resize_frame(self):
-        # Ensures the results_frame resizes with the window
-        self.results_frame.update_idletasks()
-        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
-
-    def on_results_canvas_configure(self, event):
-        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
-        # Update the width of results_frame to match the canvas width
-        self.results_canvas.itemconfig(self.results_window, width=event.width)
 
     def select_all_benchmarks(self):
         for var in self.benchmark_vars.values():
@@ -620,19 +540,10 @@ class App(customtkinter.CTk):
 
         # Get collected data
         if not self.benchmark_results:
-            # No results, hide the scrollbar and adjust the canvas
-            self.results_scrollbar.grid_remove()
-            self.results_canvas.configure(yscrollcommand=None)
-            # Clear any previous content in results_frame
+            # No results, clear any previous content in results_frame
             for widget in self.results_frame.winfo_children():
                 widget.destroy()
-            # Update scroll region
-            self.results_canvas.configure(scrollregion=(0, 0, 0, 0))
             return
-        else:
-            # There are results, ensure scrollbar is visible
-            self.results_scrollbar.grid()
-            self.results_canvas.configure(yscrollcommand=self.results_scrollbar.set)
 
         num_benchmarks = len(self.benchmark_results)
         fig_height = 4 * num_benchmarks
@@ -694,7 +605,7 @@ class App(customtkinter.CTk):
 
         # Create a new canvas and display it
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.results_frame)
-        self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(5, 10), sticky="nsew")
+        self.canvas.get_tk_widget().pack(fill='both', expand=True, padx=20, pady=(5, 10))
 
         # Bind the resize event to handle resizing of the plot
         self.canvas.get_tk_widget().bind('<Configure>', self.on_canvas_resize)
@@ -703,13 +614,6 @@ class App(customtkinter.CTk):
         self.canvas.get_tk_widget().configure(bg=self.chart_bg_color, highlightthickness=0)
 
         self.canvas.draw()
-
-        # Update the scroll region
-        self.results_frame.update_idletasks()
-        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
-
-        # Now that the reports are displayed, hide the loading bar
-        self.hide_loading_bar()
 
     def on_canvas_resize(self, event):
         if hasattr(self, '_canvas_resize_after_id'):
@@ -742,7 +646,7 @@ class App(customtkinter.CTk):
             self.fig.tight_layout()
 
             # Redraw the canvas with updated size
-            self.canvas.draw()
+            self.canvas.draw_idle()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -783,12 +687,12 @@ class App(customtkinter.CTk):
             # Set the spines' edge color to match the background
             for spine in ax.spines.values():
                 spine.set_edgecolor(self.chart_bg_color)
-            # # Remove grid lines if desired
+            # Remove grid lines if desired
             ax.grid(False)
 
         # Redraw the canvas
         if self.canvas is not None:
-            self.canvas.draw()
+            self.canvas.draw_idle()
 
     def exit_app(self):
         try:
