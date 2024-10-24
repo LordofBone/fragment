@@ -313,7 +313,7 @@ class App(customtkinter.CTk):
 
         # Set the background color of the canvas and frames
         self.results_canvas.configure(bg=bg_color, highlightthickness=0)
-        self.results_frame.configure(fg_color=bg_color)
+        self.results_frame.configure(fg_color=bg_color, bg_color=bg_color)
         self.results_textbox_frame.configure(fg_color=bg_color)
         self.results_textbox.configure(bg_color=bg_color)
 
