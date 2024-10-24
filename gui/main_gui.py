@@ -130,10 +130,10 @@ class App(customtkinter.CTk):
         self.tabview.add("Scenarios")
         self.tabview.add("Results")
 
-        # Configure Results tab to expand
-        self.tabview.tab("Results").grid_rowconfigure(0, weight=0)  # Row for text box
-        self.tabview.tab("Results").grid_rowconfigure(1, weight=1)  # Row for scrollable area
-        self.tabview.tab("Results").grid_columnconfigure(0, weight=1)
+        # Results tab configuration to make the rows/columns resize dynamically
+        self.tabview.tab("Results").grid_rowconfigure(0, weight=0)  # Textbox row
+        self.tabview.tab("Results").grid_rowconfigure(1, weight=1)  # Results area row should resize
+        self.tabview.tab("Results").grid_columnconfigure(0, weight=1)  # Allow the whole results area to expand
 
         # Configure Settings and Scenarios tab grid for consistency
         common_padx = 30
@@ -248,6 +248,7 @@ class App(customtkinter.CTk):
         # Create a canvas and a scrollbar for the Results tab
         self.results_canvas = tkinter.Canvas(self.tabview.tab("Results"))
         self.results_canvas.grid(row=1, column=0, sticky="nsew")
+        # Ensure results_canvas and results_frame can expand with the parent
         self.results_canvas.grid_columnconfigure(0, weight=1)
         self.results_canvas.grid_rowconfigure(0, weight=1)
 
@@ -258,11 +259,14 @@ class App(customtkinter.CTk):
 
         # Results frame inside the canvas
         self.results_frame = customtkinter.CTkFrame(self.results_canvas)
-        self.results_canvas.create_window((0, 0), window=self.results_frame, anchor='nw')
+        self.results_window = self.results_canvas.create_window((0, 0), window=self.results_frame, anchor='nw')
 
-        # Configure the grid inside results_frame
-        self.results_frame.grid_columnconfigure(0, weight=1)
+        # Configure grid in results_frame
         self.results_frame.grid_rowconfigure(0, weight=1)
+        self.results_frame.grid_columnconfigure(0, weight=1)
+
+        # Ensure the frame propagates size changes from its contents
+        self.results_frame.grid_propagate(True)
 
         # Ensure canvas and frame resize dynamically
         self.results_canvas.bind("<Configure>", self.on_results_canvas_configure)
@@ -410,6 +414,8 @@ class App(customtkinter.CTk):
         return combined
 
     def on_window_resize(self, event=None):
+        self.results_frame.update_idletasks()
+
         # Cancel any previous scheduled resizing for the image
         if hasattr(self, '_image_resize_after_id'):
             self.after_cancel(self._image_resize_after_id)
@@ -431,6 +437,8 @@ class App(customtkinter.CTk):
         # Schedule the frame resize to maintain smooth resizing
         self._frame_resize_after_id = self.after(200, self._resize_frame)
 
+        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
+
     def resize_image_after_window_resize(self):
         # Logic for resizing the image after the window resize
         if self.currently_selected_benchmark_name:
@@ -443,6 +451,8 @@ class App(customtkinter.CTk):
 
     def on_results_canvas_configure(self, event):
         self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
+        # Update the width of results_frame to match the canvas width
+        self.results_canvas.itemconfig(self.results_window, width=event.width)
 
     def select_all_benchmarks(self):
         for var in self.benchmark_vars.values():
@@ -700,7 +710,8 @@ class App(customtkinter.CTk):
 
     def _resize_canvas(self):
         if self.canvas is not None and self.fig is not None:
-            # Get the size of the window or the results_frame
+            # Ensure the layout is updated
+            self.results_frame.update_idletasks()
             width = self.results_frame.winfo_width()
             height = self.results_frame.winfo_height()
 
