@@ -117,15 +117,13 @@ class App(customtkinter.CTk):
 
         # Create main content frame
         self.main_content_frame = customtkinter.CTkFrame(self)
-        self.main_content_frame.grid(
-            row=0, column=1, columnspan=4, rowspan=4, padx=(20, 20), pady=(20, 20), sticky="nsew"
-        )
+        self.main_content_frame.grid(row=0, column=1, columnspan=4, rowspan=4, padx=(20, 20), pady=(20, 20),
+                                     sticky="nsew")
         self.main_content_frame.grid_rowconfigure(0, weight=1)
         self.main_content_frame.grid_columnconfigure(0, weight=1)
+        self.main_content_frame.grid_propagate(True)  # Allow the frame to resize based on children
 
-        self.main_content_frame.grid_propagate(False)
-
-        # Main content area (inside main_content_frame)
+        # Tab view
         self.tabview = customtkinter.CTkTabview(self.main_content_frame, width=600)
         self.tabview.grid(row=0, column=0, padx=0, pady=0, sticky="nsew")
         self.tabview.add("Settings")
@@ -253,22 +251,20 @@ class App(customtkinter.CTk):
         self.results_canvas.grid_columnconfigure(0, weight=1)
         self.results_canvas.grid_rowconfigure(0, weight=1)
 
-        self.results_scrollbar = customtkinter.CTkScrollbar(
-            self.tabview.tab("Results"), orientation="vertical",
-            command=self.results_canvas.yview
-        )
+        self.results_scrollbar = customtkinter.CTkScrollbar(self.tabview.tab("Results"), orientation="vertical",
+                                                            command=self.results_canvas.yview)
         self.results_scrollbar.grid(row=1, column=1, sticky="ns")
         self.results_canvas.configure(yscrollcommand=self.results_scrollbar.set)
 
-        # Create a frame inside the canvas to hold the results content
+        # Results frame inside the canvas
         self.results_frame = customtkinter.CTkFrame(self.results_canvas)
         self.results_canvas.create_window((0, 0), window=self.results_frame, anchor='nw')
 
-        # Adjust grid configuration of results_frame
+        # Configure the grid inside results_frame
         self.results_frame.grid_columnconfigure(0, weight=1)
         self.results_frame.grid_rowconfigure(0, weight=1)
 
-        # Bind canvas configure event
+        # Ensure canvas and frame resize dynamically
         self.results_canvas.bind("<Configure>", self.on_results_canvas_configure)
 
         # Bind mouse wheel events to the results_canvas
@@ -428,13 +424,24 @@ class App(customtkinter.CTk):
         # Schedule a new canvas resize to happen after 200 ms (or any delay you prefer)
         self._canvas_resize_after_id = self.after(200, self._resize_canvas)
 
+        # Ensure the results_frame resizes with the window
+        if hasattr(self, '_frame_resize_after_id'):
+            self.after_cancel(self._frame_resize_after_id)
+
+        # Schedule the frame resize to maintain smooth resizing
+        self._frame_resize_after_id = self.after(200, self._resize_frame)
+
     def resize_image_after_window_resize(self):
-        # Your existing logic for resizing the image after the window resize
+        # Logic for resizing the image after the window resize
         if self.currently_selected_benchmark_name:
             self.display_image(self.currently_selected_benchmark_name)
 
+    def _resize_frame(self):
+        # Ensures the results_frame resizes with the window
+        self.results_frame.update_idletasks()
+        self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
+
     def on_results_canvas_configure(self, event):
-        # Update the scrollregion when the canvas size changes
         self.results_canvas.configure(scrollregion=self.results_canvas.bbox("all"))
 
     def select_all_benchmarks(self):
@@ -697,19 +704,25 @@ class App(customtkinter.CTk):
             width = self.results_frame.winfo_width()
             height = self.results_frame.winfo_height()
 
-            # Avoid division by zero
             if width <= 0 or height <= 0:
                 return
 
+            # Set padding and adjust available width and height
+            padding_x = 20
+            padding_y = 40
+            available_width = width - 2 * padding_x
+            available_height = height - padding_y
+
             # Convert width and height from pixels to inches
             dpi = self.fig.get_dpi()
-            fig_width = width / dpi
-            fig_height = height / dpi
+            fig_width = available_width / dpi
+            fig_height = available_height / dpi
 
             # Update figure size
             self.fig.set_size_inches(fig_width, fig_height, forward=True)
+            self.fig.tight_layout()
 
-            # Redraw the canvas
+            # Redraw the canvas with updated size
             self.canvas.draw()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
