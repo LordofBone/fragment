@@ -602,16 +602,6 @@ class App(customtkinter.CTk):
     def display_results(self):
         plot_style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
 
-        # Set font sizes for the plots
-        plt.rcParams.update({
-            'font.size': 8,  # Default text size
-            'axes.titlesize': 10,  # Axes title font size
-            'axes.labelsize': 9,  # Axes labels font size
-            'xtick.labelsize': 8,  # X-axis tick labels font size
-            'ytick.labelsize': 8,  # Y-axis tick labels font size
-            'legend.fontsize': 8,  # Legend font size
-        })
-
         # Clear previous canvas if it exists
         if self.canvas is not None:
             self.canvas.get_tk_widget().destroy()
@@ -647,8 +637,22 @@ class App(customtkinter.CTk):
         num_benchmarks = len(self.benchmark_results)
         fig_height = 4 * num_benchmarks
 
-        # Set a fixed figure size
+        # Create the figure and axes
         self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(11, fig_height), squeeze=False)
+
+        # Calculate the scale factor after the figure is created
+        fig_width, fig_height = self.fig.get_size_inches()
+        scale_factor = min(fig_width, fig_height) / 6  # Adjust this divisor as needed
+
+        # Set dynamic font sizes based on the scale factor
+        plt.rcParams.update({
+            'font.size': 8 * scale_factor,  # Default text size
+            'axes.titlesize': 10 * scale_factor,  # Axes title font size
+            'axes.labelsize': 9 * scale_factor,  # Axes labels font size
+            'xtick.labelsize': 8 * scale_factor,  # X-axis tick labels font size
+            'ytick.labelsize': 8 * scale_factor,  # Y-axis tick labels font size
+            'legend.fontsize': 8 * scale_factor,  # Legend font size
+        })
 
         self.results_textbox.delete('1.0', tkinter.END)
         self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
@@ -664,6 +668,7 @@ class App(customtkinter.CTk):
             self.axs[idx, 0].set_title(f"FPS Over Time - {benchmark_name}")
             self.axs[idx, 0].set_xlabel("Time (s)")
             self.axs[idx, 0].set_ylabel("FPS")
+            self.axs[idx, 0].set_aspect(aspect='auto', adjustable='box')  # Maintain aspect ratio
 
             # CPU/GPU Usage Line Graph
             self.axs[idx, 1].plot(time_data, cpu_usage_data, label="CPU Usage", linestyle="--", color=line_colors[0])
@@ -672,6 +677,7 @@ class App(customtkinter.CTk):
             self.axs[idx, 1].set_xlabel("Time (s)")
             self.axs[idx, 1].set_ylabel("Usage (%)")
             self.axs[idx, 1].legend()
+            self.axs[idx, 1].set_aspect(aspect='auto', adjustable='box')  # Maintain aspect ratio
 
             # Insert text results
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
