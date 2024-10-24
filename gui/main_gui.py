@@ -414,17 +414,23 @@ class App(customtkinter.CTk):
         return combined
 
     def on_window_resize(self, event=None):
-        # Cancel any previous scheduled resizing
-        if hasattr(self, '_resize_after_id'):
-            self.after_cancel(self._resize_after_id)
+        # Cancel any previous scheduled resizing for the image
+        if hasattr(self, '_image_resize_after_id'):
+            self.after_cancel(self._image_resize_after_id)
 
-        # Schedule a new resize to happen after 200 ms (or any delay you prefer)
-        self._resize_after_id = self.after(200, self.resize_image_after_window_resize)
+        # Schedule a new image resize to happen after 200 ms (or any delay you prefer)
+        self._image_resize_after_id = self.after(200, self.resize_image_after_window_resize)
+
+        # Cancel any previous scheduled resizing for the canvas
+        if hasattr(self, '_canvas_resize_after_id'):
+            self.after_cancel(self._canvas_resize_after_id)
+
+        # Schedule a new canvas resize to happen after 200 ms (or any delay you prefer)
+        self._canvas_resize_after_id = self.after(200, self._resize_canvas)
 
     def resize_image_after_window_resize(self):
-        # Check if there is a currently selected benchmark
+        # Your existing logic for resizing the image after the window resize
         if self.currently_selected_benchmark_name:
-            # Redraw the image after the window resize is completed
             self.display_image(self.currently_selected_benchmark_name)
 
     def on_results_canvas_configure(self, event):
@@ -665,6 +671,9 @@ class App(customtkinter.CTk):
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.results_frame)
         self.canvas.get_tk_widget().grid(row=0, column=0, padx=20, pady=(5, 10), sticky="nsew")
 
+        # Bind the resize event to handle resizing of the plot
+        self.canvas.get_tk_widget().bind('<Configure>', self.on_canvas_resize)
+
         # Set the background color of the canvas widget
         self.canvas.get_tk_widget().configure(bg=self.chart_bg_color, highlightthickness=0)
 
@@ -676,6 +685,32 @@ class App(customtkinter.CTk):
 
         # Now that the reports are displayed, hide the loading bar
         self.hide_loading_bar()
+
+    def on_canvas_resize(self, event):
+        if hasattr(self, '_canvas_resize_after_id'):
+            self.after_cancel(self._canvas_resize_after_id)
+        self._canvas_resize_after_id = self.after(200, self._resize_canvas)
+
+    def _resize_canvas(self):
+        if self.canvas is not None and self.fig is not None:
+            # Get the size of the window or the results_frame
+            width = self.results_frame.winfo_width()
+            height = self.results_frame.winfo_height()
+
+            # Avoid division by zero
+            if width <= 0 or height <= 0:
+                return
+
+            # Convert width and height from pixels to inches
+            dpi = self.fig.get_dpi()
+            fig_width = width / dpi
+            fig_height = height / dpi
+
+            # Update figure size
+            self.fig.set_size_inches(fig_width, fig_height, forward=True)
+
+            # Redraw the canvas
+            self.canvas.draw()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
