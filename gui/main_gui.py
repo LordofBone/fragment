@@ -557,12 +557,12 @@ class App(customtkinter.CTk):
 
         # Set dynamic font sizes based on the scale factor
         plt.rcParams.update({
-            'font.size': 8 * scale_factor,  # Default text size
-            'axes.titlesize': 10 * scale_factor,  # Axes title font size
-            'axes.labelsize': 9 * scale_factor,  # Axes labels font size
-            'xtick.labelsize': 8 * scale_factor,  # X-axis tick labels font size
-            'ytick.labelsize': 8 * scale_factor,  # Y-axis tick labels font size
-            'legend.fontsize': 8 * scale_factor,  # Legend font size
+            'font.size': min(8 * scale_factor, 10),  # Default text size
+            'axes.titlesize': min(10 * scale_factor, 12),  # Axes title font size
+            'axes.labelsize': min(9 * scale_factor, 11),  # Axes labels font size
+            'xtick.labelsize': min(8 * scale_factor, 10),  # X-axis tick labels font size
+            'ytick.labelsize': min(8 * scale_factor, 10),  # Y-axis tick labels font size
+            'legend.fontsize': min(8 * scale_factor, 10),  # Legend font size
         })
 
         self.results_textbox.delete('1.0', tkinter.END)
@@ -579,7 +579,9 @@ class App(customtkinter.CTk):
             self.axs[idx, 0].set_title(f"FPS Over Time - {benchmark_name}")
             self.axs[idx, 0].set_xlabel("Time (s)")
             self.axs[idx, 0].set_ylabel("FPS")
-            self.axs[idx, 0].set_aspect(aspect='auto', adjustable='box')  # Maintain aspect ratio
+
+            # Remove aspect ratio setting
+            self.axs[idx, 0].set_aspect(aspect='auto', adjustable='box')
 
             # CPU/GPU Usage Line Graph
             self.axs[idx, 1].plot(time_data, cpu_usage_data, label="CPU Usage", linestyle="--", color=line_colors[0])
@@ -588,7 +590,9 @@ class App(customtkinter.CTk):
             self.axs[idx, 1].set_xlabel("Time (s)")
             self.axs[idx, 1].set_ylabel("Usage (%)")
             self.axs[idx, 1].legend()
-            self.axs[idx, 1].set_aspect(aspect='auto', adjustable='box')  # Maintain aspect ratio
+
+            # Remove aspect ratio setting
+            self.axs[idx, 1].set_aspect(aspect='auto', adjustable='box')
 
             # Insert text results
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
@@ -605,7 +609,11 @@ class App(customtkinter.CTk):
 
         # Create a new canvas and display it
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.results_frame)
-        self.canvas.get_tk_widget().pack(fill='both', expand=True, padx=20, pady=(5, 10))
+        self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew", padx=20, pady=(5, 10))
+
+        # Ensure the canvas expands with the frame
+        self.results_frame.grid_rowconfigure(0, weight=1)
+        self.results_frame.grid_columnconfigure(0, weight=1)
 
         # Bind the resize event to handle resizing of the plot
         self.canvas.get_tk_widget().bind('<Configure>', self.on_canvas_resize)
@@ -613,7 +621,40 @@ class App(customtkinter.CTk):
         # Set the background color of the canvas widget
         self.canvas.get_tk_widget().configure(bg=self.chart_bg_color, highlightthickness=0)
 
-        self.canvas.draw()
+        self.canvas.draw_idle()
+
+    def on_canvas_resize(self, event):
+        if hasattr(self, '_canvas_resize_after_id'):
+            self.after_cancel(self._canvas_resize_after_id)
+        self._canvas_resize_after_id = self.after(200, self._resize_canvas)
+
+    def _resize_canvas(self):
+        if self.canvas is not None and self.fig is not None:
+            # Ensure the layout is updated
+            self.results_frame.update_idletasks()
+            width = self.results_frame.winfo_width()
+            height = self.results_frame.winfo_height()
+
+            if width <= 0 or height <= 0:
+                return
+
+            # Adjust available width and height
+            padding_x = 40  # Total padding (left + right)
+            padding_y = 40  # Total padding (top + bottom)
+            available_width = width - padding_x
+            available_height = height - padding_y
+
+            # Convert width and height from pixels to inches
+            dpi = self.fig.get_dpi()
+            fig_width = available_width / dpi
+            fig_height = available_height / dpi
+
+            # Update figure size
+            self.fig.set_size_inches(fig_width, fig_height, forward=True)
+            self.fig.tight_layout()
+
+            # Redraw the canvas with updated size
+            self.canvas.draw_idle()
 
     def on_canvas_resize(self, event):
         if hasattr(self, '_canvas_resize_after_id'):
