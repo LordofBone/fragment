@@ -522,12 +522,14 @@ class App(customtkinter.CTk):
     def display_results(self):
         plot_style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
 
-        # Clear previous canvas if it exists
+        # Clear previous canvas and figure if they exist
         if self.canvas is not None:
             self.canvas.get_tk_widget().destroy()
             self.canvas = None
+
+        if self.fig is not None:
+            plt.close(self.fig)
             self.fig = None
-            self.axs = None
 
         # Get current appearance mode
         current_mode = customtkinter.get_appearance_mode()
@@ -548,8 +550,9 @@ class App(customtkinter.CTk):
         num_benchmarks = len(self.benchmark_results)
         fig_height = 4 * num_benchmarks
 
-        # Create the figure and axes
-        self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(11, fig_height), squeeze=False)
+        # Create the figure and axes with constrained_layout=True
+        self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(11, fig_height), squeeze=False,
+                                          constrained_layout=True)
 
         # Calculate the scale factor after the figure is created
         fig_width, fig_height = self.fig.get_size_inches()
@@ -580,9 +583,6 @@ class App(customtkinter.CTk):
             self.axs[idx, 0].set_xlabel("Time (s)")
             self.axs[idx, 0].set_ylabel("FPS")
 
-            # Remove aspect ratio setting
-            self.axs[idx, 0].set_aspect(aspect='auto', adjustable='box')
-
             # CPU/GPU Usage Line Graph
             self.axs[idx, 1].plot(time_data, cpu_usage_data, label="CPU Usage", linestyle="--", color=line_colors[0])
             self.axs[idx, 1].plot(time_data, gpu_usage_data, label="GPU Usage", color=line_colors[1])
@@ -591,18 +591,9 @@ class App(customtkinter.CTk):
             self.axs[idx, 1].set_ylabel("Usage (%)")
             self.axs[idx, 1].legend()
 
-            # Remove aspect ratio setting
-            self.axs[idx, 1].set_aspect(aspect='auto', adjustable='box')
-
             # Insert text results
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
             self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n")
-
-        # Adjust layout to minimize extra space
-        try:
-            self.fig.tight_layout()
-        except Exception as e:
-            print(f"Error applying tight_layout: {e}")
 
         # Adjust colors based on appearance mode
         self.adjust_chart_mode()
@@ -630,61 +621,20 @@ class App(customtkinter.CTk):
 
     def _resize_canvas(self):
         if self.canvas is not None and self.fig is not None:
-            # Ensure the layout is updated
-            self.results_frame.update_idletasks()
-            width = self.results_frame.winfo_width()
-            height = self.results_frame.winfo_height()
+            # Get the new size of the canvas widget
+            width = self.canvas.get_tk_widget().winfo_width()
+            height = self.canvas.get_tk_widget().winfo_height()
 
             if width <= 0 or height <= 0:
                 return
 
-            # Adjust available width and height
-            padding_x = 40  # Total padding (left + right)
-            padding_y = 40  # Total padding (top + bottom)
-            available_width = width - padding_x
-            available_height = height - padding_y
-
             # Convert width and height from pixels to inches
             dpi = self.fig.get_dpi()
-            fig_width = available_width / dpi
-            fig_height = available_height / dpi
+            fig_width = width / dpi
+            fig_height = height / dpi
 
             # Update figure size
             self.fig.set_size_inches(fig_width, fig_height, forward=True)
-            self.fig.tight_layout()
-
-            # Redraw the canvas with updated size
-            self.canvas.draw_idle()
-
-    def on_canvas_resize(self, event):
-        if hasattr(self, '_canvas_resize_after_id'):
-            self.after_cancel(self._canvas_resize_after_id)
-        self._canvas_resize_after_id = self.after(200, self._resize_canvas)
-
-    def _resize_canvas(self):
-        if self.canvas is not None and self.fig is not None:
-            # Ensure the layout is updated
-            self.results_frame.update_idletasks()
-            width = self.results_frame.winfo_width()
-            height = self.results_frame.winfo_height()
-
-            if width <= 0 or height <= 0:
-                return
-
-            # Set padding and adjust available width and height
-            padding_x = 20
-            padding_y = 40
-            available_width = width - 2 * padding_x
-            available_height = height - padding_y
-
-            # Convert width and height from pixels to inches
-            dpi = self.fig.get_dpi()
-            fig_width = available_width / dpi
-            fig_height = available_height / dpi
-
-            # Update figure size
-            self.fig.set_size_inches(fig_width, fig_height, forward=True)
-            self.fig.tight_layout()
 
             # Redraw the canvas with updated size
             self.canvas.draw_idle()
@@ -725,9 +675,17 @@ class App(customtkinter.CTk):
             ax.xaxis.label.set_color(text_color)
             ax.yaxis.label.set_color(text_color)
             ax.title.set_color(text_color)
-            # Set the spines' edge color to match the background
+
+            # Set the spines' edge color to match the text color
             for spine in ax.spines.values():
-                spine.set_edgecolor(self.chart_bg_color)
+                spine.set_edgecolor(text_color)
+
+            # Update legend text colors
+            legend = ax.get_legend()
+            if legend is not None:
+                for text in legend.get_texts():
+                    text.set_color(text_color)
+
             # Remove grid lines if desired
             ax.grid(False)
 
