@@ -461,6 +461,7 @@ class App(customtkinter.CTk):
 
     def show_about_info(self):
         about_window = customtkinter.CTkToplevel(self)
+        about_window.iconbitmap('images/small_icon.ico')
         about_window.title("About")
         about_window.geometry("400x250")
         about_window.resizable(False, False)
@@ -512,6 +513,8 @@ class App(customtkinter.CTk):
         # Close button
         close_button = customtkinter.CTkButton(about_window, text="Close", command=about_window.destroy)
         close_button.pack(pady=(10, 10))
+
+        about_window.after(250, lambda: about_window.iconbitmap('images/small_icon.ico'))
 
     def generate_and_display_results(self):
         # Since we can't update Tkinter widgets from a thread, use 'after' method
