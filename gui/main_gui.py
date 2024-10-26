@@ -605,12 +605,7 @@ class App(customtkinter.CTk):
         # Ensure the canvas expands with the frame
         self.results_frame.grid_rowconfigure(0, weight=1)
         self.results_frame.grid_columnconfigure(0, weight=1)
-
-        # Bind the resize event to handle resizing of the plot
-        self.canvas.get_tk_widget().bind('<Configure>', self.on_canvas_resize)
-
-        # Set the background color of the canvas widget
-        self.canvas.get_tk_widget().configure(bg=self.chart_bg_color, highlightthickness=0)
+        self.results_frame.configure(fg_color=self.chart_bg_color)
 
         self.canvas.draw_idle()
 
