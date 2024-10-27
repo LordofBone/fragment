@@ -678,12 +678,6 @@ class App(customtkinter.CTk):
             for spine in ax.spines.values():
                 spine.set_edgecolor(text_color)
 
-            # Update legend text colors
-            legend = ax.get_legend()
-            if legend is not None:
-                for text in legend.get_texts():
-                    text.set_color(text_color)
-
             # Remove grid lines if desired
             ax.grid(False)
 
