@@ -2,7 +2,8 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
+def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0,
+                  particle_render_mode="vertex"):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Water Pyramid",
