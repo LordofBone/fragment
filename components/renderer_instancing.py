@@ -132,6 +132,8 @@ class RenderingInstance:
             if stats_queue:
                 stats_queue.put(('fps', current_fps))
 
+            self.render_window.draw_fps(current_fps)
+
             # Update the display
             self.render_window.display_flip()
 
