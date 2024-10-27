@@ -293,6 +293,7 @@ class RendererConfig:
         self,
         particle_render_mode="transform_feedback",
         shader_names=("particle_vertex", "particle_fragment"),
+            particle_shader_override=False,
         compute_shader_program=None,
         alpha_blending=None,
         phong_shading=None,
@@ -343,6 +344,7 @@ class RendererConfig:
 
         particle_specifics = {
             "particle_render_mode": particle_render_mode,
+            "particle_shader_override": particle_shader_override,
             "alpha_blending": alpha_blending,
             "phong_shading": phong_shading,
             "opacity": opacity,
