@@ -98,7 +98,14 @@ class RenderingInstance:
         return 0
 
     def run(self, duration=60, stats_queue=None, stop_event=None):
+        # Perform setup
         self.setup()
+
+        # Signal that the renderer is fully initialized and ready
+        if stats_queue is not None:
+            stats_queue.put(('ready', None))
+
+        # Start the main loop
         self.running = True
         start_time = time.time()
 
