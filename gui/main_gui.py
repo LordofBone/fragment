@@ -517,7 +517,16 @@ class App(customtkinter.CTk):
         about_window.after(250, lambda: about_window.iconbitmap('images/small_icon.ico'))
 
     def generate_and_display_results(self):
-        # Since we can't update Tkinter widgets from a thread, use 'after' method
+        # Destroy the current results frame to reset the scroll position
+        self.results_frame.destroy()
+
+        # Recreate the results frame with the same configurations
+        self.results_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Results"))
+        self.results_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        self.results_frame.grid_columnconfigure(0, weight=1)
+        self.results_frame.grid_rowconfigure(0, weight=1)
+
+        # Continue with displaying the results
         self.after(0, self.display_results)
         # Switch to the "Results" tab
         self.after(0, lambda: self.tabview.set("Results"))
