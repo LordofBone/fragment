@@ -13,6 +13,7 @@ class ParticleRenderer(AbstractRenderer):
         particles_max=100,
         particle_batch_size=1,
         particle_render_mode="transform_feedback",
+            particle_shader_override=False,
         particle_generator=False,
         generator_delay=0.0,
         particle_type="point",
@@ -67,6 +68,7 @@ class ParticleRenderer(AbstractRenderer):
         self.total_particles = self.max_particles  # Always process all particles
         self.particle_batch_size = min(particle_batch_size, particles_max)
         self.particle_render_mode = particle_render_mode
+        self.particle_shader_override = particle_shader_override
         self.particle_generator = particle_generator  # Control generator mode
         self.generator_delay = generator_delay  # Delay between particle generations in seconds
         self.generated_particles = 0  # Track total generated particles
@@ -128,7 +130,10 @@ class ParticleRenderer(AbstractRenderer):
 
         self.free_slots = []
 
-        if self.particle_render_mode == "transform_feedback":
+        # this option is to allow for overriding of shaders for the particle system from the scenario calling code
+        if self.particle_shader_override is True:
+            pass
+        elif self.particle_render_mode == "transform_feedback":
             self.shader_names = {
                 "vertex": "particles_transform_feedback",
                 "fragment": "particles",
