@@ -175,7 +175,7 @@ class App(customtkinter.CTk):
         self.particle_render_mode_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
-            values=["CPU", "Vertex Shader", "Compute Shader"]
+            values=["CPU", "Transform Feedback", "Compute Shader"]
         )
         self.particle_render_mode_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu.set("CPU")  # Set default to "CPU"
@@ -265,7 +265,7 @@ class App(customtkinter.CTk):
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("0")
-        self.particle_render_mode_optionmenu.set("Vertex")
+        self.particle_render_mode_optionmenu.set("Transform Feedback")
         self.enable_vsync_checkbox.select()
 
         # Prepare the graph canvas for results
@@ -448,6 +448,9 @@ class App(customtkinter.CTk):
         # Retrieve the selected MSAA level from the GUI
         msaa_level = int(self.msaa_level_optionmenu.get())
 
+        # Retrieve the selected particle render mode from the GUI
+        particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
+
         # Map benchmark names to functions
         benchmark_functions = {
             "Pyramid 5 - EMBM Test": run_pyramid_benchmark,
@@ -464,12 +467,13 @@ class App(customtkinter.CTk):
 
         for benchmark_name in selected_benchmarks:
             if benchmark_name in benchmark_functions:
-                # Pass the resolution and MSAA level directly to the benchmark manager
+                # Pass the resolution, MSAA level, and particle render mode to the benchmark manager
                 self.benchmark_manager.add_benchmark(
                     benchmark_name,
                     benchmark_functions[benchmark_name],
                     (width, height),
-                    msaa_level=msaa_level
+                    msaa_level=msaa_level,
+                    particle_render_mode=particle_render_mode,
                 )
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
