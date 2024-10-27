@@ -42,7 +42,7 @@ class BenchmarkManager:
         stats_queue = Queue()
 
         # Start the benchmark in a separate process and pass the stop_event and resolution
-        process = Process(target=run_function, args=(60, stats_queue, self.stop_event, resolution))
+        process = Process(target=run_function, args=(stats_queue, self.stop_event, resolution))
         process.daemon = True  # Set the process as a daemon
         process.start()
 
