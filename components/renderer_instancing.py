@@ -14,6 +14,7 @@ class RenderingInstance:
     def __init__(self, config):
         self.config = config
         self.render_window = None
+        self.duration = 0
         self.scene_construct = SceneConstructor()
         self.framebuffers = {}
         self.render_order = []
@@ -25,6 +26,8 @@ class RenderingInstance:
             title=self.config.window_title,
             msaa_level=self.config.msaa_level
         )
+
+        self.duration = self.config.duration
 
         for renderer in self.scene_construct.renderers.values():
             renderer.setup()
@@ -97,7 +100,7 @@ class RenderingInstance:
             return max(o for _, o in self.render_order) + 1
         return 0
 
-    def run(self, duration=60, stats_queue=None, stop_event=None):
+    def run(self, stats_queue=None, stop_event=None):
         # Perform setup
         self.setup()
 
@@ -109,7 +112,7 @@ class RenderingInstance:
         self.running = True
         start_time = time.time()
 
-        while self.running and (time.time() - start_time) < duration:
+        while self.running and (time.time() - start_time) < self.duration:
             if stop_event is not None and stop_event.is_set():
                 print("Benchmark stopped by user.")
                 break
