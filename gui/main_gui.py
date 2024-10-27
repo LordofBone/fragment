@@ -633,7 +633,14 @@ class App(customtkinter.CTk):
             fps_data = data['fps_data']
             cpu_usage_data = data['cpu_usage_data']
             gpu_usage_data = data['gpu_usage_data']
-            time_data = range(len(fps_data))
+            elapsed_time = data['elapsed_time']
+
+            # Generate the time axis based on the actual elapsed time
+            if elapsed_time > 0 and len(fps_data) > 0:
+                interval = elapsed_time / len(fps_data)
+                time_data = [i * interval for i in range(len(fps_data))]
+            else:
+                time_data = range(len(fps_data))
 
             # FPS Line Graph
             self.axs[idx, 0].plot(time_data, fps_data, color=bar_color)
