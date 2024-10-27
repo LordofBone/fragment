@@ -168,14 +168,17 @@ class App(customtkinter.CTk):
         self.msaa_level_optionmenu.grid(row=1, column=1, padx=common_padx, pady=common_pady)
         self.msaa_level_optionmenu.set("0")  # Set default value to 0 (no MSAA)
 
-        self.shadow_quality_label = customtkinter.CTkLabel(
-            self.tabview.tab("Settings"), text="Shadow Quality:"
+        # Inside __init__ method in the Settings tab elements section
+        self.particle_render_mode_label = customtkinter.CTkLabel(
+            self.tabview.tab("Settings"), text="Particle Render Mode:"
         )
-        self.shadow_quality_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
-        self.shadow_quality_optionmenu = customtkinter.CTkOptionMenu(
-            self.tabview.tab("Settings"), values=["Low", "Medium", "High", "Ultra"]
+        self.particle_render_mode_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_optionmenu = customtkinter.CTkOptionMenu(
+            self.tabview.tab("Settings"),
+            values=["CPU", "Vertex Shader", "Compute Shader"]
         )
-        self.shadow_quality_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_optionmenu.set("CPU")  # Set default to "CPU"
 
         self.enable_vsync_checkbox = customtkinter.CTkCheckBox(
             self.tabview.tab("Settings"), text="Enable V-Sync"
@@ -262,7 +265,7 @@ class App(customtkinter.CTk):
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("0")
-        self.shadow_quality_optionmenu.set("Medium")
+        self.particle_render_mode_optionmenu.set("Vertex")
         self.enable_vsync_checkbox.select()
 
         # Prepare the graph canvas for results
@@ -401,7 +404,7 @@ class App(customtkinter.CTk):
         # Disable option menus
         self.resolution_optionmenu.configure(state="disabled")
         self.msaa_level_optionmenu.configure(state="disabled")
-        self.shadow_quality_optionmenu.configure(state="disabled")
+        self.particle_render_mode_optionmenu.configure(state="disabled")
         # Disable checkboxes
         self.enable_vsync_checkbox.configure(state="disabled")
         for item in self.benchmark_vars.values():
@@ -420,7 +423,7 @@ class App(customtkinter.CTk):
         # Enable option menus
         self.resolution_optionmenu.configure(state="normal")
         self.msaa_level_optionmenu.configure(state="normal")
-        self.shadow_quality_optionmenu.configure(state="normal")
+        self.particle_render_mode_optionmenu.configure(state="normal")
         # Enable checkboxes
         self.enable_vsync_checkbox.configure(state="normal")
         for item in self.benchmark_vars.values():
