@@ -128,8 +128,26 @@ class ParticleRenderer(AbstractRenderer):
 
         self.free_slots = []
 
-        # Only used in CPU mode
-        self.cpu_particles = np.zeros((self.max_particles, 10), dtype=np.float32)  # Store particle attributes
+        if self.particle_render_mode == "transform_feedback":
+            self.shader_names = {
+                "vertex": "particles_transform_feedback",
+                "fragment": "particles",
+                "compute": None,
+            }
+        elif self.particle_render_mode == "compute_shader":
+            self.shader_names = {
+                "vertex": "particles_compute_shader",
+                "fragment": "particles",
+                "compute": "particles",
+            }
+        elif self.particle_render_mode == "cpu":
+            self.shader_names = {
+                "vertex": "particles_cpu",
+                "fragment": "particles",
+                "compute": None,
+            }
+
+        self.cpu_particles = np.zeros((self.max_particles, 10), dtype=np.float32)
         self.particle_color = glm.vec3(*particle_color)
         self.particle_fade_to_color = particle_fade_to_color
         self.shader_particle_fade_color = glm.vec3(*shader_particle_fade_color)
