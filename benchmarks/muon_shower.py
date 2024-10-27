@@ -2,11 +2,12 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
+def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Muon Shower",
         window_size=resolution,
+        duration=60,
         camera_positions=[(4.2, 6.2, 4.2, -60.0, 55.0)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
@@ -98,4 +99,4 @@ def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(80
     instance.scene_construct.set_auto_rotation("sparks", False)
 
     # Run the rendering instance
-    instance.run(duration=duration, stats_queue=stats_queue, stop_event=stop_event)
+    instance.run(stats_queue=stats_queue, stop_event=stop_event)
