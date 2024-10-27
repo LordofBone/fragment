@@ -2,7 +2,8 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
+def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0,
+                  particle_render_mode="transform_feedback"):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Muon Shower",
@@ -34,28 +35,19 @@ def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa
 
     # Define the configuration for the particle renderer
     particle_config = base_config.add_particle_renderer(
+        particle_render_mode=particle_render_mode,
         particles_max=600,
         particle_batch_size=150,
         # available_particle_types = ['points','lines','line_strip','line_loop','lines_adjacency','line_strip_adjacency','triangles','triangle_strip','triangle_fan','triangles_adjacency','triangle_strip_adjacency','patches']
         particle_type="points",
-        # particle_render_mode='cpu',  # Options: 'transform_feedback', 'cpu', 'compute_shader'
-        # particle_render_mode='transform_feedback',
-        particle_render_mode="compute_shader",
-        # shader_names={
-        #     'vertex': 'particles_cpu',
-        #     'fragment': 'particles',
-        #     'compute': None,
+        particle_shader_override=False,
+        # if above is True it allows override of shaders for the particle renderer, but you must uncomment the shader_names below
+        # and provide the names of the shaders you want to be used
+        # shader_names = {
+        #     "vertex": "particles_transform_feedback",
+        #     "fragment": "particles",
+        #     "compute": None,
         # },
-        # shader_names={
-        #     'vertex': 'particles_transform_feedback',
-        #     'fragment': 'particles',
-        #     'compute': None,
-        # },
-        shader_names={
-            "vertex": "particles_compute_shader",
-            "fragment": "particles",
-            "compute": "particles",
-        },
         particle_generator=True,
         generator_delay=0.0,
         particle_size=36.0,
