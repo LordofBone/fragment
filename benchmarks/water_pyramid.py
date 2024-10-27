@@ -2,11 +2,12 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
+def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Water Pyramid",
         window_size=resolution,
+        duration=60,
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_positions=[
             (10.0, 10.0, 10.0, -30.0, 0.0),  # Initial position

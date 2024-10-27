@@ -2,11 +2,12 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(duration=60, stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
+def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Sphere",
         window_size=resolution,
+        duration=60,
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[
             (60.4, 60.4, 60.4, -50.0, 35.0),  # Starting position
