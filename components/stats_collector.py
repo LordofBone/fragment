@@ -15,6 +15,7 @@ class StatsCollector:
                 'fps_data': [],
                 'cpu_usage_data': [],
                 'gpu_usage_data': [],
+                'elapsed_time': 0  # Add elapsed time to store it
             }
             self.current_fps = 0
 
@@ -32,6 +33,10 @@ class StatsCollector:
             data['fps_data'].append(fps)
             data['cpu_usage_data'].append(cpu_usage)
             data['gpu_usage_data'].append(gpu_usage)
+
+    def set_elapsed_time(self, benchmark_name, elapsed_time):
+        with self.lock:
+            self.benchmark_data[benchmark_name]['elapsed_time'] = elapsed_time
 
     def save_data(self, benchmark_name):
         # Optionally save data to a file
