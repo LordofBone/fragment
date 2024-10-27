@@ -48,4 +48,4 @@ def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa
     instance.add_renderer("water_surface", "surface", **water_config)
 
     # Run the rendering instance
-    instance.run(duration=duration, stats_queue=stats_queue, stop_event=stop_event)
+    instance.run(stats_queue=stats_queue, stop_event=stop_event)
