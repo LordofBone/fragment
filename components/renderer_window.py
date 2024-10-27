@@ -30,9 +30,9 @@ class RendererWindow:
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, self.msaa_level)
 
-    def draw_fps(self):
+    def draw_fps(self, fps):
         """Draw the FPS on the screen."""
-        fps = self.get_fps_text()
+        fps = str(int(fps))
         fps_data = self.create_fps_texture(fps)
 
         self.enable_blending()
@@ -51,8 +51,14 @@ class RendererWindow:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     def draw_fps_texture(self, fps, fps_data):
+        # Render the FPS text as a Pygame surface
         fps_surface = self.font.render(fps, True, pygame.Color("white"))
-        glWindowPos2i(self.window_size[0] - fps_surface.get_width() - 10, 20)
+
+        # Set the position to the top-right corner with some padding (10 pixels from the right edge and 20 pixels from the top edge)
+        glWindowPos2i(self.window_size[0] - fps_surface.get_width() - 10,
+                      self.window_size[1] - fps_surface.get_height() - 10)
+
+        # Draw the FPS text as OpenGL pixels
         glDrawPixels(fps_surface.get_width(), fps_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, fps_data)
 
     def handle_events(self):
