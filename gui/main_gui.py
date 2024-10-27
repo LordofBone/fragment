@@ -203,7 +203,7 @@ class App(customtkinter.CTk):
 
         self.currently_selected_benchmark_name = None
 
-        # Dictionary to hold the state variables for each checkbox
+        # Dictionary to hold the state variables and checkboxes for each benchmark
         self.benchmark_vars = {}
         current_row = 1
         for benchmark in self.benchmarks:
@@ -216,7 +216,8 @@ class App(customtkinter.CTk):
             # Bind <Enter> to display image when hovering over a checkbox
             checkbox.bind("<Enter>", lambda e, b=benchmark: self.display_image(b))
 
-            self.benchmark_vars[benchmark] = var
+            # Store both the variable and the checkbox widget
+            self.benchmark_vars[benchmark] = {'var': var, 'checkbox': checkbox}
             current_row += 1
 
         # 'Select All' and 'Deselect All' buttons
@@ -377,17 +378,55 @@ class App(customtkinter.CTk):
             self.display_image(self.currently_selected_benchmark_name)
 
     def select_all_benchmarks(self):
-        for var in self.benchmark_vars.values():
-            var.set(True)
+        for item in self.benchmark_vars.values():
+            item['var'].set(True)
 
     def deselect_all_benchmarks(self):
-        for var in self.benchmark_vars.values():
-            var.set(False)
+        for item in self.benchmark_vars.values():
+            item['var'].set(False)
+
+    def disable_widgets(self):
+        # Disable sidebar buttons
+        self.benchmark_button.configure(state="disabled")
+        self.demo_button.configure(state="disabled")
+        self.about_button.configure(state="disabled")
+        # Disable tab buttons (disable tab switching)
+        self.tabview._segmented_button.configure(state="disabled")
+        # Disable option menus
+        self.resolution_optionmenu.configure(state="disabled")
+        self.texture_quality_optionmenu.configure(state="disabled")
+        self.shadow_quality_optionmenu.configure(state="disabled")
+        # Disable checkboxes
+        self.enable_vsync_checkbox.configure(state="disabled")
+        for item in self.benchmark_vars.values():
+            item['checkbox'].configure(state="disabled")
+        # Disable 'Select All' and 'Deselect All' buttons
+        self.select_all_button.configure(state="disabled")
+        self.deselect_all_button.configure(state="disabled")
+
+    def enable_widgets(self):
+        # Enable sidebar buttons
+        self.benchmark_button.configure(state="normal")
+        self.demo_button.configure(state="normal")
+        self.about_button.configure(state="normal")
+        # Enable tab buttons (enable tab switching)
+        self.tabview._segmented_button.configure(state="normal")
+        # Enable option menus
+        self.resolution_optionmenu.configure(state="normal")
+        self.texture_quality_optionmenu.configure(state="normal")
+        self.shadow_quality_optionmenu.configure(state="normal")
+        # Enable checkboxes
+        self.enable_vsync_checkbox.configure(state="normal")
+        for item in self.benchmark_vars.values():
+            item['checkbox'].configure(state="normal")
+        # Enable 'Select All' and 'Deselect All' buttons
+        self.select_all_button.configure(state="normal")
+        self.deselect_all_button.configure(state="normal")
 
     def run_benchmark(self):
         # Get selected benchmarks from the checkboxes
         selected_benchmarks = [
-            benchmark for benchmark, var in self.benchmark_vars.items() if var.get()
+            benchmark for benchmark, item in self.benchmark_vars.items() if item['var'].get()
         ]
         if not selected_benchmarks:
             tkinter.messagebox.showwarning("No Selection", "Please select at least one benchmark.")
@@ -419,6 +458,9 @@ class App(customtkinter.CTk):
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
 
+        # Disable widgets
+        self.disable_widgets()
+
         # Show the loading bar
         self.show_loading_bar()
 
@@ -439,8 +481,11 @@ class App(customtkinter.CTk):
             self.after(0, self.generate_and_display_results)
             # Switch to the "Results" tab
             self.after(0, lambda: self.tabview.set("Results"))
+        # Re-enable widgets
+        self.after(0, self.enable_widgets)
 
     def demo_mode(self):
+        # If demo mode runs a process, similar disabling and enabling of widgets would be applied here
         tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
 
     def show_loading_bar(self):
@@ -532,7 +577,7 @@ class App(customtkinter.CTk):
         self.after(0, lambda: self.tabview.set("Results"))
 
     def display_results(self):
-        plot_style.use('mpl20')  # Options are: 'mpl20': 'default', 'mpl15': 'classic'
+        plot_style.use('mpl20')  # Use default style
 
         # Clear previous canvas and figure if they exist
         if self.canvas is not None:
@@ -543,7 +588,7 @@ class App(customtkinter.CTk):
             plt.close(self.fig)
             self.fig = None
 
-        # Get current appearance mode
+        # Determine colors based on current mode
         current_mode = customtkinter.get_appearance_mode()
         if current_mode == "Dark":
             bar_color = "skyblue"
@@ -552,9 +597,8 @@ class App(customtkinter.CTk):
             bar_color = "blue"
             line_colors = ["red", "green", "purple"]
 
-        # Get collected data
+        # Check if there are benchmark results
         if not self.benchmark_results:
-            # No results, clear any previous content in results_frame
             for widget in self.results_frame.winfo_children():
                 widget.destroy()
             return
@@ -562,20 +606,26 @@ class App(customtkinter.CTk):
         num_benchmarks = len(self.benchmark_results)
         fig_height = 4 * num_benchmarks
 
-        # Create the figure and axes with constrained_layout=True
-        self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(11, fig_height), squeeze=False,
-                                          constrained_layout=True)
+        # Create figure and axes with transparent background
+        self.fig, self.axs = plt.subplots(
+            num_benchmarks, 2,
+            figsize=(11, fig_height),
+            squeeze=False,
+            constrained_layout=True,
+            facecolor='none'
+        )
 
-        # Set nice font sizing
+        # Set dynamic font sizes
         plt.rcParams.update({
-            'font.size': 10,  # Default text size
-            'axes.titlesize': 12,  # Axes title font size
-            'axes.labelsize': 11,  # Axes labels font size
-            'xtick.labelsize': 10,  # X-axis tick labels font size
-            'ytick.labelsize': 10,  # Y-axis tick labels font size
-            'legend.fontsize': 10,  # Legend font size
+            'font.size': 10,
+            'axes.titlesize': 12,
+            'axes.labelsize': 11,
+            'xtick.labelsize': 10,
+            'ytick.labelsize': 10,
+            'legend.fontsize': 10,
         })
 
+        # Update results textbox
         self.results_textbox.delete('1.0', tkinter.END)
         self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
 
@@ -592,8 +642,14 @@ class App(customtkinter.CTk):
             self.axs[idx, 0].set_ylabel("FPS")
 
             # CPU/GPU Usage Line Graph
-            self.axs[idx, 1].plot(time_data, cpu_usage_data, label="CPU Usage", linestyle="--", color=line_colors[0])
-            self.axs[idx, 1].plot(time_data, gpu_usage_data, label="GPU Usage", color=line_colors[1])
+            self.axs[idx, 1].plot(
+                time_data, cpu_usage_data,
+                label="CPU Usage", linestyle="--", color=line_colors[0]
+            )
+            self.axs[idx, 1].plot(
+                time_data, gpu_usage_data,
+                label="GPU Usage", color=line_colors[1]
+            )
             self.axs[idx, 1].set_title(f"CPU and GPU Usage Over Time - {benchmark_name}")
             self.axs[idx, 1].set_xlabel("Time (s)")
             self.axs[idx, 1].set_ylabel("Usage (%)")
@@ -613,6 +669,7 @@ class App(customtkinter.CTk):
         # Ensure the canvas expands with the frame
         self.results_frame.grid_rowconfigure(0, weight=1)
         self.results_frame.grid_columnconfigure(0, weight=1)
+
         self.results_frame.configure(fg_color=self.chart_bg_color)
 
         self.canvas.draw_idle()
@@ -624,22 +681,17 @@ class App(customtkinter.CTk):
 
     def _resize_canvas(self):
         if self.canvas is not None and self.fig is not None:
-            # Get the new size of the canvas widget
             width = self.canvas.get_tk_widget().winfo_width()
             height = self.canvas.get_tk_widget().winfo_height()
 
             if width <= 0 or height <= 0:
                 return
 
-            # Convert width and height from pixels to inches
             dpi = self.fig.get_dpi()
             fig_width = width / dpi
             fig_height = height / dpi
 
-            # Update figure size
             self.fig.set_size_inches(fig_width, fig_height, forward=True)
-
-            # Redraw the canvas with updated size
             self.canvas.draw_idle()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
@@ -655,7 +707,6 @@ class App(customtkinter.CTk):
         # Get the effective appearance mode
         mode = customtkinter.get_appearance_mode()
 
-        # If the figure and axes do not exist yet, return
         if not hasattr(self, 'fig') or not hasattr(self, 'axs') or self.fig is None or self.axs is None:
             return
 
@@ -670,7 +721,7 @@ class App(customtkinter.CTk):
         self.fig.patch.set_facecolor(self.chart_bg_color)
         self.fig.patch.set_edgecolor(self.chart_bg_color)
 
-        # Set face color of the axes and adjust text colors
+        # Update axes and text colors
         for ax in self.axs.flatten():
             ax.set_facecolor(self.chart_bg_color)
             ax.tick_params(axis='x', colors=text_color)
@@ -679,7 +730,7 @@ class App(customtkinter.CTk):
             ax.yaxis.label.set_color(text_color)
             ax.title.set_color(text_color)
 
-            # Set the spines' edge color to match the text color
+            # Set spines' edge color
             for spine in ax.spines.values():
                 spine.set_edgecolor(text_color)
 
