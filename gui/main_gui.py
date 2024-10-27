@@ -557,18 +557,14 @@ class App(customtkinter.CTk):
         self.fig, self.axs = plt.subplots(num_benchmarks, 2, figsize=(11, fig_height), squeeze=False,
                                           constrained_layout=True)
 
-        # Calculate the scale factor after the figure is created
-        fig_width, fig_height = self.fig.get_size_inches()
-        scale_factor = min(fig_width, fig_height) / 6  # Adjust this divisor as needed
-
-        # Set dynamic font sizes based on the scale factor
+        # Set nice font sizing
         plt.rcParams.update({
-            'font.size': min(8 * scale_factor, 10),  # Default text size
-            'axes.titlesize': min(10 * scale_factor, 12),  # Axes title font size
-            'axes.labelsize': min(9 * scale_factor, 11),  # Axes labels font size
-            'xtick.labelsize': min(8 * scale_factor, 10),  # X-axis tick labels font size
-            'ytick.labelsize': min(8 * scale_factor, 10),  # Y-axis tick labels font size
-            'legend.fontsize': min(8 * scale_factor, 10),  # Legend font size
+            'font.size': 10,  # Default text size
+            'axes.titlesize': 12,  # Axes title font size
+            'axes.labelsize': 11,  # Axes labels font size
+            'xtick.labelsize': 10,  # X-axis tick labels font size
+            'ytick.labelsize': 10,  # Y-axis tick labels font size
+            'legend.fontsize': 10,  # Legend font size
         })
 
         self.results_textbox.delete('1.0', tkinter.END)
