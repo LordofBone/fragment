@@ -156,14 +156,17 @@ class App(customtkinter.CTk):
         )
         self.resolution_optionmenu.grid(row=0, column=1, padx=common_padx, pady=common_pady)
 
-        self.texture_quality_label = customtkinter.CTkLabel(
-            self.tabview.tab("Settings"), text="Texture Quality:"
+        # Inside __init__ method in the Settings tab elements section
+        self.msaa_level_label = customtkinter.CTkLabel(
+            self.tabview.tab("Settings"), text="MSAA Level:"
         )
-        self.texture_quality_label.grid(row=1, column=0, padx=common_padx, pady=common_pady)
-        self.texture_quality_optionmenu = customtkinter.CTkOptionMenu(
-            self.tabview.tab("Settings"), values=["Low", "Medium", "High", "Ultra"]
+        self.msaa_level_label.grid(row=1, column=0, padx=common_padx, pady=common_pady)
+        self.msaa_level_optionmenu = customtkinter.CTkOptionMenu(
+            self.tabview.tab("Settings"),
+            values=["0", "2", "4", "8"],  # Common MSAA levels (16x doesn't appear to be supported with OpenGL)
         )
-        self.texture_quality_optionmenu.grid(row=1, column=1, padx=common_padx, pady=common_pady)
+        self.msaa_level_optionmenu.grid(row=1, column=1, padx=common_padx, pady=common_pady)
+        self.msaa_level_optionmenu.set("0")  # Set default value to 0 (no MSAA)
 
         self.shadow_quality_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="Shadow Quality:"
@@ -258,7 +261,7 @@ class App(customtkinter.CTk):
         self.appearance_mode_optionemenu.set("System")
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
-        self.texture_quality_optionmenu.set("High")
+        self.msaa_level_optionmenu.set("0")
         self.shadow_quality_optionmenu.set("Medium")
         self.enable_vsync_checkbox.select()
 
@@ -397,7 +400,7 @@ class App(customtkinter.CTk):
         self.tabview._segmented_button.configure(state="disabled")
         # Disable option menus
         self.resolution_optionmenu.configure(state="disabled")
-        self.texture_quality_optionmenu.configure(state="disabled")
+        self.msaa_level_optionmenu.configure(state="disabled")
         self.shadow_quality_optionmenu.configure(state="disabled")
         # Disable checkboxes
         self.enable_vsync_checkbox.configure(state="disabled")
@@ -416,7 +419,7 @@ class App(customtkinter.CTk):
         self.tabview._segmented_button.configure(state="normal")
         # Enable option menus
         self.resolution_optionmenu.configure(state="normal")
-        self.texture_quality_optionmenu.configure(state="normal")
+        self.msaa_level_optionmenu.configure(state="normal")
         self.shadow_quality_optionmenu.configure(state="normal")
         # Enable checkboxes
         self.enable_vsync_checkbox.configure(state="normal")
@@ -439,6 +442,9 @@ class App(customtkinter.CTk):
         resolution_str = self.resolution_optionmenu.get()
         width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
 
+        # Retrieve the selected MSAA level from the GUI
+        msaa_level = int(self.msaa_level_optionmenu.get())
+
         # Map benchmark names to functions
         benchmark_functions = {
             "Pyramid 5 - EMBM Test": run_pyramid_benchmark,
@@ -455,9 +461,13 @@ class App(customtkinter.CTk):
 
         for benchmark_name in selected_benchmarks:
             if benchmark_name in benchmark_functions:
-                # Pass the resolution directly to the benchmark manager
-                self.benchmark_manager.add_benchmark(benchmark_name, benchmark_functions[benchmark_name],
-                                                     (width, height))
+                # Pass the resolution and MSAA level directly to the benchmark manager
+                self.benchmark_manager.add_benchmark(
+                    benchmark_name,
+                    benchmark_functions[benchmark_name],
+                    (width, height),
+                    msaa_level=msaa_level
+                )
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
 
