@@ -95,6 +95,9 @@ class App(customtkinter.CTk):
         )
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
 
+        # Initialize scaling factor for results
+        self.current_scaling = 1.0
+
         # UI scaling option menu
         self.scaling_label = customtkinter.CTkLabel(
             self.sidebar_frame, text="UI Scaling:", anchor="w"
@@ -604,26 +607,19 @@ class App(customtkinter.CTk):
             return
 
         num_benchmarks = len(self.benchmark_results)
-        fig_height = 4 * num_benchmarks
+        fig_height = 4 * num_benchmarks * self.current_scaling  # Apply scaling factor
+        fig_width = 11 * self.current_scaling  # Apply scaling factor
 
         # Create figure and axes with transparent background
         self.fig, self.axs = plt.subplots(
             num_benchmarks, 2,
-            figsize=(11, fig_height),
+            figsize=(fig_width, fig_height),
             squeeze=False,
             constrained_layout=True,
             facecolor='none'
         )
 
-        # Set dynamic font sizes
-        plt.rcParams.update({
-            'font.size': 10,
-            'axes.titlesize': 12,
-            'axes.labelsize': 11,
-            'xtick.labelsize': 10,
-            'ytick.labelsize': 10,
-            'legend.fontsize': 10,
-        })
+        self.chart_set_font_size()
 
         # Update results textbox
         self.results_textbox.delete('1.0', tkinter.END)
@@ -707,8 +703,52 @@ class App(customtkinter.CTk):
         self.update_results_background()  # Update the background colors
 
     def change_scaling_event(self, new_scaling: str):
+        # Parse new scaling factor
         new_scaling_float = int(new_scaling.replace("%", "")) / 100
         customtkinter.set_widget_scaling(new_scaling_float)
+
+        # Store the new scaling factor
+        self.current_scaling = new_scaling_float
+
+        # Update the chart size based on the new scaling factor
+        self.update_chart_scaling()
+
+    def chart_set_font_size(self):
+        # Recalculate the figure size based on the scaling factor
+        num_benchmarks = len(self.benchmark_results)
+        fig_height = 4 * num_benchmarks * self.current_scaling  # Scale height accordingly
+        fig_width = 11 * self.current_scaling  # Scale width accordingly
+
+        # Set new figure size
+        self.fig.set_size_inches(fig_width, fig_height, forward=True)
+
+        # Update font sizes dynamically
+        plt.rcParams.update({
+            'font.size': int(10 * self.current_scaling),
+            'axes.titlesize': int(12 * self.current_scaling),
+            'axes.labelsize': int(11 * self.current_scaling),
+            'xtick.labelsize': int(10 * self.current_scaling),
+            'ytick.labelsize': int(10 * self.current_scaling),
+            'legend.fontsize': int(10 * self.current_scaling),
+        })
+
+    def update_chart_scaling(self):
+        if self.fig is not None and self.canvas is not None:
+            self.chart_set_font_size()
+
+            # Apply new font sizes to the existing axes
+            for ax in self.axs.flatten():
+                ax.title.set_fontsize(int(12 * self.current_scaling))
+                ax.xaxis.label.set_fontsize(int(11 * self.current_scaling))
+                ax.yaxis.label.set_fontsize(int(11 * self.current_scaling))
+                ax.tick_params(axis='both', labelsize=int(10 * self.current_scaling))
+                legend = ax.get_legend()
+                if legend is not None:
+                    for text in legend.get_texts():
+                        text.set_fontsize(int(10 * self.current_scaling))
+
+            # Redraw the canvas with the updated sizes
+            self.canvas.draw_idle()
 
     def adjust_chart_mode(self):
         # Get the effective appearance mode
