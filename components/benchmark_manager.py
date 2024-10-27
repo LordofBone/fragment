@@ -41,15 +41,13 @@ class BenchmarkManager:
         # Create a multiprocessing Queue to collect stats
         stats_queue = Queue()
 
-        # Record the start time
-        start_time = time.time()
-
         # Start the benchmark in a separate process and pass the stop_event and resolution
-        process = Process(target=run_function, args=(5, stats_queue, self.stop_event, resolution))
+        process = Process(target=run_function, args=(60, stats_queue, self.stop_event, resolution))
         process.daemon = True  # Set the process as a daemon
         process.start()
 
         benchmark_running = True  # Control flag
+        renderer_initialized = False
 
         # Collect stats while the process is running
         while process.is_alive() and benchmark_running:
@@ -58,10 +56,14 @@ class BenchmarkManager:
                 process.terminate()
                 break
             try:
-                # Non-blocking get from the queue
+                # Check for messages from the benchmark process
                 while not stats_queue.empty():
                     message_type, data = stats_queue.get_nowait()
-                    if message_type == 'fps':
+                    if message_type == 'ready':
+                        renderer_initialized = True  # 3D Renderer is fully initialized
+                        # Record the start time only after the renderer is ready
+                        start_time = time.time()
+                    elif message_type == 'fps' and renderer_initialized:
                         self.stats_collector.set_current_fps(data)
                     elif message_type == 'stopped_by_user' and data:
                         # Benchmark was stopped by user closing renderer window
@@ -71,14 +73,12 @@ class BenchmarkManager:
                         benchmark_running = False  # Stop data collection
                         break  # Break inner loop
 
-                if not benchmark_running:
-                    break  # Break outer loop
-
-                # Collect CPU and GPU usage
-                cpu_usage = psutil.cpu_percent(interval=0.1)
-                gpu_usage = self.get_gpu_usage()
-                current_fps = self.stats_collector.get_current_fps()
-                self.stats_collector.add_data_point(current_fps, cpu_usage, gpu_usage)
+                if renderer_initialized:
+                    # Collect CPU and GPU usage after renderer is initialized
+                    cpu_usage = psutil.cpu_percent(interval=0.1)
+                    gpu_usage = self.get_gpu_usage()
+                    current_fps = self.stats_collector.get_current_fps()
+                    self.stats_collector.add_data_point(current_fps, cpu_usage, gpu_usage)
 
             except Exception as e:
                 print(f"Error during data collection: {e}")
@@ -86,10 +86,11 @@ class BenchmarkManager:
 
         process.join()
 
-        # Record the end time and calculate elapsed time
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        self.stats_collector.set_elapsed_time(self.current_benchmark, elapsed_time)
+        # Record the end time and calculate elapsed time only if the benchmark was initialized
+        if renderer_initialized:
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            self.stats_collector.set_elapsed_time(self.current_benchmark, elapsed_time)
 
         if not self.benchmark_stopped_by_user:
             self.stats_collector.save_data(self.current_benchmark)
