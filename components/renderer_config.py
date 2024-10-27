@@ -342,6 +342,7 @@ class RendererConfig:
         particle_config = self.unpack()
 
         particle_specifics = {
+            "particle_render_mode": particle_render_mode,
             "alpha_blending": alpha_blending,
             "phong_shading": phong_shading,
             "opacity": opacity,
@@ -355,7 +356,6 @@ class RendererConfig:
             "particle_type": particle_type,
             "particle_smooth_edges": particle_smooth_edges,
             "particle_max_velocity": particle_max_velocity,
-            "particle_render_mode": particle_render_mode,
             "shader_names": shader_names,
             "compute_shader_program": compute_shader_program,
             "particle_size": particle_size,
