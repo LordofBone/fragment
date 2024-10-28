@@ -1,9 +1,6 @@
 import time
 from multiprocessing import Process, Queue
 
-import GPUtil
-import psutil
-
 from components.stats_collector import StatsCollector
 
 
@@ -12,8 +9,8 @@ class BenchmarkManager:
         self.benchmarks = []
         self.stats_collector = StatsCollector()
         self.current_benchmark = None
-        self.stop_event = stop_event  # Use the stop_event passed from App
-        self.benchmark_stopped_by_user = False  # Flag to indicate if benchmark was stopped by user
+        self.stop_event = stop_event
+        self.benchmark_stopped_by_user = False
 
     def add_benchmark(self, name, run_function, resolution, msaa_level=0, particle_render_mode='vertex'):
         self.benchmarks.append({
@@ -38,9 +35,6 @@ class BenchmarkManager:
                 break
 
     def run_benchmark(self, run_function, resolution, msaa_level, particle_render_mode):
-        # Reset stats collector for the current benchmark
-        self.stats_collector.reset(self.current_benchmark)
-
         # Create a multiprocessing Queue to collect stats
         stats_queue = Queue()
 
@@ -52,6 +46,9 @@ class BenchmarkManager:
 
         benchmark_running = True  # Control flag
         renderer_initialized = False
+
+        # Initialize the stats collector with the current benchmark and process PID
+        self.stats_collector.reset(self.current_benchmark, process.pid)
 
         # Collect stats while the process is running
         while process.is_alive() and benchmark_running:
@@ -79,10 +76,9 @@ class BenchmarkManager:
 
                 if renderer_initialized:
                     # Collect CPU and GPU usage after renderer is initialized
-                    cpu_usage = psutil.cpu_percent(interval=0.1)
-                    gpu_usage = self.get_gpu_usage()
-                    current_fps = self.stats_collector.get_current_fps()
-                    self.stats_collector.add_data_point(current_fps, cpu_usage, gpu_usage)
+                    self.stats_collector.add_data_point()
+                    # Sleep a bit to avoid tight loop
+                    time.sleep(0.1)
 
             except Exception as e:
                 print(f"Error during data collection: {e}")
@@ -98,15 +94,6 @@ class BenchmarkManager:
 
         if not self.benchmark_stopped_by_user:
             self.stats_collector.save_data(self.current_benchmark)
-
-    def get_gpu_usage(self):
-        gpus = GPUtil.getGPUs()
-        if gpus:
-            gpu = gpus[0]  # Assuming single GPU
-            gpu_usage = gpu.load * 100  # Convert to percentage
-            return gpu_usage
-        else:
-            return 0  # No GPU found
 
     def get_results(self):
         # Return the collected data
