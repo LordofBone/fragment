@@ -12,7 +12,7 @@ class StatsCollector:
         self.lock = threading.Lock()
         self.pid = None
         self.process = None
-        self.cpu_percent_interval = 0
+        self.cpu_percent_interval = 0.1  # Interval for cpu_percent(), in seconds
 
     def reset(self, benchmark_name, pid):
         with self.lock:
@@ -27,8 +27,9 @@ class StatsCollector:
             self.current_fps = 0
             # Initialize psutil.Process object
             self.process = psutil.Process(pid)
-            # Prime the CPU percent calculation
-            self.process.cpu_percent(interval=self.cpu_percent_interval)
+            # Prime the CPU percent calculation by making an initial call
+            # This establishes a baseline for future measurements
+            self.process.cpu_percent(interval=None)
 
     def set_current_fps(self, fps):
         with self.lock:
@@ -44,28 +45,33 @@ class StatsCollector:
             fps = self.current_fps
 
             # Get per-process CPU usage
+            # cpu_percent(interval=0.1) blocks for 0.1 seconds and measures CPU usage over that interval
+            # This provides more accurate and stable readings, reducing spikes due to instantaneous measurements
             cpu_usage = self.process.cpu_percent(interval=self.cpu_percent_interval)
 
-            # Normalize CPU usage to match Task Manager
-            # It seems that the % matches the total CPU usage across physical cores so set logical=False
-            # Otherwise the value is divided by the number of logical CPUs and is not accurate
+            # Get the number of physical CPUs (cores)
             num_cpus = psutil.cpu_count(logical=False)
-            # Then when divided by the number of physical CPUs, it seems to give a more accurate representation of usage
-            normalized_cpu_usage = (cpu_usage / num_cpus)
+            if num_cpus is None:
+                # Fallback to logical CPUs if physical count is not available
+                num_cpus = psutil.cpu_count(logical=True)
+
+            # Normalize CPU usage to match Task Manager
+            # Dividing the per-process CPU usage by the number of physical CPUs gives a percentage of total capacity
+            normalized_cpu_usage = cpu_usage / num_cpus
 
             # Ensure the value does not exceed 100%
             normalized_cpu_usage = min(normalized_cpu_usage, 100.0)
 
-            # print(f"CPU Usage: {normalized_cpu_usage}")
-
             # Get overall GPU usage across all GPUs
             gpu_usage = self.get_overall_gpu_usage()
 
+            # Append the data points
             data['fps_data'].append(fps)
             data['cpu_usage_data'].append(normalized_cpu_usage)
             data['gpu_usage_data'].append(gpu_usage)
 
     def get_overall_gpu_usage(self):
+        # Sum the GPU usage across all available GPUs
         total_gpu_usage = 0
         gpus = getGPUs()
         for gpu in gpus:
