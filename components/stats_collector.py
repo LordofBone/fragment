@@ -12,7 +12,7 @@ class StatsCollector:
         self.lock = threading.Lock()
         self.pid = None
         self.process = None
-        self.cpu_percent_interval = None
+        self.cpu_percent_interval = 0
 
     def reset(self, benchmark_name, pid):
         with self.lock:
@@ -55,6 +55,8 @@ class StatsCollector:
 
             # Ensure the value does not exceed 100%
             normalized_cpu_usage = min(normalized_cpu_usage, 100.0)
+
+            # print(f"CPU Usage: {normalized_cpu_usage}")
 
             # Get overall GPU usage across all GPUs
             gpu_usage = self.get_overall_gpu_usage()
