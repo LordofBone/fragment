@@ -76,9 +76,8 @@ class BenchmarkManager:
 
                 if renderer_initialized:
                     # Collect CPU and GPU usage after renderer is initialized
+                    # No need to sleep here; cpu_percent(interval=0.1) in add_data_point() blocks for 0.1 seconds
                     self.stats_collector.add_data_point()
-                    # Sleep a bit to avoid tight loop
-                    time.sleep(0.1)
 
             except Exception as e:
                 print(f"Error during data collection: {e}")
