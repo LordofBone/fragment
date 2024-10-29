@@ -1,3 +1,4 @@
+import io
 import multiprocessing
 import os
 import threading
@@ -10,9 +11,8 @@ import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
-from PIL import ImageFilter, Image
+from PIL import Image, ImageFilter
 from customtkinter import CTkImage
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
 from benchmarks.pyramid5 import run_benchmark as run_pyramid_benchmark
@@ -157,19 +157,19 @@ class App(customtkinter.CTk):
         )
         self.resolution_optionmenu.grid(row=0, column=1, padx=common_padx, pady=common_pady)
 
-        # Inside __init__ method in the Settings tab elements section
+        # MSAA Level setting
         self.msaa_level_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="MSAA Level:"
         )
         self.msaa_level_label.grid(row=1, column=0, padx=common_padx, pady=common_pady)
         self.msaa_level_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
-            values=["0", "2", "4", "8"],  # Common MSAA levels (16x doesn't appear to be supported with OpenGL)
+            values=["0", "2", "4", "8"],  # Common MSAA levels
         )
         self.msaa_level_optionmenu.grid(row=1, column=1, padx=common_padx, pady=common_pady)
         self.msaa_level_optionmenu.set("0")  # Set default value to 0 (no MSAA)
 
-        # Inside __init__ method in the Settings tab elements section
+        # Particle Render Mode setting
         self.particle_render_mode_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="Particle Render Mode:"
         )
@@ -181,6 +181,7 @@ class App(customtkinter.CTk):
         self.particle_render_mode_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu.set("CPU")  # Set default to "CPU"
 
+        # V-Sync setting
         self.enable_vsync_checkbox = customtkinter.CTkCheckBox(
             self.tabview.tab("Settings"), text="Enable V-Sync"
         )
@@ -272,7 +273,6 @@ class App(customtkinter.CTk):
         # Prepare the graph canvas for results
         self.fig = None  # Will be created in display_results
         self.axs = None
-        self.canvas = None
 
         # Handle window close event
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
@@ -372,20 +372,25 @@ class App(customtkinter.CTk):
         if hasattr(self, '_image_resize_after_id'):
             self.after_cancel(self._image_resize_after_id)
 
-        # Schedule a new image resize to happen after 200 ms (or any delay you prefer)
+        # Schedule a new image resize to happen after 200 ms
         self._image_resize_after_id = self.after(200, self.resize_image_after_window_resize)
 
-        # Cancel any previous scheduled resizing for the canvas
-        if hasattr(self, '_canvas_resize_after_id'):
-            self.after_cancel(self._canvas_resize_after_id)
+        # Cancel any previous scheduled resizing for the chart
+        if hasattr(self, '_chart_resize_after_id'):
+            self.after_cancel(self._chart_resize_after_id)
 
-        # Schedule a new canvas resize to happen after 200 ms (or any delay you prefer)
-        self._canvas_resize_after_id = self.after(200, self._resize_canvas)
+        # Schedule a new chart resize to happen after 500 ms
+        self._chart_resize_after_id = self.after(500, self.redraw_chart_after_resize)
 
     def resize_image_after_window_resize(self):
         # Logic for resizing the image after the window resize
         if self.currently_selected_benchmark_name:
             self.display_image(self.currently_selected_benchmark_name)
+
+    def redraw_chart_after_resize(self):
+        # Re-render the chart to fit within the resized window
+        if self.benchmark_results:
+            self.display_results()
 
     def select_all_benchmarks(self):
         for item in self.benchmark_vars.values():
@@ -604,11 +609,7 @@ class App(customtkinter.CTk):
     def display_results(self):
         plot_style.use('mpl20')  # Use default style
 
-        # Clear previous canvas and figure if they exist
-        if self.canvas is not None:
-            self.canvas.get_tk_widget().destroy()
-            self.canvas = None
-
+        # Clear previous figure if it exists
         if self.fig is not None:
             plt.close(self.fig)
             self.fig = None
@@ -629,19 +630,42 @@ class App(customtkinter.CTk):
             return
 
         num_benchmarks = len(self.benchmark_results)
-        fig_height = 4 * num_benchmarks * self.current_scaling  # Apply scaling factor
-        fig_width = 11 * self.current_scaling  # Apply scaling factor
 
-        # Create figure and axes with transparent background
+        # Get the scaling factor for the app's fonts
+        widget_scaling = self.current_scaling
+
+        # Adjust the font sizes to match the app's font sizes
+        base_font_size = 8  # Base font size for the charts
+        min_font_size = 8
+        scaled_font_size = max(base_font_size * widget_scaling, min_font_size)
+        scaled_title_size = max(12 * widget_scaling, min_font_size)
+        scaled_label_size = max(11 * widget_scaling, min_font_size)
+
+        plt.rcParams.update({
+            'font.size': scaled_font_size,
+            'axes.titlesize': scaled_title_size,
+            'axes.labelsize': scaled_label_size,
+            'xtick.labelsize': scaled_font_size,
+            'ytick.labelsize': scaled_font_size,
+            'legend.fontsize': scaled_font_size,
+        })
+
+        # Set figure size
+        fig_height_per_benchmark = 4  # Height in inches per benchmark
+        fig_height = fig_height_per_benchmark * num_benchmarks
+        fig_width = 10  # Width in inches
+
+        # Create figure and axes
         self.fig, self.axs = plt.subplots(
             num_benchmarks, 2,
             figsize=(fig_width, fig_height),
             squeeze=False,
-            constrained_layout=True,
+            constrained_layout=False,
             facecolor='none'
         )
 
-        self.chart_set_font_size()
+        # Adjust colors based on appearance mode
+        self.adjust_chart_mode()
 
         # Update results textbox
         self.results_textbox.delete('1.0', tkinter.END)
@@ -698,45 +722,57 @@ class App(customtkinter.CTk):
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
             self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n")
 
-        # Adjust colors based on appearance mode
-        self.adjust_chart_mode()
+        # Render the figure to an image
+        buf = io.BytesIO()
+        self.fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        img = Image.open(buf)
 
-        # Create a new canvas and display it
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.results_frame)
-        self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew", padx=20, pady=(5, 10))
+        # Ensure the frame's geometry is updated
+        self.results_frame.update_idletasks()
 
-        # Ensure the canvas expands with the frame
+        # Get the width of the frame
+        window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
+
+        # Guard against negative or zero window_width
+        if window_width <= 0:
+            window_width = img.width  # Use image width as default
+
+        # Calculate scale factor to fit the image within the results frame
+        scale_factor = min(window_width / img.width, 1)  # Don't upscale beyond original size
+        new_width = int(img.width * scale_factor)
+        new_height = int(img.height * scale_factor)
+
+        # Ensure new dimensions are positive
+        new_width = max(new_width, 1)
+        new_height = max(new_height, 1)
+
+        img_resized = img.resize((new_width, new_height), Image.LANCZOS)
+
+        # Convert the image to a CTkImage
+        self.plot_image = CTkImage(light_image=img_resized, dark_image=img_resized, size=(new_width, new_height))
+
+        # Display the image in a Label
+        if hasattr(self, 'plot_label'):
+            self.plot_label.destroy()
+
+        self.plot_label = customtkinter.CTkLabel(self.results_frame, image=self.plot_image, text="")
+        self.plot_label.grid(row=0, column=0, sticky="nsew", padx=20, pady=(5, 10))
+
+        # Ensure the label expands with the frame
         self.results_frame.grid_rowconfigure(0, weight=1)
         self.results_frame.grid_columnconfigure(0, weight=1)
 
         self.results_frame.configure(fg_color=self.chart_bg_color)
 
-        self.canvas.draw_idle()
-
-    def on_canvas_resize(self, event):
-        if hasattr(self, '_canvas_resize_after_id'):
-            self.after_cancel(self._canvas_resize_after_id)
-        self._canvas_resize_after_id = self.after(200, self._resize_canvas)
-
-    def _resize_canvas(self):
-        if self.canvas is not None and self.fig is not None:
-            width = self.canvas.get_tk_widget().winfo_width()
-            height = self.canvas.get_tk_widget().winfo_height()
-
-            if width <= 0 or height <= 0:
-                return
-
-            dpi = self.fig.get_dpi()
-            fig_width = width / dpi
-            fig_height = height / dpi
-
-            self.fig.set_size_inches(fig_width, fig_height, forward=True)
-            self.canvas.draw_idle()
-
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
         self.adjust_chart_mode()
         self.update_results_background()  # Update the background colors
+
+        # Re-render the chart to apply theme changes
+        if self.benchmark_results:
+            self.display_results()
 
     def change_scaling_event(self, new_scaling: str):
         # Parse new scaling factor
@@ -749,42 +785,10 @@ class App(customtkinter.CTk):
         # Update the chart size based on the new scaling factor
         self.update_chart_scaling()
 
-    def chart_set_font_size(self):
-        # Recalculate the figure size based on the scaling factor
-        num_benchmarks = len(self.benchmark_results)
-        fig_height = 4 * num_benchmarks * self.current_scaling  # Scale height accordingly
-        fig_width = 11 * self.current_scaling  # Scale width accordingly
-
-        # Set new figure size
-        self.fig.set_size_inches(fig_width, fig_height, forward=True)
-
-        # Update font sizes dynamically
-        plt.rcParams.update({
-            'font.size': int(10 * self.current_scaling),
-            'axes.titlesize': int(12 * self.current_scaling),
-            'axes.labelsize': int(11 * self.current_scaling),
-            'xtick.labelsize': int(10 * self.current_scaling),
-            'ytick.labelsize': int(10 * self.current_scaling),
-            'legend.fontsize': int(10 * self.current_scaling),
-        })
-
     def update_chart_scaling(self):
-        if self.fig is not None and self.canvas is not None:
-            self.chart_set_font_size()
-
-            # Apply new font sizes to the existing axes
-            for ax in self.axs.flatten():
-                ax.title.set_fontsize(int(12 * self.current_scaling))
-                ax.xaxis.label.set_fontsize(int(11 * self.current_scaling))
-                ax.yaxis.label.set_fontsize(int(11 * self.current_scaling))
-                ax.tick_params(axis='both', labelsize=int(10 * self.current_scaling))
-                legend = ax.get_legend()
-                if legend is not None:
-                    for text in legend.get_texts():
-                        text.set_fontsize(int(10 * self.current_scaling))
-
-            # Redraw the canvas with the updated sizes
-            self.canvas.draw_idle()
+        # Re-render the chart with updated scaling
+        if self.benchmark_results:
+            self.display_results()
 
     def adjust_chart_mode(self):
         # Get the effective appearance mode
@@ -820,10 +824,6 @@ class App(customtkinter.CTk):
             # Remove grid lines if desired
             ax.grid(False)
 
-        # Redraw the canvas
-        if self.canvas is not None:
-            self.canvas.draw_idle()
-
     def exit_app(self):
         try:
             # Cancel any pending resize operation
@@ -844,11 +844,6 @@ class App(customtkinter.CTk):
                     self.after_cancel(after_id)
                 except:
                     pass
-
-            # Close and destroy the matplotlib canvas if it exists
-            if self.canvas is not None:
-                self.canvas.get_tk_widget().destroy()
-                self.canvas = None
 
             # Quit the main loop
             self.quit()
