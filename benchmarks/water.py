@@ -3,11 +3,12 @@ from components.renderer_instancing import RenderingInstance
 
 
 def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0,
-                  particle_render_mode="vertex"):
+                  particle_render_mode="vertex", vsync_enabled=True):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Water",
         window_size=resolution,
+        vsync_enabled=vsync_enabled,
         duration=60,
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[(4.2, 4.2, 4.2, -60.0, 55.0)],
