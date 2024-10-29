@@ -268,7 +268,6 @@ class App(customtkinter.CTk):
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("0")
         self.particle_render_mode_optionmenu.set("Transform Feedback")
-        self.enable_vsync_checkbox.select()
 
         # Prepare the graph canvas for results
         self.fig = None  # Will be created in display_results
