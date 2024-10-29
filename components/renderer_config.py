@@ -7,6 +7,7 @@ class RendererConfig:
         self,
         window_title="Renderer",
         window_size=(800, 600),
+            vsync_enabled=True,
             duration=60,
         texture_paths=None,
         cubemap_folder=None,
@@ -50,6 +51,7 @@ class RendererConfig:
             camera_positions = [(3.2, 3.2, 3.2, 0.0, 0.0)]
         self.window_title = window_title
         self.window_size = window_size
+        self.vsync_enabled = vsync_enabled
         self.duration = duration
         self.texture_paths = texture_paths
         self.shaders = shaders
