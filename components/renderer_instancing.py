@@ -24,7 +24,8 @@ class RenderingInstance:
         self.render_window = RendererWindow(
             window_size=self.config.window_size,
             title=self.config.window_title,
-            msaa_level=self.config.msaa_level
+            msaa_level=self.config.msaa_level,
+            vsync_enabled=self.config.vsync_enabled,
         )
 
         self.duration = self.config.duration
@@ -116,7 +117,7 @@ class RenderingInstance:
             if stop_event is not None and stop_event.is_set():
                 print("Benchmark stopped by user.")
                 break
-            delta_time = self.render_window.clock.tick(60) / 1000.0  # Targeting 60 FPS
+            delta_time = self.render_window.clock.tick() / 1000.0  # Targeting 60 FPS
 
             # Handle events (e.g., window close)
             if self.render_window.handle_events():
