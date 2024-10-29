@@ -453,6 +453,9 @@ class App(customtkinter.CTk):
         # Retrieve the selected particle render mode from the GUI
         particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
 
+        vsync_enabled = self.enable_vsync_checkbox.get()
+        vsync_enabled = bool(vsync_enabled)
+
         # Map benchmark names to functions
         benchmark_functions = {
             "Pyramid 5 - EMBM Test": run_pyramid_benchmark,
@@ -476,6 +479,7 @@ class App(customtkinter.CTk):
                     (width, height),
                     msaa_level=msaa_level,
                     particle_render_mode=particle_render_mode,
+                    vsync_enabled=vsync_enabled,
                 )
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
