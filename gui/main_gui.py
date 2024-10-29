@@ -253,7 +253,8 @@ class App(customtkinter.CTk):
             self.results_textbox_frame, width=400, height=100,
             font=customtkinter.CTkFont(size=10)
         )
-        self.results_textbox.grid(row=0, column=0, padx=20, pady=(10, 5), sticky="nsew")
+
+        self.results_textbox.pack(anchor="center", fill="both", expand=True)
 
         # Replace Canvas and Scrollbar with CTkScrollableFrame
         self.results_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Results"))
