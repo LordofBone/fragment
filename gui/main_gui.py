@@ -9,6 +9,7 @@ import _tkinter
 import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
+import numpy as np
 from PIL import ImageFilter, Image
 from customtkinter import CTkImage
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -655,19 +656,33 @@ class App(customtkinter.CTk):
             else:
                 time_data = range(len(fps_data))
 
+            # Apply smoothing to CPU and GPU usage data using a moving average
+            window_size = 2  # Adjust the window size as needed
+            if len(cpu_usage_data) >= window_size:
+                # Use numpy's convolve function to compute the moving average
+                cpu_usage_smoothed = np.convolve(cpu_usage_data, np.ones(window_size) / window_size, mode='valid')
+                gpu_usage_smoothed = np.convolve(gpu_usage_data, np.ones(window_size) / window_size, mode='valid')
+                # Adjust time_data to match the length of the smoothed data
+                time_data_smoothed = time_data[window_size - 1:]
+            else:
+                # If the data is too short, use the original data without smoothing
+                cpu_usage_smoothed = cpu_usage_data
+                gpu_usage_smoothed = gpu_usage_data
+                time_data_smoothed = time_data
+
             # FPS Line Graph
             self.axs[idx, 0].plot(time_data, fps_data, color=bar_color)
             self.axs[idx, 0].set_title(f"FPS Over Time - {benchmark_name}")
             self.axs[idx, 0].set_xlabel("Time (s)")
             self.axs[idx, 0].set_ylabel("FPS")
 
-            # CPU/GPU Usage Line Graph
+            # CPU/GPU Usage Line Graph using smoothed data
             self.axs[idx, 1].plot(
-                time_data, cpu_usage_data,
+                time_data_smoothed, cpu_usage_smoothed,
                 label="CPU Usage", linestyle="--", color=line_colors[0]
             )
             self.axs[idx, 1].plot(
-                time_data, gpu_usage_data,
+                time_data_smoothed, gpu_usage_smoothed,
                 label="GPU Usage", color=line_colors[1]
             )
             self.axs[idx, 1].set_title(f"CPU and GPU Usage Over Time - {benchmark_name}")
