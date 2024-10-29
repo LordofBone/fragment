@@ -12,13 +12,15 @@ class BenchmarkManager:
         self.stop_event = stop_event
         self.benchmark_stopped_by_user = False
 
-    def add_benchmark(self, name, run_function, resolution, msaa_level=0, particle_render_mode='vertex'):
+    def add_benchmark(self, name, run_function, resolution, msaa_level=0, particle_render_mode='vertex',
+                      vsync_enabled=True):
         self.benchmarks.append({
             'name': name,
             'run_function': run_function,
             'resolution': resolution,
             'msaa_level': msaa_level,
             'particle_render_mode': particle_render_mode,
+            'vsync_enabled': vsync_enabled,
         })
 
     def run_benchmarks(self):
@@ -29,18 +31,19 @@ class BenchmarkManager:
             self.current_benchmark = benchmark['name']
             print(f"Running benchmark: {self.current_benchmark}")
             self.run_benchmark(benchmark['run_function'], benchmark['resolution'], benchmark['msaa_level'],
-                               benchmark['particle_render_mode'])
+                               benchmark['particle_render_mode'], benchmark['vsync_enabled'])
             if self.benchmark_stopped_by_user:
                 # Stop running further benchmarks
                 break
 
-    def run_benchmark(self, run_function, resolution, msaa_level, particle_render_mode):
+    def run_benchmark(self, run_function, resolution, msaa_level, particle_render_mode, vsync_enabled):
         # Create a multiprocessing Queue to collect stats
         stats_queue = Queue()
 
         # Start the benchmark in a separate process and pass the stop_event and resolution
         process = Process(target=run_function,
-                          args=(stats_queue, self.stop_event, resolution, msaa_level, particle_render_mode))
+                          args=(
+                          stats_queue, self.stop_event, resolution, msaa_level, particle_render_mode, vsync_enabled))
         process.daemon = True  # Set the process as a daemon
         process.start()
 
