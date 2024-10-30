@@ -653,7 +653,7 @@ class App(customtkinter.CTk):
         # Set figure size
         fig_height_per_benchmark = 4  # Height in inches per benchmark
         fig_height = fig_height_per_benchmark * num_benchmarks
-        fig_width = 10.5  # Width in inches
+        fig_width = 10  # Width in inches
 
         # Create figure and axes
         self.fig, self.axs = plt.subplots(
