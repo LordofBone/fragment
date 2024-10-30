@@ -631,11 +631,11 @@ class App(customtkinter.CTk):
 
         num_benchmarks = len(self.benchmark_results)
 
-        # Get the scaling factor for the app's fonts
+        # Use the stored scaling factor
         widget_scaling = self.current_scaling
 
         # Adjust the font sizes to match the app's font sizes
-        base_font_size = 8  # Base font size for the charts
+        base_font_size = 10  # Base font size for the charts
         min_font_size = 8
         scaled_font_size = max(base_font_size * widget_scaling, min_font_size)
         scaled_title_size = max(12 * widget_scaling, min_font_size)
@@ -653,7 +653,7 @@ class App(customtkinter.CTk):
         # Set figure size
         fig_height_per_benchmark = 4  # Height in inches per benchmark
         fig_height = fig_height_per_benchmark * num_benchmarks
-        fig_width = 10  # Width in inches
+        fig_width = 10.5  # Width in inches
 
         # Create figure and axes
         self.fig, self.axs = plt.subplots(
@@ -663,6 +663,9 @@ class App(customtkinter.CTk):
             constrained_layout=False,
             facecolor='none'
         )
+
+        # Adjust subplot spacing to prevent overlap
+        plt.subplots_adjust(hspace=0.6)
 
         # Adjust colors based on appearance mode
         self.adjust_chart_mode()
@@ -700,7 +703,7 @@ class App(customtkinter.CTk):
 
             # FPS Line Graph
             self.axs[idx, 0].plot(time_data, fps_data, color=bar_color)
-            self.axs[idx, 0].set_title(f"FPS Over Time - {benchmark_name}")
+            self.axs[idx, 0].set_title("FPS Over Time")
             self.axs[idx, 0].set_xlabel("Time (s)")
             self.axs[idx, 0].set_ylabel("FPS")
 
@@ -713,7 +716,7 @@ class App(customtkinter.CTk):
                 time_data_smoothed, gpu_usage_smoothed,
                 label="GPU Usage", color=line_colors[1]
             )
-            self.axs[idx, 1].set_title(f"CPU and GPU Usage Over Time - {benchmark_name}")
+            self.axs[idx, 1].set_title("CPU and GPU Usage Over Time")
             self.axs[idx, 1].set_xlabel("Time (s)")
             self.axs[idx, 1].set_ylabel("Usage (%)")
             self.axs[idx, 1].legend()
@@ -721,6 +724,22 @@ class App(customtkinter.CTk):
             # Insert text results
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
             self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n")
+
+            # Get positions of the axes
+            pos0 = self.axs[idx, 0].get_position()
+            pos1 = self.axs[idx, 1].get_position()
+
+            # Compute the center x position
+            x_center = (pos0.x0 + pos1.x1) / 2
+
+            # Compute the y position just above the axes
+            y = pos0.y1 + 0.02  # Adjust as needed
+
+            # Add the benchmark name as a shared title
+            self.fig.text(
+                x_center, y, benchmark_name, ha='center',
+                fontsize=scaled_title_size, fontweight='bold', color=self.chart_text_color
+            )
 
         # Render the figure to an image
         buf = io.BytesIO()
@@ -765,6 +784,40 @@ class App(customtkinter.CTk):
 
         self.results_frame.configure(fg_color=self.chart_bg_color)
 
+    def adjust_chart_mode(self):
+        # Get the effective appearance mode
+        mode = customtkinter.get_appearance_mode()
+
+        if not hasattr(self, 'fig') or not hasattr(self, 'axs') or self.fig is None or self.axs is None:
+            return
+
+        if mode == "Dark":
+            self.chart_bg_color = "#2c2c2c"
+            self.chart_text_color = "#b0b0b0"
+        else:
+            self.chart_bg_color = "#f0f0f0"
+            self.chart_text_color = "#202020"
+
+        # Set the face color of the figure and canvas background to match
+        self.fig.patch.set_facecolor(self.chart_bg_color)
+        self.fig.patch.set_edgecolor(self.chart_bg_color)
+
+        # Update axes and text colors
+        for ax in self.axs.flatten():
+            ax.set_facecolor(self.chart_bg_color)
+            ax.tick_params(axis='x', colors=self.chart_text_color)
+            ax.tick_params(axis='y', colors=self.chart_text_color)
+            ax.xaxis.label.set_color(self.chart_text_color)
+            ax.yaxis.label.set_color(self.chart_text_color)
+            ax.title.set_color(self.chart_text_color)
+
+            # Set spines' edge color
+            for spine in ax.spines.values():
+                spine.set_edgecolor(self.chart_text_color)
+
+            # Remove grid lines if desired
+            ax.grid(False)
+
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
         self.adjust_chart_mode()
@@ -789,40 +842,6 @@ class App(customtkinter.CTk):
         # Re-render the chart with updated scaling
         if self.benchmark_results:
             self.display_results()
-
-    def adjust_chart_mode(self):
-        # Get the effective appearance mode
-        mode = customtkinter.get_appearance_mode()
-
-        if not hasattr(self, 'fig') or not hasattr(self, 'axs') or self.fig is None or self.axs is None:
-            return
-
-        if mode == "Dark":
-            self.chart_bg_color = "#2c2c2c"
-            text_color = "#b0b0b0"
-        else:
-            self.chart_bg_color = "#f0f0f0"
-            text_color = "#202020"
-
-        # Set the face color of the figure and canvas background to match
-        self.fig.patch.set_facecolor(self.chart_bg_color)
-        self.fig.patch.set_edgecolor(self.chart_bg_color)
-
-        # Update axes and text colors
-        for ax in self.axs.flatten():
-            ax.set_facecolor(self.chart_bg_color)
-            ax.tick_params(axis='x', colors=text_color)
-            ax.tick_params(axis='y', colors=text_color)
-            ax.xaxis.label.set_color(text_color)
-            ax.yaxis.label.set_color(text_color)
-            ax.title.set_color(text_color)
-
-            # Set spines' edge color
-            for spine in ax.spines.values():
-                spine.set_edgecolor(text_color)
-
-            # Remove grid lines if desired
-            ax.grid(False)
 
     def exit_app(self):
         try:
