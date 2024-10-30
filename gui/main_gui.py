@@ -39,6 +39,7 @@ class App(customtkinter.CTk):
         self.displayed_image = None  # To store the current image shown
         self.image_folder = "images"  # Folder where benchmark images are stored
         self.chart_bg_color = "#f0f0f0"  # Default chart background color
+        self.chart_text_color = "#202020"  # Default chart text color
 
         # Configure window
         self.title("Fragment")
@@ -614,14 +615,18 @@ class App(customtkinter.CTk):
             plt.close(self.fig)
             self.fig = None
 
-        # Determine colors based on current mode
+        # Determine colors based on current mode and set self.chart_bg_color and self.chart_text_color
         current_mode = customtkinter.get_appearance_mode()
         if current_mode == "Dark":
             bar_color = "skyblue"
             line_colors = ["yellow", "cyan", "magenta"]
+            self.chart_bg_color = "#2c2c2c"
+            self.chart_text_color = "#b0b0b0"
         else:
             bar_color = "blue"
             line_colors = ["red", "green", "purple"]
+            self.chart_bg_color = "#f0f0f0"
+            self.chart_text_color = "#202020"
 
         # Check if there are benchmark results
         if not self.benchmark_results:
@@ -653,22 +658,17 @@ class App(customtkinter.CTk):
         # Set figure size
         fig_height_per_benchmark = 4  # Height in inches per benchmark
         fig_height = fig_height_per_benchmark * num_benchmarks
-        fig_width = 10  # Width in inches
+        fig_width = 9  # Width in inches
 
-        # Create figure and axes
-        self.fig, self.axs = plt.subplots(
-            num_benchmarks, 2,
-            figsize=(fig_width, fig_height),
-            squeeze=False,
-            constrained_layout=False,
-            facecolor='none'
-        )
+        # Create figure
+        self.fig = plt.figure(figsize=(fig_width, fig_height), facecolor='none')
 
-        # Adjust subplot spacing to prevent overlap
-        plt.subplots_adjust(hspace=0.6)
+        # Create gridspec
+        gs = self.fig.add_gridspec(nrows=num_benchmarks * 2, ncols=2,
+                                   height_ratios=[0.3, 1] * num_benchmarks)
 
-        # Adjust colors based on appearance mode
-        self.adjust_chart_mode()
+        # List to hold axes
+        axs = []
 
         # Update results textbox
         self.results_textbox.delete('1.0', tkinter.END)
@@ -701,45 +701,57 @@ class App(customtkinter.CTk):
                 gpu_usage_smoothed = gpu_usage_data
                 time_data_smoothed = time_data
 
+            # Compute indices
+            title_row = idx * 2
+            plot_row = title_row + 1
+
+            # Title axes
+            ax_title = self.fig.add_subplot(gs[title_row, :])
+            ax_title.axis('off')
+            ax_title.text(0.5, 0.5, benchmark_name, ha='center', va='center',
+                          fontsize=scaled_title_size, fontweight='bold', color=self.chart_text_color)
+
+            # FPS plot
+            ax_fps = self.fig.add_subplot(gs[plot_row, 0])
+
+            # CPU/GPU Usage plot
+            ax_usage = self.fig.add_subplot(gs[plot_row, 1])
+
+            # Append to axes list
+            axs.extend([ax_fps, ax_usage])
+
             # FPS Line Graph
-            self.axs[idx, 0].plot(time_data, fps_data, color=bar_color)
-            self.axs[idx, 0].set_title("FPS Over Time")
-            self.axs[idx, 0].set_xlabel("Time (s)")
-            self.axs[idx, 0].set_ylabel("FPS")
+            ax_fps.plot(time_data, fps_data, color=bar_color)
+            ax_fps.set_title("FPS Over Time")
+            ax_fps.set_xlabel("Time (s)")
+            ax_fps.set_ylabel("FPS")
 
             # CPU/GPU Usage Line Graph using smoothed data
-            self.axs[idx, 1].plot(
+            ax_usage.plot(
                 time_data_smoothed, cpu_usage_smoothed,
                 label="CPU Usage", linestyle="--", color=line_colors[0]
             )
-            self.axs[idx, 1].plot(
+            ax_usage.plot(
                 time_data_smoothed, gpu_usage_smoothed,
                 label="GPU Usage", color=line_colors[1]
             )
-            self.axs[idx, 1].set_title("CPU and GPU Usage Over Time")
-            self.axs[idx, 1].set_xlabel("Time (s)")
-            self.axs[idx, 1].set_ylabel("Usage (%)")
-            self.axs[idx, 1].legend()
+            ax_usage.set_title("CPU and GPU Usage Over Time")
+            ax_usage.set_xlabel("Time (s)")
+            ax_usage.set_ylabel("Usage (%)")
+            ax_usage.legend()
 
             # Insert text results
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
             self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n")
 
-            # Get positions of the axes
-            pos0 = self.axs[idx, 0].get_position()
-            pos1 = self.axs[idx, 1].get_position()
+        # Assign axes to self.axs for adjust_chart_mode
+        self.axs = axs
 
-            # Compute the center x position
-            x_center = (pos0.x0 + pos1.x1) / 2
+        # Adjust colors based on appearance mode
+        self.adjust_chart_mode()
 
-            # Compute the y position just above the axes
-            y = pos0.y1 + 0.02  # Adjust as needed
-
-            # Add the benchmark name as a shared title
-            self.fig.text(
-                x_center, y, benchmark_name, ha='center',
-                fontsize=scaled_title_size, fontweight='bold', color=self.chart_text_color
-            )
+        # Adjust layout
+        self.fig.tight_layout(rect=[0, 0, 1, 1])  # Adjust as needed
 
         # Render the figure to an image
         buf = io.BytesIO()
@@ -788,9 +800,7 @@ class App(customtkinter.CTk):
         # Get the effective appearance mode
         mode = customtkinter.get_appearance_mode()
 
-        if not hasattr(self, 'fig') or not hasattr(self, 'axs') or self.fig is None or self.axs is None:
-            return
-
+        # Set chart colors regardless of whether axes are initialized
         if mode == "Dark":
             self.chart_bg_color = "#2c2c2c"
             self.chart_text_color = "#b0b0b0"
@@ -798,12 +808,17 @@ class App(customtkinter.CTk):
             self.chart_bg_color = "#f0f0f0"
             self.chart_text_color = "#202020"
 
+        # If the figure or axes are not initialized yet, return
+        if not hasattr(self, 'fig') or not hasattr(self, 'axs') or self.fig is None or self.axs is None:
+            print("Chart not initialized yet.")
+            return
+
         # Set the face color of the figure and canvas background to match
         self.fig.patch.set_facecolor(self.chart_bg_color)
         self.fig.patch.set_edgecolor(self.chart_bg_color)
 
         # Update axes and text colors
-        for ax in self.axs.flatten():
+        for ax in self.axs:
             ax.set_facecolor(self.chart_bg_color)
             ax.tick_params(axis='x', colors=self.chart_text_color)
             ax.tick_params(axis='y', colors=self.chart_text_color)
