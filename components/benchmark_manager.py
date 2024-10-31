@@ -101,5 +101,34 @@ class BenchmarkManager:
         # Return the collected data
         return self.stats_collector.get_all_data()
 
+    def calculate_performance_score(self):
+        # Get all results
+        results = self.stats_collector.get_all_data()
+
+        total_avg_fps = 0
+        num_benchmarks = 0
+
+        for data in results.values():
+            fps_data = data['fps_data']
+            if fps_data:
+                avg_fps = sum(fps_data) / len(fps_data)
+                total_avg_fps += avg_fps
+                num_benchmarks += 1
+
+        if num_benchmarks == 0:
+            return 0
+
+        # Calculate the overall average FPS
+        overall_avg_fps = total_avg_fps / num_benchmarks
+
+        # Calculate the performance score
+        # For simplicity, let's define the score as the overall_avg_fps multiplied by a scaling factor
+        performance_score = overall_avg_fps * 10  # You can adjust the scaling factor as needed
+
+        # Round the score to the nearest integer
+        performance_score = int(round(performance_score))
+
+        return performance_score
+
     def stop_benchmarks(self):
         self.stop_event.set()
