@@ -283,6 +283,10 @@ class App(customtkinter.CTk):
         self.loading_progress_bar.grid(row=4, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew")
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
+        # Variables to manage resizing
+        self.is_resizing = False
+        self.resize_after_id = None
+
         # Bind the window resize event
         self.bind("<Configure>", self.on_window_resize)
 
@@ -369,26 +373,18 @@ class App(customtkinter.CTk):
         return combined
 
     def on_window_resize(self, event=None):
-        # Cancel any previous scheduled resizing for the image
-        if hasattr(self, '_image_resize_after_id'):
-            self.after_cancel(self._image_resize_after_id)
+        # Start the resizing flag
+        self.is_resizing = True
 
-        # Schedule a new image resize to happen after 200 ms
-        self._image_resize_after_id = self.after(200, self.resize_image_after_window_resize)
+        # Cancel any previous scheduled resizing
+        if self.resize_after_id:
+            self.after_cancel(self.resize_after_id)
 
-        # Cancel any previous scheduled resizing for the chart
-        if hasattr(self, '_chart_resize_after_id'):
-            self.after_cancel(self._chart_resize_after_id)
+        # Schedule re-rendering after 1 second of no resizing events
+        self.resize_after_id = self.after(1000, self.on_resize_complete)
 
-        # Schedule a new chart resize to happen after 500 ms
-        self._chart_resize_after_id = self.after(500, self.redraw_chart_after_resize)
-
-    def resize_image_after_window_resize(self):
-        # Logic for resizing the image after the window resize
-        if self.currently_selected_benchmark_name:
-            self.display_image(self.currently_selected_benchmark_name)
-
-    def redraw_chart_after_resize(self):
+    def on_resize_complete(self):
+        self.is_resizing = False
         # Re-render the chart to fit within the resized window
         if self.benchmark_results:
             self.display_results()
@@ -655,13 +651,15 @@ class App(customtkinter.CTk):
             'legend.fontsize': scaled_font_size,
         })
 
-        # Set figure size
+        # Set figure size based on the results frame size
+        self.results_frame.update_idletasks()
+        window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
+        fig_width = max(window_width / 100, 6)  # Ensure minimum width
         fig_height_per_benchmark = 4  # Height in inches per benchmark
         fig_height = fig_height_per_benchmark * num_benchmarks
-        fig_width = 9  # Width in inches
 
         # Create figure
-        self.fig = plt.figure(figsize=(fig_width, fig_height), facecolor='none')
+        self.fig = plt.figure(figsize=(fig_width, fig_height), facecolor='none', dpi=100)
 
         # Create gridspec
         gs = self.fig.add_gridspec(nrows=num_benchmarks * 2, ncols=2,
@@ -755,23 +753,26 @@ class App(customtkinter.CTk):
 
         # Render the figure to an image
         buf = io.BytesIO()
-        self.fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        self.fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
         buf.seek(0)
         img = Image.open(buf)
+
+        # Close the figure to free up memory
+        plt.close(self.fig)
+        self.fig = None
 
         # Ensure the frame's geometry is updated
         self.results_frame.update_idletasks()
 
         # Get the width of the frame
-        window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
+        window_width = self.results_frame.winfo_width() - 340  # Adjust for padding
 
-        # Guard against negative or zero window_width
-        if window_width <= 0:
-            window_width = img.width  # Use image width as default
+        # Ensure new dimensions are positive
+        new_width = max(window_width, 1)
 
         # Calculate scale factor to fit the image within the results frame
-        scale_factor = min(window_width / img.width, 1)  # Don't upscale beyond original size
-        new_width = int(img.width * scale_factor)
+        scale_factor = new_width / img.width
+
         new_height = int(img.height * scale_factor)
 
         # Ensure new dimensions are positive
@@ -781,7 +782,8 @@ class App(customtkinter.CTk):
         img_resized = img.resize((new_width, new_height), Image.LANCZOS)
 
         # Convert the image to a CTkImage
-        self.plot_image = CTkImage(light_image=img_resized, dark_image=img_resized, size=(new_width, new_height))
+        self.plot_image = CTkImage(light_image=img_resized, dark_image=img_resized,
+                                   size=(new_width, new_height))
 
         # Display the image in a Label
         if hasattr(self, 'plot_label'):
@@ -809,13 +811,9 @@ class App(customtkinter.CTk):
             self.chart_text_color = "#202020"
 
         # If the figure or axes are not initialized yet, return
-        if not hasattr(self, 'fig') or not hasattr(self, 'axs') or self.fig is None or self.axs is None:
+        if not hasattr(self, 'axs') or self.axs is None:
             print("Chart not initialized yet.")
             return
-
-        # Set the face color of the figure and canvas background to match
-        self.fig.patch.set_facecolor(self.chart_bg_color)
-        self.fig.patch.set_edgecolor(self.chart_bg_color)
 
         # Update axes and text colors
         for ax in self.axs:
@@ -863,7 +861,6 @@ class App(customtkinter.CTk):
             # Cancel any pending resize operation
             if hasattr(self, '_resize_after_id'):
                 self.after_cancel(self._resize_after_id)
-
             # Signal benchmarks to stop
             self.stop_event.set()
 
