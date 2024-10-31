@@ -136,6 +136,7 @@ class App(customtkinter.CTk):
         # Results tab configuration to make the rows/columns resize dynamically
         self.tabview.tab("Results").grid_rowconfigure(0, weight=0)  # Textbox row
         self.tabview.tab("Results").grid_rowconfigure(1, weight=1)  # Results area row should resize
+        self.tabview.tab("Results").grid_rowconfigure(2, weight=0)  # Performance score label
         self.tabview.tab("Results").grid_columnconfigure(0, weight=1)  # Allow the whole results area to expand
         self.tabview.tab("Results").grid_columnconfigure(1, weight=0)  # Column for scrollbar (if any)
 
@@ -255,8 +256,13 @@ class App(customtkinter.CTk):
             self.results_textbox_frame, width=400, height=100,
             font=customtkinter.CTkFont(size=10)
         )
-
         self.results_textbox.pack(anchor="center", fill="both", expand=True)
+
+        # Label to display the performance score
+        self.performance_score_label = customtkinter.CTkLabel(
+            self.tabview.tab("Results"), text="", font=customtkinter.CTkFont(size=14, weight="bold")
+        )
+        self.performance_score_label.grid(row=2, column=0, padx=20, pady=(10, 10), sticky="nsew")
 
         # Replace Canvas and Scrollbar with CTkScrollableFrame
         self.results_frame = customtkinter.CTkScrollableFrame(self.tabview.tab("Results"))
@@ -600,8 +606,16 @@ class App(customtkinter.CTk):
 
         # Continue with displaying the results
         self.after(0, self.display_results)
+
+        # Calculate and display the performance score
+        performance_score = self.benchmark_manager.calculate_performance_score()
+        self.after(0, lambda: self.display_performance_score(performance_score))
+
         # Switch to the "Results" tab
         self.after(0, lambda: self.tabview.set("Results"))
+
+    def display_performance_score(self, score):
+        self.performance_score_label.configure(text=f"Performance Score: {score}")
 
     def display_results(self):
         plot_style.use('mpl20')  # Use default style
