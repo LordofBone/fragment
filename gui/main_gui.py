@@ -740,7 +740,7 @@ class App(customtkinter.CTk):
 
             # Insert text results
             avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
-            self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} FPS\n")
+            self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} Avg. FPS\n")
 
         # Assign axes to self.axs for adjust_chart_mode
         self.axs = axs
