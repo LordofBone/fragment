@@ -701,15 +701,6 @@ class App(customtkinter.CTk):
             else:
                 time_data = range(len(fps_data))
 
-            # Downsample data if necessary
-            MAX_DATA_POINTS = 500
-            if len(fps_data) > MAX_DATA_POINTS:
-                indices = np.linspace(0, len(fps_data) - 1, MAX_DATA_POINTS).astype(int)
-                fps_data = [fps_data[i] for i in indices]
-                cpu_usage_data = [cpu_usage_data[i] for i in indices]
-                gpu_usage_data = [gpu_usage_data[i] for i in indices]
-                time_data = [time_data[i] for i in indices]
-
             # Apply smoothing to CPU and GPU usage data using a moving average
             window_size = 2  # Adjust the window size as needed
             if len(cpu_usage_data) >= window_size:
