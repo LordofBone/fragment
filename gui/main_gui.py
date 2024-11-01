@@ -11,7 +11,7 @@ import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
 
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
@@ -379,6 +379,8 @@ class App(customtkinter.CTk):
         return combined
 
     def on_window_resize(self, event=None):
+        if self.is_resizing:
+            return  # Ignore resize events during resizing
         # Start the resizing flag
         self.is_resizing = True
 
@@ -390,10 +392,10 @@ class App(customtkinter.CTk):
         self.resize_after_id = self.after(1000, self.on_resize_complete)
 
     def on_resize_complete(self):
-        self.is_resizing = False
         # Re-render the chart to fit within the resized window
         if self.benchmark_results:
             self.display_results()
+        self.is_resizing = False  # Reset the resizing flag
 
     def select_all_benchmarks(self):
         for item in self.benchmark_vars.values():
@@ -699,6 +701,15 @@ class App(customtkinter.CTk):
             else:
                 time_data = range(len(fps_data))
 
+            # Downsample data if necessary
+            MAX_DATA_POINTS = 500
+            if len(fps_data) > MAX_DATA_POINTS:
+                indices = np.linspace(0, len(fps_data) - 1, MAX_DATA_POINTS).astype(int)
+                fps_data = [fps_data[i] for i in indices]
+                cpu_usage_data = [cpu_usage_data[i] for i in indices]
+                gpu_usage_data = [gpu_usage_data[i] for i in indices]
+                time_data = [time_data[i] for i in indices]
+
             # Apply smoothing to CPU and GPU usage data using a moving average
             window_size = 2  # Adjust the window size as needed
             if len(cpu_usage_data) >= window_size:
@@ -779,7 +790,7 @@ class App(customtkinter.CTk):
         self.results_frame.update_idletasks()
 
         # Get the width of the frame
-        window_width = self.results_frame.winfo_width() - 340  # Adjust for padding
+        window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
 
         # Ensure new dimensions are positive
         new_width = max(window_width, 1)
@@ -795,18 +806,21 @@ class App(customtkinter.CTk):
 
         img_resized = img.resize((new_width, new_height), Image.LANCZOS)
 
-        # Convert the image to a CTkImage
-        self.plot_image = CTkImage(light_image=img_resized, dark_image=img_resized,
-                                   size=(new_width, new_height))
+        # Convert to PhotoImage
+        plot_photo_image = ImageTk.PhotoImage(img_resized)
+        self.plot_image = plot_photo_image  # Keep a reference to prevent garbage collection
 
-        # Display the image in a Label
-        if hasattr(self, 'plot_label'):
-            self.plot_label.destroy()
+        # Display the image in a Canvas
+        if hasattr(self, 'plot_canvas'):
+            self.plot_canvas.destroy()
 
-        self.plot_label = customtkinter.CTkLabel(self.results_frame, image=self.plot_image, text="")
-        self.plot_label.grid(row=0, column=0, sticky="nsew", padx=20, pady=(5, 10))
+        self.plot_canvas = tkinter.Canvas(self.results_frame, width=new_width, height=new_height,
+                                          bg=self.chart_bg_color,
+                                          highlightthickness=0)
+        self.plot_canvas.grid(row=0, column=0, sticky="nsew", padx=20, pady=(5, 10))
+        self.plot_canvas.create_image(0, 0, anchor="nw", image=self.plot_image)
 
-        # Ensure the label expands with the frame
+        # Ensure the canvas expands with the frame
         self.results_frame.grid_rowconfigure(0, weight=1)
         self.results_frame.grid_columnconfigure(0, weight=1)
 
