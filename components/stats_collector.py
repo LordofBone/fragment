@@ -44,23 +44,26 @@ class StatsCollector:
             data = self.benchmark_data[self.current_benchmark]
             fps = self.current_fps
 
-            # Get per-process CPU usage
-            # cpu_percent(interval=0.1) blocks for 0.1 seconds and measures CPU usage over that interval
-            # This provides more accurate and stable readings, reducing spikes due to instantaneous measurements
-            cpu_usage = self.process.cpu_percent(interval=self.cpu_percent_interval)
+            # Default CPU usage to 0.0
+            normalized_cpu_usage = 0.0
 
-            # Get the number of physical CPUs (cores)
-            num_cpus = psutil.cpu_count(logical=False)
-            if num_cpus is None:
-                # Fallback to logical CPUs if physical count is not available
-                num_cpus = psutil.cpu_count(logical=True)
+            # Check if the process is still running
+            if self.process.is_running():
+                try:
+                    # Get per-process CPU usage
+                    cpu_usage = self.process.cpu_percent(interval=self.cpu_percent_interval)
 
-            # Normalize CPU usage to match Task Manager
-            # Dividing the per-process CPU usage by the number of physical CPUs gives a percentage of total capacity
-            normalized_cpu_usage = cpu_usage / num_cpus
+                    # Get the number of physical CPUs (cores)
+                    num_cpus = psutil.cpu_count(logical=False)
+                    if num_cpus is None:
+                        num_cpus = psutil.cpu_count(logical=True)
 
-            # Ensure the value does not exceed 100%
-            normalized_cpu_usage = min(normalized_cpu_usage, 100.0)
+                    # Normalize CPU usage
+                    normalized_cpu_usage = cpu_usage / num_cpus
+                    normalized_cpu_usage = min(normalized_cpu_usage, 100.0)
+                except (psutil.NoSuchProcess, psutil.ZombieProcess, psutil.AccessDenied):
+                    # Process has terminated or is inaccessible; use default CPU usage
+                    pass
 
             # Get overall GPU usage across all GPUs
             gpu_usage = self.get_overall_gpu_usage()
