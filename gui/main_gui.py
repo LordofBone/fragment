@@ -154,7 +154,7 @@ class App(customtkinter.CTk):
         self.resolution_label.grid(row=0, column=0, padx=common_padx, pady=common_pady)
         self.resolution_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
-            values=["640x480", "800x600", "1024x768", "1280x720", "1920x1080"],
+            values=["640x480", "800x600", "1024x768", "1280x720", "1920x1080", "Fullscreen"],
         )
         self.resolution_optionmenu.grid(row=0, column=1, padx=common_padx, pady=common_pady)
 
@@ -468,7 +468,17 @@ class App(customtkinter.CTk):
 
         # Retrieve the selected resolution from the GUI
         resolution_str = self.resolution_optionmenu.get()
-        width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
+
+        if resolution_str == "Fullscreen":
+            # Retrieve the desktop resolution
+            import pygame
+            pygame.init()
+            desktop_info = pygame.display.Info()
+            width, height = desktop_info.current_w, desktop_info.current_h
+            fullscreen = True
+        else:
+            width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
+            fullscreen = False
 
         # Retrieve the selected MSAA level from the GUI
         msaa_level = int(self.msaa_level_optionmenu.get())
@@ -507,6 +517,7 @@ class App(customtkinter.CTk):
                     anisotropy=anisotropy,
                     particle_render_mode=particle_render_mode,
                     vsync_enabled=vsync_enabled,
+                    fullscreen=fullscreen,
                 )
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
