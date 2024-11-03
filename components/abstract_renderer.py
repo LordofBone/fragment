@@ -116,7 +116,7 @@ class AbstractRenderer(ABC):
         depth_testing=True,
         culling=True,
         msaa_level=8,
-        anisotropy=16.0,
+            anisotropy=16,
         auto_camera=False,
         move_speed=1.0,
         loop=True,
