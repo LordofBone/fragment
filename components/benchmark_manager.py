@@ -13,7 +13,7 @@ class BenchmarkManager:
         self.benchmark_stopped_by_user = False
 
     def add_benchmark(self, name, run_function, resolution, msaa_level=0, anisotropy=16, particle_render_mode='vertex',
-                      vsync_enabled=True):
+                      vsync_enabled=True, fullscreen=False):
         self.benchmarks.append({
             'name': name,
             'run_function': run_function,
@@ -22,6 +22,7 @@ class BenchmarkManager:
             'anisotropy': anisotropy,
             'particle_render_mode': particle_render_mode,
             'vsync_enabled': vsync_enabled,
+            'fullscreen': fullscreen,
         })
 
     def run_benchmarks(self):
@@ -33,12 +34,13 @@ class BenchmarkManager:
             print(f"Running benchmark: {self.current_benchmark}")
             self.run_benchmark(benchmark['run_function'], benchmark['resolution'], benchmark['msaa_level'],
                                benchmark['anisotropy'],
-                               benchmark['particle_render_mode'], benchmark['vsync_enabled'])
+                               benchmark['particle_render_mode'], benchmark['vsync_enabled'], benchmark['fullscreen'])
             if self.benchmark_stopped_by_user:
                 # Stop running further benchmarks
                 break
 
-    def run_benchmark(self, run_function, resolution, msaa_level, anisotropy, particle_render_mode, vsync_enabled):
+    def run_benchmark(self, run_function, resolution, msaa_level, anisotropy, particle_render_mode, vsync_enabled,
+                      fullscreen):
         # Create a multiprocessing Queue to collect stats
         stats_queue = Queue()
 
@@ -46,7 +48,7 @@ class BenchmarkManager:
         process = Process(target=run_function,
                           args=(
                               stats_queue, self.stop_event, resolution, msaa_level, anisotropy, particle_render_mode,
-                              vsync_enabled))
+                              vsync_enabled, fullscreen))
         process.daemon = True  # Set the process as a daemon
         process.start()
 
