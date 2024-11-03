@@ -2,7 +2,7 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0,
+def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0, anisotropy=16,
                   particle_render_mode="vertex", vsync_enabled=True):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
@@ -20,7 +20,7 @@ def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa
         lights=[
             {"position": (5.0, 10.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
         ],
-        anisotropy=16.0,
+        anisotropy=anisotropy,
         auto_camera=True,
         msaa_level=msaa_level,
         culling=True,
