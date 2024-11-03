@@ -26,6 +26,7 @@ class RenderingInstance:
             title=self.config.window_title,
             msaa_level=self.config.msaa_level,
             vsync_enabled=self.config.vsync_enabled,
+            fullscreen=self.config.fullscreen,
         )
 
         self.duration = self.config.duration
@@ -153,6 +154,7 @@ class RenderingInstance:
                 renderer.render_planar_view(self.scene_construct.renderers.values())
 
     def render_scene(self, delta_time):
+        glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
             renderer.update_camera(delta_time)
