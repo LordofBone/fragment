@@ -145,7 +145,7 @@ class App(customtkinter.CTk):
 
         # Settings tab grid layout
         self.tabview.tab("Settings").grid_columnconfigure((0, 1), weight=1)
-        self.tabview.tab("Settings").grid_rowconfigure((0, 1, 2, 3), weight=1)
+        self.tabview.tab("Settings").grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
 
         # Settings tab elements
         self.resolution_label = customtkinter.CTkLabel(
@@ -170,23 +170,35 @@ class App(customtkinter.CTk):
         self.msaa_level_optionmenu.grid(row=1, column=1, padx=common_padx, pady=common_pady)
         self.msaa_level_optionmenu.set("0")  # Set default value to 0 (no MSAA)
 
+        # Anisotropic Filtering setting
+        self.anisotropy_label = customtkinter.CTkLabel(
+            self.tabview.tab("Settings"), text="Anisotropy Level:"
+        )
+        self.anisotropy_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
+        self.anisotropy_optionmenu = customtkinter.CTkOptionMenu(
+            self.tabview.tab("Settings"),
+            values=["1", "2", "4", "8", "16"],  # Common anisotropy levels
+        )
+        self.anisotropy_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
+        self.anisotropy_optionmenu.set("1")  # Set default value to 1 (no anisotropic filtering)
+
         # Particle Render Mode setting
         self.particle_render_mode_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="Particle Render Mode:"
         )
-        self.particle_render_mode_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_label.grid(row=3, column=0, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
             values=["CPU", "Transform Feedback", "Compute Shader"]
         )
-        self.particle_render_mode_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_optionmenu.grid(row=3, column=1, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu.set("CPU")  # Set default to "CPU"
 
         # V-Sync setting
         self.enable_vsync_checkbox = customtkinter.CTkCheckBox(
             self.tabview.tab("Settings"), text="Enable V-Sync"
         )
-        self.enable_vsync_checkbox.grid(row=3, column=0, columnspan=2, padx=common_padx, pady=common_pady)
+        self.enable_vsync_checkbox.grid(row=4, column=0, columnspan=2, padx=common_padx, pady=common_pady)
 
         # Scenarios tab grid layout for consistency
         self.tabview.tab("Scenarios").grid_columnconfigure(0, weight=1)
@@ -274,6 +286,7 @@ class App(customtkinter.CTk):
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("0")
+        self.anisotropy_optionmenu.set("1")
         self.particle_render_mode_optionmenu.set("Transform Feedback")
 
         # Prepare the graph canvas for results
@@ -414,6 +427,7 @@ class App(customtkinter.CTk):
         # Disable option menus
         self.resolution_optionmenu.configure(state="disabled")
         self.msaa_level_optionmenu.configure(state="disabled")
+        self.anisotropy_optionmenu.configure(state="disabled")
         self.particle_render_mode_optionmenu.configure(state="disabled")
         # Disable checkboxes
         self.enable_vsync_checkbox.configure(state="disabled")
@@ -433,6 +447,7 @@ class App(customtkinter.CTk):
         # Enable option menus
         self.resolution_optionmenu.configure(state="normal")
         self.msaa_level_optionmenu.configure(state="normal")
+        self.anisotropy_optionmenu.configure(state="normal")
         self.particle_render_mode_optionmenu.configure(state="normal")
         # Enable checkboxes
         self.enable_vsync_checkbox.configure(state="normal")
@@ -457,6 +472,9 @@ class App(customtkinter.CTk):
 
         # Retrieve the selected MSAA level from the GUI
         msaa_level = int(self.msaa_level_optionmenu.get())
+
+        # Retrieve the selected anisotropy level from the GUI
+        anisotropy = int(self.anisotropy_optionmenu.get())
 
         # Retrieve the selected particle render mode from the GUI
         particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
@@ -486,6 +504,7 @@ class App(customtkinter.CTk):
                     benchmark_functions[benchmark_name],
                     (width, height),
                     msaa_level=msaa_level,
+                    anisotropy=anisotropy,
                     particle_render_mode=particle_render_mode,
                     vsync_enabled=vsync_enabled,
                 )
