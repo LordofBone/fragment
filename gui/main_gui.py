@@ -10,7 +10,6 @@ import _tkinter
 import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
-import numpy as np
 from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
 
@@ -620,6 +619,8 @@ class App(customtkinter.CTk):
         self.performance_score_label.configure(text=f"Performance Score: {score}")
 
     def display_results(self):
+        import numpy as np  # Ensure numpy is imported at the top of your file
+
         plot_style.use('mpl20')  # Use default style
 
         # Clear previous figure if it exists
@@ -694,26 +695,53 @@ class App(customtkinter.CTk):
             gpu_usage_data = data['gpu_usage_data']
             elapsed_time = data['elapsed_time']
 
+            # Convert usage data to numpy arrays
+            cpu_usage_data = np.array(cpu_usage_data, dtype=float)
+            gpu_usage_data = np.array(gpu_usage_data, dtype=float)
+
+            # Ensure arrays are at least 1D
+            cpu_usage_data = np.atleast_1d(cpu_usage_data)
+            gpu_usage_data = np.atleast_1d(gpu_usage_data)
+
             # Generate the time axis based on the actual elapsed time
             if elapsed_time > 0 and len(fps_data) > 0:
                 interval = elapsed_time / len(fps_data)
-                time_data = [i * interval for i in range(len(fps_data))]
+                time_data = np.array([i * interval for i in range(len(fps_data))])
             else:
-                time_data = range(len(fps_data))
+                time_data = np.arange(len(fps_data))
 
             # Apply smoothing to CPU and GPU usage data using a moving average
-            window_size = 2  # Adjust the window size as needed
-            if len(cpu_usage_data) >= window_size:
-                # Use numpy's convolve function to compute the moving average
-                cpu_usage_smoothed = np.convolve(cpu_usage_data, np.ones(window_size) / window_size, mode='valid')
-                gpu_usage_smoothed = np.convolve(gpu_usage_data, np.ones(window_size) / window_size, mode='valid')
-                # Adjust time_data to match the length of the smoothed data
-                time_data_smoothed = time_data[window_size - 1:]
-            else:
-                # If the data is too short, use the original data without smoothing
-                cpu_usage_smoothed = cpu_usage_data
-                gpu_usage_smoothed = gpu_usage_data
-                time_data_smoothed = time_data
+            # window_size = 2  # Adjust the window size as needed
+            # if len(cpu_usage_data) >= window_size:
+            #     # Use numpy's convolve function to compute the moving average
+            #     cpu_usage_smoothed = np.convolve(cpu_usage_data, np.ones(window_size) / window_size, mode='valid')
+            #     gpu_usage_smoothed = np.convolve(gpu_usage_data, np.ones(window_size) / window_size, mode='valid')
+            #     # Adjust time_data to match the length of the smoothed data
+            #     time_data_smoothed = time_data[window_size - 1:]
+            # else:
+            # If the data is too short, use the original data without smoothing
+            cpu_usage_smoothed = cpu_usage_data
+            gpu_usage_smoothed = gpu_usage_data
+            time_data_smoothed = time_data
+
+            # Ensure smoothed data are numpy arrays and at least 1D
+            cpu_usage_smoothed = np.atleast_1d(np.array(cpu_usage_smoothed, dtype=float))
+            gpu_usage_smoothed = np.atleast_1d(np.array(gpu_usage_smoothed, dtype=float))
+            time_data_smoothed = np.atleast_1d(np.array(time_data_smoothed, dtype=float))
+
+            # Create masks for non-zero values
+            cpu_mask = cpu_usage_smoothed > 0
+            gpu_mask = gpu_usage_smoothed > 0
+
+            # Ensure that the arrays have the same length
+            min_length = min(len(cpu_usage_smoothed), len(time_data_smoothed), len(cpu_mask))
+            cpu_usage_smoothed = cpu_usage_smoothed[:min_length]
+            time_data_smoothed = time_data_smoothed[:min_length]
+            cpu_mask = cpu_mask[:min_length]
+
+            min_length = min(len(gpu_usage_smoothed), len(time_data_smoothed), len(gpu_mask))
+            gpu_usage_smoothed = gpu_usage_smoothed[:min_length]
+            gpu_mask = gpu_mask[:min_length]
 
             # Compute indices
             title_row = idx * 2
@@ -741,14 +769,26 @@ class App(customtkinter.CTk):
             ax_fps.set_ylabel("FPS")
 
             # CPU/GPU Usage Line Graph using smoothed data
-            ax_usage.plot(
-                time_data_smoothed, cpu_usage_smoothed,
-                label="CPU Usage", linestyle="--", color=line_colors[0]
-            )
-            ax_usage.plot(
-                time_data_smoothed, gpu_usage_smoothed,
-                label="GPU Usage", color=line_colors[1]
-            )
+            # Plot CPU usage where values are greater than 0
+            if np.any(cpu_mask):
+                ax_usage.plot(
+                    time_data_smoothed[cpu_mask],
+                    cpu_usage_smoothed[cpu_mask],
+                    label="CPU Usage", linestyle="--", color=line_colors[0]
+                )
+            else:
+                print(f"No CPU usage data to plot for {benchmark_name}")
+
+            # Plot GPU usage where values are greater than 0
+            if np.any(gpu_mask):
+                ax_usage.plot(
+                    time_data_smoothed[gpu_mask],
+                    gpu_usage_smoothed[gpu_mask],
+                    label="GPU Usage", color=line_colors[1]
+                )
+            else:
+                print(f"No GPU usage data to plot for {benchmark_name}")
+
             ax_usage.set_title("CPU and GPU Usage Over Time")
             ax_usage.set_xlabel("Time (s)")
             ax_usage.set_ylabel("Usage (%)")
