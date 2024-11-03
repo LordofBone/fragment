@@ -12,7 +12,7 @@ class StatsCollector:
         self.lock = threading.Lock()
         self.pid = None
         self.process = None
-        self.cpu_percent_interval = 0.1  # Interval for cpu_percent(), in seconds
+        self.cpu_percent_interval = None  # Interval for cpu_percent(), in seconds
 
     def reset(self, benchmark_name, pid):
         with self.lock:
