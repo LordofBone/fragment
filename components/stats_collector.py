@@ -29,7 +29,7 @@ class StatsCollector:
             self.process = psutil.Process(pid)
             # Prime the CPU percent calculation by making an initial call
             # This establishes a baseline for future measurements
-            self.process.cpu_percent(interval=None)
+            self.process.cpu_percent(interval=self.cpu_percent_interval)
 
     def set_current_fps(self, fps):
         with self.lock:
