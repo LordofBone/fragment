@@ -4,11 +4,12 @@ from OpenGL.GLUT import *
 
 
 class RendererWindow:
-    def __init__(self, window_size=(800, 600), title="Renderer", msaa_level=4, vsync_enabled=True):
+    def __init__(self, window_size=(800, 600), title="Renderer", msaa_level=4, vsync_enabled=True, fullscreen=False):
         self.window_size = window_size
         self.title = title
         self.msaa_level = msaa_level
         self.vsync_enabled = vsync_enabled
+        self.fullscreen = fullscreen
         self.clock = None
         self.running = True  # Control the main loop
         self.should_close = False  # Flag to indicate window should close
@@ -20,7 +21,17 @@ class RendererWindow:
         """Setup Pygame for OpenGL rendering."""
         pygame.init()
         self.configure_opengl_attributes()
-        pygame.display.set_mode(self.window_size, pygame.DOUBLEBUF | pygame.OPENGL,
+
+        if self.fullscreen:
+            # Get the desktop resolution
+            desktop_info = pygame.display.Info()
+            self.window_size = (desktop_info.current_w, desktop_info.current_h)
+
+        display_flags = pygame.DOUBLEBUF | pygame.OPENGL
+        if self.fullscreen:
+            display_flags |= pygame.FULLSCREEN
+
+        pygame.display.set_mode(self.window_size, display_flags,
                                 vsync=1 if self.vsync_enabled else 0)
         pygame.display.set_caption(self.title)
         pygame.font.init()
