@@ -11,6 +11,7 @@ import customtkinter
 import matplotlib.style as plot_style
 from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
+from scipy.interpolate import make_interp_spline  # Import spline interpolation function
 
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
 from benchmarks.pyramid5 import run_benchmark as run_pyramid_benchmark
@@ -617,10 +618,9 @@ class App(customtkinter.CTk):
     def display_performance_score(self, score):
         self.performance_score_label.configure(text=f"Performance Score: {score}")
 
-    def display_results(self, desired_sampling_interval=0):
+    def display_results(self, desired_sampling_interval=1):
         import numpy as np  # Ensure numpy is imported at the top of your file
         import matplotlib.pyplot as plt  # Ensure matplotlib is imported
-        from scipy.interpolate import make_interp_spline  # Import spline interpolation function
 
         plot_style.use('mpl20')  # Use default style
 
@@ -713,9 +713,9 @@ class App(customtkinter.CTk):
             else:
                 time_data = np.arange(len(fps_data))
 
-            # Handle NaN and zero values in CPU and GPU data
-            cpu_mask = ~np.isnan(cpu_usage_data) & (cpu_usage_data > 0)
-            gpu_mask = ~np.isnan(gpu_usage_data) & (gpu_usage_data > 0)
+            # Handle NaN and negative values in CPU and GPU data
+            cpu_usage_data = np.clip(cpu_usage_data, 0.0, 100.0)  # Ensure between 0% and 100%
+            gpu_usage_data = np.clip(gpu_usage_data, 0.0, 100.0)
 
             # Desired sampling interval in seconds
             # desired_sampling_interval = 5  # For example, every 5 seconds (passed as parameter)
@@ -752,8 +752,6 @@ class App(customtkinter.CTk):
             fps_data_sampled = fps_data[indices]
             cpu_usage_sampled = cpu_usage_data[indices]
             gpu_usage_sampled = gpu_usage_data[indices]
-            cpu_mask_sampled = cpu_mask[indices]
-            gpu_mask_sampled = gpu_mask[indices]
 
             # Interpolate FPS data
             if len(fps_data_sampled) > 3:
@@ -772,8 +770,8 @@ class App(customtkinter.CTk):
                 fps_smooth = fps_data_sampled
 
             # Interpolate CPU usage data
-            cpu_time = time_data_sampled[cpu_mask_sampled]
-            cpu_usage = cpu_usage_sampled[cpu_mask_sampled]
+            cpu_usage = cpu_usage_sampled
+            cpu_time = time_data_sampled
             if len(cpu_usage) > 3:
                 try:
                     cpu_spline = make_interp_spline(cpu_time, cpu_usage, k=3)
@@ -788,8 +786,8 @@ class App(customtkinter.CTk):
                 cpu_smooth = cpu_usage
 
             # Interpolate GPU usage data
-            gpu_time = time_data_sampled[gpu_mask_sampled]
-            gpu_usage = gpu_usage_sampled[gpu_mask_sampled]
+            gpu_usage = gpu_usage_sampled
+            gpu_time = time_data_sampled
             if len(gpu_usage) > 3:
                 try:
                     gpu_spline = make_interp_spline(gpu_time, gpu_usage, k=3)
@@ -851,6 +849,9 @@ class App(customtkinter.CTk):
             ax_usage.set_xlabel("Time (s)")
             ax_usage.set_ylabel("Usage (%)")
             ax_usage.legend()
+
+            # Set Y-axis limits between 0% and 100%
+            ax_usage.set_ylim(0, 100)
 
             # Insert text results
             avg_fps = np.nanmean(fps_data) if fps_data.size > 0 else 0
