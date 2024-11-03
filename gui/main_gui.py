@@ -617,7 +617,7 @@ class App(customtkinter.CTk):
     def display_performance_score(self, score):
         self.performance_score_label.configure(text=f"Performance Score: {score}")
 
-    def display_results(self):
+    def display_results(self, desired_sampling_interval=0):
         import numpy as np  # Ensure numpy is imported at the top of your file
         import matplotlib.pyplot as plt  # Ensure matplotlib is imported
         from scipy.interpolate import make_interp_spline  # Import spline interpolation function
@@ -717,29 +717,65 @@ class App(customtkinter.CTk):
             cpu_mask = ~np.isnan(cpu_usage_data) & (cpu_usage_data > 0)
             gpu_mask = ~np.isnan(gpu_usage_data) & (gpu_usage_data > 0)
 
+            # Desired sampling interval in seconds
+            # desired_sampling_interval = 5  # For example, every 5 seconds (passed as parameter)
+
+            # Calculate the total number of data points
+            total_data_points = len(time_data)
+
+            # Calculate the total elapsed time
+            if len(time_data) > 0:
+                total_time = time_data[-1] - time_data[0]
+            else:
+                total_time = 0
+
+            # Calculate the approximate number of samples desired
+            if desired_sampling_interval > 0:
+                approx_samples = int(total_time / desired_sampling_interval)
+            else:
+                approx_samples = total_data_points
+
+            # Calculate the sampling factor
+            if approx_samples > 0 and total_data_points > 0:
+                sampling_factor = max(1, total_data_points // approx_samples)
+            else:
+                sampling_factor = 1
+
+            # Apply sampling
+            indices = np.arange(0, total_data_points, sampling_factor)
+            # Ensure at least 2 data points for interpolation
+            if len(indices) < 2:
+                indices = np.arange(total_data_points)
+
+            # Sample the data
+            time_data_sampled = time_data[indices]
+            fps_data_sampled = fps_data[indices]
+            cpu_usage_sampled = cpu_usage_data[indices]
+            gpu_usage_sampled = gpu_usage_data[indices]
+            cpu_mask_sampled = cpu_mask[indices]
+            gpu_mask_sampled = gpu_mask[indices]
+
             # Interpolate FPS data
-            if len(fps_data) > 3:
+            if len(fps_data_sampled) > 3:
                 try:
-                    # Create spline function
-                    fps_spline = make_interp_spline(time_data, fps_data, k=3)
-                    # Generate new time data for smooth curve
-                    time_data_fine = np.linspace(time_data.min(), time_data.max(), len(time_data) * 10)
-                    # Compute interpolated FPS values
+                    fps_spline = make_interp_spline(time_data_sampled, fps_data_sampled, k=3)
+                    time_data_fine = np.linspace(time_data_sampled.min(), time_data_sampled.max(),
+                                                 len(time_data_sampled) * 10)
                     fps_smooth = fps_spline(time_data_fine)
                 except Exception as e:
                     print(f"Could not interpolate FPS data for {benchmark_name}: {e}")
-                    time_data_fine = time_data
-                    fps_smooth = fps_data
+                    time_data_fine = time_data_sampled
+                    fps_smooth = fps_data_sampled
             else:
                 # Not enough data points to interpolate
-                time_data_fine = time_data
-                fps_smooth = fps_data
+                time_data_fine = time_data_sampled
+                fps_smooth = fps_data_sampled
 
             # Interpolate CPU usage data
-            if np.sum(cpu_mask) > 3:
+            cpu_time = time_data_sampled[cpu_mask_sampled]
+            cpu_usage = cpu_usage_sampled[cpu_mask_sampled]
+            if len(cpu_usage) > 3:
                 try:
-                    cpu_time = time_data[cpu_mask]
-                    cpu_usage = cpu_usage_data[cpu_mask]
                     cpu_spline = make_interp_spline(cpu_time, cpu_usage, k=3)
                     cpu_time_fine = np.linspace(cpu_time.min(), cpu_time.max(), len(cpu_time) * 10)
                     cpu_smooth = cpu_spline(cpu_time_fine)
@@ -748,15 +784,14 @@ class App(customtkinter.CTk):
                     cpu_time_fine = cpu_time
                     cpu_smooth = cpu_usage
             else:
-                # Not enough data points to interpolate
-                cpu_time_fine = time_data[cpu_mask]
-                cpu_smooth = cpu_usage_data[cpu_mask]
+                cpu_time_fine = cpu_time
+                cpu_smooth = cpu_usage
 
             # Interpolate GPU usage data
-            if np.sum(gpu_mask) > 3:
+            gpu_time = time_data_sampled[gpu_mask_sampled]
+            gpu_usage = gpu_usage_sampled[gpu_mask_sampled]
+            if len(gpu_usage) > 3:
                 try:
-                    gpu_time = time_data[gpu_mask]
-                    gpu_usage = gpu_usage_data[gpu_mask]
                     gpu_spline = make_interp_spline(gpu_time, gpu_usage, k=3)
                     gpu_time_fine = np.linspace(gpu_time.min(), gpu_time.max(), len(gpu_time) * 10)
                     gpu_smooth = gpu_spline(gpu_time_fine)
@@ -765,9 +800,8 @@ class App(customtkinter.CTk):
                     gpu_time_fine = gpu_time
                     gpu_smooth = gpu_usage
             else:
-                # Not enough data points to interpolate
-                gpu_time_fine = time_data[gpu_mask]
-                gpu_smooth = gpu_usage_data[gpu_mask]
+                gpu_time_fine = gpu_time
+                gpu_smooth = gpu_usage
 
             # Compute indices
             title_row = idx * 2
