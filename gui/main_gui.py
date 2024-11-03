@@ -8,7 +8,6 @@ import webbrowser
 
 import _tkinter
 import customtkinter
-import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
@@ -620,6 +619,8 @@ class App(customtkinter.CTk):
 
     def display_results(self):
         import numpy as np  # Ensure numpy is imported at the top of your file
+        import matplotlib.pyplot as plt  # Ensure matplotlib is imported
+        from scipy.interpolate import make_interp_spline  # Import spline interpolation function
 
         plot_style.use('mpl20')  # Use default style
 
@@ -696,10 +697,12 @@ class App(customtkinter.CTk):
             elapsed_time = data['elapsed_time']
 
             # Convert usage data to numpy arrays
+            fps_data = np.array(fps_data, dtype=float)
             cpu_usage_data = np.array(cpu_usage_data, dtype=float)
             gpu_usage_data = np.array(gpu_usage_data, dtype=float)
 
             # Ensure arrays are at least 1D
+            fps_data = np.atleast_1d(fps_data)
             cpu_usage_data = np.atleast_1d(cpu_usage_data)
             gpu_usage_data = np.atleast_1d(gpu_usage_data)
 
@@ -710,38 +713,61 @@ class App(customtkinter.CTk):
             else:
                 time_data = np.arange(len(fps_data))
 
-            # Apply smoothing to CPU and GPU usage data using a moving average
-            # window_size = 2  # Adjust the window size as needed
-            # if len(cpu_usage_data) >= window_size:
-            #     # Use numpy's convolve function to compute the moving average
-            #     cpu_usage_smoothed = np.convolve(cpu_usage_data, np.ones(window_size) / window_size, mode='valid')
-            #     gpu_usage_smoothed = np.convolve(gpu_usage_data, np.ones(window_size) / window_size, mode='valid')
-            #     # Adjust time_data to match the length of the smoothed data
-            #     time_data_smoothed = time_data[window_size - 1:]
-            # else:
-            # If the data is too short, use the original data without smoothing
-            cpu_usage_smoothed = cpu_usage_data
-            gpu_usage_smoothed = gpu_usage_data
-            time_data_smoothed = time_data
+            # Handle NaN and zero values in CPU and GPU data
+            cpu_mask = ~np.isnan(cpu_usage_data) & (cpu_usage_data > 0)
+            gpu_mask = ~np.isnan(gpu_usage_data) & (gpu_usage_data > 0)
 
-            # Ensure smoothed data are numpy arrays and at least 1D
-            cpu_usage_smoothed = np.atleast_1d(np.array(cpu_usage_smoothed, dtype=float))
-            gpu_usage_smoothed = np.atleast_1d(np.array(gpu_usage_smoothed, dtype=float))
-            time_data_smoothed = np.atleast_1d(np.array(time_data_smoothed, dtype=float))
+            # Interpolate FPS data
+            if len(fps_data) > 3:
+                try:
+                    # Create spline function
+                    fps_spline = make_interp_spline(time_data, fps_data, k=3)
+                    # Generate new time data for smooth curve
+                    time_data_fine = np.linspace(time_data.min(), time_data.max(), len(time_data) * 10)
+                    # Compute interpolated FPS values
+                    fps_smooth = fps_spline(time_data_fine)
+                except Exception as e:
+                    print(f"Could not interpolate FPS data for {benchmark_name}: {e}")
+                    time_data_fine = time_data
+                    fps_smooth = fps_data
+            else:
+                # Not enough data points to interpolate
+                time_data_fine = time_data
+                fps_smooth = fps_data
 
-            # Create masks for non-zero values
-            cpu_mask = cpu_usage_smoothed > 0
-            gpu_mask = gpu_usage_smoothed > 0
+            # Interpolate CPU usage data
+            if np.sum(cpu_mask) > 3:
+                try:
+                    cpu_time = time_data[cpu_mask]
+                    cpu_usage = cpu_usage_data[cpu_mask]
+                    cpu_spline = make_interp_spline(cpu_time, cpu_usage, k=3)
+                    cpu_time_fine = np.linspace(cpu_time.min(), cpu_time.max(), len(cpu_time) * 10)
+                    cpu_smooth = cpu_spline(cpu_time_fine)
+                except Exception as e:
+                    print(f"Could not interpolate CPU usage data for {benchmark_name}: {e}")
+                    cpu_time_fine = cpu_time
+                    cpu_smooth = cpu_usage
+            else:
+                # Not enough data points to interpolate
+                cpu_time_fine = time_data[cpu_mask]
+                cpu_smooth = cpu_usage_data[cpu_mask]
 
-            # Ensure that the arrays have the same length
-            min_length = min(len(cpu_usage_smoothed), len(time_data_smoothed), len(cpu_mask))
-            cpu_usage_smoothed = cpu_usage_smoothed[:min_length]
-            time_data_smoothed = time_data_smoothed[:min_length]
-            cpu_mask = cpu_mask[:min_length]
-
-            min_length = min(len(gpu_usage_smoothed), len(time_data_smoothed), len(gpu_mask))
-            gpu_usage_smoothed = gpu_usage_smoothed[:min_length]
-            gpu_mask = gpu_mask[:min_length]
+            # Interpolate GPU usage data
+            if np.sum(gpu_mask) > 3:
+                try:
+                    gpu_time = time_data[gpu_mask]
+                    gpu_usage = gpu_usage_data[gpu_mask]
+                    gpu_spline = make_interp_spline(gpu_time, gpu_usage, k=3)
+                    gpu_time_fine = np.linspace(gpu_time.min(), gpu_time.max(), len(gpu_time) * 10)
+                    gpu_smooth = gpu_spline(gpu_time_fine)
+                except Exception as e:
+                    print(f"Could not interpolate GPU usage data for {benchmark_name}: {e}")
+                    gpu_time_fine = gpu_time
+                    gpu_smooth = gpu_usage
+            else:
+                # Not enough data points to interpolate
+                gpu_time_fine = time_data[gpu_mask]
+                gpu_smooth = gpu_usage_data[gpu_mask]
 
             # Compute indices
             title_row = idx * 2
@@ -763,27 +789,25 @@ class App(customtkinter.CTk):
             axs.extend([ax_fps, ax_usage])
 
             # FPS Line Graph
-            ax_fps.plot(time_data, fps_data, color=bar_color)
+            ax_fps.plot(time_data_fine, fps_smooth, color=bar_color)
             ax_fps.set_title("FPS Over Time")
             ax_fps.set_xlabel("Time (s)")
             ax_fps.set_ylabel("FPS")
 
-            # CPU/GPU Usage Line Graph using smoothed data
-            # Plot CPU usage where values are greater than 0
-            if np.any(cpu_mask):
+            # CPU/GPU Usage Line Graph using interpolated data
+            # Plot CPU usage
+            if len(cpu_time_fine) > 0:
                 ax_usage.plot(
-                    time_data_smoothed[cpu_mask],
-                    cpu_usage_smoothed[cpu_mask],
+                    cpu_time_fine, cpu_smooth,
                     label="CPU Usage", linestyle="--", color=line_colors[0]
                 )
             else:
                 print(f"No CPU usage data to plot for {benchmark_name}")
 
-            # Plot GPU usage where values are greater than 0
-            if np.any(gpu_mask):
+            # Plot GPU usage
+            if len(gpu_time_fine) > 0:
                 ax_usage.plot(
-                    time_data_smoothed[gpu_mask],
-                    gpu_usage_smoothed[gpu_mask],
+                    gpu_time_fine, gpu_smooth,
                     label="GPU Usage", color=line_colors[1]
                 )
             else:
@@ -795,7 +819,7 @@ class App(customtkinter.CTk):
             ax_usage.legend()
 
             # Insert text results
-            avg_fps = sum(fps_data) / len(fps_data) if fps_data else 0
+            avg_fps = np.nanmean(fps_data) if fps_data.size > 0 else 0
             self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} Avg. FPS\n")
 
         # Assign axes to self.axs for adjust_chart_mode
