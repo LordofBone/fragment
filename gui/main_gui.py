@@ -286,7 +286,7 @@ class App(customtkinter.CTk):
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("0")
-        self.anisotropy_optionmenu.set("1")
+        self.anisotropy_optionmenu.set("16")
         self.particle_render_mode_optionmenu.set("Transform Feedback")
 
         # Prepare the graph canvas for results
