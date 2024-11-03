@@ -95,6 +95,8 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_byte_size_cpu = self.stride_length_cpu * self.float_size
         self.buffer_size_cpu = self.max_particles * self.particle_byte_size_cpu  # Total buffer size in bytes
 
+        self.current_vbo_index = int
+        self.latest_vbo_index = int
         self.vao = None
         self.vbo = None
         self.feedback_vbo = None
@@ -236,6 +238,10 @@ class ParticleRenderer(AbstractRenderer):
         """
         Create buffers based on the particle render mode (transform_feedback, compute_shader, or cpu).
         """
+        # Initialize the current VBO index
+        self.current_vbo_index = 0
+        self.latest_vbo_index = 0
+
         initial_batch_size = self.particle_batch_size if self.particle_generator else self.max_particles
         particles = self.stack_initial_data(
             initial_batch_size, pad_to_multiple_of_16=(self.particle_render_mode == "compute_shader")
@@ -285,14 +291,22 @@ class ParticleRenderer(AbstractRenderer):
         """
         glUseProgram(self.shader_program)
 
-        self.vao, self.vbo, self.feedback_vbo = glGenVertexArrays(1), glGenBuffers(1), glGenBuffers(1)
+        # Create two VBOs for ping-pong buffering
+        self.vbos = glGenBuffers(2)
+
+        # Initialize both VBOs with the particle data
+        for vbo in self.vbos:
+            glBindBuffer(GL_ARRAY_BUFFER, vbo)
+            glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, particle_data, GL_DYNAMIC_DRAW)
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+        # Create the VAO
+        self.vao = glGenVertexArrays(1)
         glBindVertexArray(self.vao)
 
-        # Initialize the VBO with the particle data
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, self.buffer_size_tf_compute, particle_data, GL_DYNAMIC_DRAW)
-
-        # Set up vertex attribute pointers
+        # Bind the first VBO to set up vertex attributes
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbos[0])
         self._setup_vertex_attributes()
 
         glBindVertexArray(0)
@@ -838,7 +852,8 @@ class ParticleRenderer(AbstractRenderer):
             print(f"Number of active particles: {self.active_particles}")
 
     def _remove_expired_particles_transform_feedback(self):
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        # Bind the buffer containing the latest particle data
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbos[self.current_vbo_index])
 
         # Map the buffer to access data directly
         particle_data = glGetBufferSubData(GL_ARRAY_BUFFER, 0, self.buffer_size_tf_compute)
@@ -871,7 +886,7 @@ class ParticleRenderer(AbstractRenderer):
         new_particles = self.stack_initial_data(num_gen_particles)
 
         # Write new particles into the buffer at the positions of free slots
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbos[self.latest_vbo_index])
 
         for i in range(num_gen_particles):
             slot_index = self.free_slots.pop(0)
@@ -1053,13 +1068,25 @@ class ParticleRenderer(AbstractRenderer):
         self.particles_to_render = self.max_particles
 
     def _update_particles_transform_feedback(self):
+        # Bind the shader program
+        glUseProgram(self.shader_program)
+
+        # Determine source and destination buffers
+        source_vbo = self.vbos[self.current_vbo_index]
+        dest_vbo = self.vbos[1 - self.current_vbo_index]
+
+        # Bind the VAO
         glBindVertexArray(self.vao)
+
+        # Bind the source buffer for reading vertex attributes
+        glBindBuffer(GL_ARRAY_BUFFER, source_vbo)
+        self._setup_vertex_attributes()  # Update vertex attribute pointers
 
         # Enable rasterizer discard to avoid rendering particles to the screen
         glEnable(GL_RASTERIZER_DISCARD)
 
-        # Bind the buffer as both the source and target for transform feedback
-        glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, self.vbo)
+        # Bind the destination buffer for transform feedback
+        glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, dest_vbo)
 
         # Start capturing transform feedback
         glBeginTransformFeedback(GL_POINTS)
@@ -1073,6 +1100,9 @@ class ParticleRenderer(AbstractRenderer):
         glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
 
         glBindVertexArray(0)
+
+        # Swap the buffers for the next frame
+        self.current_vbo_index = 1 - self.current_vbo_index
 
         self.particles_to_render = self.max_particles
 
@@ -1149,6 +1179,15 @@ class ParticleRenderer(AbstractRenderer):
         self.set_general_shader_uniforms()
         self.set_view_projection_matrices()
         self.update_particles()
+
+        # Enable ping-pong rendering for transform feedback mode
+        if self.particle_render_mode == "transform_feedback":
+            # Determine the current source buffer
+            current_vbo = self.vbos[self.current_vbo_index]
+            self._setup_vertex_attributes()  # Update vertex attribute pointers
+            glBindBuffer(GL_ARRAY_BUFFER, current_vbo)
+
+        # Bind the VAO and update vertex attributes
         glBindVertexArray(self.vao)
 
         # After rendering, print the SSBO contents if debug mode is enabled
@@ -1175,10 +1214,9 @@ class ParticleRenderer(AbstractRenderer):
             "triangle_strip_adjacency": GL_TRIANGLE_STRIP_ADJACENCY,
             "patches": GL_PATCHES,
         }
-
-        # Get the primitive type from the mapping, default to GL_POINTS if not found
         primitive = primitive_types.get(self.particle_type, GL_POINTS)
 
-        glDrawArrays(primitive, 0, self.particles_to_render)  # Draw only active particles
+        # Draw the particles
+        glDrawArrays(primitive, 0, self.particles_to_render)
 
         glBindVertexArray(0)
