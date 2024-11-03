@@ -10,14 +10,11 @@ class StatsCollector:
         self.current_benchmark = None
         self.current_fps = 0
         self.lock = threading.Lock()
-        self.pid = None
-        self.process = None
         self.cpu_percent_interval = None  # Interval for cpu_percent(), in seconds
 
     def reset(self, benchmark_name, pid):
         with self.lock:
             self.current_benchmark = benchmark_name
-            self.pid = pid
             self.benchmark_data[benchmark_name] = {
                 'fps_data': [],
                 'cpu_usage_data': [],
@@ -25,11 +22,9 @@ class StatsCollector:
                 'elapsed_time': 0
             }
             self.current_fps = 0
-            # Initialize psutil.Process object
-            self.process = psutil.Process(pid)
             # Prime the CPU percent calculation by making an initial call
             # This establishes a baseline for future measurements
-            self.process.cpu_percent(interval=self.cpu_percent_interval)
+            psutil.cpu_percent(interval=self.cpu_percent_interval)
 
     def set_current_fps(self, fps):
         with self.lock:
@@ -44,33 +39,21 @@ class StatsCollector:
             data = self.benchmark_data[self.current_benchmark]
             fps = self.current_fps
 
-            # Default CPU usage to 0.0
-            normalized_cpu_usage = 0.0
+            # Get detailed CPU times percentages
+            cpu_times_percent = psutil.cpu_times_percent(interval=self.cpu_percent_interval)
 
-            # Check if the process is still running
-            if self.process.is_running():
-                try:
-                    # Get per-process CPU usage
-                    cpu_usage = self.process.cpu_percent(interval=self.cpu_percent_interval)
+            # Calculate total CPU usage
+            total_cpu_usage = 100.0 - cpu_times_percent.idle
 
-                    # Get the number of physical CPUs (cores)
-                    num_cpus = psutil.cpu_count(logical=False)
-                    if num_cpus is None:
-                        num_cpus = psutil.cpu_count(logical=True)
-
-                    # Normalize CPU usage
-                    normalized_cpu_usage = cpu_usage / num_cpus
-                    normalized_cpu_usage = min(normalized_cpu_usage, 100.0)
-                except (psutil.NoSuchProcess, psutil.ZombieProcess, psutil.AccessDenied):
-                    # Process has terminated or is inaccessible; use default CPU usage
-                    pass
+            # Ensure CPU usage is not negative and does not exceed 100%
+            total_cpu_usage = max(min(total_cpu_usage, 100.0), 0.0)
 
             # Get overall GPU usage across all GPUs
             gpu_usage = self.get_overall_gpu_usage()
 
             # Append the data points
             data['fps_data'].append(fps)
-            data['cpu_usage_data'].append(normalized_cpu_usage)
+            data['cpu_usage_data'].append(total_cpu_usage)
             data['gpu_usage_data'].append(gpu_usage)
 
     def get_overall_gpu_usage(self):
@@ -79,6 +62,8 @@ class StatsCollector:
         gpus = getGPUs()
         for gpu in gpus:
             total_gpu_usage += gpu.load * 100  # Convert to percentage
+        # Ensure GPU usage is not negative and does not exceed 100%
+        total_gpu_usage = max(min(total_gpu_usage, 100.0), 0.0)
         return total_gpu_usage
 
     def set_elapsed_time(self, benchmark_name, elapsed_time):
