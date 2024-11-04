@@ -14,7 +14,7 @@ import matplotlib.style as plot_style
 import psutil
 from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
-from scipy.interpolate import make_interp_spline  # Import spline interpolation function
+from scipy.interpolate import make_interp_spline
 
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
 from benchmarks.pyramid5 import run_benchmark as run_pyramid_benchmark
