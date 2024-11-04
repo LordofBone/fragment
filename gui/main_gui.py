@@ -432,18 +432,31 @@ class App(customtkinter.CTk):
         ram_gb = ram_bytes / (1024 ** 3)  # Convert bytes to GB
         return f"{ram_gb:.1f} GB"
 
-    def on_window_resize(self, event=None):
-        if self.is_resizing:
-            return  # Ignore resize events during resizing
-        # Start the resizing flag
-        self.is_resizing = True
-
-        # Cancel any previous scheduled resizing
-        if self.resize_after_id:
-            self.after_cancel(self.resize_after_id)
-
-        # Schedule re-rendering after 1 second of no resizing events
-        self.resize_after_id = self.after(1000, self.on_resize_complete)
+    #
+    # def on_window_resize(self, event=None):
+    #     # Only proceed if the event was triggered by the root window
+    #     if event is not None and event.widget != self:
+    #         return
+    #
+    #     new_size = (self.winfo_width(), self.winfo_height())
+    #     if hasattr(self, 'last_window_size') and self.last_window_size == new_size:
+    #         return  # Size hasn't changed, no need to proceed
+    #
+    #     self.last_window_size = new_size
+    #
+    #     if self.is_resizing:
+    #         return  # Ignore resize events during resizing
+    #
+    #     # Start the resizing flag
+    #     self.is_resizing = True
+    #
+    #     # Cancel any previous scheduled resizing
+    #     if hasattr(self, 'resize_after_id') and self.resize_after_id:
+    #         self.after_cancel(self.resize_after_id)
+    #
+    #     # Schedule re-rendering after 1 second of no resizing events
+    #     # self.resize_after_id = self.after(1000, self.on_resize_complete)
+    #     self.resize_after_id = self.after(500, lambda: self.on_resize_complete())
 
     def on_resize_complete(self):
         # Re-render the chart to fit within the resized window
@@ -690,18 +703,22 @@ class App(customtkinter.CTk):
     def display_performance_score(self, score):
         self.performance_score_label.configure(text=f"Performance Score: {score}")
 
-    def display_results(self, desired_sampling_interval=1):
-        import numpy as np  # Ensure numpy is imported at the top of your file
-        import matplotlib.pyplot as plt  # Ensure matplotlib is imported
+    def display_results(self):
+        import numpy as np
+        import matplotlib.pyplot as plt
 
-        plot_style.use('mpl20')  # Use default style
+        plot_style.use('mpl20')
 
-        # Clear previous figure if it exists
-        if self.fig is not None:
-            plt.close(self.fig)
-            self.fig = None
+        # Clear previous images and widgets
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        self.plot_labels = []
+        self.plot_images = []
+        self.original_images = []
+        self.axes_list = []
+        self.figures = []
 
-        # Determine colors based on current mode and set self.chart_bg_color and self.chart_text_color
+        # Determine colors based on current mode
         current_mode = customtkinter.get_appearance_mode()
         if current_mode == "Dark":
             bar_color = "skyblue"
@@ -714,19 +731,11 @@ class App(customtkinter.CTk):
             self.chart_bg_color = "#f0f0f0"
             self.chart_text_color = "#202020"
 
-        # Check if there are benchmark results
         if not self.benchmark_results:
-            for widget in self.results_frame.winfo_children():
-                widget.destroy()
             return
 
-        num_benchmarks = len(self.benchmark_results)
-
-        # Use the stored scaling factor
         widget_scaling = self.current_scaling
-
-        # Adjust the font sizes to match the app's font sizes
-        base_font_size = 10  # Base font size for the charts
+        base_font_size = 10
         min_font_size = 8
         scaled_font_size = max(base_font_size * widget_scaling, min_font_size)
         scaled_title_size = max(12 * widget_scaling, min_font_size)
@@ -740,23 +749,6 @@ class App(customtkinter.CTk):
             'ytick.labelsize': scaled_font_size,
             'legend.fontsize': scaled_font_size,
         })
-
-        # Set figure size based on the results frame size
-        self.results_frame.update_idletasks()
-        window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
-        fig_width = max(window_width / 100, 6)  # Ensure minimum width
-        fig_height_per_benchmark = 4  # Height in inches per benchmark
-        fig_height = fig_height_per_benchmark * num_benchmarks
-
-        # Create figure
-        self.fig = plt.figure(figsize=(fig_width, fig_height), facecolor='none', dpi=100)
-
-        # Create gridspec
-        gs = self.fig.add_gridspec(nrows=num_benchmarks * 2, ncols=2,
-                                   height_ratios=[0.3, 1] * num_benchmarks)
-
-        # List to hold axes
-        axs = []
 
         # Update results textbox
         self.results_textbox.delete('1.0', tkinter.END)
@@ -789,8 +781,8 @@ class App(customtkinter.CTk):
             cpu_usage_data = np.clip(cpu_usage_data, 0.0, 100.0)  # Ensure between 0% and 100%
             gpu_usage_data = np.clip(gpu_usage_data, 0.0, 100.0)
 
-            # Desired sampling interval in seconds
-            # desired_sampling_interval = 5  # For example, every 5 seconds (passed as parameter)
+            # Desired sampling interval in seconds (you can adjust as needed)
+            desired_sampling_interval = 1  # For example, every 1 second
 
             # Calculate the total number of data points
             total_data_points = len(time_data)
@@ -873,24 +865,24 @@ class App(customtkinter.CTk):
                 gpu_time_fine = gpu_time
                 gpu_smooth = gpu_usage
 
-            # Compute indices
-            title_row = idx * 2
-            plot_row = title_row + 1
+            # Create a new figure for this benchmark
+            fig = plt.figure(figsize=(6, 4), facecolor='none', dpi=100)
+            gs = fig.add_gridspec(nrows=2, ncols=2, height_ratios=[0.3, 1])
 
             # Title axes
-            ax_title = self.fig.add_subplot(gs[title_row, :])
+            ax_title = fig.add_subplot(gs[0, :])
             ax_title.axis('off')
             ax_title.text(0.5, 0.5, benchmark_name, ha='center', va='center',
                           fontsize=scaled_title_size, fontweight='bold', color=self.chart_text_color)
 
             # FPS plot
-            ax_fps = self.fig.add_subplot(gs[plot_row, 0])
+            ax_fps = fig.add_subplot(gs[1, 0])
 
             # CPU/GPU Usage plot
-            ax_usage = self.fig.add_subplot(gs[plot_row, 1])
+            ax_usage = fig.add_subplot(gs[1, 1])
 
-            # Append to axes list
-            axs.extend([ax_fps, ax_usage])
+            # Store the axes for later adjustments
+            self.axes_list.append((ax_title, ax_fps, ax_usage))
 
             # FPS Line Graph
             ax_fps.plot(time_data_fine, fps_smooth, color=bar_color)
@@ -925,70 +917,110 @@ class App(customtkinter.CTk):
             # Set Y-axis limits between 0% and 100%
             ax_usage.set_ylim(0, 100)
 
+            # Adjust chart mode
+            self.adjust_chart_mode(axes=[ax_title, ax_fps, ax_usage])
+
+            # Adjust layout
+            fig.tight_layout(rect=[0, 0, 1, 1])  # Adjust as needed
+
+            # Render the figure to an image
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+            buf.seek(0)
+            img = Image.open(buf)
+
+            # Store the original image
+            self.original_images.append(img)
+
+            # Close the figure to free up memory
+            plt.close(fig)
+
+            # Ensure the frame's geometry is updated
+            self.results_frame.update_idletasks()
+
+            # Get the width of the frame
+            window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
+
+            # Ensure new dimensions are positive
+            new_width = max(window_width, 1)
+
+            # Calculate scale factor to fit the image within the results frame
+            scale_factor = new_width / img.width
+
+            new_height = int(img.height * scale_factor)
+
+            # Ensure new dimensions are positive
+            new_width = max(new_width, 1)
+            new_height = max(new_height, 1)
+
+            img_resized = img.resize((new_width, new_height), Image.LANCZOS)
+
+            # Convert to PhotoImage
+            plot_photo_image = ImageTk.PhotoImage(img_resized)
+            self.plot_images.append(plot_photo_image)  # Keep a reference to prevent garbage collection
+
+            # Create a Label to display the image and store it
+            plot_label = tkinter.Label(self.results_frame, image=plot_photo_image, bg=self.chart_bg_color)
+            plot_label.pack(padx=20, pady=(5, 10), fill='both', expand=True)
+            self.plot_labels.append(plot_label)
+
             # Insert text results
             avg_fps = np.nanmean(fps_data) if fps_data.size > 0 else 0
             self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} Avg. FPS\n")
 
-        # Assign axes to self.axs for adjust_chart_mode
-        self.axs = axs
-
-        # Adjust colors based on appearance mode
-        self.adjust_chart_mode()
-
-        # Adjust layout
-        self.fig.tight_layout(rect=[0, 0, 1, 1])  # Adjust as needed
-
-        # Render the figure to an image
-        buf = io.BytesIO()
-        self.fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
-        buf.seek(0)
-        img = Image.open(buf)
-
-        # Close the figure to free up memory
-        plt.close(self.fig)
-        self.fig = None
-
-        # Ensure the frame's geometry is updated
-        self.results_frame.update_idletasks()
-
-        # Get the width of the frame
-        window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
-
-        # Ensure new dimensions are positive
-        new_width = max(window_width, 1)
-
-        # Calculate scale factor to fit the image within the results frame
-        scale_factor = new_width / img.width
-
-        new_height = int(img.height * scale_factor)
-
-        # Ensure new dimensions are positive
-        new_width = max(new_width, 1)
-        new_height = max(new_height, 1)
-
-        img_resized = img.resize((new_width, new_height), Image.LANCZOS)
-
-        # Convert to PhotoImage
-        plot_photo_image = ImageTk.PhotoImage(img_resized)
-        self.plot_image = plot_photo_image  # Keep a reference to prevent garbage collection
-
-        # Display the image in a Canvas
-        if hasattr(self, 'plot_canvas'):
-            self.plot_canvas.destroy()
-
-        self.plot_canvas = tkinter.Canvas(self.results_frame, width=new_width, height=new_height,
-                                          bg=self.chart_bg_color,
-                                          highlightthickness=0)
-        self.plot_canvas.grid(row=0, column=0, sticky="nsew", padx=20, pady=(5, 10))
-        self.plot_canvas.create_image(0, 0, anchor="nw", image=self.plot_image)
-
-        # Ensure the canvas expands with the frame
-        self.results_frame.grid_rowconfigure(0, weight=1)
-        self.results_frame.grid_columnconfigure(0, weight=1)
-
+        # Update the results_frame background color
         self.results_frame.configure(fg_color=self.chart_bg_color)
 
-    def adjust_chart_mode(self):
+    def adjust_image_sizes(self):
+        # Ensure the results_frame's geometry is updated
+        self.results_frame.update_idletasks()
+        window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
+
+        for idx, plot_label in enumerate(self.plot_labels):
+            print(f"Adjusting image size for plot {idx}")
+            # Get the original image
+            original_image = self.original_images[idx]
+
+            # Calculate scale factor to fit the image within the results frame
+            scale_factor = window_width / original_image.width
+            new_width = int(original_image.width * scale_factor)
+            new_height = int(original_image.height * scale_factor)
+            img_resized = original_image.resize((new_width, new_height), Image.LANCZOS)
+
+            # Update the image
+            plot_photo_image = ImageTk.PhotoImage(img_resized)
+            self.plot_images[idx] = plot_photo_image  # Update the reference
+            plot_label.configure(image=plot_photo_image)
+
+    def on_window_resize(self, event=None):
+        # Get the root window
+        root = self.winfo_toplevel()
+
+        # Only proceed if the event was triggered by the root window
+        if event is not None and event.widget != root:
+            return
+
+        new_size = (self.winfo_width(), self.winfo_height())
+        if hasattr(self, 'last_window_size') and self.last_window_size == new_size:
+            return  # Size hasn't changed, no need to proceed
+
+        self.last_window_size = new_size
+
+        if self.is_resizing:
+            return  # Ignore resize events during resizing
+
+        # Start the resizing flag
+        self.is_resizing = True
+
+        # Cancel any previous scheduled resizing
+        if hasattr(self, 'resize_after_id') and self.resize_after_id:
+            self.after_cancel(self.resize_after_id)
+
+        # Schedule resizing after 500 milliseconds
+        self.resize_after_id = self.after(500, lambda: self.on_resize_complete())
+        self.is_resizing = False  # Reset the resizing flag
+
+    def adjust_chart_mode(self, axes=None):
         # Get the effective appearance mode
         mode = customtkinter.get_appearance_mode()
 
@@ -1000,13 +1032,17 @@ class App(customtkinter.CTk):
             self.chart_bg_color = "#f0f0f0"
             self.chart_text_color = "#202020"
 
-        # If the figure or axes are not initialized yet, return
-        if not hasattr(self, 'axs') or self.axs is None:
-            print("Chart not initialized yet.")
-            return
+        if axes is None:
+            # If no axes provided, use the stored axes
+            if not hasattr(self, 'axes_list') or not self.axes_list:
+                print("Charts not initialized yet.")
+                return
+            axes_list = [ax for axes_tuple in self.axes_list for ax in axes_tuple]
+        else:
+            axes_list = axes
 
         # Update axes and text colors
-        for ax in self.axs:
+        for ax in axes_list:
             ax.set_facecolor(self.chart_bg_color)
             ax.tick_params(axis='x', colors=self.chart_text_color)
             ax.tick_params(axis='y', colors=self.chart_text_color)
