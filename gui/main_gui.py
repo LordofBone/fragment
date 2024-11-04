@@ -690,6 +690,13 @@ class App(customtkinter.CTk):
         self.results_frame.grid_columnconfigure(0, weight=1)
         self.results_frame.grid_rowconfigure(0, weight=1)
 
+        # Clear previous images and data
+        self.plot_labels = []
+        self.plot_images = []
+        self.original_images = []
+        self.axes_list = []
+        self.figures = []
+
         # Continue with displaying the results
         self.after(0, self.display_results)
 
