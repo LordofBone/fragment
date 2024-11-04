@@ -1,14 +1,17 @@
 import io
 import multiprocessing
 import os
+import platform
 import threading
 import tkinter
 import tkinter.messagebox
 import webbrowser
 
+import GPUtil
 import _tkinter
 import customtkinter
 import matplotlib.style as plot_style
+import psutil
 from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline  # Import spline interpolation function
@@ -48,8 +51,8 @@ class App(customtkinter.CTk):
         self.grid_columnconfigure(0, weight=0)  # Sidebar column
         self.grid_columnconfigure((1, 2, 3, 4), weight=1)  # Main content columns
         self.grid_rowconfigure((0, 1, 2, 3), weight=1)  # Main content rows
-        self.grid_rowconfigure(4, minsize=25)  # Adjust as needed to create space
-        self.grid_rowconfigure(5, weight=0)  # Row for the loading bar
+        self.grid_rowconfigure(4, minsize=25)  # For loading bar
+        self.grid_rowconfigure(5, weight=0)  # For system specs frame
 
         # Create sidebar frame with widgets
         self.sidebar_frame = customtkinter.CTkFrame(self, width=200, corner_radius=0)
@@ -301,6 +304,25 @@ class App(customtkinter.CTk):
         self.loading_progress_bar.grid(row=4, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew")
         self.loading_progress_bar.grid_remove()  # Hide it initially
 
+        # System Specs Frame at the bottom center
+        self.system_specs_frame = customtkinter.CTkFrame(self)
+        self.system_specs_frame.grid(row=5, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew")
+        self.system_specs_frame.grid_columnconfigure(0, weight=1)
+
+        # Retrieve system specs
+        cpu_info = self.get_cpu_info()
+        gpu_info = self.get_gpu_info()
+        ram_info = self.get_ram_info()
+
+        # Create the label to display the system specs
+        self.system_specs_label = customtkinter.CTkLabel(
+            self.system_specs_frame,
+            text=f"CPU: {cpu_info}     GPU: {gpu_info}     RAM: {ram_info}",
+            font=customtkinter.CTkFont(size=12)
+        )
+        self.system_specs_label.grid(row=0, column=0, padx=20, pady=5, sticky="ew")
+        self.system_specs_label.configure(anchor="center")  # Center the text
+
         # Variables to manage resizing
         self.is_resizing = False
         self.resize_after_id = None
@@ -389,6 +411,26 @@ class App(customtkinter.CTk):
         combined.paste(image, (0, 0), image)  # Paste original image on top of shadow
 
         return combined
+
+    def get_cpu_info(self):
+        cpu_brand = platform.processor()
+        if not cpu_brand:
+            cpu_brand = platform.machine()
+        cpu_count = psutil.cpu_count(logical=True)
+        return f"{cpu_brand} ({cpu_count} cores)"
+
+    def get_gpu_info(self):
+        gpus = GPUtil.getGPUs()
+        if gpus:
+            gpu = gpus[0]  # Get the first GPU
+            return f"{gpu.name} (Driver {gpu.driver})"
+        else:
+            return "No GPU Found"
+
+    def get_ram_info(self):
+        ram_bytes = psutil.virtual_memory().total
+        ram_gb = ram_bytes / (1024 ** 3)  # Convert bytes to GB
+        return f"{ram_gb:.1f} GB"
 
     def on_window_resize(self, event=None):
         if self.is_resizing:
