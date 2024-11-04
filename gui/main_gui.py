@@ -971,6 +971,9 @@ class App(customtkinter.CTk):
         # Update the results_frame background color
         self.results_frame.configure(fg_color=self.chart_bg_color)
 
+        # Schedule adjust_image_sizes to be called after the GUI has updated
+        self.after(0, self.adjust_image_sizes)
+
     def adjust_image_sizes(self):
         # Ensure the results_frame's geometry is updated
         self.results_frame.update_idletasks()
