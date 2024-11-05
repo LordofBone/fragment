@@ -114,6 +114,12 @@ class RenderingInstance:
         self.running = True
         start_time = time.time()
 
+        # Variables to handle FPS update every second
+        fps_update_interval = 1.0  # seconds
+        last_fps_update_time = time.time()
+        fps_accumulator = 0.0
+        fps_frame_count = 0
+
         while self.running and (time.time() - start_time) < self.duration:
             if stop_event is not None and stop_event.is_set():
                 print("Benchmark stopped by user.")
@@ -134,16 +140,22 @@ class RenderingInstance:
             self.render_planar_views()
             self.render_scene(delta_time)
 
-            # Draw a test quad to verify 2D rendering
-            self.render_window.draw_test_quad()
-
             # Collect FPS data
             current_fps = self.render_window.clock.get_fps()
-            if stats_queue:
-                stats_queue.put(('fps', current_fps))
+            fps_accumulator += current_fps
+            fps_frame_count += 1
 
-            # Draw FPS after rendering the scene and test quad
-            self.render_window.draw_fps(current_fps)
+            current_time = time.time()
+            if current_time - last_fps_update_time >= fps_update_interval:
+                average_fps = fps_accumulator / fps_frame_count
+                if stats_queue:
+                    stats_queue.put(('fps', average_fps))
+                # Update the window title with average FPS
+                self.render_window.draw_fps_in_title(average_fps)
+                # Reset the accumulator
+                fps_accumulator = 0.0
+                fps_frame_count = 0
+                last_fps_update_time = current_time
 
             # Update the display
             self.render_window.display_flip()
