@@ -225,14 +225,13 @@ class App(customtkinter.CTk):
         )
         self.benchmark_list_label.grid(row=0, column=0, padx=common_padx, pady=common_pady, sticky="w")
 
-        # List of benchmarks
+        # List of benchmarks (Removed "Water Pyramid - Mixed Test")
         self.benchmarks = [
             "Pyramid 5 - EMBM Test",
             "Sphere - Transparency Shader Test",
             "Tyre - Rubber Shader Test",
             "Water - Reflection Test",
             "Muon Shower - Particle System Test",
-            "Water Pyramid - Mixed Test",
         ]
 
         self.currently_selected_benchmark_name = None
@@ -524,14 +523,13 @@ class App(customtkinter.CTk):
         vsync_enabled = self.enable_vsync_checkbox.get()
         vsync_enabled = bool(vsync_enabled)
 
-        # Map benchmark names to functions
+        # Map benchmark names to functions (Removed "Water Pyramid - Mixed Test")
         benchmark_functions = {
             "Pyramid 5 - EMBM Test": run_pyramid_benchmark,
             "Sphere - Transparency Shader Test": run_sphere_benchmark,
             "Tyre - Rubber Shader Test": run_tyre_benchmark,
             "Water - Reflection Test": run_water_benchmark,
             "Muon Shower - Particle System Test": run_muon_shower_benchmark,
-            "Water Pyramid - Mixed Test": run_water_pyramid_benchmark,
         }
 
         # Clear previous results
@@ -581,8 +579,24 @@ class App(customtkinter.CTk):
         self.after(0, self.enable_widgets)
 
     def demo_mode(self):
-        # If demo mode runs a process, similar disabling and enabling of widgets would be applied here
-        tkinter.messagebox.showinfo("Demo Mode", "Demo mode started...")
+        # Disable widgets to prevent other actions during demo
+        self.disable_widgets()
+        # Show the loading bar
+        self.show_loading_bar()
+        # Run the demo in a separate thread
+        threading.Thread(target=self.run_demo_thread, daemon=True).start()
+
+    def run_demo_thread(self):
+        try:
+            run_water_pyramid_benchmark()
+            self.after(0,
+                       lambda: tkinter.messagebox.showinfo("Demo Completed", "Thanks for running the Fragment demo!"))
+        except Exception as e:
+            self.after(0, lambda: tkinter.messagebox.showerror("Demo Error", f"An error occurred: {e}"))
+        finally:
+            # Hide the loading bar and re-enable widgets
+            self.after(0, self.hide_loading_bar)
+            self.after(0, self.enable_widgets)
 
     def show_loading_bar(self):
         self.loading_progress_bar.grid()
@@ -938,16 +952,9 @@ class App(customtkinter.CTk):
 
                 # Ensure new dimensions are positive
                 new_width = max(window_width, 1)
+                new_height = max(int(img.height * (new_width / img.width)), 1)
 
-                # Calculate scale factor to fit the image within the results frame
-                scale_factor = new_width / img.width
-
-                new_height = int(img.height * scale_factor)
-
-                # Ensure new dimensions are positive
-                new_width = max(new_width, 1)
-                new_height = max(new_height, 1)
-
+                # Resize the image to fit the frame
                 img_resized = img.resize((new_width, new_height), Image.LANCZOS)
 
                 # Convert to PhotoImage
