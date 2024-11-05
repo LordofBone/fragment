@@ -688,284 +688,288 @@ class App(customtkinter.CTk):
         self.performance_score_label.configure(text=f"Performance Score: {score}")
 
     def display_results(self):
-        plot_style.use('mpl20')
+        self.show_loading_bar()
+        try:
+            plot_style.use('mpl20')
 
-        # Clear previous images and widgets
-        for widget in self.results_frame.winfo_children():
-            widget.destroy()
-        self.plot_labels = []
-        self.plot_images = []
-        self.original_images = []
-        self.axes_list = []
-        self.figures = []
+            # Clear previous images and widgets
+            for widget in self.results_frame.winfo_children():
+                widget.destroy()
+            self.plot_labels = []
+            self.plot_images = []
+            self.original_images = []
+            self.axes_list = []
+            self.figures = []
 
-        # Determine colors based on current mode
-        current_mode = customtkinter.get_appearance_mode()
-        if current_mode == "Dark":
-            bar_color = "skyblue"
-            line_colors = ["yellow", "cyan", "magenta"]
-            self.chart_bg_color = "#2c2c2c"
-            self.chart_text_color = "#b0b0b0"
-        else:
-            bar_color = "blue"
-            line_colors = ["red", "green", "purple"]
-            self.chart_bg_color = "#f0f0f0"
-            self.chart_text_color = "#202020"
-
-        if not self.benchmark_results:
-            return
-
-        widget_scaling = self.current_scaling
-        base_font_size = 10
-        min_font_size = 8
-        scaled_font_size = max(base_font_size * widget_scaling, min_font_size)
-        scaled_title_size = max(12 * widget_scaling, min_font_size)
-        scaled_label_size = max(11 * widget_scaling, min_font_size)
-
-        plt.rcParams.update({
-            'font.size': scaled_font_size,
-            'axes.titlesize': scaled_title_size,
-            'axes.labelsize': scaled_label_size,
-            'xtick.labelsize': scaled_font_size,
-            'ytick.labelsize': scaled_font_size,
-            'legend.fontsize': scaled_font_size,
-        })
-
-        # Update results textbox
-        self.results_textbox.delete('1.0', tkinter.END)
-        self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
-
-        for idx, (benchmark_name, data) in enumerate(self.benchmark_results.items()):
-            fps_data = data['fps_data']
-            cpu_usage_data = data['cpu_usage_data']
-            gpu_usage_data = data['gpu_usage_data']
-            elapsed_time = data['elapsed_time']
-
-            # Convert usage data to numpy arrays
-            fps_data = np.array(fps_data, dtype=float)
-            cpu_usage_data = np.array(cpu_usage_data, dtype=float)
-            gpu_usage_data = np.array(gpu_usage_data, dtype=float)
-
-            # Ensure arrays are at least 1D
-            fps_data = np.atleast_1d(fps_data)
-            cpu_usage_data = np.atleast_1d(cpu_usage_data)
-            gpu_usage_data = np.atleast_1d(gpu_usage_data)
-
-            # Generate the time axis based on the actual elapsed time
-            if elapsed_time > 0 and len(fps_data) > 0:
-                interval = elapsed_time / len(fps_data)
-                time_data = np.array([i * interval for i in range(len(fps_data))])
+            # Determine colors based on current mode
+            current_mode = customtkinter.get_appearance_mode()
+            if current_mode == "Dark":
+                bar_color = "skyblue"
+                line_colors = ["yellow", "cyan", "magenta"]
+                self.chart_bg_color = "#2c2c2c"
+                self.chart_text_color = "#b0b0b0"
             else:
-                time_data = np.arange(len(fps_data))
+                bar_color = "blue"
+                line_colors = ["red", "green", "purple"]
+                self.chart_bg_color = "#f0f0f0"
+                self.chart_text_color = "#202020"
 
-            # Handle NaN and negative values in CPU and GPU data
-            cpu_usage_data = np.clip(cpu_usage_data, 0.0, 100.0)  # Ensure between 0% and 100%
-            gpu_usage_data = np.clip(gpu_usage_data, 0.0, 100.0)
+            if not self.benchmark_results:
+                return
 
-            # Desired sampling interval in seconds (you can adjust as needed)
-            desired_sampling_interval = 1  # For example, every 1 second
+            widget_scaling = self.current_scaling
+            base_font_size = 10
+            min_font_size = 8
+            scaled_font_size = max(base_font_size * widget_scaling, min_font_size)
+            scaled_title_size = max(12 * widget_scaling, min_font_size)
+            scaled_label_size = max(11 * widget_scaling, min_font_size)
 
-            # Calculate the total number of data points
-            total_data_points = len(time_data)
+            plt.rcParams.update({
+                'font.size': scaled_font_size,
+                'axes.titlesize': scaled_title_size,
+                'axes.labelsize': scaled_label_size,
+                'xtick.labelsize': scaled_font_size,
+                'ytick.labelsize': scaled_font_size,
+                'legend.fontsize': scaled_font_size,
+            })
 
-            # Calculate the total elapsed time
-            if len(time_data) > 0:
-                total_time = time_data[-1] - time_data[0]
-            else:
-                total_time = 0
+            # Update results textbox
+            self.results_textbox.delete('1.0', tkinter.END)
+            self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
 
-            # Calculate the approximate number of samples desired
-            if desired_sampling_interval > 0:
-                approx_samples = int(total_time / desired_sampling_interval)
-            else:
-                approx_samples = total_data_points
+            for idx, (benchmark_name, data) in enumerate(self.benchmark_results.items()):
+                fps_data = data['fps_data']
+                cpu_usage_data = data['cpu_usage_data']
+                gpu_usage_data = data['gpu_usage_data']
+                elapsed_time = data['elapsed_time']
 
-            # Calculate the sampling factor
-            if approx_samples > 0 and total_data_points > 0:
-                sampling_factor = max(1, total_data_points // approx_samples)
-            else:
-                sampling_factor = 1
+                # Convert usage data to numpy arrays
+                fps_data = np.array(fps_data, dtype=float)
+                cpu_usage_data = np.array(cpu_usage_data, dtype=float)
+                gpu_usage_data = np.array(gpu_usage_data, dtype=float)
 
-            # Apply sampling
-            indices = np.arange(0, total_data_points, sampling_factor)
-            # Ensure at least 2 data points for interpolation
-            if len(indices) < 2:
-                indices = np.arange(total_data_points)
+                # Ensure arrays are at least 1D
+                fps_data = np.atleast_1d(fps_data)
+                cpu_usage_data = np.atleast_1d(cpu_usage_data)
+                gpu_usage_data = np.atleast_1d(gpu_usage_data)
 
-            # Sample the data
-            time_data_sampled = time_data[indices]
-            fps_data_sampled = fps_data[indices]
-            cpu_usage_sampled = cpu_usage_data[indices]
-            gpu_usage_sampled = gpu_usage_data[indices]
+                # Generate the time axis based on the actual elapsed time
+                if elapsed_time > 0 and len(fps_data) > 0:
+                    interval = elapsed_time / len(fps_data)
+                    time_data = np.array([i * interval for i in range(len(fps_data))])
+                else:
+                    time_data = np.arange(len(fps_data))
 
-            # Interpolate FPS data
-            if len(fps_data_sampled) > 3:
-                try:
-                    fps_spline = make_interp_spline(time_data_sampled, fps_data_sampled, k=3)
-                    time_data_fine = np.linspace(time_data_sampled.min(), time_data_sampled.max(),
-                                                 len(time_data_sampled) * 10)
-                    fps_smooth = fps_spline(time_data_fine)
-                except Exception as e:
-                    print(f"Could not interpolate FPS data for {benchmark_name}: {e}")
+                # Handle NaN and negative values in CPU and GPU data
+                cpu_usage_data = np.clip(cpu_usage_data, 0.0, 100.0)  # Ensure between 0% and 100%
+                gpu_usage_data = np.clip(gpu_usage_data, 0.0, 100.0)
+
+                # Desired sampling interval in seconds (you can adjust as needed)
+                desired_sampling_interval = 1  # For example, every 1 second
+
+                # Calculate the total number of data points
+                total_data_points = len(time_data)
+
+                # Calculate the total elapsed time
+                if len(time_data) > 0:
+                    total_time = time_data[-1] - time_data[0]
+                else:
+                    total_time = 0
+
+                # Calculate the approximate number of samples desired
+                if desired_sampling_interval > 0:
+                    approx_samples = int(total_time / desired_sampling_interval)
+                else:
+                    approx_samples = total_data_points
+
+                # Calculate the sampling factor
+                if approx_samples > 0 and total_data_points > 0:
+                    sampling_factor = max(1, total_data_points // approx_samples)
+                else:
+                    sampling_factor = 1
+
+                # Apply sampling
+                indices = np.arange(0, total_data_points, sampling_factor)
+                # Ensure at least 2 data points for interpolation
+                if len(indices) < 2:
+                    indices = np.arange(total_data_points)
+
+                # Sample the data
+                time_data_sampled = time_data[indices]
+                fps_data_sampled = fps_data[indices]
+                cpu_usage_sampled = cpu_usage_data[indices]
+                gpu_usage_sampled = gpu_usage_data[indices]
+
+                # Interpolate FPS data
+                if len(fps_data_sampled) > 3:
+                    try:
+                        fps_spline = make_interp_spline(time_data_sampled, fps_data_sampled, k=3)
+                        time_data_fine = np.linspace(time_data_sampled.min(), time_data_sampled.max(),
+                                                     len(time_data_sampled) * 10)
+                        fps_smooth = fps_spline(time_data_fine)
+                    except Exception as e:
+                        print(f"Could not interpolate FPS data for {benchmark_name}: {e}")
+                        time_data_fine = time_data_sampled
+                        fps_smooth = fps_data_sampled
+                else:
+                    # Not enough data points to interpolate
                     time_data_fine = time_data_sampled
                     fps_smooth = fps_data_sampled
-            else:
-                # Not enough data points to interpolate
-                time_data_fine = time_data_sampled
-                fps_smooth = fps_data_sampled
 
-            # Interpolate CPU usage data
-            cpu_usage = cpu_usage_sampled
-            cpu_time = time_data_sampled
-            if len(cpu_usage) > 3:
-                try:
-                    cpu_spline = make_interp_spline(cpu_time, cpu_usage, k=3)
-                    cpu_time_fine = np.linspace(cpu_time.min(), cpu_time.max(), len(cpu_time) * 10)
-                    cpu_smooth = cpu_spline(cpu_time_fine)
-                except Exception as e:
-                    print(f"Could not interpolate CPU usage data for {benchmark_name}: {e}")
+                # Interpolate CPU usage data
+                cpu_usage = cpu_usage_sampled
+                cpu_time = time_data_sampled
+                if len(cpu_usage) > 3:
+                    try:
+                        cpu_spline = make_interp_spline(cpu_time, cpu_usage, k=3)
+                        cpu_time_fine = np.linspace(cpu_time.min(), cpu_time.max(), len(cpu_time) * 10)
+                        cpu_smooth = cpu_spline(cpu_time_fine)
+                    except Exception as e:
+                        print(f"Could not interpolate CPU usage data for {benchmark_name}: {e}")
+                        cpu_time_fine = cpu_time
+                        cpu_smooth = cpu_usage
+                else:
                     cpu_time_fine = cpu_time
                     cpu_smooth = cpu_usage
-            else:
-                cpu_time_fine = cpu_time
-                cpu_smooth = cpu_usage
 
-            # Interpolate GPU usage data
-            gpu_usage = gpu_usage_sampled
-            gpu_time = time_data_sampled
-            if len(gpu_usage) > 3:
-                try:
-                    gpu_spline = make_interp_spline(gpu_time, gpu_usage, k=3)
-                    gpu_time_fine = np.linspace(gpu_time.min(), gpu_time.max(), len(gpu_time) * 10)
-                    gpu_smooth = gpu_spline(gpu_time_fine)
-                except Exception as e:
-                    print(f"Could not interpolate GPU usage data for {benchmark_name}: {e}")
+                # Interpolate GPU usage data
+                gpu_usage = gpu_usage_sampled
+                gpu_time = time_data_sampled
+                if len(gpu_usage) > 3:
+                    try:
+                        gpu_spline = make_interp_spline(gpu_time, gpu_usage, k=3)
+                        gpu_time_fine = np.linspace(gpu_time.min(), gpu_time.max(), len(gpu_time) * 10)
+                        gpu_smooth = gpu_spline(gpu_time_fine)
+                    except Exception as e:
+                        print(f"Could not interpolate GPU usage data for {benchmark_name}: {e}")
+                        gpu_time_fine = gpu_time
+                        gpu_smooth = gpu_usage
+                else:
                     gpu_time_fine = gpu_time
                     gpu_smooth = gpu_usage
-            else:
-                gpu_time_fine = gpu_time
-                gpu_smooth = gpu_usage
 
-            num_benchmarks = len(self.benchmark_results)
+                num_benchmarks = len(self.benchmark_results)
 
-            # Set figure size based on the results frame size
-            self.results_frame.update_idletasks()
-            window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
-            fig_width = max(window_width / 100, 6)  # Ensure minimum width
-            fig_height_per_benchmark = 4  # Height in inches per benchmark
-            fig_height = fig_height_per_benchmark * num_benchmarks
+                # Set figure size based on the results frame size
+                self.results_frame.update_idletasks()
+                window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
+                fig_width = max(window_width / 100, 6)  # Ensure minimum width
+                fig_height_per_benchmark = 4  # Height in inches per benchmark
+                fig_height = fig_height_per_benchmark * num_benchmarks
 
-            # Create figure
-            fig = plt.figure(figsize=(fig_width, fig_height), facecolor='none', dpi=100)
+                # Create figure
+                fig = plt.figure(figsize=(fig_width, fig_height), facecolor='none', dpi=100)
 
-            # Create gridspec
-            gs = fig.add_gridspec(nrows=num_benchmarks * 2, ncols=2,
-                                  height_ratios=[0.3, 1] * num_benchmarks)
+                # Create gridspec
+                gs = fig.add_gridspec(nrows=num_benchmarks * 2, ncols=2,
+                                      height_ratios=[0.3, 1] * num_benchmarks)
 
-            # Title axes
-            ax_title = fig.add_subplot(gs[0, :])
-            ax_title.axis('off')
-            ax_title.text(0.5, 0.5, benchmark_name, ha='center', va='center',
-                          fontsize=scaled_title_size, fontweight='bold', color=self.chart_text_color)
+                # Title axes
+                ax_title = fig.add_subplot(gs[0, :])
+                ax_title.axis('off')
+                ax_title.text(0.5, 0.5, benchmark_name, ha='center', va='center',
+                              fontsize=scaled_title_size, fontweight='bold', color=self.chart_text_color)
 
-            # FPS plot
-            ax_fps = fig.add_subplot(gs[1, 0])
+                # FPS plot
+                ax_fps = fig.add_subplot(gs[1, 0])
 
-            # CPU/GPU Usage plot
-            ax_usage = fig.add_subplot(gs[1, 1])
+                # CPU/GPU Usage plot
+                ax_usage = fig.add_subplot(gs[1, 1])
 
-            # Store the axes for later adjustments
-            self.axes_list.append((ax_title, ax_fps, ax_usage))
+                # Store the axes for later adjustments
+                self.axes_list.append((ax_title, ax_fps, ax_usage))
 
-            # FPS Line Graph
-            ax_fps.plot(time_data_fine, fps_smooth, color=bar_color)
-            ax_fps.set_title("FPS Over Time")
-            ax_fps.set_xlabel("Time (s)")
-            ax_fps.set_ylabel("FPS")
+                # FPS Line Graph
+                ax_fps.plot(time_data_fine, fps_smooth, color=bar_color)
+                ax_fps.set_title("FPS Over Time")
+                ax_fps.set_xlabel("Time (s)")
+                ax_fps.set_ylabel("FPS")
 
-            # CPU/GPU Usage Line Graph using interpolated data
-            # Plot CPU usage
-            if len(cpu_time_fine) > 0:
-                ax_usage.plot(
-                    cpu_time_fine, cpu_smooth,
-                    label="CPU Usage", linestyle="--", color=line_colors[0]
-                )
-            else:
-                print(f"No CPU usage data to plot for {benchmark_name}")
+                # CPU/GPU Usage Line Graph using interpolated data
+                # Plot CPU usage
+                if len(cpu_time_fine) > 0:
+                    ax_usage.plot(
+                        cpu_time_fine, cpu_smooth,
+                        label="CPU Usage", linestyle="--", color=line_colors[0]
+                    )
+                else:
+                    print(f"No CPU usage data to plot for {benchmark_name}")
 
-            # Plot GPU usage
-            if len(gpu_time_fine) > 0:
-                ax_usage.plot(
-                    gpu_time_fine, gpu_smooth,
-                    label="GPU Usage", color=line_colors[1]
-                )
-            else:
-                print(f"No GPU usage data to plot for {benchmark_name}")
+                # Plot GPU usage
+                if len(gpu_time_fine) > 0:
+                    ax_usage.plot(
+                        gpu_time_fine, gpu_smooth,
+                        label="GPU Usage", color=line_colors[1]
+                    )
+                else:
+                    print(f"No GPU usage data to plot for {benchmark_name}")
 
-            ax_usage.set_title("CPU and GPU Usage Over Time")
-            ax_usage.set_xlabel("Time (s)")
-            ax_usage.set_ylabel("Usage (%)")
-            ax_usage.legend()
+                ax_usage.set_title("CPU and GPU Usage Over Time")
+                ax_usage.set_xlabel("Time (s)")
+                ax_usage.set_ylabel("Usage (%)")
+                ax_usage.legend()
 
-            # Set Y-axis limits between 0% and 100%
-            ax_usage.set_ylim(0, 100)
+                # Set Y-axis limits between 0% and 100%
+                ax_usage.set_ylim(0, 100)
 
-            # Adjust chart mode
-            self.adjust_chart_mode(axes=[ax_title, ax_fps, ax_usage])
+                # Adjust chart mode
+                self.adjust_chart_mode(axes=[ax_title, ax_fps, ax_usage])
 
-            # Adjust layout
-            fig.tight_layout(rect=[0, 0, 1, 1])  # Adjust as needed
+                # Adjust layout
+                fig.tight_layout(rect=[0, 0, 1, 1])  # Adjust as needed
 
-            # Render the figure to an image
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
-            buf.seek(0)
-            img = Image.open(buf)
+                # Render the figure to an image
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+                buf.seek(0)
+                img = Image.open(buf)
 
-            # Store the original image
-            self.original_images.append(img)
+                # Store the original image
+                self.original_images.append(img)
 
-            # Close the figure to free up memory
-            plt.close(fig)
+                # Close the figure to free up memory
+                plt.close(fig)
 
-            # Ensure the frame's geometry is updated
-            self.results_frame.update_idletasks()
+                # Ensure the frame's geometry is updated
+                self.results_frame.update_idletasks()
 
-            # Get the width of the frame
-            window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
+                # Get the width of the frame
+                window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
 
-            # Ensure new dimensions are positive
-            new_width = max(window_width, 1)
+                # Ensure new dimensions are positive
+                new_width = max(window_width, 1)
 
-            # Calculate scale factor to fit the image within the results frame
-            scale_factor = new_width / img.width
+                # Calculate scale factor to fit the image within the results frame
+                scale_factor = new_width / img.width
 
-            new_height = int(img.height * scale_factor)
+                new_height = int(img.height * scale_factor)
 
-            # Ensure new dimensions are positive
-            new_width = max(new_width, 1)
-            new_height = max(new_height, 1)
+                # Ensure new dimensions are positive
+                new_width = max(new_width, 1)
+                new_height = max(new_height, 1)
 
-            img_resized = img.resize((new_width, new_height), Image.LANCZOS)
+                img_resized = img.resize((new_width, new_height), Image.LANCZOS)
 
-            # Convert to PhotoImage
-            plot_photo_image = ImageTk.PhotoImage(img_resized)
-            self.plot_images.append(plot_photo_image)  # Keep a reference to prevent garbage collection
+                # Convert to PhotoImage
+                plot_photo_image = ImageTk.PhotoImage(img_resized)
+                self.plot_images.append(plot_photo_image)  # Keep a reference to prevent garbage collection
 
-            # Create a Label to display the image and store it
-            plot_label = tkinter.Label(self.results_frame, image=plot_photo_image, bg=self.chart_bg_color)
-            plot_label.pack(padx=20, pady=(5, 10), fill='both', expand=True)
-            self.plot_labels.append(plot_label)
+                # Create a Label to display the image and store it
+                plot_label = tkinter.Label(self.results_frame, image=plot_photo_image, bg=self.chart_bg_color)
+                plot_label.pack(padx=20, pady=(5, 10), fill='both', expand=True)
+                self.plot_labels.append(plot_label)
 
-            # Insert text results
-            avg_fps = np.nanmean(fps_data) if fps_data.size > 0 else 0
-            self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} Avg. FPS\n")
+                # Insert text results
+                avg_fps = np.nanmean(fps_data) if fps_data.size > 0 else 0
+                self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} Avg. FPS\n")
 
-        # Update the results_frame background color
-        self.results_frame.configure(fg_color=self.chart_bg_color)
+            # Update the results_frame background color
+            self.results_frame.configure(fg_color=self.chart_bg_color)
 
-        # Schedule adjust_image_sizes to be called after the GUI has updated
-        self.after(0, self.adjust_image_sizes)
+            # Schedule adjust_image_sizes to be called after the GUI has updated
+            self.after(0, self.adjust_image_sizes)
+        finally:
+            self.hide_loading_bar()  # Ensure the loading bar is hidden after rendering
 
     def adjust_image_sizes(self):
         # Ensure the results_frame's geometry is updated
