@@ -11,8 +11,8 @@ class RendererWindow:
         self.vsync_enabled = vsync_enabled
         self.fullscreen = fullscreen
         self.clock = None
-        self.running = True  # Control the main loop
-        self.should_close = False  # Flag to indicate window should close
+        self.running = True
+        self.should_close = False
 
         self.setup_pygame()
         self.clock = pygame.time.Clock()
@@ -45,29 +45,27 @@ class RendererWindow:
 
     def draw_fps(self, fps):
         """Draw the FPS on the screen."""
-        fps = str(int(fps))
-        fps_data = self.create_fps_texture(fps)
+        fps_text = str(int(fps))
+        # Create the surface and texture data once
+        fps_surface = self.font.render(fps_text, True, pygame.Color("white")).convert_alpha()
+        fps_data = pygame.image.tostring(fps_surface, "RGBA", True)
 
         self.enable_blending()
-        self.draw_fps_texture(fps, fps_data)
+        self.draw_fps_texture(fps_surface, fps_data)
         glDisable(GL_BLEND)
 
-    def get_fps_text(self):
-        return str(int(self.clock.get_fps()))
-
-    def create_fps_texture(self, fps):
-        fps_surface = self.font.render(fps, True, pygame.Color("white"))
+    def create_fps_texture(self, fps_surface):
         return pygame.image.tostring(fps_surface, "RGBA", True)
 
     def enable_blending(self):
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    def draw_fps_texture(self, fps, fps_data):
-        # Render the FPS text as a Pygame surface
-        fps_surface = self.font.render(fps, True, pygame.Color("white"))
+    def draw_fps_texture(self, fps_surface, fps_data):
+        # Set the pixel unpack alignment
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
 
-        # Set the position to the top-right corner with some padding (10 pixels from the right edge and 20 pixels from the top edge)
+        # Position the text
         glWindowPos2i(self.window_size[0] - fps_surface.get_width() - 10,
                       self.window_size[1] - fps_surface.get_height() - 10)
 
@@ -77,10 +75,10 @@ class RendererWindow:
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.should_close = True  # Set the flag instead of shutting down
+                self.should_close = True
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    self.should_close = True  # Set the flag if Escape is pressed
+                    self.should_close = True
 
         return self.should_close
 
