@@ -674,15 +674,15 @@ class App(customtkinter.CTk):
         self.axes_list = []
         self.figures = []
 
+        # Switch to the "Results" tab
+        self.after(0, lambda: self.tabview.set("Results"))
+
         # Continue with displaying the results
         self.after(0, self.display_results)
 
         # Calculate and display the performance score
         performance_score = self.benchmark_manager.calculate_performance_score()
         self.after(0, lambda: self.display_performance_score(performance_score))
-
-        # Switch to the "Results" tab
-        self.after(0, lambda: self.tabview.set("Results"))
 
     def display_performance_score(self, score):
         self.performance_score_label.configure(text=f"Performance Score: {score}")
