@@ -397,7 +397,7 @@ class App(customtkinter.CTk):
         else:
             self.image_area.configure(image=None)  # Clear if no image found
 
-    def add_drop_shadow(self, image, shadow_offset=(10, 10), shadow_color=(0, 0, 0), blur_radius=10,
+    def add_drop_shadow(self, image, shadow_offset=(10, 35), shadow_color=(0, 0, 0), blur_radius=5,
                         shadow_opacity=100):
         # Create a shadow image (black with opacity)
         shadow = Image.new("RGBA", (image.width + shadow_offset[0], image.height + shadow_offset[1]),
