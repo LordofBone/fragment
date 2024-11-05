@@ -118,7 +118,7 @@ class RenderingInstance:
             if stop_event is not None and stop_event.is_set():
                 print("Benchmark stopped by user.")
                 break
-            delta_time = self.render_window.clock.tick() / 1000.0  # Targeting 60 FPS
+            delta_time = self.render_window.clock.tick() / 1000.0
 
             # Handle events (e.g., window close)
             if self.render_window.handle_events():
@@ -127,23 +127,26 @@ class RenderingInstance:
                 self.running = False
                 break
 
+            # Clear the screen
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
+            # Render the 3D scene
             self.render_planar_views()
             self.render_scene(delta_time)
+
+            # Draw a test quad to verify 2D rendering
+            self.render_window.draw_test_quad()
 
             # Collect FPS data
             current_fps = self.render_window.clock.get_fps()
             if stats_queue:
                 stats_queue.put(('fps', current_fps))
 
+            # Draw FPS after rendering the scene and test quad
             self.render_window.draw_fps(current_fps)
 
             # Update the display
             self.render_window.display_flip()
-
-            # Sleep briefly to prevent high CPU usage
-            time.sleep(0.001)
 
         self.shutdown()
 
