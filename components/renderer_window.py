@@ -1,6 +1,5 @@
 import pygame
 from OpenGL.GL import *
-from OpenGL.GLUT import *
 
 
 class RendererWindow:
@@ -43,34 +42,9 @@ class RendererWindow:
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
         pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, self.msaa_level)
 
-    def draw_fps(self, fps):
-        """Draw the FPS on the screen."""
-        fps_text = str(int(fps))
-        # Create the surface and texture data once
-        fps_surface = self.font.render(fps_text, True, pygame.Color("white")).convert_alpha()
-        fps_data = pygame.image.tostring(fps_surface, "RGBA", True)
-
-        self.enable_blending()
-        self.draw_fps_texture(fps_surface, fps_data)
-        glDisable(GL_BLEND)
-
-    def create_fps_texture(self, fps_surface):
-        return pygame.image.tostring(fps_surface, "RGBA", True)
-
-    def enable_blending(self):
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
-    def draw_fps_texture(self, fps_surface, fps_data):
-        # Set the pixel unpack alignment
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-
-        # Position the text
-        glWindowPos2i(self.window_size[0] - fps_surface.get_width() - 10,
-                      self.window_size[1] - fps_surface.get_height() - 10)
-
-        # Draw the FPS text as OpenGL pixels
-        glDrawPixels(fps_surface.get_width(), fps_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, fps_data)
+    def draw_fps_in_title(self, fps):
+        """Update the window title with the current FPS."""
+        pygame.display.set_caption(f"{self.title} - FPS: {fps:.2f}")
 
     def handle_events(self):
         for event in pygame.event.get():
