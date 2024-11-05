@@ -10,8 +10,11 @@ import webbrowser
 import GPUtil
 import _tkinter
 import customtkinter
+import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
+import numpy as np
 import psutil
+import pygame
 from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
@@ -31,6 +34,10 @@ customtkinter.set_default_color_theme("themes/314reactor.json")
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+
+        # Retrieve the desktop resolution
+        pygame.init()
+        self.desktop_info = pygame.display.Info()
 
         self.wm_iconbitmap('images/small_icon.ico')
 
@@ -432,32 +439,6 @@ class App(customtkinter.CTk):
         ram_gb = ram_bytes / (1024 ** 3)  # Convert bytes to GB
         return f"{ram_gb:.1f} GB"
 
-    #
-    # def on_window_resize(self, event=None):
-    #     # Only proceed if the event was triggered by the root window
-    #     if event is not None and event.widget != self:
-    #         return
-    #
-    #     new_size = (self.winfo_width(), self.winfo_height())
-    #     if hasattr(self, 'last_window_size') and self.last_window_size == new_size:
-    #         return  # Size hasn't changed, no need to proceed
-    #
-    #     self.last_window_size = new_size
-    #
-    #     if self.is_resizing:
-    #         return  # Ignore resize events during resizing
-    #
-    #     # Start the resizing flag
-    #     self.is_resizing = True
-    #
-    #     # Cancel any previous scheduled resizing
-    #     if hasattr(self, 'resize_after_id') and self.resize_after_id:
-    #         self.after_cancel(self.resize_after_id)
-    #
-    #     # Schedule re-rendering after 1 second of no resizing events
-    #     # self.resize_after_id = self.after(1000, self.on_resize_complete)
-    #     self.resize_after_id = self.after(500, lambda: self.on_resize_complete())
-
     def on_resize_complete(self):
         # Re-render the chart to fit within the resized window
         if self.benchmark_results:
@@ -525,11 +506,7 @@ class App(customtkinter.CTk):
         resolution_str = self.resolution_optionmenu.get()
 
         if resolution_str == "Fullscreen":
-            # Retrieve the desktop resolution
-            import pygame
-            pygame.init()
-            desktop_info = pygame.display.Info()
-            width, height = desktop_info.current_w, desktop_info.current_h
+            width, height = self.desktop_info.current_w, self.desktop_info.current_h
             fullscreen = True
         else:
             width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
@@ -711,9 +688,6 @@ class App(customtkinter.CTk):
         self.performance_score_label.configure(text=f"Performance Score: {score}")
 
     def display_results(self):
-        import numpy as np
-        import matplotlib.pyplot as plt
-
         plot_style.use('mpl20')
 
         # Clear previous images and widgets
@@ -872,9 +846,21 @@ class App(customtkinter.CTk):
                 gpu_time_fine = gpu_time
                 gpu_smooth = gpu_usage
 
-            # Create a new figure for this benchmark
-            fig = plt.figure(figsize=(6, 4), facecolor='none', dpi=100)
-            gs = fig.add_gridspec(nrows=2, ncols=2, height_ratios=[0.3, 1])
+            num_benchmarks = len(self.benchmark_results)
+
+            # Set figure size based on the results frame size
+            self.results_frame.update_idletasks()
+            window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
+            fig_width = max(window_width / 100, 6)  # Ensure minimum width
+            fig_height_per_benchmark = 4  # Height in inches per benchmark
+            fig_height = fig_height_per_benchmark * num_benchmarks
+
+            # Create figure
+            fig = plt.figure(figsize=(fig_width, fig_height), facecolor='none', dpi=100)
+
+            # Create gridspec
+            gs = fig.add_gridspec(nrows=num_benchmarks * 2, ncols=2,
+                                  height_ratios=[0.3, 1] * num_benchmarks)
 
             # Title axes
             ax_title = fig.add_subplot(gs[0, :])
@@ -987,7 +973,6 @@ class App(customtkinter.CTk):
         window_width = self.results_frame.winfo_width() - 40  # Adjust for padding
 
         for idx, plot_label in enumerate(self.plot_labels):
-            print(f"Adjusting image size for plot {idx}")
             # Get the original image
             original_image = self.original_images[idx]
 
