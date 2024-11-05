@@ -74,6 +74,12 @@ class BenchmarkManager:
                         start_time = time.time()
                     elif message_type == 'fps' and renderer_initialized:
                         self.stats_collector.set_current_fps(data)
+                    elif message_type == 'error':
+                        print(f"Error in benchmark '{self.current_benchmark}': {data}")
+                        self.benchmark_stopped_by_user = True
+                        process.terminate()
+                        benchmark_running = False  # Stop data collection
+                        break  # Break inner loop
                     elif message_type == 'stopped_by_user' and data:
                         # Benchmark was stopped by user closing renderer window
                         print("Benchmark stopped by user.")
