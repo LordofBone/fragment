@@ -581,18 +581,60 @@ class App(customtkinter.CTk):
     def demo_mode(self):
         # Disable widgets to prevent other actions during demo
         self.disable_widgets()
+
+        # Retrieve the selected resolution from the GUI
+        resolution_str = self.resolution_optionmenu.get()
+
+        if resolution_str == "Fullscreen":
+            width, height = self.desktop_info.current_w, self.desktop_info.current_h
+            fullscreen = True
+        else:
+            width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
+            fullscreen = False
+
+        # Retrieve the selected MSAA level from the GUI
+        msaa_level = int(self.msaa_level_optionmenu.get())
+
+        # Retrieve the selected anisotropy level from the GUI
+        anisotropy = int(self.anisotropy_optionmenu.get())
+
+        # Retrieve the selected particle render mode from the GUI
+        particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
+
+        vsync_enabled = self.enable_vsync_checkbox.get()
+        vsync_enabled = bool(vsync_enabled)
+
+        # Prepare parameters for the demo
+        demo_parameters = {
+            'resolution': (width, height),
+            'msaa_level': msaa_level,
+            'anisotropy': anisotropy,
+            'particle_render_mode': particle_render_mode,
+            'vsync_enabled': vsync_enabled,
+            'fullscreen': fullscreen,
+        }
+
         # Show the loading bar
         self.show_loading_bar()
-        # Run the demo in a separate thread
-        threading.Thread(target=self.run_demo_thread, daemon=True).start()
 
-    def run_demo_thread(self):
+        # Run the demo in a separate thread with parameters
+        threading.Thread(target=self.run_demo_thread, args=(demo_parameters,), daemon=True).start()
+
+    def run_demo_thread(self, params):
         try:
-            run_water_pyramid_benchmark()
+            run_water_pyramid_benchmark(
+                resolution=params['resolution'],
+                msaa_level=params['msaa_level'],
+                anisotropy=params['anisotropy'],
+                particle_render_mode=params['particle_render_mode'],
+                vsync_enabled=params['vsync_enabled'],
+                fullscreen=params['fullscreen']
+            )
             self.after(0,
                        lambda: tkinter.messagebox.showinfo("Demo Completed", "Thanks for running the Fragment demo!"))
         except Exception as e:
-            self.after(0, lambda: tkinter.messagebox.showerror("Demo Error", f"An error occurred: {e}"))
+            # Capturing 'e' correctly in the lambda function
+            self.after(0, lambda e=e: tkinter.messagebox.showerror("Demo Error", f"An error occurred: {e}"))
         finally:
             # Hide the loading bar and re-enable widgets
             self.after(0, self.hide_loading_bar)
@@ -1091,8 +1133,8 @@ class App(customtkinter.CTk):
     def exit_app(self):
         try:
             # Cancel any pending resize operation
-            if hasattr(self, '_resize_after_id'):
-                self.after_cancel(self._resize_after_id)
+            if hasattr(self, 'resize_after_id') and self.resize_after_id:
+                self.after_cancel(self.resize_after_id)
             # Signal benchmarks to stop
             self.stop_event.set()
 
