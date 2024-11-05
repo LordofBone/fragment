@@ -35,6 +35,9 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
+        # Initialize Demo Mode flag
+        self.is_demo_mode = False
+
         # Retrieve the desktop resolution
         pygame.init()
         self.desktop_info = pygame.display.Info()
@@ -569,14 +572,21 @@ class App(customtkinter.CTk):
             # Benchmark was stopped by user
             self.after(0, lambda: tkinter.messagebox.showinfo("Benchmark Stopped", "Benchmark stopped by user."))
         else:
-            # Store results
-            self.benchmark_results = self.benchmark_manager.get_results()
-            # Display results
-            self.after(0, self.generate_and_display_results)
-            # Switch to the "Results" tab
-            self.after(0, lambda: self.tabview.set("Results"))
+            if self.is_demo_mode:
+                # Demo mode completed; show popup
+                self.after(0, lambda: tkinter.messagebox.showinfo("Demo Completed",
+                                                                  "Thanks for running the Fragment demo!"))
+            else:
+                # Store results
+                self.benchmark_results = self.benchmark_manager.get_results()
+                # Display results
+                self.after(0, self.generate_and_display_results)
+                # Switch to the "Results" tab
+                self.after(0, lambda: self.tabview.set("Results"))
         # Re-enable widgets
         self.after(0, self.enable_widgets)
+        # Reset Demo Mode flag
+        self.is_demo_mode = False
 
     def demo_mode(self):
         # Disable widgets to prevent other actions during demo
@@ -589,14 +599,25 @@ class App(customtkinter.CTk):
             width, height = self.desktop_info.current_w, self.desktop_info.current_h
             fullscreen = True
         else:
-            width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
-            fullscreen = False
+            try:
+                width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
+                fullscreen = False
+            except ValueError:
+                tkinter.messagebox.showerror("Invalid Resolution", "Please select a valid resolution.")
+                self.enable_widgets()
+                return
 
         # Retrieve the selected MSAA level from the GUI
-        msaa_level = int(self.msaa_level_optionmenu.get())
+        try:
+            msaa_level = int(self.msaa_level_optionmenu.get())
+        except ValueError:
+            msaa_level = 0  # Default to 0 if invalid
 
         # Retrieve the selected anisotropy level from the GUI
-        anisotropy = int(self.anisotropy_optionmenu.get())
+        try:
+            anisotropy = int(self.anisotropy_optionmenu.get())
+        except ValueError:
+            anisotropy = 1  # Default to 1 if invalid
 
         # Retrieve the selected particle render mode from the GUI
         particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
@@ -614,31 +635,29 @@ class App(customtkinter.CTk):
             'fullscreen': fullscreen,
         }
 
+        # Initialize BenchmarkManager for Demo Mode
+        self.benchmark_manager = BenchmarkManager(self.stop_event)
+
+        # Add Demo benchmark to BenchmarkManager
+        self.benchmark_manager.add_benchmark(
+            "Demo Mode",  # Unique name for the demo benchmark
+            run_water_pyramid_benchmark,
+            demo_parameters['resolution'],
+            msaa_level=demo_parameters['msaa_level'],
+            anisotropy=demo_parameters['anisotropy'],
+            particle_render_mode=demo_parameters['particle_render_mode'],
+            vsync_enabled=demo_parameters['vsync_enabled'],
+            fullscreen=demo_parameters['fullscreen'],
+        )
+
+        # Set Demo Mode flag
+        self.is_demo_mode = True
+
         # Show the loading bar
         self.show_loading_bar()
 
-        # Run the demo in a separate thread with parameters
-        threading.Thread(target=self.run_demo_thread, args=(demo_parameters,), daemon=True).start()
-
-    def run_demo_thread(self, params):
-        try:
-            run_water_pyramid_benchmark(
-                resolution=params['resolution'],
-                msaa_level=params['msaa_level'],
-                anisotropy=params['anisotropy'],
-                particle_render_mode=params['particle_render_mode'],
-                vsync_enabled=params['vsync_enabled'],
-                fullscreen=params['fullscreen']
-            )
-            self.after(0,
-                       lambda: tkinter.messagebox.showinfo("Demo Completed", "Thanks for running the Fragment demo!"))
-        except Exception as e:
-            # Capturing 'e' correctly in the lambda function
-            self.after(0, lambda e=e: tkinter.messagebox.showerror("Demo Error", f"An error occurred: {e}"))
-        finally:
-            # Hide the loading bar and re-enable widgets
-            self.after(0, self.hide_loading_bar)
-            self.after(0, self.enable_widgets)
+        # Run the demo benchmark in a separate thread to keep GUI responsive
+        threading.Thread(target=self.run_benchmarks_thread, daemon=True).start()
 
     def show_loading_bar(self):
         self.loading_progress_bar.grid()
