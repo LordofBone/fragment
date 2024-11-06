@@ -1,11 +1,24 @@
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
-if __name__ == "__main__":
+
+def run_benchmark(
+    stats_queue=None,
+    stop_event=None,
+    resolution=(800, 600),
+    msaa_level=0,
+    anisotropy=16,
+    particle_render_mode="vertex",
+    vsync_enabled=True,
+    fullscreen=False,
+):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Pyramid 5",
-        window_size=(800, 600),
+        window_size=resolution,
+        vsync_enabled=vsync_enabled,
+        fullscreen=fullscreen,
+        duration=60,
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[
             (3.4, 3.4, 3.4, -39.0, 39.0),
@@ -18,9 +31,9 @@ if __name__ == "__main__":
         lights=[
             {"position": (1.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
         ],
-        anisotropy=16.0,
+        anisotropy=anisotropy,
         auto_camera=False,
-        msaa_level=8,
+        msaa_level=msaa_level,
         culling=True,
         texture_lod_bias=0.85,
         env_map_lod_bias=2.5,
@@ -55,4 +68,4 @@ if __name__ == "__main__":
     instance.scene_construct.set_auto_rotation("pyramid", True)
 
     # Run the rendering instance
-    instance.run()
+    instance.run(stats_queue=stats_queue, stop_event=stop_event)

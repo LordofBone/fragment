@@ -116,7 +116,7 @@ class AbstractRenderer(ABC):
         depth_testing=True,
         culling=True,
         msaa_level=8,
-        anisotropy=16.0,
+        anisotropy=16,
         auto_camera=False,
         move_speed=1.0,
         loop=True,
@@ -672,6 +672,22 @@ class AbstractRenderer(ABC):
             self.camera_rotation = glm.vec2(*self.camera_positions[0][3:])
             self.main_camera_lens_rotation = self.camera_controller.lens_rotations[0]
         self.setup_camera_matrices()
+
+    def shutdown(self):
+        """Clean up OpenGL resources used by the renderer."""
+        # Check if vaos attribute exists and is non-empty
+        if hasattr(self, "vaos") and len(self.vaos) > 0:
+            glDeleteVertexArrays(len(self.vaos), self.vaos)
+
+        # Check if vbos attribute exists and is non-empty
+        if hasattr(self, "vbos") and len(self.vbos) > 0:
+            glDeleteBuffers(len(self.vbos), self.vbos)
+
+        # Delete shader programs correctly
+        if hasattr(self, "shader_program") and self.shader_program:
+            glDeleteProgram(self.shader_program)
+        if hasattr(self, "compute_shader_program") and self.compute_shader_program:
+            glDeleteProgram(self.compute_shader_program)
 
     @abstractmethod
     def create_buffers(self):

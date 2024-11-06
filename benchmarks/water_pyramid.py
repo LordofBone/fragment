@@ -1,11 +1,24 @@
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
-if __name__ == "__main__":
+
+def run_benchmark(
+    stats_queue=None,
+    stop_event=None,
+    resolution=(800, 600),
+    msaa_level=0,
+    anisotropy=16,
+    particle_render_mode="vertex",
+    vsync_enabled=True,
+    fullscreen=False,
+):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Water Pyramid",
-        window_size=(800, 600),
+        window_size=resolution,
+        vsync_enabled=vsync_enabled,
+        fullscreen=fullscreen,
+        duration=60,
         cubemap_folder="textures/cube/night_sky_egypt/",
         camera_positions=[
             (10.0, 10.0, 10.0, -30.0, 0.0),  # Initial position
@@ -25,11 +38,11 @@ if __name__ == "__main__":
         lights=[
             {"position": (50.0, 20.0, 30.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
         ],
-        anisotropy=16.0,
+        anisotropy=anisotropy,
         auto_camera=True,
         move_speed=0.1,
         loop=True,
-        msaa_level=8,
+        msaa_level=msaa_level,
         culling=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
@@ -149,4 +162,4 @@ if __name__ == "__main__":
     instance.scene_construct.set_auto_rotation("model_opaque", False)  # Disable auto-rotation for second model
 
     # Run the rendering instance
-    instance.run()
+    instance.run(stats_queue=stats_queue, stop_event=stop_event)

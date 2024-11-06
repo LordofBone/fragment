@@ -1,11 +1,24 @@
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
-if __name__ == "__main__":
+
+def run_benchmark(
+    stats_queue=None,
+    stop_event=None,
+    resolution=(800, 600),
+    msaa_level=0,
+    anisotropy=16,
+    particle_render_mode="vertex",
+    vsync_enabled=True,
+    fullscreen=False,
+):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Tyre",
-        window_size=(800, 600),
+        window_size=resolution,
+        vsync_enabled=vsync_enabled,
+        fullscreen=fullscreen,
+        duration=60,
         cubemap_folder="textures/cube/mountain_lake/",
         camera_positions=[
             (6.4, 6.4, 6.4, -45.0, 36.0),
@@ -18,9 +31,9 @@ if __name__ == "__main__":
         lights=[
             {"position": (-5.0, 0.0, 5.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
         ],
-        anisotropy=16.0,
+        anisotropy=anisotropy,
         auto_camera=False,
-        msaa_level=8,
+        msaa_level=msaa_level,
         culling=True,
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
@@ -54,4 +67,4 @@ if __name__ == "__main__":
     instance.add_renderer("tyre", "model", **tyre_config)
 
     # Run the rendering instance
-    instance.run()
+    instance.run(stats_queue=stats_queue, stop_event=stop_event)

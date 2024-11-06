@@ -1,11 +1,24 @@
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
-if __name__ == "__main__":
+
+def run_benchmark(
+    stats_queue=None,
+    stop_event=None,
+    resolution=(800, 600),
+    msaa_level=0,
+    anisotropy=16,
+    particle_render_mode="transform_feedback",
+    vsync_enabled=True,
+    fullscreen=False,
+):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Muon Shower",
-        window_size=(800, 600),
+        window_size=resolution,
+        vsync_enabled=vsync_enabled,
+        fullscreen=fullscreen,
+        duration=60,
         camera_positions=[(4.2, 6.2, 4.2, -60.0, 55.0)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
@@ -16,9 +29,9 @@ if __name__ == "__main__":
         ],
         near_plane=0.1,
         far_plane=5000,
-        anisotropy=16.0,
+        anisotropy=anisotropy,
         auto_camera=True,
-        msaa_level=8,
+        msaa_level=msaa_level,
         alpha_blending=True,
         culling=True,
         debug_mode=False,
@@ -32,28 +45,19 @@ if __name__ == "__main__":
 
     # Define the configuration for the particle renderer
     particle_config = base_config.add_particle_renderer(
+        particle_render_mode=particle_render_mode,
         particles_max=600,
         particle_batch_size=150,
         # available_particle_types = ['points','lines','line_strip','line_loop','lines_adjacency','line_strip_adjacency','triangles','triangle_strip','triangle_fan','triangles_adjacency','triangle_strip_adjacency','patches']
         particle_type="points",
-        # particle_render_mode='cpu',  # Options: 'transform_feedback', 'cpu', 'compute_shader'
-        # particle_render_mode='transform_feedback',
-        particle_render_mode="compute_shader",
-        # shader_names={
-        #     'vertex': 'particles_cpu',
-        #     'fragment': 'particles',
-        #     'compute': None,
+        particle_shader_override=False,
+        # if above is True it allows override of shaders for the particle renderer, but you must uncomment the shader_names below
+        # and provide the names of the shaders you want to be used
+        # shader_names = {
+        #     "vertex": "particles_transform_feedback",
+        #     "fragment": "particles",
+        #     "compute": None,
         # },
-        # shader_names={
-        #     'vertex': 'particles_transform_feedback',
-        #     'fragment': 'particles',
-        #     'compute': None,
-        # },
-        shader_names={
-            "vertex": "particles_compute_shader",
-            "fragment": "particles",
-            "compute": "particles",
-        },
         particle_generator=True,
         generator_delay=0.0,
         particle_size=36.0,
@@ -97,4 +101,4 @@ if __name__ == "__main__":
     instance.scene_construct.set_auto_rotation("sparks", False)
 
     # Run the rendering instance
-    instance.run()
+    instance.run(stats_queue=stats_queue, stop_event=stop_event)

@@ -1,3 +1,5 @@
+import time
+
 from OpenGL.GL import *
 
 from components.model_renderer import ModelRenderer
@@ -12,14 +14,22 @@ class RenderingInstance:
     def __init__(self, config):
         self.config = config
         self.render_window = None
+        self.duration = 0
         self.scene_construct = SceneConstructor()
         self.framebuffers = {}
         self.render_order = []
+        self.running = False  # Flag to control the main loop
 
     def setup(self):
         self.render_window = RendererWindow(
-            window_size=self.config.window_size, title=self.config.window_title, msaa_level=self.config.msaa_level
+            window_size=self.config.window_size,
+            title=self.config.window_title,
+            msaa_level=self.config.msaa_level,
+            vsync_enabled=self.config.vsync_enabled,
+            fullscreen=self.config.fullscreen,
         )
+
+        self.duration = self.config.duration
 
         for renderer in self.scene_construct.renderers.values():
             renderer.setup()
@@ -92,14 +102,65 @@ class RenderingInstance:
             return max(o for _, o in self.render_order) + 1
         return 0
 
-    def run(self):
+    def run(self, stats_queue=None, stop_event=None):
+        # Perform setup
         self.setup()
 
-        def render_callback(delta_time):
+        # Signal that the renderer is fully initialized and ready
+        if stats_queue is not None:
+            stats_queue.put(("ready", None))
+
+        # Start the main loop
+        self.running = True
+        start_time = time.time()
+
+        # Variables to handle FPS update every second
+        fps_update_interval = 1.0  # seconds
+        last_fps_update_time = time.time()
+        fps_accumulator = 0.0
+        fps_frame_count = 0
+
+        while self.running and (time.time() - start_time) < self.duration:
+            if stop_event is not None and stop_event.is_set():
+                print("Benchmark stopped by user.")
+                break
+            delta_time = self.render_window.clock.tick() / 1000.0
+
+            # Handle events (e.g., window close)
+            if self.render_window.handle_events():
+                if stats_queue:
+                    stats_queue.put(("stopped_by_user", True))
+                self.running = False
+                break
+
+            # Clear the screen
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+            # Render the 3D scene
             self.render_planar_views()
             self.render_scene(delta_time)
 
-        self.render_window.mainloop(render_callback)
+            # Collect FPS data
+            current_fps = self.render_window.clock.get_fps()
+            fps_accumulator += current_fps
+            fps_frame_count += 1
+
+            current_time = time.time()
+            if current_time - last_fps_update_time >= fps_update_interval:
+                average_fps = fps_accumulator / fps_frame_count
+                if stats_queue:
+                    stats_queue.put(("fps", average_fps))
+                # Update the window title with average FPS
+                self.render_window.draw_fps_in_title(average_fps)
+                # Reset the accumulator
+                fps_accumulator = 0.0
+                fps_frame_count = 0
+                last_fps_update_time = current_time
+
+            # Update the display
+            self.render_window.display_flip()
+
+        self.shutdown()
 
     def render_planar_views(self):
         for renderer_name, _ in self.render_order:
@@ -108,7 +169,26 @@ class RenderingInstance:
                 renderer.render_planar_view(self.scene_construct.renderers.values())
 
     def render_scene(self, delta_time):
+        glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
             renderer.update_camera(delta_time)
             self.scene_construct.render(renderer_name)
+
+    def shutdown(self):
+        """Shut down the rendering instance and clean up resources."""
+        self.running = False  # Stop the main loop
+
+        # First, shut down the renderers while the OpenGL context is still valid
+        for renderer in self.scene_construct.renderers.values():
+            renderer.shutdown()
+
+        # Clean up OpenGL resources if needed
+        for framebuffer, texture in self.framebuffers.values():
+            glDeleteFramebuffers(1, [framebuffer])
+            glDeleteTextures(1, [texture])
+        self.framebuffers.clear()
+
+        # Finally, shut down the render window (this destroys the OpenGL context)
+        if self.render_window:
+            self.render_window.shutdown()
