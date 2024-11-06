@@ -104,7 +104,7 @@ class App(customtkinter.CTk):
         self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(
             self.sidebar_frame,
-            values=["Light", "Dark", "System"],
+            values=["Dark", "Light"],
             command=self.change_appearance_mode_event,
         )
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
@@ -294,7 +294,7 @@ class App(customtkinter.CTk):
         self.results_frame.grid_rowconfigure(0, weight=1)
 
         # Set default values
-        self.appearance_mode_optionemenu.set("System")
+        self.appearance_mode_optionemenu.set("Dark")
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("0")
@@ -959,7 +959,6 @@ class App(customtkinter.CTk):
 
                 # Log data points
                 avg_fps = np.nanmean(fps_data) if fps_data.size > 0 else 0
-                print(f"GUI: Displaying results for '{benchmark_name}': Avg FPS = {avg_fps}")
 
                 # Store the axes for later adjustments
                 self.axes_list.append((ax_title, ax_fps, ax_usage))
