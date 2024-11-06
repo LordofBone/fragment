@@ -1,3 +1,4 @@
+import _tkinter
 import io
 import multiprocessing
 import os
@@ -7,16 +8,15 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import GPUtil
-import _tkinter
 import customtkinter
+import GPUtil
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
+from PIL import Image, ImageFilter, ImageTk
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
@@ -42,7 +42,7 @@ class App(customtkinter.CTk):
         pygame.init()
         self.desktop_info = pygame.display.Info()
 
-        self.wm_iconbitmap('images/small_icon.ico')
+        self.wm_iconbitmap("images/small_icon.ico")
 
         self.benchmark_manager = None  # Initialize as None
         self.benchmark_results = {}  # Store results for display
@@ -70,7 +70,7 @@ class App(customtkinter.CTk):
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
 
         # Sidebar Logo with Icon and Drop Shadow
-        icon_image = Image.open(os.path.join(self.image_folder, 'large_icon.ico'))
+        icon_image = Image.open(os.path.join(self.image_folder, "large_icon.ico"))
         icon_with_shadow = self.add_drop_shadow(icon_image, shadow_offset=(5, 5), blur_radius=8)
         icon_ctkimage = CTkImage(icon_with_shadow, size=(64, 64))
 
@@ -88,19 +88,13 @@ class App(customtkinter.CTk):
             self.sidebar_frame, text="Run Benchmark", command=self.run_benchmark
         )
         self.benchmark_button.grid(row=1, column=0, padx=20, pady=10)
-        self.demo_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="Demo Mode", command=self.demo_mode
-        )
+        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Demo Mode", command=self.demo_mode)
         self.demo_button.grid(row=2, column=0, padx=20, pady=10)
-        self.about_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="About", command=self.show_about_info
-        )
+        self.about_button = customtkinter.CTkButton(self.sidebar_frame, text="About", command=self.show_about_info)
         self.about_button.grid(row=3, column=0, padx=20, pady=10)
 
         # Appearance mode option menu
-        self.appearance_mode_label = customtkinter.CTkLabel(
-            self.sidebar_frame, text="Appearance Mode:", anchor="w"
-        )
+        self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
         self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(
             self.sidebar_frame,
@@ -113,9 +107,7 @@ class App(customtkinter.CTk):
         self.current_scaling = 1.0
 
         # UI scaling option menu
-        self.scaling_label = customtkinter.CTkLabel(
-            self.sidebar_frame, text="UI Scaling:", anchor="w"
-        )
+        self.scaling_label = customtkinter.CTkLabel(self.sidebar_frame, text="UI Scaling:", anchor="w")
         self.scaling_label.grid(row=7, column=0, padx=20, pady=(10, 0))
         self.scaling_optionemenu = customtkinter.CTkOptionMenu(
             self.sidebar_frame,
@@ -125,15 +117,14 @@ class App(customtkinter.CTk):
         self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
 
         # Exit button aligned with the other buttons
-        self.exit_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="Exit", command=self.exit_app
-        )
+        self.exit_button = customtkinter.CTkButton(self.sidebar_frame, text="Exit", command=self.exit_app)
         self.exit_button.grid(row=9, column=0, padx=20, pady=10)  # Align with other buttons
 
         # Create main content frame
         self.main_content_frame = customtkinter.CTkFrame(self)
-        self.main_content_frame.grid(row=0, column=1, columnspan=4, rowspan=4, padx=(20, 20), pady=(20, 20),
-                                     sticky="nsew")
+        self.main_content_frame.grid(
+            row=0, column=1, columnspan=4, rowspan=4, padx=(20, 20), pady=(20, 20), sticky="nsew"
+        )
         self.main_content_frame.grid_rowconfigure(0, weight=1)
         self.main_content_frame.grid_columnconfigure(0, weight=1)
         self.main_content_frame.grid_propagate(True)  # Allow the frame to resize based on children
@@ -161,9 +152,7 @@ class App(customtkinter.CTk):
         self.tabview.tab("Settings").grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
 
         # Settings tab elements
-        self.resolution_label = customtkinter.CTkLabel(
-            self.tabview.tab("Settings"), text="Resolution:"
-        )
+        self.resolution_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Resolution:")
         self.resolution_label.grid(row=0, column=0, padx=common_padx, pady=common_pady)
         self.resolution_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
@@ -172,9 +161,7 @@ class App(customtkinter.CTk):
         self.resolution_optionmenu.grid(row=0, column=1, padx=common_padx, pady=common_pady)
 
         # MSAA Level setting
-        self.msaa_level_label = customtkinter.CTkLabel(
-            self.tabview.tab("Settings"), text="MSAA Level:"
-        )
+        self.msaa_level_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="MSAA Level:")
         self.msaa_level_label.grid(row=1, column=0, padx=common_padx, pady=common_pady)
         self.msaa_level_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
@@ -184,9 +171,7 @@ class App(customtkinter.CTk):
         self.msaa_level_optionmenu.set("0")  # Set default value to 0 (no MSAA)
 
         # Anisotropic Filtering setting
-        self.anisotropy_label = customtkinter.CTkLabel(
-            self.tabview.tab("Settings"), text="Anisotropy Level:"
-        )
+        self.anisotropy_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Anisotropy Level:")
         self.anisotropy_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
         self.anisotropy_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
@@ -201,16 +186,13 @@ class App(customtkinter.CTk):
         )
         self.particle_render_mode_label.grid(row=3, column=0, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu = customtkinter.CTkOptionMenu(
-            self.tabview.tab("Settings"),
-            values=["CPU", "Transform Feedback", "Compute Shader"]
+            self.tabview.tab("Settings"), values=["CPU", "Transform Feedback", "Compute Shader"]
         )
         self.particle_render_mode_optionmenu.grid(row=3, column=1, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu.set("CPU")  # Set default to "CPU"
 
         # V-Sync setting
-        self.enable_vsync_checkbox = customtkinter.CTkCheckBox(
-            self.tabview.tab("Settings"), text="Enable V-Sync"
-        )
+        self.enable_vsync_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"), text="Enable V-Sync")
         self.enable_vsync_checkbox.grid(row=4, column=0, columnspan=2, padx=common_padx, pady=common_pady)
 
         # Scenarios tab grid layout for consistency
@@ -244,16 +226,14 @@ class App(customtkinter.CTk):
         current_row = 1
         for benchmark in self.benchmarks:
             var = tkinter.BooleanVar(value=False)
-            checkbox = customtkinter.CTkCheckBox(
-                self.tabview.tab("Scenarios"), text=benchmark, variable=var
-            )
+            checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Scenarios"), text=benchmark, variable=var)
             checkbox.grid(row=current_row, column=0, padx=common_padx, pady=(10, 10), sticky="w")
 
             # Bind <Enter> to display image when hovering over a checkbox
             checkbox.bind("<Enter>", lambda e, b=benchmark: self.display_image(b))
 
             # Store both the variable and the checkbox widget
-            self.benchmark_vars[benchmark] = {'var': var, 'checkbox': checkbox}
+            self.benchmark_vars[benchmark] = {"var": var, "checkbox": checkbox}
             current_row += 1
 
         # 'Select All' and 'Deselect All' buttons
@@ -276,8 +256,7 @@ class App(customtkinter.CTk):
 
         # Initialize results_textbox inside results_textbox_frame with smaller font
         self.results_textbox = customtkinter.CTkTextbox(
-            self.results_textbox_frame, width=400, height=100,
-            font=customtkinter.CTkFont(size=10)
+            self.results_textbox_frame, width=400, height=100, font=customtkinter.CTkFont(size=10)
         )
         self.results_textbox.pack(anchor="center", fill="both", expand=True)
 
@@ -327,7 +306,7 @@ class App(customtkinter.CTk):
         self.system_specs_label = customtkinter.CTkLabel(
             self.system_specs_frame,
             text=f"CPU: {cpu_info}     GPU: {gpu_info}     RAM: {ram_info}",
-            font=customtkinter.CTkFont(size=12)
+            font=customtkinter.CTkFont(size=12),
         )
         self.system_specs_label.grid(row=0, column=0, padx=20, pady=5, sticky="ew")
         self.system_specs_label.configure(anchor="center")  # Center the text
@@ -388,8 +367,9 @@ class App(customtkinter.CTk):
 
             # Resize the image with shadow based on the calculated dimensions
             img_resized = img_with_shadow.resize((image_area_width, image_area_height), Image.LANCZOS)
-            self.displayed_image = CTkImage(light_image=img_resized, dark_image=img_resized,
-                                            size=(image_area_width, image_area_height))
+            self.displayed_image = CTkImage(
+                light_image=img_resized, dark_image=img_resized, size=(image_area_width, image_area_height)
+            )
 
             # Apply the resized image with shadow and set the area size
             self.image_area.configure(image=self.displayed_image, width=image_area_width, height=image_area_height)
@@ -399,11 +379,11 @@ class App(customtkinter.CTk):
         else:
             self.image_area.configure(image=None)  # Clear if no image found
 
-    def add_drop_shadow(self, image, shadow_offset=(10, 35), shadow_color=(0, 0, 0), blur_radius=5,
-                        shadow_opacity=100):
+    def add_drop_shadow(self, image, shadow_offset=(10, 35), shadow_color=(0, 0, 0), blur_radius=5, shadow_opacity=100):
         # Create a shadow image (black with opacity)
-        shadow = Image.new("RGBA", (image.width + shadow_offset[0], image.height + shadow_offset[1]),
-                           color=(0, 0, 0, 0))
+        shadow = Image.new(
+            "RGBA", (image.width + shadow_offset[0], image.height + shadow_offset[1]), color=(0, 0, 0, 0)
+        )
 
         # Create a shadow shape that matches the original image
         shadow_image = Image.new("RGBA", image.size, color=shadow_color + (shadow_opacity,))
@@ -438,7 +418,7 @@ class App(customtkinter.CTk):
 
     def get_ram_info(self):
         ram_bytes = psutil.virtual_memory().total
-        ram_gb = ram_bytes / (1024 ** 3)  # Convert bytes to GB
+        ram_gb = ram_bytes / (1024**3)  # Convert bytes to GB
         return f"{ram_gb:.1f} GB"
 
     def on_resize_complete(self):
@@ -449,11 +429,11 @@ class App(customtkinter.CTk):
 
     def select_all_benchmarks(self):
         for item in self.benchmark_vars.values():
-            item['var'].set(True)
+            item["var"].set(True)
 
     def deselect_all_benchmarks(self):
         for item in self.benchmark_vars.values():
-            item['var'].set(False)
+            item["var"].set(False)
 
     def disable_widgets(self):
         # Disable sidebar buttons
@@ -470,7 +450,7 @@ class App(customtkinter.CTk):
         # Disable checkboxes
         self.enable_vsync_checkbox.configure(state="disabled")
         for item in self.benchmark_vars.values():
-            item['checkbox'].configure(state="disabled")
+            item["checkbox"].configure(state="disabled")
         # Disable 'Select All' and 'Deselect All' buttons
         self.select_all_button.configure(state="disabled")
         self.deselect_all_button.configure(state="disabled")
@@ -490,16 +470,14 @@ class App(customtkinter.CTk):
         # Enable checkboxes
         self.enable_vsync_checkbox.configure(state="normal")
         for item in self.benchmark_vars.values():
-            item['checkbox'].configure(state="normal")
+            item["checkbox"].configure(state="normal")
         # Enable 'Select All' and 'Deselect All' buttons
         self.select_all_button.configure(state="normal")
         self.deselect_all_button.configure(state="normal")
 
     def run_benchmark(self):
         # Get selected benchmarks from the checkboxes
-        selected_benchmarks = [
-            benchmark for benchmark, item in self.benchmark_vars.items() if item['var'].get()
-        ]
+        selected_benchmarks = [benchmark for benchmark, item in self.benchmark_vars.items() if item["var"].get()]
         if not selected_benchmarks:
             tkinter.messagebox.showwarning("No Selection", "Please select at least one benchmark.")
             return
@@ -511,7 +489,7 @@ class App(customtkinter.CTk):
             width, height = self.desktop_info.current_w, self.desktop_info.current_h
             fullscreen = True
         else:
-            width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
+            width, height = map(int, resolution_str.split("x"))  # Convert "1024x768" to (1024, 768)
             fullscreen = False
 
         # Retrieve the selected MSAA level from the GUI
@@ -574,8 +552,9 @@ class App(customtkinter.CTk):
         else:
             if self.is_demo_mode:
                 # Demo mode completed; show popup
-                self.after(0, lambda: tkinter.messagebox.showinfo("Demo Completed",
-                                                                  "Thanks for running the Fragment demo!"))
+                self.after(
+                    0, lambda: tkinter.messagebox.showinfo("Demo Completed", "Thanks for running the Fragment demo!")
+                )
             else:
                 # Store results
                 self.benchmark_results = self.benchmark_manager.get_results()
@@ -600,7 +579,7 @@ class App(customtkinter.CTk):
             fullscreen = True
         else:
             try:
-                width, height = map(int, resolution_str.split('x'))  # Convert "1024x768" to (1024, 768)
+                width, height = map(int, resolution_str.split("x"))  # Convert "1024x768" to (1024, 768)
                 fullscreen = False
             except ValueError:
                 tkinter.messagebox.showerror("Invalid Resolution", "Please select a valid resolution.")
@@ -627,12 +606,12 @@ class App(customtkinter.CTk):
 
         # Prepare parameters for the demo
         demo_parameters = {
-            'resolution': (width, height),
-            'msaa_level': msaa_level,
-            'anisotropy': anisotropy,
-            'particle_render_mode': particle_render_mode,
-            'vsync_enabled': vsync_enabled,
-            'fullscreen': fullscreen,
+            "resolution": (width, height),
+            "msaa_level": msaa_level,
+            "anisotropy": anisotropy,
+            "particle_render_mode": particle_render_mode,
+            "vsync_enabled": vsync_enabled,
+            "fullscreen": fullscreen,
         }
 
         # Initialize BenchmarkManager for Demo Mode
@@ -642,12 +621,12 @@ class App(customtkinter.CTk):
         self.benchmark_manager.add_benchmark(
             "Demo Mode",  # Unique name for the demo benchmark
             run_water_pyramid_benchmark,
-            demo_parameters['resolution'],
-            msaa_level=demo_parameters['msaa_level'],
-            anisotropy=demo_parameters['anisotropy'],
-            particle_render_mode=demo_parameters['particle_render_mode'],
-            vsync_enabled=demo_parameters['vsync_enabled'],
-            fullscreen=demo_parameters['fullscreen'],
+            demo_parameters["resolution"],
+            msaa_level=demo_parameters["msaa_level"],
+            anisotropy=demo_parameters["anisotropy"],
+            particle_render_mode=demo_parameters["particle_render_mode"],
+            vsync_enabled=demo_parameters["vsync_enabled"],
+            fullscreen=demo_parameters["fullscreen"],
         )
 
         # Set Demo Mode flag
@@ -673,11 +652,11 @@ class App(customtkinter.CTk):
         height = window.winfo_height()
         x = (window.winfo_screenwidth() // 2) - (width // 2)
         y = (window.winfo_screenheight() // 2) - (height // 2)
-        window.geometry(f'{width}x{height}+{x}+{y}')
+        window.geometry(f"{width}x{height}+{x}+{y}")
 
     def show_about_info(self):
         about_window = customtkinter.CTkToplevel(self)
-        about_window.iconbitmap('images/small_icon.ico')
+        about_window.iconbitmap("images/small_icon.ico")
         about_window.title("About")
         about_window.geometry("400x250")
         about_window.resizable(False, False)
@@ -692,7 +671,7 @@ class App(customtkinter.CTk):
         about_window.grab_set()
 
         # Load the large icon image with drop shadow
-        icon_image = Image.open(os.path.join(self.image_folder, 'large_icon.ico'))
+        icon_image = Image.open(os.path.join(self.image_folder, "large_icon.ico"))
         icon_with_shadow = self.add_drop_shadow(icon_image, shadow_offset=(5, 5), blur_radius=8)
         icon_ctkimage = CTkImage(icon_with_shadow, size=(64, 64))
 
@@ -730,7 +709,7 @@ class App(customtkinter.CTk):
         close_button = customtkinter.CTkButton(about_window, text="Close", command=about_window.destroy)
         close_button.pack(pady=(10, 10))
 
-        about_window.after(250, lambda: about_window.iconbitmap('images/small_icon.ico'))
+        about_window.after(250, lambda: about_window.iconbitmap("images/small_icon.ico"))
 
     def generate_and_display_results(self):
         # Destroy the current results frame to reset the scroll position
@@ -765,7 +744,7 @@ class App(customtkinter.CTk):
     def display_results(self):
         self.show_loading_bar()
         try:
-            plot_style.use('mpl20')
+            plot_style.use("mpl20")
 
             # Clear previous images and widgets
             for widget in self.results_frame.winfo_children():
@@ -799,24 +778,26 @@ class App(customtkinter.CTk):
             scaled_title_size = max(12 * widget_scaling, min_font_size)
             scaled_label_size = max(11 * widget_scaling, min_font_size)
 
-            plt.rcParams.update({
-                'font.size': scaled_font_size,
-                'axes.titlesize': scaled_title_size,
-                'axes.labelsize': scaled_label_size,
-                'xtick.labelsize': scaled_font_size,
-                'ytick.labelsize': scaled_font_size,
-                'legend.fontsize': scaled_font_size,
-            })
+            plt.rcParams.update(
+                {
+                    "font.size": scaled_font_size,
+                    "axes.titlesize": scaled_title_size,
+                    "axes.labelsize": scaled_label_size,
+                    "xtick.labelsize": scaled_font_size,
+                    "ytick.labelsize": scaled_font_size,
+                    "legend.fontsize": scaled_font_size,
+                }
+            )
 
             # Update results textbox
-            self.results_textbox.delete('1.0', tkinter.END)
+            self.results_textbox.delete("1.0", tkinter.END)
             self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
 
             for idx, (benchmark_name, data) in enumerate(self.benchmark_results.items()):
-                fps_data = data['fps_data']
-                cpu_usage_data = data['cpu_usage_data']
-                gpu_usage_data = data['gpu_usage_data']
-                elapsed_time = data['elapsed_time']
+                fps_data = data["fps_data"]
+                cpu_usage_data = data["cpu_usage_data"]
+                gpu_usage_data = data["gpu_usage_data"]
+                elapsed_time = data["elapsed_time"]
 
                 # Convert usage data to numpy arrays
                 fps_data = np.array(fps_data, dtype=float)
@@ -882,8 +863,9 @@ class App(customtkinter.CTk):
                 if len(fps_data_sampled) > 3:
                     try:
                         fps_spline = make_interp_spline(time_data_sampled, fps_data_sampled, k=3)
-                        time_data_fine = np.linspace(time_data_sampled.min(), time_data_sampled.max(),
-                                                     len(time_data_sampled) * 10)
+                        time_data_fine = np.linspace(
+                            time_data_sampled.min(), time_data_sampled.max(), len(time_data_sampled) * 10
+                        )
                         fps_smooth = fps_spline(time_data_fine)
                     except Exception as e:
                         print(f"Could not interpolate FPS data for {benchmark_name}: {e}")
@@ -939,17 +921,24 @@ class App(customtkinter.CTk):
                 fig_height = fig_height_per_benchmark * num_benchmarks
 
                 # Create figure
-                fig = plt.figure(figsize=(fig_width, fig_height), facecolor='none', dpi=100)
+                fig = plt.figure(figsize=(fig_width, fig_height), facecolor="none", dpi=100)
 
                 # Create gridspec
-                gs = fig.add_gridspec(nrows=num_benchmarks * 2, ncols=2,
-                                      height_ratios=[0.3, 1] * num_benchmarks)
+                gs = fig.add_gridspec(nrows=num_benchmarks * 2, ncols=2, height_ratios=[0.3, 1] * num_benchmarks)
 
                 # Title axes
                 ax_title = fig.add_subplot(gs[0, :])
-                ax_title.axis('off')
-                ax_title.text(0.5, 0.5, benchmark_name, ha='center', va='center',
-                              fontsize=scaled_title_size, fontweight='bold', color=self.chart_text_color)
+                ax_title.axis("off")
+                ax_title.text(
+                    0.5,
+                    0.5,
+                    benchmark_name,
+                    ha="center",
+                    va="center",
+                    fontsize=scaled_title_size,
+                    fontweight="bold",
+                    color=self.chart_text_color,
+                )
 
                 # FPS plot
                 ax_fps = fig.add_subplot(gs[1, 0])
@@ -972,19 +961,13 @@ class App(customtkinter.CTk):
                 # CPU/GPU Usage Line Graph using interpolated data
                 # Plot CPU usage
                 if len(cpu_time_fine) > 0:
-                    ax_usage.plot(
-                        cpu_time_fine, cpu_smooth,
-                        label="CPU Usage", linestyle="--", color=line_colors[0]
-                    )
+                    ax_usage.plot(cpu_time_fine, cpu_smooth, label="CPU Usage", linestyle="--", color=line_colors[0])
                 else:
                     print(f"No CPU usage data to plot for {benchmark_name}")
 
                 # Plot GPU usage
                 if len(gpu_time_fine) > 0:
-                    ax_usage.plot(
-                        gpu_time_fine, gpu_smooth,
-                        label="GPU Usage", color=line_colors[1]
-                    )
+                    ax_usage.plot(gpu_time_fine, gpu_smooth, label="GPU Usage", color=line_colors[1])
                 else:
                     print(f"No GPU usage data to plot for {benchmark_name}")
 
@@ -1004,7 +987,7 @@ class App(customtkinter.CTk):
 
                 # Render the figure to an image
                 buf = io.BytesIO()
-                fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+                fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
                 buf.seek(0)
                 img = Image.open(buf)
 
@@ -1033,7 +1016,7 @@ class App(customtkinter.CTk):
 
                 # Create a Label to display the image and store it
                 plot_label = tkinter.Label(self.results_frame, image=plot_photo_image, bg=self.chart_bg_color)
-                plot_label.pack(padx=20, pady=(5, 10), fill='both', expand=True)
+                plot_label.pack(padx=20, pady=(5, 10), fill="both", expand=True)
                 self.plot_labels.append(plot_label)
 
                 # Insert text results
@@ -1069,7 +1052,7 @@ class App(customtkinter.CTk):
 
     def on_window_resize(self, event=None):
         # Cancel any previous scheduled resizing for the image
-        if hasattr(self, '_image_resize_after_id'):
+        if hasattr(self, "_image_resize_after_id"):
             self.after_cancel(self._image_resize_after_id)
 
         # Schedule a new image resize to happen after 200 ms (or any delay you prefer)
@@ -1083,7 +1066,7 @@ class App(customtkinter.CTk):
             return
 
         new_size = (self.winfo_width(), self.winfo_height())
-        if hasattr(self, 'last_window_size') and self.last_window_size == new_size:
+        if hasattr(self, "last_window_size") and self.last_window_size == new_size:
             return  # Size hasn't changed, no need to proceed
 
         self.last_window_size = new_size
@@ -1095,7 +1078,7 @@ class App(customtkinter.CTk):
         self.is_resizing = True
 
         # Cancel any previous scheduled resizing
-        if hasattr(self, 'resize_after_id') and self.resize_after_id:
+        if hasattr(self, "resize_after_id") and self.resize_after_id:
             self.after_cancel(self.resize_after_id)
 
         # Schedule resizing after 500 milliseconds
@@ -1121,7 +1104,7 @@ class App(customtkinter.CTk):
 
         if axes is None:
             # If no axes provided, use the stored axes
-            if not hasattr(self, 'axes_list') or not self.axes_list:
+            if not hasattr(self, "axes_list") or not self.axes_list:
                 print("Charts not initialized yet.")
                 return
             axes_list = [ax for axes_tuple in self.axes_list for ax in axes_tuple]
@@ -1131,8 +1114,8 @@ class App(customtkinter.CTk):
         # Update axes and text colors
         for ax in axes_list:
             ax.set_facecolor(self.chart_bg_color)
-            ax.tick_params(axis='x', colors=self.chart_text_color)
-            ax.tick_params(axis='y', colors=self.chart_text_color)
+            ax.tick_params(axis="x", colors=self.chart_text_color)
+            ax.tick_params(axis="y", colors=self.chart_text_color)
             ax.xaxis.label.set_color(self.chart_text_color)
             ax.yaxis.label.set_color(self.chart_text_color)
             ax.title.set_color(self.chart_text_color)
@@ -1172,7 +1155,7 @@ class App(customtkinter.CTk):
     def exit_app(self):
         try:
             # Cancel any pending resize operation
-            if hasattr(self, 'resize_after_id') and self.resize_after_id:
+            if hasattr(self, "resize_after_id") and self.resize_after_id:
                 self.after_cancel(self.resize_after_id)
             # Signal benchmarks to stop
             self.stop_event.set()
@@ -1182,7 +1165,7 @@ class App(customtkinter.CTk):
                 self.loading_progress_bar.stop()
 
             # Cancel all pending 'after' callbacks
-            after_ids = self.tk.call('after', 'info')
+            after_ids = self.tk.call("after", "info")
             for after_id in self.tk.splitlist(after_ids):
                 try:
                     self.after_cancel(after_id)

@@ -30,8 +30,7 @@ class RendererWindow:
         if self.fullscreen:
             display_flags |= pygame.FULLSCREEN
 
-        pygame.display.set_mode(self.window_size, display_flags,
-                                vsync=1 if self.vsync_enabled else 0)
+        pygame.display.set_mode(self.window_size, display_flags, vsync=1 if self.vsync_enabled else 0)
         pygame.display.set_caption(self.title)
         pygame.font.init()
         self.font = pygame.font.Font(None, 36)

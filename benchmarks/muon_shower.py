@@ -2,8 +2,16 @@ from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 
 
-def run_benchmark(stats_queue=None, stop_event=None, resolution=(800, 600), msaa_level=0, anisotropy=16,
-                  particle_render_mode="transform_feedback", vsync_enabled=True, fullscreen=False):
+def run_benchmark(
+    stats_queue=None,
+    stop_event=None,
+    resolution=(800, 600),
+    msaa_level=0,
+    anisotropy=16,
+    particle_render_mode="transform_feedback",
+    vsync_enabled=True,
+    fullscreen=False,
+):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
         window_title="Muon Shower",

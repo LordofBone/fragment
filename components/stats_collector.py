@@ -16,10 +16,10 @@ class StatsCollector:
         with self.lock:
             self.current_benchmark = benchmark_name
             self.benchmark_data[benchmark_name] = {
-                'fps_data': [],
-                'cpu_usage_data': [],
-                'gpu_usage_data': [],
-                'elapsed_time': 0
+                "fps_data": [],
+                "cpu_usage_data": [],
+                "gpu_usage_data": [],
+                "elapsed_time": 0,
             }
             self.current_fps = 0
             # Prime the CPU percent calculation by making an initial call
@@ -52,9 +52,9 @@ class StatsCollector:
             gpu_usage = self.get_overall_gpu_usage()
 
             # Append the data points
-            data['fps_data'].append(fps)
-            data['cpu_usage_data'].append(total_cpu_usage)
-            data['gpu_usage_data'].append(gpu_usage)
+            data["fps_data"].append(fps)
+            data["cpu_usage_data"].append(total_cpu_usage)
+            data["gpu_usage_data"].append(gpu_usage)
 
     def get_overall_gpu_usage(self):
         # Sum the GPU usage across all available GPUs
@@ -68,7 +68,7 @@ class StatsCollector:
 
     def set_elapsed_time(self, benchmark_name, elapsed_time):
         with self.lock:
-            self.benchmark_data[benchmark_name]['elapsed_time'] = elapsed_time
+            self.benchmark_data[benchmark_name]["elapsed_time"] = elapsed_time
 
     def save_data(self, benchmark_name):
         # Optionally save data to a file

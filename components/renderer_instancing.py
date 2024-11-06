@@ -108,7 +108,7 @@ class RenderingInstance:
 
         # Signal that the renderer is fully initialized and ready
         if stats_queue is not None:
-            stats_queue.put(('ready', None))
+            stats_queue.put(("ready", None))
 
         # Start the main loop
         self.running = True
@@ -129,7 +129,7 @@ class RenderingInstance:
             # Handle events (e.g., window close)
             if self.render_window.handle_events():
                 if stats_queue:
-                    stats_queue.put(('stopped_by_user', True))
+                    stats_queue.put(("stopped_by_user", True))
                 self.running = False
                 break
 
@@ -149,7 +149,7 @@ class RenderingInstance:
             if current_time - last_fps_update_time >= fps_update_interval:
                 average_fps = fps_accumulator / fps_frame_count
                 if stats_queue:
-                    stats_queue.put(('fps', average_fps))
+                    stats_queue.put(("fps", average_fps))
                 # Update the window title with average FPS
                 self.render_window.draw_fps_in_title(average_fps)
                 # Reset the accumulator

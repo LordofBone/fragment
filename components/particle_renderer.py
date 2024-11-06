@@ -13,7 +13,7 @@ class ParticleRenderer(AbstractRenderer):
         particles_max=100,
         particle_batch_size=1,
         particle_render_mode="transform_feedback",
-            particle_shader_override=False,
+        particle_shader_override=False,
         particle_generator=False,
         generator_delay=0.0,
         particle_type="point",
