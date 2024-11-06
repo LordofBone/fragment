@@ -828,6 +828,9 @@ class App(customtkinter.CTk):
                 cpu_usage_data = np.atleast_1d(cpu_usage_data)
                 gpu_usage_data = np.atleast_1d(gpu_usage_data)
 
+                # Clamp FPS data to non-negative
+                fps_data = np.clip(fps_data, 0, None)
+
                 # Generate the time axis based on the actual elapsed time
                 if elapsed_time > 0 and len(fps_data) > 0:
                     interval = elapsed_time / len(fps_data)
@@ -835,8 +838,8 @@ class App(customtkinter.CTk):
                 else:
                     time_data = np.arange(len(fps_data))
 
-                # Handle NaN and negative values in CPU and GPU data
-                cpu_usage_data = np.clip(cpu_usage_data, 0.0, 100.0)  # Ensure between 0% and 100%
+                # Handle CPU and GPU usage data
+                cpu_usage_data = np.clip(cpu_usage_data, 0.0, 100.0)
                 gpu_usage_data = np.clip(gpu_usage_data, 0.0, 100.0)
 
                 # Desired sampling interval in seconds (you can adjust as needed)
@@ -890,6 +893,9 @@ class App(customtkinter.CTk):
                     # Not enough data points to interpolate
                     time_data_fine = time_data_sampled
                     fps_smooth = fps_data_sampled
+
+                # **Clamp the interpolated FPS data to non-negative**
+                fps_smooth = np.clip(fps_smooth, 0, None)
 
                 # Interpolate CPU usage data
                 cpu_usage = cpu_usage_sampled
@@ -950,6 +956,10 @@ class App(customtkinter.CTk):
 
                 # CPU/GPU Usage plot
                 ax_usage = fig.add_subplot(gs[1, 1])
+
+                # Log data points
+                avg_fps = np.nanmean(fps_data) if fps_data.size > 0 else 0
+                print(f"GUI: Displaying results for '{benchmark_name}': Avg FPS = {avg_fps}")
 
                 # Store the axes for later adjustments
                 self.axes_list.append((ax_title, ax_fps, ax_usage))
@@ -1028,7 +1038,6 @@ class App(customtkinter.CTk):
                 self.plot_labels.append(plot_label)
 
                 # Insert text results
-                avg_fps = np.nanmean(fps_data) if fps_data.size > 0 else 0
                 self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} Avg. FPS\n")
 
             # Update the results_frame background color
