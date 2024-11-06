@@ -1069,6 +1069,13 @@ class App(customtkinter.CTk):
             plot_label.configure(image=plot_photo_image)
 
     def on_window_resize(self, event=None):
+        # Cancel any previous scheduled resizing for the image
+        if hasattr(self, '_image_resize_after_id'):
+            self.after_cancel(self._image_resize_after_id)
+
+        # Schedule a new image resize to happen after 200 ms (or any delay you prefer)
+        self._image_resize_after_id = self.after(200, self.resize_image_after_window_resize)
+
         # Get the root window
         root = self.winfo_toplevel()
 
@@ -1095,6 +1102,11 @@ class App(customtkinter.CTk):
         # Schedule resizing after 500 milliseconds
         self.resize_after_id = self.after(500, lambda: self.on_resize_complete())
         self.is_resizing = False  # Reset the resizing flag
+
+    def resize_image_after_window_resize(self):
+        # Logic for resizing the image after the window resize
+        if self.currently_selected_benchmark_name:
+            self.display_image(self.currently_selected_benchmark_name)
 
     def adjust_chart_mode(self, axes=None):
         # Get the effective appearance mode
