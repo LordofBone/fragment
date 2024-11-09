@@ -48,6 +48,7 @@ class RendererConfig:
         lens_rotations=None,
             background_audio=None,
             audio_delay=0.0,
+            audio_loop=False,
         debug_mode=None,
     ):
         if camera_positions is None:
@@ -102,6 +103,7 @@ class RendererConfig:
         # Audio settings
         self.background_audio = background_audio
         self.audio_delay = audio_delay
+        self.audio_loop = audio_loop
 
         # Debug mode
         self.debug_mode = debug_mode
