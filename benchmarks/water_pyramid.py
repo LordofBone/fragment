@@ -47,6 +47,11 @@ def run_benchmark(
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
         phong_shading=True,
+
+        # Audio configuration
+        background_audio="audio/music/test.wav",
+        audio_delay=0.0,
+        audio_loop=True,
     )
 
     # Create the rendering instance with the base configuration
