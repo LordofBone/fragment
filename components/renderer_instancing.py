@@ -43,7 +43,7 @@ class RenderingInstance:
             self.audio_player = AudioPlayer(
                 audio_file=self.config.background_audio,
                 delay=self.config.audio_delay,
-                loop=True  # Loop the audio if desired
+                loop=self.config.audio_loop,
             )
             self.audio_player.start()
 
