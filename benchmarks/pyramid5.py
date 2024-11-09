@@ -43,6 +43,7 @@ def run_benchmark(
     # Create the rendering instance with the base configuration
     instance = RenderingInstance(base_config)
     instance.setup()
+
     # Define the configuration for the pyramid model
     pyramid_config = base_config.add_model(
         obj_path="models/pyramid.obj",
