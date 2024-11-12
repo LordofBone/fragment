@@ -197,13 +197,6 @@ class AbstractRenderer(ABC):
         self.reflection_strength = reflection_strength
         self.distortion_warped = distortion_warped
 
-        self.shader_particle_color = glm.vec3(*self.dynamic_attrs.get("particle_color", (1.0, 0.5, 0.2)))
-        self.shader_particle_fade_color = glm.vec3(*self.dynamic_attrs.get("particle_fade_color", (0.0, 0.0, 0.0)))
-        self.shader_particle_gravity = glm.vec3(*self.dynamic_attrs.get("particle_gravity", (0.0, -9.81, 0.0)))
-        self.shader_particle_ground_plane_normal = glm.vec3(
-            *self.dynamic_attrs.get("particle_ground_plane_normal", (0.0, 1.0, 0.0))
-        )
-
         self.screen_texture = screen_texture
         self.planar_resolution = planar_resolution
         self.planar_fov = planar_fov
