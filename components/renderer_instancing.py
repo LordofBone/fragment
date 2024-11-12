@@ -2,6 +2,7 @@ import time
 
 from OpenGL.GL import *
 
+from components.audio_player import AudioPlayer
 from components.model_renderer import ModelRenderer
 from components.particle_renderer import ParticleRenderer
 from components.renderer_window import RendererWindow
@@ -19,6 +20,7 @@ class RenderingInstance:
         self.framebuffers = {}
         self.render_order = []
         self.running = False  # Flag to control the main loop
+        self.audio_player = None
 
     def setup(self):
         self.render_window = RendererWindow(
@@ -35,6 +37,16 @@ class RenderingInstance:
             renderer.setup()
 
         self.initialize_framebuffers(self.config.window_size[0], self.config.window_size[1])
+
+    def start_audio(self):
+        # Initialize and start the audio player if background_audio is provided
+        if self.config.background_audio:
+            self.audio_player = AudioPlayer(
+                audio_file=self.config.background_audio,
+                delay=self.config.audio_delay,
+                loop=self.config.audio_loop,
+            )
+            self.audio_player.start()
 
     def initialize_framebuffers(self, width, height):
         for renderer_name in self.scene_construct.renderers:
@@ -120,6 +132,8 @@ class RenderingInstance:
         fps_accumulator = 0.0
         fps_frame_count = 0
 
+        self.start_audio()
+
         while self.running and (time.time() - start_time) < self.duration:
             if stop_event is not None and stop_event.is_set():
                 print("Benchmark stopped by user.")
@@ -179,7 +193,11 @@ class RenderingInstance:
         """Shut down the rendering instance and clean up resources."""
         self.running = False  # Stop the main loop
 
-        # First, shut down the renderers while the OpenGL context is still valid
+        # First, shut down the audio player
+        if self.audio_player:
+            self.audio_player.stop()
+
+        # Then, shut down the renderers while the OpenGL context is still valid
         for renderer in self.scene_construct.renderers.values():
             renderer.shutdown()
 

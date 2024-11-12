@@ -46,6 +46,9 @@ class RendererConfig:
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=False,
         lens_rotations=None,
+        background_audio=None,
+        audio_delay=0.0,
+        audio_loop=False,
         debug_mode=None,
     ):
         if camera_positions is None:
@@ -96,6 +99,11 @@ class RendererConfig:
 
         # Lens rotations for the camera
         self.lens_rotations = lens_rotations or [0.0] * len(self.camera_positions)
+
+        # Audio settings
+        self.background_audio = background_audio
+        self.audio_delay = audio_delay
+        self.audio_loop = audio_loop
 
         # Debug mode
         self.debug_mode = debug_mode
