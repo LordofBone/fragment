@@ -46,9 +46,9 @@ class RendererConfig:
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=False,
         lens_rotations=None,
-            background_audio=None,
-            audio_delay=0.0,
-            audio_loop=False,
+        background_audio=None,
+        audio_delay=0.0,
+        audio_loop=False,
         debug_mode=None,
     ):
         if camera_positions is None:

@@ -47,7 +47,6 @@ def run_benchmark(
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
         phong_shading=True,
-
         # Audio configuration
         background_audio="audio/music/water_pyramid.wav",
         audio_delay=0.0,
