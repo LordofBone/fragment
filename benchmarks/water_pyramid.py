@@ -49,7 +49,7 @@ def run_benchmark(
         phong_shading=True,
 
         # Audio configuration
-        background_audio="audio/music/demo_music.wav",
+        background_audio="audio/music/water_pyramid.wav",
         audio_delay=0.0,
         audio_loop=True,
     )
