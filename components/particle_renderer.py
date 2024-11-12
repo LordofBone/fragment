@@ -158,13 +158,11 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_color = glm.vec3(*particle_color)
         self.particle_fade_to_color = particle_fade_to_color
         self.shader_particle_fade_color = glm.vec3(*shader_particle_fade_color)
-
         self.particle_positions = None
         self.particle_velocities = None
-        self.particle_gravity = np.array(particle_gravity, dtype=np.float32)
+        self.particle_gravity = glm.vec3(particle_gravity)
         self.particle_bounce_factor = particle_bounce_factor
-        self.particle_ground_plane_normal = np.array(particle_ground_plane_normal, dtype=np.float32)
-
+        self.particle_ground_plane_normal = glm.vec3(particle_ground_plane_normal)
         self.particle_min_weight = particle_min_weight
         self.particle_max_weight = particle_max_weight
         self.fluid_simulation = fluid_simulation
@@ -669,12 +667,12 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleColor"),
             1,
-            glm.value_ptr(self.shader_particle_color),
+            glm.value_ptr(self.particle_color),
         )
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleGravity"),
             1,
-            glm.value_ptr(self.shader_particle_gravity),
+            glm.value_ptr(self.particle_gravity),
         )
         glUniform1i(glGetUniformLocation(self.shader_program, "fluidSimulation"), int(self.fluid_simulation))
         glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"), self.particle_pressure)
@@ -682,7 +680,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
             1,
-            glm.value_ptr(self.shader_particle_ground_plane_normal),
+            glm.value_ptr(self.particle_ground_plane_normal),
         )
 
     def set_compute_uniforms(self):
@@ -732,7 +730,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.compute_shader_program, "particleGravity"),
             1,
-            glm.value_ptr(self.shader_particle_gravity),
+            glm.value_ptr(self.particle_gravity),
         )
         glUniform1f(
             glGetUniformLocation(self.compute_shader_program, "particleMaxVelocity"),
@@ -745,7 +743,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneNormal"),
             1,
-            glm.value_ptr(self.shader_particle_ground_plane_normal),
+            glm.value_ptr(self.particle_ground_plane_normal),
         )
         glUniform1f(
             glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneHeight"),
