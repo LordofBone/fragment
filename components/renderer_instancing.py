@@ -38,6 +38,7 @@ class RenderingInstance:
 
         self.initialize_framebuffers(self.config.window_size[0], self.config.window_size[1])
 
+    def start_audio(self):
         # Initialize and start the audio player if background_audio is provided
         if self.config.background_audio:
             self.audio_player = AudioPlayer(
@@ -130,6 +131,8 @@ class RenderingInstance:
         last_fps_update_time = time.time()
         fps_accumulator = 0.0
         fps_frame_count = 0
+
+        self.start_audio()
 
         while self.running and (time.time() - start_time) < self.duration:
             if stop_event is not None and stop_event.is_set():
