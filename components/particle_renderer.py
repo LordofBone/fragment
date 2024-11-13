@@ -63,10 +63,11 @@ class ParticleRenderer(AbstractRenderer):
         """
         super().__init__(**kwargs)
         self.max_particles = particles_max
+        self.particle_batch_size = min(particle_batch_size, particles_max)
+
         self.active_particles = 0  # Number of currently active particles
         self.particles_to_render = 0  # Number of particles to render
         self.total_particles = self.max_particles  # Always process all particles
-        self.particle_batch_size = min(particle_batch_size, particles_max)
         self.particle_render_mode = particle_render_mode
         self.particle_shader_override = particle_shader_override
         self.particle_generator = particle_generator  # Control generator mode
@@ -155,6 +156,8 @@ class ParticleRenderer(AbstractRenderer):
             }
 
         self.cpu_particles = np.zeros((self.max_particles, 10), dtype=np.float32)
+        self.cpu_particle_gravity = np.array(particle_gravity, dtype=np.float32)
+
         self.particle_color = glm.vec3(*particle_color)
         self.particle_fade_to_color = particle_fade_to_color
         self.shader_particle_fade_color = glm.vec3(*shader_particle_fade_color)
@@ -946,7 +949,7 @@ class ParticleRenderer(AbstractRenderer):
                 continue  # Skip expired particles
 
             # Apply gravity
-            adjusted_gravity = self.particle_gravity[:3] * weight
+            adjusted_gravity = self.cpu_particle_gravity[:3] * weight
             velocity[:3] += adjusted_gravity * self.delta_time
 
             # Apply fluid forces if fluid simulation is enabled
