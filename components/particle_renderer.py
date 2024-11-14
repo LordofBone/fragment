@@ -9,7 +9,7 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 class ParticleRenderer(AbstractRenderer):
     # Define maximum particles for each render mode (to prevent slowdowns)
-    MAX_PARTICLES_MAPPING = {
+    DEFAULT_MAX_PARTICLES_MAPPING = {
         'cpu': 2000,
         'transform_feedback': 200000,
         'compute_shader': 2000000
@@ -17,6 +17,7 @@ class ParticleRenderer(AbstractRenderer):
 
     def __init__(
         self,
+            max_particles_map=None,
         particles_max=100,
         particle_batch_size=1,
         particle_render_mode="transform_feedback",
@@ -69,9 +70,22 @@ class ParticleRenderer(AbstractRenderer):
         :param kwargs: Additional keyword arguments for customization.
         """
         super().__init__(**kwargs)
+
+        # Handle the max_particles_map override
+        if max_particles_map is not None:
+            if not isinstance(max_particles_map, dict):
+                raise TypeError("max_particles_map must be a dictionary.")
+            # Ensure that all keys in max_particles_map are valid render modes
+            invalid_keys = set(max_particles_map.keys()) - set(self.DEFAULT_MAX_PARTICLES_MAPPING.keys())
+            if invalid_keys:
+                raise ValueError(f"Invalid render modes in max_particles_map: {invalid_keys}")
+            self.max_particles_mapping = max_particles_map
+        else:
+            self.max_particles_mapping = self.DEFAULT_MAX_PARTICLES_MAPPING
+
         self.particle_render_mode = particle_render_mode
         # Set max_particles based on the render mode
-        self.max_particles = min(particles_max, self.MAX_PARTICLES_MAPPING[self.particle_render_mode])
+        self.max_particles = min(particles_max, self.max_particles_mapping[self.particle_render_mode])
         self.particle_batch_size = min(particle_batch_size, self.max_particles)
         self.active_particles = 0  # Number of currently active particles
         self.particles_to_render = 0  # Number of particles to render
