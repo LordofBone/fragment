@@ -8,6 +8,13 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
+    # Define maximum particles for each render mode (to prevent slowdowns)
+    MAX_PARTICLES_MAPPING = {
+        'cpu': 2000,
+        'transform_feedback': 200000,
+        'compute_shader': 2000000
+    }
+
     def __init__(
         self,
         particles_max=100,
@@ -62,13 +69,14 @@ class ParticleRenderer(AbstractRenderer):
         :param kwargs: Additional keyword arguments for customization.
         """
         super().__init__(**kwargs)
-        self.max_particles = particles_max
-        self.particle_batch_size = min(particle_batch_size, particles_max)
-
+        self.particle_render_mode = particle_render_mode
+        # Set max_particles based on the render mode
+        self.max_particles = min(particles_max, self.MAX_PARTICLES_MAPPING[self.particle_render_mode])
+        self.particle_batch_size = min(particle_batch_size, self.max_particles)
         self.active_particles = 0  # Number of currently active particles
         self.particles_to_render = 0  # Number of particles to render
         self.total_particles = self.max_particles  # Always process all particles
-        self.particle_render_mode = particle_render_mode
+
         self.particle_shader_override = particle_shader_override
         self.particle_generator = particle_generator  # Control generator mode
         self.generator_delay = generator_delay  # Delay between particle generations in seconds
