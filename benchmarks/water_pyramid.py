@@ -47,7 +47,7 @@ def run_benchmark(
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
         phong_shading=True,
-        # Audio configuration
+
         background_audio="audio/music/water_pyramid.wav",
         audio_delay=0.0,
         audio_loop=True,
@@ -124,45 +124,51 @@ def run_benchmark(
     # Define the configuration for the particle renderer
     particle_config = base_config.add_particle_renderer(
         particle_render_mode=particle_render_mode,
-        particles_max=600,
-        particle_batch_size=150,
+        # overriding max_particles_map to reduce lag (default values are too high when other things are being rendered)
+        max_particles_map={
+            'cpu': 200,
+            'transform_feedback': 50000,
+            'compute_shader': 4000000
+        },
+        particles_max=4000000,
+        particle_batch_size=60000,
         particle_type="points",
         particle_shader_override=False,
         particle_generator=True,
         generator_delay=0.0,
         particle_size=36.0,
-        min_initial_velocity_x=-3.0,
-        max_initial_velocity_x=3.0,
+        min_initial_velocity_x=-6.0,
+        max_initial_velocity_x=0.0,
         min_initial_velocity_y=-0.0,
-        max_initial_velocity_y=20.0,
+        max_initial_velocity_y=35.0,
         min_initial_velocity_z=-3.0,
-        max_initial_velocity_z=3.0,
-        particle_max_velocity=20.0,  # Set max velocity to a realistic value
-        particle_max_lifetime=15.0,  # Set max lifetime to a realistic value
+        max_initial_velocity_z=0.0,
+        particle_max_velocity=35.0,  # Set max velocity to a realistic value
+        particle_max_lifetime=2.0,  # Set max lifetime to a realistic value
         particle_max_weight=1.5,  # Set max weight to a realistic value
         particle_min_weight=0.5,  # Set min weight to a realistic value
         particle_smooth_edges=False,
-        particle_color=(1.0, 0.7, 0.2),
-        particle_fade_to_color=False,
-        particle_fade_color=(0.0, 1.0, 0.0),
+        particle_color=(1.02, 3.456, 5.98),
+        particle_fade_to_color=True,
+        particle_fade_color=(0.0, 0.0, 0.0),
         phong_shading=True,
-        opacity=1.0,
-        shininess=0.001,
-        particle_gravity=(0.0, -9.81, 0.0),
-        particle_bounce_factor=0.65,  # Standard bounce factor
+        opacity=0.85,
+        shininess=5.0,
+        particle_gravity=(-7.5, -9.81, 5),
+        particle_bounce_factor=0.28,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
         particle_ground_plane_height=1.0,  # Height of the ground plane (y = 0)
-        fluid_simulation=False,  # Enable fluid simulation
-        particle_pressure=6.5,  # Pressure factor for the particles
-        particle_viscosity=5.1,  # Viscosity factor for the particles
+        fluid_simulation=True,  # Enable fluid simulation
+        particle_pressure=0.75,  # Pressure factor for the particles
+        particle_viscosity=0.25,  # Viscosity factor for the particles
         particle_spawn_time_jitter=True,  # Jitter for spawn time
         particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
-        min_width=-0.1,  # Adjusted for a realistic spread along X and Z-axes
-        min_height=-0.1,  # Adjusted for a realistic spread along Y-axis
-        min_depth=-0.1,  # Adjusted for a realistic spread along X and Z-axes
-        max_width=0.1,  # Adjusted for a realistic spread along X and Z-axes
-        max_height=0.1,  # Adjusted for a realistic spread along Y-axis
-        max_depth=0.1,  # Adjusted for a realistic spread along X and Z-axes
+        min_width=-25.0,  # Adjusted for a realistic spread along X and Z-axes
+        min_height=8.0,  # Adjusted for a realistic spread along Y-axis
+        min_depth=-25.0,  # Adjusted for a realistic spread along X and Z-axes
+        max_width=25.0,  # Adjusted for a realistic spread along X and Z-axes
+        max_height=45.0,  # Adjusted for a realistic spread along Y-axis
+        max_depth=25.0,  # Adjusted for a realistic spread along X and Z-axes
     )
 
     # Define the configuration for the water surface
@@ -189,18 +195,18 @@ def run_benchmark(
         },
     )
 
-    instance.add_renderer("model_stretched", "model", **stretched_pyramid_config)
-    instance.add_renderer("model_rotating", "model", **rotating_pyramid_config)
-    instance.add_renderer("model_opaque", "model", **opaque_pyramid_config)
-
-    instance.add_renderer("sparks", "particle", **particle_config)
-    instance.scene_construct.translate_renderer("sparks", (-1, 0, 2.45))  # Translate first model
-    instance.scene_construct.set_auto_rotation("sparks", False)
-
     # Add the renderers to the instance
     instance.add_renderer("water_surface", "surface", **water_config)
 
     instance.add_renderer("skybox", "skybox", **skybox_config)
+
+    instance.add_renderer("model_stretched", "model", **stretched_pyramid_config)
+    instance.add_renderer("model_rotating", "model", **rotating_pyramid_config)
+    instance.add_renderer("model_opaque", "model", **opaque_pyramid_config)
+
+    instance.add_renderer("rain", "particle", **particle_config)
+    instance.scene_construct.translate_renderer("rain", (0, 0, 0))  # Translate first model
+    instance.scene_construct.set_auto_rotation("rain", False)
 
     # Example transformations
     instance.scene_construct.translate_renderer("model_rotating", (0, 0, -3))  # Translate first model
