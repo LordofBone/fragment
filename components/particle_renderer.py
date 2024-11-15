@@ -8,8 +8,12 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class ParticleRenderer(AbstractRenderer):
+    # Define maximum particles for each render mode (to prevent slowdowns)
+    DEFAULT_MAX_PARTICLES_MAPPING = {"cpu": 2000, "transform_feedback": 200000, "compute_shader": 2000000}
+
     def __init__(
         self,
+        max_particles_map=None,
         particles_max=100,
         particle_batch_size=1,
         particle_render_mode="transform_feedback",
@@ -62,12 +66,27 @@ class ParticleRenderer(AbstractRenderer):
         :param kwargs: Additional keyword arguments for customization.
         """
         super().__init__(**kwargs)
-        self.max_particles = particles_max
+
+        # Handle the max_particles_map override
+        if max_particles_map is not None:
+            if not isinstance(max_particles_map, dict):
+                raise TypeError("max_particles_map must be a dictionary.")
+            # Ensure that all keys in max_particles_map are valid render modes
+            invalid_keys = set(max_particles_map.keys()) - set(self.DEFAULT_MAX_PARTICLES_MAPPING.keys())
+            if invalid_keys:
+                raise ValueError(f"Invalid render modes in max_particles_map: {invalid_keys}")
+            self.max_particles_mapping = max_particles_map
+        else:
+            self.max_particles_mapping = self.DEFAULT_MAX_PARTICLES_MAPPING
+
+        self.particle_render_mode = particle_render_mode
+        # Set max_particles based on the render mode
+        self.max_particles = min(particles_max, self.max_particles_mapping[self.particle_render_mode])
+        self.particle_batch_size = min(particle_batch_size, self.max_particles)
         self.active_particles = 0  # Number of currently active particles
         self.particles_to_render = 0  # Number of particles to render
         self.total_particles = self.max_particles  # Always process all particles
-        self.particle_batch_size = min(particle_batch_size, particles_max)
-        self.particle_render_mode = particle_render_mode
+
         self.particle_shader_override = particle_shader_override
         self.particle_generator = particle_generator  # Control generator mode
         self.generator_delay = generator_delay  # Delay between particle generations in seconds
@@ -155,16 +174,16 @@ class ParticleRenderer(AbstractRenderer):
             }
 
         self.cpu_particles = np.zeros((self.max_particles, 10), dtype=np.float32)
+        self.cpu_particle_gravity = np.array(particle_gravity, dtype=np.float32)
+
         self.particle_color = glm.vec3(*particle_color)
         self.particle_fade_to_color = particle_fade_to_color
         self.shader_particle_fade_color = glm.vec3(*shader_particle_fade_color)
-
         self.particle_positions = None
         self.particle_velocities = None
-        self.particle_gravity = np.array(particle_gravity, dtype=np.float32)
+        self.particle_gravity = glm.vec3(particle_gravity)
         self.particle_bounce_factor = particle_bounce_factor
-        self.particle_ground_plane_normal = np.array(particle_ground_plane_normal, dtype=np.float32)
-
+        self.particle_ground_plane_normal = glm.vec3(particle_ground_plane_normal)
         self.particle_min_weight = particle_min_weight
         self.particle_max_weight = particle_max_weight
         self.fluid_simulation = fluid_simulation
@@ -669,12 +688,12 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleColor"),
             1,
-            glm.value_ptr(self.shader_particle_color),
+            glm.value_ptr(self.particle_color),
         )
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleGravity"),
             1,
-            glm.value_ptr(self.shader_particle_gravity),
+            glm.value_ptr(self.particle_gravity),
         )
         glUniform1i(glGetUniformLocation(self.shader_program, "fluidSimulation"), int(self.fluid_simulation))
         glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"), self.particle_pressure)
@@ -682,7 +701,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
             1,
-            glm.value_ptr(self.shader_particle_ground_plane_normal),
+            glm.value_ptr(self.particle_ground_plane_normal),
         )
 
     def set_compute_uniforms(self):
@@ -732,7 +751,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.compute_shader_program, "particleGravity"),
             1,
-            glm.value_ptr(self.shader_particle_gravity),
+            glm.value_ptr(self.particle_gravity),
         )
         glUniform1f(
             glGetUniformLocation(self.compute_shader_program, "particleMaxVelocity"),
@@ -745,7 +764,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneNormal"),
             1,
-            glm.value_ptr(self.shader_particle_ground_plane_normal),
+            glm.value_ptr(self.particle_ground_plane_normal),
         )
         glUniform1f(
             glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneHeight"),
@@ -948,7 +967,7 @@ class ParticleRenderer(AbstractRenderer):
                 continue  # Skip expired particles
 
             # Apply gravity
-            adjusted_gravity = self.particle_gravity[:3] * weight
+            adjusted_gravity = self.cpu_particle_gravity[:3] * weight
             velocity[:3] += adjusted_gravity * self.delta_time
 
             # Apply fluid forces if fluid simulation is enabled

@@ -64,9 +64,18 @@ uniform bool fluidSimulation;
 // Shared variable for particles generated in the workgroup
 shared uint particlesGeneratedInWorkgroup;
 
-// Function to generate random values based on particle ID
-float random(float seed, float time) {
-    return fract(sin(seed + float(gl_GlobalInvocationID.x) * 12.9898 + time * 78.233) * 43758.5453123);
+// Improved hash function for better randomness
+uint hash(uint x) {
+    x ^= x >> 16u;
+    x *= 0x7feb352du;
+    x ^= x >> 15u;
+    x *= 0x846ca68bu;
+    x ^= x >> 16u;
+    return x;
+}
+
+float rand(uint seed) {
+    return float(hash(seed)) / 4294967295.0;
 }
 
 // Function to calculate fluid forces (simple pressure and viscosity model)
@@ -98,6 +107,7 @@ void main() {
 
     // Synchronize to ensure all threads in the workgroup see the updated value
     barrier();
+
     if (shouldGenerate && particleGenerator && isExpired) {
         // Atomically increment the particlesGenerated counter and check if we can generate more particles
         uint globalGenerated = atomicAdd(particlesGenerated, 1u);
@@ -106,21 +116,21 @@ void main() {
             uint localGenerated = atomicAdd(particlesGeneratedInWorkgroup, 1u);
 
             // Regenerate the particle
-            float randSeed = particle.particleID * 0.1 + currentTime;
+            uint baseSeed = uint(particle.particleID) * 1664525u + uint(gl_GlobalInvocationID.x) * 1013904223u + uint(currentTime * 1000.0);
 
             // Generate random positions
-            float randX = random(randSeed + 0.0, currentTime);
-            float randY = random(randSeed + 1.0, currentTime);
-            float randZ = random(randSeed + 2.0, currentTime);
+            float randX = rand(baseSeed + 101u);
+            float randY = rand(baseSeed + 102u);
+            float randZ = rand(baseSeed + 103u);
             particle.position.x = mix(minX, maxX, randX);
             particle.position.y = mix(minY, maxY, randY);
             particle.position.z = mix(minZ, maxZ, randZ);
             particle.position.w = 1.0;
 
             // Generate random initial velocities
-            float randVelX = random(randSeed + 3.0, currentTime);
-            float randVelY = random(randSeed + 4.0, currentTime);
-            float randVelZ = random(randSeed + 5.0, currentTime);
+            float randVelX = rand(baseSeed + 201u);
+            float randVelY = rand(baseSeed + 202u);
+            float randVelZ = rand(baseSeed + 203u);
             particle.velocity.x = mix(minInitialVelocityX, maxInitialVelocityX, randVelX);
             particle.velocity.y = mix(minInitialVelocityY, maxInitialVelocityY, randVelY);
             particle.velocity.z = mix(minInitialVelocityZ, maxInitialVelocityZ, randVelZ);
@@ -128,19 +138,19 @@ void main() {
 
             // Assign lifetime
             if (particleMaxLifetime > 0.0) {
-                float randLifetime = random(randSeed + 6.0, currentTime);
+                float randLifetime = rand(baseSeed + 204u);
                 particle.lifetime = mix(0.1, particleMaxLifetime, randLifetime);
             } else {
                 particle.lifetime = 0.0;
             }
 
-            // Generate random weight; within min and max values
-            particle.particleWeight = mix(particleMinWeight, particleMaxWeight, random(randSeed + 8.0, currentTime));
+            // Generate random weight within min and max values
+            particle.particleWeight = mix(particleMinWeight, particleMaxWeight, rand(baseSeed + 205u));
 
             // Initialize spawn time with optional jitter
             particle.spawnTime = currentTime;
             if (particleSpawnTimeJitter) {
-                float randJitter = random(randSeed + 7.0, currentTime);
+                float randJitter = rand(baseSeed + 206u);
                 float jitterValue = randJitter * particleMaxSpawnTimeJitter;
                 particle.spawnTime += jitterValue;
             }
