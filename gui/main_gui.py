@@ -1,4 +1,3 @@
-import _tkinter
 import io
 import multiprocessing
 import os
@@ -8,15 +7,16 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import customtkinter
 import GPUtil
+import _tkinter
+import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from customtkinter import CTkImage
 from PIL import Image, ImageFilter, ImageTk
+from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.Aureonrain import run_benchmark as run_water_pyramid_benchmark
@@ -26,6 +26,7 @@ from benchmarks.nebulon import run_benchmark as run_sphere_benchmark
 from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
 from benchmarks.undertyre import run_benchmark as run_tyre_benchmark
 from components.benchmark_manager import BenchmarkManager
+from config.path_config import images_dir
 
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
 customtkinter.set_default_color_theme("themes/314reactor.json")
@@ -51,16 +52,16 @@ class App(customtkinter.CTk):
         pygame.init()
         self.desktop_info = pygame.display.Info()
 
-        self.wm_iconbitmap("images/small_icon.ico")
-
         self.benchmark_manager = None  # Initialize as None
         self.benchmark_results = {}  # Store results for display
         self.stop_event = multiprocessing.Event()  # Event to signal stopping benchmarks
         self.image_area = None  # Placeholder for the image display area
         self.displayed_image = None  # To store the current image shown
-        self.image_folder = "images"  # Folder where benchmark images are stored
+        self.image_folder = images_dir  # Folder where benchmark images are stored
         self.chart_bg_color = "#f0f0f0"  # Default chart background color
         self.chart_text_color = "#202020"  # Default chart text color
+
+        self.wm_iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
 
         # Configure window
         self.title("Fragment")
@@ -709,7 +710,7 @@ class App(customtkinter.CTk):
 
     def show_about_info(self):
         about_window = customtkinter.CTkToplevel(self)
-        about_window.iconbitmap("images/small_icon.ico")
+        about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
         about_window.title("About")
         about_window.geometry("400x250")
         about_window.resizable(False, False)
@@ -762,7 +763,8 @@ class App(customtkinter.CTk):
         close_button = customtkinter.CTkButton(about_window, text="Close", command=about_window.destroy)
         close_button.pack(pady=(10, 10))
 
-        about_window.after(250, lambda: about_window.iconbitmap("images/small_icon.ico"))
+        about_window.after(250, lambda: about_window.iconbitmap(
+            os.path.join(self.image_folder, "small_icon.ico")))  # Restore icon after a delay (prevents default icon)
 
     def generate_and_display_results(self):
         # Destroy the current results frame to reset the scroll position
