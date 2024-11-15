@@ -30,6 +30,15 @@ from components.benchmark_manager import BenchmarkManager
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
 customtkinter.set_default_color_theme("themes/314reactor.json")
 
+# Centralized Benchmark Names and Functions
+BENCHMARKS = {
+    "Crystallaxis - EMBM Test": run_pyramid_benchmark,
+    "Nebulon - Transparency Shader Test": run_sphere_benchmark,
+    "Undertyre - Rubber Shader Test": run_tyre_benchmark,
+    "Poseidon Flow - Reflection Test": run_water_benchmark,
+    "Muon Shower - Particle System Test": run_muon_shower_benchmark,
+}
+
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -211,13 +220,7 @@ class App(customtkinter.CTk):
         self.benchmark_list_label.grid(row=0, column=0, padx=common_padx, pady=common_pady, sticky="w")
 
         # List of benchmarks
-        self.benchmarks = [
-            "Crystallaxis - EMBM Test",
-            "Nebulon - Transparency Shader Test",
-            "Undertyre - Rubber Shader Test",
-            "Poseidon Flow - Reflection Test",
-            "Muon Shower - Particle System Test",
-        ]
+        self.benchmarks = list(BENCHMARKS.keys())
 
         self.currently_selected_benchmark_name = None
 
@@ -504,14 +507,8 @@ class App(customtkinter.CTk):
         vsync_enabled = self.enable_vsync_checkbox.get()
         vsync_enabled = bool(vsync_enabled)
 
-        # Map benchmark names to functions
-        benchmark_functions = {
-            "Crystallaxis - EMBM Test": run_pyramid_benchmark,
-            "Nebulon - Transparency Shader Test": run_sphere_benchmark,
-            "Undertyre - Rubber Shader Test": run_tyre_benchmark,
-            "Poseidon Flow - Reflection Test": run_water_benchmark,
-            "Muon Shower - Particle System Test": run_muon_shower_benchmark,
-        }
+        # Map benchmark names to functions using the central BENCHMARKS dictionary
+        benchmark_functions = BENCHMARKS
 
         # Clear previous results
         self.benchmark_results = {}
