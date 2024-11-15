@@ -22,9 +22,9 @@ from scipy.interpolate import make_interp_spline
 from benchmarks.Aureonrain import run_benchmark as run_water_pyramid_benchmark
 from benchmarks.crystallaxis import run_benchmark as run_pyramid_benchmark
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
+from benchmarks.nebulon import run_benchmark as run_sphere_benchmark
 from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
 from benchmarks.undertyre import run_benchmark as run_tyre_benchmark
-from benchmarks.warpglobe import run_benchmark as run_sphere_benchmark
 from components.benchmark_manager import BenchmarkManager
 
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
@@ -213,7 +213,7 @@ class App(customtkinter.CTk):
         # List of benchmarks
         self.benchmarks = [
             "Crystallaxis - EMBM Test",
-            "Warpglobe - Transparency Shader Test",
+            "Nebulon - Transparency Shader Test",
             "Undertyre - Rubber Shader Test",
             "Poseidon Flow - Reflection Test",
             "Muon Shower - Particle System Test",
@@ -507,7 +507,7 @@ class App(customtkinter.CTk):
         # Map benchmark names to functions
         benchmark_functions = {
             "Crystallaxis - EMBM Test": run_pyramid_benchmark,
-            "Warpglobe - Transparency Shader Test": run_sphere_benchmark,
+            "Nebulon - Transparency Shader Test": run_sphere_benchmark,
             "Undertyre - Rubber Shader Test": run_tyre_benchmark,
             "Poseidon Flow - Reflection Test": run_water_benchmark,
             "Muon Shower - Particle System Test": run_muon_shower_benchmark,
