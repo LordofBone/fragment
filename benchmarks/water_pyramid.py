@@ -131,7 +131,7 @@ def run_benchmark(
             'compute_shader': 4000000
         },
         particles_max=4000000,
-        particle_batch_size=60000,
+        particle_batch_size=600000,
         particle_type="points",
         particle_shader_override=False,
         particle_generator=True,
@@ -154,7 +154,7 @@ def run_benchmark(
         phong_shading=True,
         opacity=0.85,
         shininess=5.0,
-        particle_gravity=(-7.5, -9.81, 5),
+        particle_gravity=(-8.5, -9.81, 5),
         particle_bounce_factor=0.28,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
         particle_ground_plane_height=1.0,  # Height of the ground plane (y = 0)
