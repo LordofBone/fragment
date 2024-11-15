@@ -1,3 +1,4 @@
+import _tkinter
 import io
 import multiprocessing
 import os
@@ -7,16 +8,15 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import GPUtil
-import _tkinter
 import customtkinter
+import GPUtil
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
+from PIL import Image, ImageFilter, ImageTk
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.Aureonrain import run_benchmark as run_water_pyramid_benchmark
@@ -38,6 +38,7 @@ BENCHMARKS = {
     "Poseidon Flow - Reflection Test": run_water_benchmark,
     "Muon Shower - Particle System Test": run_muon_shower_benchmark,
 }
+
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -97,18 +98,14 @@ class App(customtkinter.CTk):
         )
         self.benchmark_button.grid(row=1, column=0, padx=20, pady=10)
 
-        self.demo_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="Aureonrain (Demo)", command=self.demo_mode
-        )
+        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Aureonrain (Demo)", command=self.demo_mode)
         self.demo_button.grid(row=2, column=0, padx=20, pady=10)
 
         # Bind hover events to the demo button
         self.demo_button.bind("<Enter>", self.on_demo_hover)
         self.demo_button.bind("<Leave>", self.on_demo_leave)
 
-        self.about_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="About", command=self.show_about_info
-        )
+        self.about_button = customtkinter.CTkButton(self.sidebar_frame, text="About", command=self.show_about_info)
         self.about_button.grid(row=3, column=0, padx=20, pady=10)
 
         # Appearance mode option menu
@@ -1255,8 +1252,14 @@ class App(customtkinter.CTk):
         self.currently_selected_benchmark_name = benchmark_name
 
         # Construct the path to the demo image file
-        sanitized_name = benchmark_name.replace(":", "").replace("/", "").replace("\\", "").replace(")", "").replace(
-            "(", "").replace(" ", " - ")
+        sanitized_name = (
+            benchmark_name.replace(":", "")
+            .replace("/", "")
+            .replace("\\", "")
+            .replace(")", "")
+            .replace("(", "")
+            .replace(" ", " - ")
+        )
         image_path = os.path.join(self.image_folder, f"{sanitized_name}.png")
 
         if os.path.exists(image_path):
