@@ -39,7 +39,6 @@ BENCHMARKS = {
     "Muon Shower - Particle System Test": run_muon_shower_benchmark,
 }
 
-
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
@@ -97,9 +96,19 @@ class App(customtkinter.CTk):
             self.sidebar_frame, text="Run Benchmark", command=self.run_benchmark
         )
         self.benchmark_button.grid(row=1, column=0, padx=20, pady=10)
-        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Aureonrain (Demo)", command=self.demo_mode)
+
+        self.demo_button = customtkinter.CTkButton(
+            self.sidebar_frame, text="Aureonrain (Demo)", command=self.demo_mode
+        )
         self.demo_button.grid(row=2, column=0, padx=20, pady=10)
-        self.about_button = customtkinter.CTkButton(self.sidebar_frame, text="About", command=self.show_about_info)
+
+        # Bind hover events to the demo button
+        self.demo_button.bind("<Enter>", self.on_demo_hover)
+        self.demo_button.bind("<Leave>", self.on_demo_leave)
+
+        self.about_button = customtkinter.CTkButton(
+            self.sidebar_frame, text="About", command=self.show_about_info
+        )
         self.about_button.grid(row=3, column=0, padx=20, pady=10)
 
         # Appearance mode option menu
@@ -340,7 +349,57 @@ class App(customtkinter.CTk):
         self.currently_selected_benchmark_name = benchmark_name
 
         # Construct the path to the image file
-        image_path = os.path.join(self.image_folder, f"{benchmark_name}.png")
+        # Replace any characters that are invalid in file names if necessary
+        sanitized_name = benchmark_name.replace(":", "").replace("/", "").replace("\\", "")
+        image_path = os.path.join(self.image_folder, f"{sanitized_name}.png")
+
+        if os.path.exists(image_path):
+            img = Image.open(image_path)
+
+            # Add a drop shadow to the image
+            img_with_shadow = self.add_drop_shadow(img)
+
+            # Get the original dimensions of the image with shadow
+            img_original_width, img_original_height = img_with_shadow.width, img_with_shadow.height
+
+            # Get the current window size
+            window_width = self.winfo_width()
+            window_height = self.winfo_height()
+
+            # Calculate the available width and height for the image
+            available_width = int(window_width * 0.4)
+            available_height = int(window_height * 0.5)
+
+            # Calculate the scale factor to maintain aspect ratio
+            width_scale = available_width / img_original_width
+            height_scale = available_height / img_original_height
+            scale_factor = min(width_scale, height_scale)
+
+            # Scale the image dimensions while maintaining aspect ratio
+            image_area_width = int(img_original_width * scale_factor)
+            image_area_height = int(img_original_height * scale_factor)
+
+            # Resize the image with shadow based on the calculated dimensions
+            img_resized = img_with_shadow.resize((image_area_width, image_area_height), Image.LANCZOS)
+            self.displayed_image = CTkImage(
+                light_image=img_resized, dark_image=img_resized, size=(image_area_width, image_area_height)
+            )
+
+            # Apply the resized image with shadow and set the area size
+            self.image_area.configure(image=self.displayed_image, width=image_area_width, height=image_area_height)
+
+            # Keep a reference to prevent garbage collection
+            self.image_area.image = self.displayed_image
+        else:
+            self.image_area.configure(image=None)  # Clear if no image found
+
+    def display_demo_image(self):
+        benchmark_name = "Aureonrain (Demo)"
+        self.currently_selected_benchmark_name = benchmark_name
+
+        # Construct the path to the demo image file
+        sanitized_name = benchmark_name.replace(":", "").replace("/", "").replace("\\", "")
+        image_path = os.path.join(self.image_folder, f"{sanitized_name}.png")
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
@@ -1181,3 +1240,61 @@ class App(customtkinter.CTk):
         finally:
             # Force exit the application
             os._exit(0)
+
+    def on_demo_hover(self, event):
+        if self.tabview.get() == "Scenarios":
+            self.display_demo_image()
+
+    def on_demo_leave(self, event):
+        # Clear the image area only if the demo was the last hovered element
+        if self.currently_selected_benchmark_name == "Aureonrain (Demo)":
+            self.image_area.configure(image=None)
+
+    def display_demo_image(self):
+        benchmark_name = "Aureonrain (Demo)"
+        self.currently_selected_benchmark_name = benchmark_name
+
+        # Construct the path to the demo image file
+        sanitized_name = benchmark_name.replace(":", "").replace("/", "").replace("\\", "").replace(")", "").replace(
+            "(", "").replace(" ", " - ")
+        image_path = os.path.join(self.image_folder, f"{sanitized_name}.png")
+
+        if os.path.exists(image_path):
+            img = Image.open(image_path)
+
+            # Add a drop shadow to the image
+            img_with_shadow = self.add_drop_shadow(img)
+
+            # Get the original dimensions of the image with shadow
+            img_original_width, img_original_height = img_with_shadow.width, img_with_shadow.height
+
+            # Get the current window size
+            window_width = self.winfo_width()
+            window_height = self.winfo_height()
+
+            # Calculate the available width and height for the image
+            available_width = int(window_width * 0.4)
+            available_height = int(window_height * 0.5)
+
+            # Calculate the scale factor to maintain aspect ratio
+            width_scale = available_width / img_original_width
+            height_scale = available_height / img_original_height
+            scale_factor = min(width_scale, height_scale)
+
+            # Scale the image dimensions while maintaining aspect ratio
+            image_area_width = int(img_original_width * scale_factor)
+            image_area_height = int(img_original_height * scale_factor)
+
+            # Resize the image with shadow based on the calculated dimensions
+            img_resized = img_with_shadow.resize((image_area_width, image_area_height), Image.LANCZOS)
+            self.displayed_image = CTkImage(
+                light_image=img_resized, dark_image=img_resized, size=(image_area_width, image_area_height)
+            )
+
+            # Apply the resized image with shadow and set the area size
+            self.image_area.configure(image=self.displayed_image, width=image_area_width, height=image_area_height)
+
+            # Keep a reference to prevent garbage collection
+            self.image_area.image = self.displayed_image
+        else:
+            self.image_area.configure(image=None)  # Clear if no image found
