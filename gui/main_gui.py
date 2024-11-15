@@ -19,10 +19,10 @@ from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
+from benchmarks.crystallaxis import run_benchmark as run_pyramid_benchmark
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
-from benchmarks.pyramid5 import run_benchmark as run_pyramid_benchmark
-from benchmarks.sphere import run_benchmark as run_sphere_benchmark
 from benchmarks.tyre_spin import run_benchmark as run_tyre_benchmark
+from benchmarks.warpglobe import run_benchmark as run_sphere_benchmark
 from benchmarks.water import run_benchmark as run_water_benchmark
 from benchmarks.water_pyramid import run_benchmark as run_water_pyramid_benchmark
 from components.benchmark_manager import BenchmarkManager
@@ -212,8 +212,8 @@ class App(customtkinter.CTk):
 
         # List of benchmarks (Removed "Water Pyramid - Mixed Test")
         self.benchmarks = [
-            "Pyramid 5 - EMBM Test",
-            "Sphere - Transparency Shader Test",
+            "Crystallaxis - EMBM Test",
+            "Warpglobe - Transparency Shader Test",
             "Tyre - Rubber Shader Test",
             "Water - Reflection Test",
             "Muon Shower - Particle System Test",
@@ -506,8 +506,8 @@ class App(customtkinter.CTk):
 
         # Map benchmark names to functions (Removed "Water Pyramid - Mixed Test")
         benchmark_functions = {
-            "Pyramid 5 - EMBM Test": run_pyramid_benchmark,
-            "Sphere - Transparency Shader Test": run_sphere_benchmark,
+            "Crystallaxis - EMBM Test": run_pyramid_benchmark,
+            "Warpglobe - Transparency Shader Test": run_sphere_benchmark,
             "Tyre - Rubber Shader Test": run_tyre_benchmark,
             "Water - Reflection Test": run_water_benchmark,
             "Muon Shower - Particle System Test": run_muon_shower_benchmark,
