@@ -21,9 +21,9 @@ from scipy.interpolate import make_interp_spline
 
 from benchmarks.crystallaxis import run_benchmark as run_pyramid_benchmark
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
+from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
 from benchmarks.tyre_spin import run_benchmark as run_tyre_benchmark
 from benchmarks.warpglobe import run_benchmark as run_sphere_benchmark
-from benchmarks.water import run_benchmark as run_water_benchmark
 from benchmarks.water_pyramid import run_benchmark as run_water_pyramid_benchmark
 from components.benchmark_manager import BenchmarkManager
 
@@ -210,12 +210,12 @@ class App(customtkinter.CTk):
         )
         self.benchmark_list_label.grid(row=0, column=0, padx=common_padx, pady=common_pady, sticky="w")
 
-        # List of benchmarks (Removed "Water Pyramid - Mixed Test")
+        # List of benchmarks
         self.benchmarks = [
             "Crystallaxis - EMBM Test",
             "Warpglobe - Transparency Shader Test",
             "Tyre - Rubber Shader Test",
-            "Water - Reflection Test",
+            "Poseidon Flow - Reflection Test",
             "Muon Shower - Particle System Test",
         ]
 
@@ -504,12 +504,12 @@ class App(customtkinter.CTk):
         vsync_enabled = self.enable_vsync_checkbox.get()
         vsync_enabled = bool(vsync_enabled)
 
-        # Map benchmark names to functions (Removed "Water Pyramid - Mixed Test")
+        # Map benchmark names to functions
         benchmark_functions = {
             "Crystallaxis - EMBM Test": run_pyramid_benchmark,
             "Warpglobe - Transparency Shader Test": run_sphere_benchmark,
             "Tyre - Rubber Shader Test": run_tyre_benchmark,
-            "Water - Reflection Test": run_water_benchmark,
+            "Poseidon Flow - Reflection Test": run_water_benchmark,
             "Muon Shower - Particle System Test": run_muon_shower_benchmark,
         }
 
