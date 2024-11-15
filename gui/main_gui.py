@@ -19,16 +19,25 @@ from customtkinter import CTkImage
 from PIL import Image, ImageFilter, ImageTk
 from scipy.interpolate import make_interp_spline
 
+from benchmarks.Aureonrain import run_benchmark as run_water_pyramid_benchmark
+from benchmarks.crystallaxis import run_benchmark as run_pyramid_benchmark
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
-from benchmarks.pyramid5 import run_benchmark as run_pyramid_benchmark
-from benchmarks.sphere import run_benchmark as run_sphere_benchmark
-from benchmarks.tyre import run_benchmark as run_tyre_benchmark
-from benchmarks.water import run_benchmark as run_water_benchmark
-from benchmarks.water_pyramid import run_benchmark as run_water_pyramid_benchmark
+from benchmarks.nebulon import run_benchmark as run_sphere_benchmark
+from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
+from benchmarks.undertyre import run_benchmark as run_tyre_benchmark
 from components.benchmark_manager import BenchmarkManager
 
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
 customtkinter.set_default_color_theme("themes/314reactor.json")
+
+# Centralized Benchmark Names and Functions
+BENCHMARKS = {
+    "Crystallaxis - EMBM Test": run_pyramid_benchmark,
+    "Nebulon - Transparency Shader Test": run_sphere_benchmark,
+    "Undertyre - Rubber Shader Test": run_tyre_benchmark,
+    "Poseidon Flow - Reflection Test": run_water_benchmark,
+    "Muon Shower - Particle System Test": run_muon_shower_benchmark,
+}
 
 
 class App(customtkinter.CTk):
@@ -88,8 +97,14 @@ class App(customtkinter.CTk):
             self.sidebar_frame, text="Run Benchmark", command=self.run_benchmark
         )
         self.benchmark_button.grid(row=1, column=0, padx=20, pady=10)
-        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Demo Mode", command=self.demo_mode)
+
+        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Aureonrain (Demo)", command=self.demo_mode)
         self.demo_button.grid(row=2, column=0, padx=20, pady=10)
+
+        # Bind hover events to the demo button
+        self.demo_button.bind("<Enter>", self.on_demo_hover)
+        self.demo_button.bind("<Leave>", self.on_demo_leave)
+
         self.about_button = customtkinter.CTkButton(self.sidebar_frame, text="About", command=self.show_about_info)
         self.about_button.grid(row=3, column=0, padx=20, pady=10)
 
@@ -210,14 +225,8 @@ class App(customtkinter.CTk):
         )
         self.benchmark_list_label.grid(row=0, column=0, padx=common_padx, pady=common_pady, sticky="w")
 
-        # List of benchmarks (Removed "Water Pyramid - Mixed Test")
-        self.benchmarks = [
-            "Pyramid 5 - EMBM Test",
-            "Sphere - Transparency Shader Test",
-            "Tyre - Rubber Shader Test",
-            "Water - Reflection Test",
-            "Muon Shower - Particle System Test",
-        ]
+        # List of benchmarks
+        self.benchmarks = list(BENCHMARKS.keys())
 
         self.currently_selected_benchmark_name = None
 
@@ -337,7 +346,57 @@ class App(customtkinter.CTk):
         self.currently_selected_benchmark_name = benchmark_name
 
         # Construct the path to the image file
-        image_path = os.path.join(self.image_folder, f"{benchmark_name}.png")
+        # Replace any characters that are invalid in file names if necessary
+        sanitized_name = benchmark_name.replace(":", "").replace("/", "").replace("\\", "")
+        image_path = os.path.join(self.image_folder, f"{sanitized_name}.png")
+
+        if os.path.exists(image_path):
+            img = Image.open(image_path)
+
+            # Add a drop shadow to the image
+            img_with_shadow = self.add_drop_shadow(img)
+
+            # Get the original dimensions of the image with shadow
+            img_original_width, img_original_height = img_with_shadow.width, img_with_shadow.height
+
+            # Get the current window size
+            window_width = self.winfo_width()
+            window_height = self.winfo_height()
+
+            # Calculate the available width and height for the image
+            available_width = int(window_width * 0.4)
+            available_height = int(window_height * 0.5)
+
+            # Calculate the scale factor to maintain aspect ratio
+            width_scale = available_width / img_original_width
+            height_scale = available_height / img_original_height
+            scale_factor = min(width_scale, height_scale)
+
+            # Scale the image dimensions while maintaining aspect ratio
+            image_area_width = int(img_original_width * scale_factor)
+            image_area_height = int(img_original_height * scale_factor)
+
+            # Resize the image with shadow based on the calculated dimensions
+            img_resized = img_with_shadow.resize((image_area_width, image_area_height), Image.LANCZOS)
+            self.displayed_image = CTkImage(
+                light_image=img_resized, dark_image=img_resized, size=(image_area_width, image_area_height)
+            )
+
+            # Apply the resized image with shadow and set the area size
+            self.image_area.configure(image=self.displayed_image, width=image_area_width, height=image_area_height)
+
+            # Keep a reference to prevent garbage collection
+            self.image_area.image = self.displayed_image
+        else:
+            self.image_area.configure(image=None)  # Clear if no image found
+
+    def display_demo_image(self):
+        benchmark_name = "Aureonrain (Demo)"
+        self.currently_selected_benchmark_name = benchmark_name
+
+        # Construct the path to the demo image file
+        sanitized_name = benchmark_name.replace(":", "").replace("/", "").replace("\\", "")
+        image_path = os.path.join(self.image_folder, f"{sanitized_name}.png")
 
         if os.path.exists(image_path):
             img = Image.open(image_path)
@@ -504,14 +563,8 @@ class App(customtkinter.CTk):
         vsync_enabled = self.enable_vsync_checkbox.get()
         vsync_enabled = bool(vsync_enabled)
 
-        # Map benchmark names to functions (Removed "Water Pyramid - Mixed Test")
-        benchmark_functions = {
-            "Pyramid 5 - EMBM Test": run_pyramid_benchmark,
-            "Sphere - Transparency Shader Test": run_sphere_benchmark,
-            "Tyre - Rubber Shader Test": run_tyre_benchmark,
-            "Water - Reflection Test": run_water_benchmark,
-            "Muon Shower - Particle System Test": run_muon_shower_benchmark,
-        }
+        # Map benchmark names to functions using the central BENCHMARKS dictionary
+        benchmark_functions = BENCHMARKS
 
         # Clear previous results
         self.benchmark_results = {}
@@ -1184,3 +1237,67 @@ class App(customtkinter.CTk):
         finally:
             # Force exit the application
             os._exit(0)
+
+    def on_demo_hover(self, event):
+        if self.tabview.get() == "Scenarios":
+            self.display_demo_image()
+
+    def on_demo_leave(self, event):
+        # Clear the image area only if the demo was the last hovered element
+        if self.currently_selected_benchmark_name == "Aureonrain (Demo)":
+            self.image_area.configure(image=None)
+
+    def display_demo_image(self):
+        benchmark_name = "Aureonrain (Demo)"
+        self.currently_selected_benchmark_name = benchmark_name
+
+        # Construct the path to the demo image file
+        sanitized_name = (
+            benchmark_name.replace(":", "")
+            .replace("/", "")
+            .replace("\\", "")
+            .replace(")", "")
+            .replace("(", "")
+            .replace(" ", " - ")
+        )
+        image_path = os.path.join(self.image_folder, f"{sanitized_name}.png")
+
+        if os.path.exists(image_path):
+            img = Image.open(image_path)
+
+            # Add a drop shadow to the image
+            img_with_shadow = self.add_drop_shadow(img)
+
+            # Get the original dimensions of the image with shadow
+            img_original_width, img_original_height = img_with_shadow.width, img_with_shadow.height
+
+            # Get the current window size
+            window_width = self.winfo_width()
+            window_height = self.winfo_height()
+
+            # Calculate the available width and height for the image
+            available_width = int(window_width * 0.4)
+            available_height = int(window_height * 0.5)
+
+            # Calculate the scale factor to maintain aspect ratio
+            width_scale = available_width / img_original_width
+            height_scale = available_height / img_original_height
+            scale_factor = min(width_scale, height_scale)
+
+            # Scale the image dimensions while maintaining aspect ratio
+            image_area_width = int(img_original_width * scale_factor)
+            image_area_height = int(img_original_height * scale_factor)
+
+            # Resize the image with shadow based on the calculated dimensions
+            img_resized = img_with_shadow.resize((image_area_width, image_area_height), Image.LANCZOS)
+            self.displayed_image = CTkImage(
+                light_image=img_resized, dark_image=img_resized, size=(image_area_width, image_area_height)
+            )
+
+            # Apply the resized image with shadow and set the area size
+            self.image_area.configure(image=self.displayed_image, width=image_area_width, height=image_area_height)
+
+            # Keep a reference to prevent garbage collection
+            self.image_area.image = self.displayed_image
+        else:
+            self.image_area.configure(image=None)  # Clear if no image found

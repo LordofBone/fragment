@@ -14,57 +14,49 @@ def run_benchmark(
 ):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
-        window_title="Tyre",
+        window_title="Poseidon Flow",
         window_size=resolution,
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder="textures/cube/mountain_lake/",
-        camera_positions=[
-            (6.4, 6.4, 6.4, -45.0, 36.0),
-        ],
+        camera_positions=[(4.2, 4.2, 4.2, -60.0, 55.0)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.1,
-        far_plane=1000,
+        far_plane=5000,
         lights=[
-            {"position": (-5.0, 0.0, 5.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {"position": (5.0, 10.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
         ],
         anisotropy=anisotropy,
-        auto_camera=False,
+        auto_camera=True,
         msaa_level=msaa_level,
         culling=True,
-        texture_lod_bias=0.4,
-        env_map_lod_bias=0.0,
         phong_shading=True,
     )
 
     # Create the rendering instance with the base configuration
     instance = RenderingInstance(base_config)
     instance.setup()
-    instance.base_config = base_config  # Attribute defined outside __init__
 
-    # Define the configuration for the tyre model
-    tyre_config = base_config.add_model(
-        obj_path="models/tyre.obj",
-        texture_paths={
-            "diffuse": "textures/diffuse/rubber_1.png",
-            "normal": "textures/normal/rubber_1.png",
-            "displacement": "textures/displacement/rubber_1.png",
-        },
+    # Define the configuration for the water surface
+    water_config = base_config.add_surface(
         shader_names={
             "vertex": "standard",
-            "fragment": "rubber",
+            "fragment": "water",
         },
-        rotation_speed=2000.0,
-        rotation_axis=(0, 3, 0),
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
+        wave_speed=6.0,
+        wave_amplitude=0.8,
+        randomness=400.0,
+        tex_coord_frequency=400.0,
+        tex_coord_amplitude=0.085,
+        width=50.0,
+        height=50.0,
     )
 
-    # Add the tyre renderer to the instance with a specific name
-    instance.add_renderer("tyre", "model", **tyre_config)
+    # Add the water surface renderer to the instance with a specific name
+    instance.add_renderer("water_surface", "surface", **water_config)
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
