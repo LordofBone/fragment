@@ -19,12 +19,12 @@ from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
+from benchmarks.Aureonrain import run_benchmark as run_water_pyramid_benchmark
 from benchmarks.crystallaxis import run_benchmark as run_pyramid_benchmark
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
 from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
 from benchmarks.tyre_spin import run_benchmark as run_tyre_benchmark
 from benchmarks.warpglobe import run_benchmark as run_sphere_benchmark
-from benchmarks.water_pyramid import run_benchmark as run_water_pyramid_benchmark
 from components.benchmark_manager import BenchmarkManager
 
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
@@ -88,7 +88,7 @@ class App(customtkinter.CTk):
             self.sidebar_frame, text="Run Benchmark", command=self.run_benchmark
         )
         self.benchmark_button.grid(row=1, column=0, padx=20, pady=10)
-        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Demo Mode", command=self.demo_mode)
+        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Aureonrain (Demo)", command=self.demo_mode)
         self.demo_button.grid(row=2, column=0, padx=20, pady=10)
         self.about_button = customtkinter.CTkButton(self.sidebar_frame, text="About", command=self.show_about_info)
         self.about_button.grid(row=3, column=0, padx=20, pady=10)
