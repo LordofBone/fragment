@@ -16,6 +16,7 @@ import numpy as np
 import psutil
 import pygame
 from PIL import Image, ImageFilter, ImageTk
+from benchmarks.tyre_spin import run_benchmark as run_tyre_benchmark
 from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
@@ -23,7 +24,6 @@ from benchmarks.Aureonrain import run_benchmark as run_water_pyramid_benchmark
 from benchmarks.crystallaxis import run_benchmark as run_pyramid_benchmark
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
 from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
-from benchmarks.tyre_spin import run_benchmark as run_tyre_benchmark
 from benchmarks.warpglobe import run_benchmark as run_sphere_benchmark
 from components.benchmark_manager import BenchmarkManager
 
@@ -214,7 +214,7 @@ class App(customtkinter.CTk):
         self.benchmarks = [
             "Crystallaxis - EMBM Test",
             "Warpglobe - Transparency Shader Test",
-            "Tyre - Rubber Shader Test",
+            "Undertyre - Rubber Shader Test",
             "Poseidon Flow - Reflection Test",
             "Muon Shower - Particle System Test",
         ]
@@ -508,7 +508,7 @@ class App(customtkinter.CTk):
         benchmark_functions = {
             "Crystallaxis - EMBM Test": run_pyramid_benchmark,
             "Warpglobe - Transparency Shader Test": run_sphere_benchmark,
-            "Tyre - Rubber Shader Test": run_tyre_benchmark,
+            "Undertyre - Rubber Shader Test": run_tyre_benchmark,
             "Poseidon Flow - Reflection Test": run_water_benchmark,
             "Muon Shower - Particle System Test": run_muon_shower_benchmark,
         }
