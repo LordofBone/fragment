@@ -47,7 +47,6 @@ def run_benchmark(
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
         phong_shading=True,
-
         background_audio="audio/music/water_pyramid.wav",
         audio_delay=0.0,
         audio_loop=True,
@@ -125,11 +124,7 @@ def run_benchmark(
     particle_config = base_config.add_particle_renderer(
         particle_render_mode=particle_render_mode,
         # overriding max_particles_map to reduce lag (default values are too high when other things are being rendered)
-        max_particles_map={
-            'cpu': 200,
-            'transform_feedback': 50000,
-            'compute_shader': 4000000
-        },
+        max_particles_map={"cpu": 200, "transform_feedback": 50000, "compute_shader": 4000000},
         particles_max=4000000,
         particle_batch_size=600000,
         particle_type="points",

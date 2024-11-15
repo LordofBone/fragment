@@ -9,15 +9,11 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 class ParticleRenderer(AbstractRenderer):
     # Define maximum particles for each render mode (to prevent slowdowns)
-    DEFAULT_MAX_PARTICLES_MAPPING = {
-        'cpu': 2000,
-        'transform_feedback': 200000,
-        'compute_shader': 2000000
-    }
+    DEFAULT_MAX_PARTICLES_MAPPING = {"cpu": 2000, "transform_feedback": 200000, "compute_shader": 2000000}
 
     def __init__(
         self,
-            max_particles_map=None,
+        max_particles_map=None,
         particles_max=100,
         particle_batch_size=1,
         particle_render_mode="transform_feedback",

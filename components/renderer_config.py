@@ -316,7 +316,7 @@ class RendererConfig:
         culling=None,
         particle_generator=False,
         generator_delay=0.0,
-            max_particles_map=None,
+        max_particles_map=None,
         particles_max=100,
         particle_batch_size=1,
         particle_type="points",
