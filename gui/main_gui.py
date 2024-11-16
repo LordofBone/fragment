@@ -26,10 +26,10 @@ from benchmarks.nebulon import run_benchmark as run_sphere_benchmark
 from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
 from benchmarks.undertyre import run_benchmark as run_tyre_benchmark
 from components.benchmark_manager import BenchmarkManager
-from config.path_config import images_dir
+from config.path_config import images_dir, themes_dir
 
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
-customtkinter.set_default_color_theme("themes/314reactor.json")
+customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"))
 
 # Centralized Benchmark Names and Functions
 BENCHMARKS = {
