@@ -1,16 +1,20 @@
+import os
+
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
+from config.path_config import cubemaps_dir, diffuse_textures_dir, displacement_textures_dir, normal_textures_dir, \
+    models_dir
 
 
 def run_benchmark(
-    stats_queue=None,
-    stop_event=None,
-    resolution=(800, 600),
-    msaa_level=0,
-    anisotropy=16,
-    particle_render_mode="vertex",
-    vsync_enabled=True,
-    fullscreen=False,
+        stats_queue=None,
+        stop_event=None,
+        resolution=(800, 600),
+        msaa_level=0,
+        anisotropy=16,
+        particle_render_mode="vertex",
+        vsync_enabled=True,
+        fullscreen=False,
 ):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
@@ -19,7 +23,7 @@ def run_benchmark(
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
-        cubemap_folder="textures/cube/mountain_lake/",
+        cubemap_folder=os.path.join(cubemaps_dir, "mountain_lake/"),
         camera_positions=[
             (6.4, 6.4, 6.4, -45.0, 36.0),
         ],
@@ -47,11 +51,11 @@ def run_benchmark(
 
     # Define the configuration for the tyre model
     tyre_config = base_config.add_model(
-        obj_path="models/tyre.obj",
+        obj_path=os.path.join(models_dir, "tyre.obj"),
         texture_paths={
-            "diffuse": "textures/diffuse/rubber_1.png",
-            "normal": "textures/normal/rubber_1.png",
-            "displacement": "textures/displacement/rubber_1.png",
+            "diffuse": os.path.join(diffuse_textures_dir, "rubber_1.png"),
+            "normal": os.path.join(normal_textures_dir, "rubber_1.png"),
+            "displacement": os.path.join(displacement_textures_dir, "rubber_1.png"),
         },
         shader_names={
             "vertex": "standard",

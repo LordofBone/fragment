@@ -1,16 +1,20 @@
+import os
+
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
+from config.path_config import cubemaps_dir, diffuse_textures_dir, displacement_textures_dir, normal_textures_dir, \
+    audio_dir, models_dir
 
 
 def run_benchmark(
-    stats_queue=None,
-    stop_event=None,
-    resolution=(800, 600),
-    msaa_level=0,
-    anisotropy=16,
-    particle_render_mode="vertex",
-    vsync_enabled=True,
-    fullscreen=False,
+        stats_queue=None,
+        stop_event=None,
+        resolution=(800, 600),
+        msaa_level=0,
+        anisotropy=16,
+        particle_render_mode="vertex",
+        vsync_enabled=True,
+        fullscreen=False,
 ):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
@@ -19,7 +23,8 @@ def run_benchmark(
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
-        cubemap_folder="textures/cube/night_sky_egypt/",
+        cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
+
         camera_positions=[
             (10.0, 10.0, 10.0, -30.0, 0.0),  # Initial position
             (6.0, 6.0, 6.0, -30.0, 0.0),  # Zoom in
@@ -47,7 +52,7 @@ def run_benchmark(
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
         phong_shading=True,
-        background_audio="audio/music/water_pyramid.wav",
+        background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
         audio_delay=0.0,
         audio_loop=True,
     )
@@ -58,11 +63,11 @@ def run_benchmark(
 
     # Define the configuration for the stretched pyramid model
     stretched_pyramid_config = base_config.add_model(
-        obj_path="models/pyramid.obj",
+        obj_path=os.path.join(models_dir, "pyramid.obj"),
         texture_paths={
-            "diffuse": "textures/diffuse/crystal.png",
-            "normal": "textures/normal/crystal.png",
-            "displacement": "textures/displacement/crystal.png",
+            "diffuse": os.path.join(diffuse_textures_dir, "crystal.png"),
+            "normal": os.path.join(normal_textures_dir, "crystal.png"),
+            "displacement": os.path.join(displacement_textures_dir, "crystal.png"),
         },
         shader_names={
             "vertex": "standard",
@@ -82,13 +87,14 @@ def run_benchmark(
 
     # Define the configuration for the opaque pyramid model
     opaque_pyramid_config = base_config.add_model(
-        obj_path="models/pyramid.obj",
+        obj_path=os.path.join(models_dir, "pyramid.obj"),
         cubemap_folder="textures/cube/mountain_lake/",
         texture_paths={
-            "diffuse": "textures/diffuse/metal_1.png",
-            "normal": "textures/normal/metal_1.png",
-            "displacement": "textures/displacement/metal_1.png",
+            "diffuse": os.path.join(diffuse_textures_dir, "metal_1.png"),
+            "normal": os.path.join(normal_textures_dir, "metal_1.png"),
+            "displacement": os.path.join(displacement_textures_dir, "metal_1.png"),
         },
+
         shader_names={
             "vertex": "standard",
             "fragment": "stealth",
@@ -107,11 +113,11 @@ def run_benchmark(
 
     # Define the configuration for the rotating pyramid model
     rotating_pyramid_config = base_config.add_model(
-        obj_path="models/pyramid.obj",
+        obj_path=os.path.join(models_dir, "pyramid.obj"),
         texture_paths={
-            "diffuse": "textures/diffuse/crystal.png",
-            "normal": "textures/normal/crystal.png",
-            "displacement": "textures/displacement/crystal.png",
+            "diffuse": os.path.join(diffuse_textures_dir, "crystal.png"),
+            "normal": os.path.join(normal_textures_dir, "crystal.png"),
+            "displacement": os.path.join(displacement_textures_dir, "crystal.png"),
         },
         shader_names={
             "vertex": "standard",
