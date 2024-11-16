@@ -10,7 +10,7 @@ class StatsCollector:
         self.current_benchmark = None
         self.current_fps = 0
         self.lock = threading.Lock()
-        self.cpu_percent_interval = None  # Interval for cpu_percent(), in seconds
+        # Removed cpu_percent_interval as it's no longer needed
 
     def reset(self, benchmark_name, pid):
         with self.lock:
@@ -24,7 +24,7 @@ class StatsCollector:
             self.current_fps = 0
             # Prime the CPU percent calculation by making an initial call
             # This establishes a baseline for future measurements
-            psutil.cpu_percent(interval=self.cpu_percent_interval)
+            psutil.cpu_percent(interval=None)
 
     def set_current_fps(self, fps):
         with self.lock:
@@ -39,14 +39,8 @@ class StatsCollector:
             data = self.benchmark_data[self.current_benchmark]
             fps = self.current_fps
 
-            # Get detailed CPU times percentages
-            cpu_times_percent = psutil.cpu_times_percent(interval=self.cpu_percent_interval)
-
-            # Calculate total CPU usage
-            total_cpu_usage = 100.0 - cpu_times_percent.idle
-
-            # Ensure CPU usage is not negative and does not exceed 100%
-            total_cpu_usage = max(min(total_cpu_usage, 100.0), 0.0)
+            # Get total CPU usage directly
+            total_cpu_usage = psutil.cpu_percent(interval=None)
 
             # Get overall GPU usage across all GPUs
             gpu_usage = self.get_overall_gpu_usage()
@@ -57,14 +51,22 @@ class StatsCollector:
             data["gpu_usage_data"].append(gpu_usage)
 
     def get_overall_gpu_usage(self):
-        # Sum the GPU usage across all available GPUs
-        total_gpu_usage = 0
-        gpus = getGPUs()
-        for gpu in gpus:
-            total_gpu_usage += gpu.load * 100  # Convert to percentage
-        # Ensure GPU usage is not negative and does not exceed 100%
-        total_gpu_usage = max(min(total_gpu_usage, 100.0), 0.0)
-        return total_gpu_usage
+        """
+        Calculate the overall GPU usage across all available GPUs.
+
+        :return: Total GPU usage as a percentage.
+        """
+        try:
+            gpus = getGPUs()
+            if not gpus:
+                return 0.0
+            total_gpu_usage = sum(gpu.load * 100 for gpu in gpus)
+            # Clamp the value between 0 and 100
+            total_gpu_usage = max(min(total_gpu_usage, 100.0), 0.0)
+            return total_gpu_usage
+        except Exception as e:
+            print(f"Error retrieving GPU usage: {e}")
+            return 0.0
 
     def set_elapsed_time(self, benchmark_name, elapsed_time):
         with self.lock:
