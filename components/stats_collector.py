@@ -10,7 +10,6 @@ class StatsCollector:
         self.current_benchmark = None
         self.current_fps = 0
         self.lock = threading.Lock()
-        # Removed cpu_percent_interval as it's no longer needed
 
     def reset(self, benchmark_name, pid):
         with self.lock:
