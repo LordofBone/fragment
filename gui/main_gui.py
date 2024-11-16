@@ -1,3 +1,4 @@
+import _tkinter
 import io
 import multiprocessing
 import os
@@ -7,16 +8,15 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import GPUtil
-import _tkinter
 import customtkinter
+import GPUtil
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
+from PIL import Image, ImageFilter, ImageTk
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.Aureonrain import run_benchmark as run_water_pyramid_benchmark
@@ -763,8 +763,9 @@ class App(customtkinter.CTk):
         close_button = customtkinter.CTkButton(about_window, text="Close", command=about_window.destroy)
         close_button.pack(pady=(10, 10))
 
-        about_window.after(250, lambda: about_window.iconbitmap(
-            os.path.join(self.image_folder, "small_icon.ico")))  # Restore icon after a delay (prevents default icon)
+        about_window.after(
+            250, lambda: about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+        )  # Restore icon after a delay (prevents default icon)
 
     def generate_and_display_results(self):
         # Destroy the current results frame to reset the scroll position

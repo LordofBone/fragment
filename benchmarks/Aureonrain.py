@@ -2,19 +2,25 @@ import os
 
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
-from config.path_config import cubemaps_dir, diffuse_textures_dir, displacement_textures_dir, normal_textures_dir, \
-    audio_dir, models_dir
+from config.path_config import (
+    audio_dir,
+    cubemaps_dir,
+    diffuse_textures_dir,
+    displacement_textures_dir,
+    models_dir,
+    normal_textures_dir,
+)
 
 
 def run_benchmark(
-        stats_queue=None,
-        stop_event=None,
-        resolution=(800, 600),
-        msaa_level=0,
-        anisotropy=16,
-        particle_render_mode="vertex",
-        vsync_enabled=True,
-        fullscreen=False,
+    stats_queue=None,
+    stop_event=None,
+    resolution=(800, 600),
+    msaa_level=0,
+    anisotropy=16,
+    particle_render_mode="vertex",
+    vsync_enabled=True,
+    fullscreen=False,
 ):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
@@ -24,7 +30,6 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
-
         camera_positions=[
             (10.0, 10.0, 10.0, -30.0, 0.0),  # Initial position
             (6.0, 6.0, 6.0, -30.0, 0.0),  # Zoom in
@@ -94,7 +99,6 @@ def run_benchmark(
             "normal": os.path.join(normal_textures_dir, "metal_1.png"),
             "displacement": os.path.join(displacement_textures_dir, "metal_1.png"),
         },
-
         shader_names={
             "vertex": "standard",
             "fragment": "stealth",
