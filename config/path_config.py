@@ -24,18 +24,8 @@ textures_dir = get_path("..", "textures")
 themes_dir = get_path("..", "themes")
 utils_dir = get_path("..", "utils")
 
-# Specific files and subdirectories
-pyramid_obj_path = get_path("..", "models", "pyramid.obj")
-sphere_obj_path = get_path("..", "models", "sphere.obj")
-tyre_obj_path = get_path("..", "models", "tyre.obj")
-vertex_shader_dir = get_path("..", "shaders", "vertex")
-fragment_shader_dir = get_path("..", "shaders", "fragment")
-compute_shader_dir = get_path("..", "shaders", "compute")
-cubemaps_dir = get_path("..", "textures", "cube")
+# Textures
 diffuse_textures_dir = get_path("..", "textures", "diffuse")
 displacement_textures_dir = get_path("..", "textures", "displacement")
 normal_textures_dir = get_path("..", "textures", "normal")
-
-# Example paths for audio files
-test_audio_path = get_path("..", "audio", "music", "test.wav")
-water_pyramid_audio_path = get_path("..", "audio", "music", "water_pyramid.wav")
+cubemaps_dir = get_path("..", "textures", "cube")
