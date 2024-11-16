@@ -1,5 +1,14 @@
+import os
+
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
+from config.path_config import (
+    cubemaps_dir,
+    diffuse_textures_dir,
+    displacement_textures_dir,
+    models_dir,
+    normal_textures_dir,
+)
 
 
 def run_benchmark(
@@ -19,7 +28,7 @@ def run_benchmark(
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
-        cubemap_folder="textures/cube/mountain_lake/",
+        cubemap_folder=os.path.join(cubemaps_dir, "mountain_lake/"),
         camera_positions=[
             (3.4, 3.4, 3.4, -39.0, 39.0),
         ],
@@ -46,11 +55,11 @@ def run_benchmark(
 
     # Define the configuration for the pyramid model
     pyramid_config = base_config.add_model(
-        obj_path="models/pyramid.obj",
+        obj_path=os.path.join(models_dir, "pyramid.obj"),
         texture_paths={
-            "diffuse": "textures/diffuse/crystal.png",
-            "normal": "textures/normal/crystal.png",
-            "displacement": "textures/displacement/crystal.png",
+            "diffuse": os.path.join(diffuse_textures_dir, "crystal.png"),
+            "normal": os.path.join(normal_textures_dir, "crystal.png"),
+            "displacement": os.path.join(displacement_textures_dir, "crystal.png"),
         },
         shader_names={
             "vertex": "standard",
