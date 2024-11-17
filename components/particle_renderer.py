@@ -308,7 +308,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Setup buffers for transform feedback-based particle rendering.
         """
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Create two VBOs for ping-pong buffering
         self.vbos = glGenBuffers(2)
@@ -363,7 +363,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         self.cpu_particles = particle_data
 
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
         glBindVertexArray(self.vao)
@@ -496,8 +496,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         vertex_stride = self.stride_length_tf_compute * self.float_size
 
-        # Ensure the correct shader program (vertex/fragment) is active
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Get the attribute locations
         position_loc = glGetAttribLocation(self.shader_program, "position")
@@ -614,8 +613,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         vertex_stride = self.stride_length_cpu * self.float_size
 
-        # Ensure the correct shader program (vertex/fragment) is active
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Get the attribute locations
         position_loc = glGetAttribLocation(self.shader_program, "position")
@@ -652,7 +650,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Set up general uniforms for the particle renderer.
         """
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         glUniform1f(
             glGetUniformLocation(self.shader_program, "particleSize"),
@@ -816,7 +814,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Set up the uniforms for the CPU-based particle rendering.
         """
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Set other uniforms like particle size, color, etc.
         glUniform1f(glGetUniformLocation(self.shader_program, "particleSize"), self.particle_size)
@@ -1082,13 +1080,12 @@ class ParticleRenderer(AbstractRenderer):
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, zero_data.nbytes, zero_data)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
-        glUseProgram(self.shader_program)  # Switch back to the vertex/fragment shader
+        self.shader_engine.use_shader_program()
 
         self.particles_to_render = self.max_particles
 
     def _update_particles_transform_feedback(self):
-        # Bind the shader program
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Determine source and destination buffers
         source_vbo = self.vbos[self.current_vbo_index]
