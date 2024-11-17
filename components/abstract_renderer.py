@@ -25,7 +25,7 @@ def check_gl_error(context, debug_mode):
 
 def common_funcs(func):
     def render_config(self, *args, **kwargs):
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
         check_gl_error("glUseProgram", self.debug_mode)
 
         # Enable alpha blending
@@ -43,7 +43,8 @@ def common_funcs(func):
         check_gl_error("Depth testing setup", self.debug_mode)
 
         view_position = self.camera_position
-        glUniform3fv(glGetUniformLocation(self.shader_program, "viewPosition"), 1, glm.value_ptr(view_position))
+        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "viewPosition"), 1,
+                     glm.value_ptr(view_position))
         check_gl_error("Setting viewPosition uniform", self.debug_mode)
 
         # Culling setup
@@ -61,8 +62,11 @@ def common_funcs(func):
         self.set_shader_uniforms()
         check_gl_error("set_shader_uniforms", self.debug_mode)
 
+        # self.set_shadow_shader_uniforms()
+        # check_gl_error("set_shadow_shader_uniforms", self.debug_mode)
+
         if self.lights_enabled:
-            self.set_light_uniforms(self.shader_program)
+            self.set_light_uniforms(self.shader_engine.shader_program)
         check_gl_error("set_light_uniforms", self.debug_mode)
 
         result = func(self, *args, **kwargs)
@@ -218,8 +222,13 @@ class AbstractRenderer(ABC):
         self.vbos = []
         self.vaos = []
 
-        self.shader_program = None
-        self.compute_shader_program = None
+        self.shader_engine = None
+
+        self.shadowing_enabled = True
+
+        # Shadow map resolution
+        self.shadow_width = 128
+        self.shadow_height = 128
 
         self.phong_shading = phong_shading
 
@@ -267,7 +276,56 @@ class AbstractRenderer(ABC):
         self.create_buffers()
         self.load_textures()
         self.setup_camera()
+        self.setup_shadow_map()
         self.set_constant_uniforms()
+
+    def setup_shadow_map(self):
+        if self.shadowing_enabled:
+            # Generate framebuffer
+            self.depth_map_fbo = glGenFramebuffers(1)
+
+            # Create depth texture
+            self.depth_map = glGenTextures(1)
+            glBindTexture(GL_TEXTURE_2D, self.depth_map)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                         self.shadow_width, self.shadow_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, None)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
+            border_color = [1.0, 1.0, 1.0, 1.0]
+            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color)
+
+            # Attach depth texture as FBO's depth buffer
+            glBindFramebuffer(GL_FRAMEBUFFER, self.depth_map_fbo)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, self.depth_map, 0)
+            glDrawBuffer(GL_NONE)
+            glReadBuffer(GL_NONE)
+            glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+    def calculate_light_space_matrix(self):
+        # Define the orthographic projection matrix for the light's perspective
+        near_plane = 1.0
+        far_plane = 50.0
+        light_projection = glm.ortho(-10.0, 10.0, -10.0, 10.0, near_plane, far_plane)
+        light_view = glm.lookAt(self.lights[0]["position"], glm.vec3(0.0, 0.0, 0.0), glm.vec3(0.0, 1.0, 0.0))
+        self.light_space_matrix = light_projection * light_view
+
+    def render_shadow_map(self, scene_renderers):
+        if self.shadowing_enabled and self.lights_enabled:
+            # First render pass: Render scene from light's perspective
+            self.calculate_light_space_matrix()
+
+            # Use the shadow map shaders
+            self.shader_engine.use_shader_program()
+            glViewport(0, 0, self.shadow_width, self.shadow_height)
+            glBindFramebuffer(GL_FRAMEBUFFER, self.depth_map_fbo)
+            glClear(GL_DEPTH_BUFFER_BIT)
+
+            for renderer in scene_renderers:
+                renderer.render_from_light(self.light_space_matrix)
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     def setup_planar_camera(self):
         texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
@@ -430,10 +488,25 @@ class AbstractRenderer(ABC):
         self.projection = projection_matrix
         self.render()
 
+    def render_from_light(self, light_space_matrix):
+        self.shader_engine.use_shadow_shader_program()
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shadow_shader_program, "model"),
+                           1, GL_FALSE, glm.value_ptr(self.model_matrix))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shadow_shader_program, "lightSpaceMatrix"),
+                           1, GL_FALSE, glm.value_ptr(light_space_matrix))
+
+        for mesh in self.object.mesh_list:
+            vao_index = self.object.mesh_list.index(mesh)
+            glBindVertexArray(self.vaos[vao_index])
+            glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
+            glBindVertexArray(0)
+
     def init_shaders(self):
         vertex_shader_path = None
         fragment_shader_path = None
         compute_shader_path = None
+        shadow_vertex_shader_path = None
+        shadow_fragment_shader_path = None
 
         if "vertex" in self.shader_names:
             vertex_shader_path = self.shaders["vertex"].get(self.shader_names["vertex"])
@@ -441,14 +514,17 @@ class AbstractRenderer(ABC):
             fragment_shader_path = self.shaders["fragment"].get(self.shader_names["fragment"])
         if "compute" in self.shader_names:
             compute_shader_path = self.shaders["compute"].get(self.shader_names["compute"])
+        if "shadow_vertex" in self.shader_names:
+            shadow_vertex_shader_path = self.shaders["vertex"].get(self.shader_names["shadow_vertex"])
+        if "shadow_fragment" in self.shader_names:
+            shadow_fragment_shader_path = self.shaders["fragment"].get(self.shader_names["shadow_fragment"])
 
-        shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path)
-        self.shader_program = shader_engine.shader_program
-        self.compute_shader_program = shader_engine.compute_shader_program
+        self.shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path,
+                                          shadow_vertex_shader_path, shadow_fragment_shader_path)
 
     def load_textures(self):
         """Load textures for the model."""
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
         if self.texture_paths:
             self.load_and_set_texture("diffuse", "diffuseMap")
             self.load_and_set_texture("normal", "normalMap")
@@ -460,7 +536,7 @@ class AbstractRenderer(ABC):
         if self.cubemap_folder:
             self.load_cubemap(self.cubemap_folder, self.environmentMap)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(glGetUniformLocation(self.shader_program, "environmentMap"), env_map_unit)
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "environmentMap"), env_map_unit)
 
     def load_and_set_texture(self, texture_type, uniform_name):
         """Helper method to load a texture and set the corresponding uniform."""
@@ -469,7 +545,7 @@ class AbstractRenderer(ABC):
         glActiveTexture(GL_TEXTURE0 + texture_unit)
         self.load_texture(self.texture_paths[texture_type], texture_map)
         glBindTexture(GL_TEXTURE_2D, texture_map)
-        glUniform1i(glGetUniformLocation(self.shader_program, uniform_name), texture_unit)
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, uniform_name), texture_unit)
 
     def load_texture(self, path, texture):
         surface = pygame.image.load(path)
@@ -539,7 +615,7 @@ class AbstractRenderer(ABC):
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
     def set_light_uniforms(self, shader_program):
-        glUseProgram(shader_program)
+        self.shader_engine.use_shader_program()
         for i, light in enumerate(self.lights):
             glUniform3fv(
                 glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(light["position"])
@@ -588,72 +664,103 @@ class AbstractRenderer(ABC):
         self.auto_rotation_enabled = enabled
 
     def set_constant_uniforms(self):
-        glUseProgram(self.shader_program)
-        glUniform1f(glGetUniformLocation(self.shader_program, "textureLodLevel"), self.texture_lod_bias)
-        glUniform1f(glGetUniformLocation(self.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
+        self.shader_engine.use_shader_program()
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "textureLodLevel"), self.texture_lod_bias)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
 
-        glUniform1i(glGetUniformLocation(self.shader_program, "applyToneMapping"), self.apply_tone_mapping)
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "applyToneMapping"),
+                    self.apply_tone_mapping)
 
-        glUniform1i(glGetUniformLocation(self.shader_program, "applyGammaCorrection"), self.apply_gamma_correction)
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "applyGammaCorrection"),
+                    self.apply_gamma_correction)
 
     def set_shader_uniforms(self):
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "ambientColor"), 1, glm.value_ptr(self.ambient_lighting_strength)
+            glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"), 1,
+            glm.value_ptr(self.ambient_lighting_strength)
         )
 
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_program, "model"), 1, GL_FALSE, glm.value_ptr(self.model_matrix)
+            glGetUniformLocation(self.shader_engine.shader_program, "model"), 1, GL_FALSE,
+            glm.value_ptr(self.model_matrix)
         )
 
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(self.view))
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE,
+                           glm.value_ptr(self.view))
 
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(self.projection)
+            glGetUniformLocation(self.shader_engine.shader_program, "projection"), 1, GL_FALSE,
+            glm.value_ptr(self.projection)
         )
-        glUniform1f(glGetUniformLocation(self.shader_program, "opacity"), self.opacity)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "opacity"), self.opacity)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "shininess"), self.shininess)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shininess"), self.shininess)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "distortionStrength"), self.distortion_strength)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "distortionStrength"),
+                    self.distortion_strength)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "reflectionStrength"), self.reflection_strength)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "reflectionStrength"),
+                    self.reflection_strength)
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "warped"), self.distortion_warped)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "warped"), self.distortion_warped)
 
         glUniform2f(
-            glGetUniformLocation(self.shader_program, "screenResolution"), self.window_size[0], self.window_size[1]
+            glGetUniformLocation(self.shader_engine.shader_program, "screenResolution"), self.window_size[0],
+            self.window_size[1]
         )
 
         if self.screen_texture:
             screen_texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
-            glUniform1i(glGetUniformLocation(self.shader_program, "screenTexture"), screen_texture_unit)
+            glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "screenTexture"), screen_texture_unit)
 
         glUniform1i(
-            glGetUniformLocation(self.shader_program, "screenFacingPlanarTexture"),
+            glGetUniformLocation(self.shader_engine.shader_program, "screenFacingPlanarTexture"),
             int(self.screen_facing_planar_texture),
         )
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "waveSpeed"), self.dynamic_attrs.get("wave_speed", 10.0))
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "waveSpeed"),
+                    self.dynamic_attrs.get("wave_speed", 10.0))
 
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "waveAmplitude"), self.dynamic_attrs.get("wave_amplitude", 0.1)
+            glGetUniformLocation(self.shader_engine.shader_program, "waveAmplitude"),
+            self.dynamic_attrs.get("wave_amplitude", 0.1)
         )
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "randomness"), self.dynamic_attrs.get("randomness", 0.8))
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "randomness"),
+                    self.dynamic_attrs.get("randomness", 0.8))
 
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "texCoordFrequency"),
+            glGetUniformLocation(self.shader_engine.shader_program, "texCoordFrequency"),
             self.dynamic_attrs.get("tex_coord_frequency", 100.0),
         )
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "texCoordAmplitude"),
+            glGetUniformLocation(self.shader_engine.shader_program, "texCoordAmplitude"),
             self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
         )
-        glUniform3fv(glGetUniformLocation(self.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position))
+        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "cameraPos"), 1,
+                     glm.value_ptr(self.camera_position))
 
-        glUniform1f(glGetUniformLocation(self.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
+
+    def set_shadow_shader_uniforms(self):
+        if self.shader_engine.shadow_shader_program and self.shadowing_enabled:
+            # self.shader_engine.use_shadow_shader_program()
+            self.shader_engine.use_shader_program()
+            # Set light space matrix
+            glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
+                               1, GL_FALSE, glm.value_ptr(self.light_space_matrix))
+
+            # Set light position (uses only the first light in the list to determine shadow)
+            glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "lightPosition"),
+                         1, glm.value_ptr(self.lights[0]["position"]))
+
+            # Bind shadow map
+            shadow_map_unit = texture_manager.get_texture_unit(str(self.identifier), "shadow_map")
+            glActiveTexture(GL_TEXTURE0 + shadow_map_unit)
+            glBindTexture(GL_TEXTURE_2D, self.depth_map)
+            glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowMap"), shadow_map_unit)
 
     def update_camera(self, delta_time):
         if self.auto_camera:
@@ -676,11 +783,7 @@ class AbstractRenderer(ABC):
         if hasattr(self, "vbos") and len(self.vbos) > 0:
             glDeleteBuffers(len(self.vbos), self.vbos)
 
-        # Delete shader programs correctly
-        if hasattr(self, "shader_program") and self.shader_program:
-            glDeleteProgram(self.shader_program)
-        if hasattr(self, "compute_shader_program") and self.compute_shader_program:
-            glDeleteProgram(self.compute_shader_program)
+        self.shader_engine.delete_shader_programs()
 
     @abstractmethod
     def create_buffers(self):
