@@ -21,7 +21,7 @@ class ModelRenderer(AbstractRenderer):
             vertices_array = np.array(self.vertices, dtype=np.float32)
 
             vbo = self.create_vbo(vertices_array)
-            vao = self.create_vao(vbo, self.shader_program)
+            vao = self.create_vao()
 
             self.vbos.append(vbo)
             self.vaos.append(vao)
@@ -33,7 +33,7 @@ class ModelRenderer(AbstractRenderer):
         glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
         return vbo
 
-    def create_vao(self, vbo, shader_program):
+    def create_vao(self):
         """Create a Vertex Array Object (VAO) and configure vertex attributes."""
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
@@ -41,9 +41,9 @@ class ModelRenderer(AbstractRenderer):
         float_size = 4
         vertex_stride = 8 * float_size
 
-        position_loc = self.get_attrib_location(shader_program, "position")
-        tex_coords_loc = self.get_attrib_location(shader_program, "textureCoords")
-        normal_loc = self.get_attrib_location(shader_program, "normal")
+        position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
+        tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "textureCoords")
+        normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
 
         self.enable_vertex_attrib(position_loc, 3, vertex_stride, 5 * float_size)
         self.enable_vertex_attrib(tex_coords_loc, 2, vertex_stride, 0)
@@ -52,10 +52,6 @@ class ModelRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
         return vao
-
-    def get_attrib_location(self, shader_program, name):
-        """Get the location of a vertex attribute."""
-        return glGetAttribLocation(shader_program, name)
 
     def enable_vertex_attrib(self, location, size, stride, pointer_offset):
         """Enable a vertex attribute and define its data layout."""
