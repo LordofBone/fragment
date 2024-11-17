@@ -103,7 +103,7 @@ class ShaderEngine:
 
         return shader_program
 
-    def use_compute_shader(self):
+    def use_compute_shader_program(self):
         """Activate the compute shader program."""
         if self.compute_shader_program:
             glUseProgram(self.compute_shader_program)
@@ -117,3 +117,12 @@ class ShaderEngine:
         """Activate the shadow vertex/fragment shader program."""
         if self.shadow_shader_program:
             glUseProgram(self.shadow_shader_program)
+
+    def delete_shader_programs(self):
+        """Delete the shader program."""
+        if self.shader_program:
+            glDeleteProgram(self.shader_program)
+        if self.compute_shader_program:
+            glDeleteProgram(self.compute_shader_program)
+        if self.shadow_shader_program:
+            glDeleteProgram(self.shadow_shader_program)
