@@ -186,9 +186,10 @@ class RenderingInstance:
     def render_shadow_maps(self):
         # For each renderer, render the shadow map
         for renderer in self.scene_construct.renderers.values():
-            # Collect all renderers into a list
-            scene_renderers = self.scene_construct.renderers.values()
-            renderer.render_shadow_map(scene_renderers)
+            # Check if renderer is an instance of ModelRenderer
+            if isinstance(renderer, ModelRenderer):
+                scene_renderers = self.scene_construct.renderers.values()
+                renderer.render_shadow_map(scene_renderers)
 
     def render_scene(self, delta_time):
         glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
