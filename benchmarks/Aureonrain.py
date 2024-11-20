@@ -77,6 +77,8 @@ def run_benchmark(
         shader_names={
             "vertex": "standard",
             "fragment": "stealth",
+            "shadow_vertex": "shadow_mapping",
+            "shadow_fragment": "shadow_mapping",
         },
         opacity=0.0,
         distortion_strength=0.2,
@@ -88,6 +90,7 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
+        shadowing_enabled=True,
     )
 
     # Define the configuration for the opaque pyramid model
@@ -102,6 +105,8 @@ def run_benchmark(
         shader_names={
             "vertex": "standard",
             "fragment": "stealth",
+            "shadow_vertex": "shadow_mapping",
+            "shadow_fragment": "shadow_mapping",
         },
         opacity=0.5,
         distortion_strength=0.2,
@@ -113,6 +118,7 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
+        shadowing_enabled=True,
     )
 
     # Define the configuration for the rotating pyramid model
@@ -126,8 +132,11 @@ def run_benchmark(
         shader_names={
             "vertex": "standard",
             "fragment": "embm",
+            "shadow_vertex": "shadow_mapping",
+            "shadow_fragment": "shadow_mapping",
         },
         rotation_speed=2000.0,
+        shadowing_enabled=True,
     )
 
     # Define the configuration for the particle renderer
