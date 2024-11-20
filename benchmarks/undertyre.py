@@ -65,6 +65,8 @@ def run_benchmark(
         shader_names={
             "vertex": "standard",
             "fragment": "rubber",
+            "shadow_vertex": "shadow_mapping",
+            "shadow_fragment": "shadow_mapping",
         },
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
