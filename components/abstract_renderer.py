@@ -10,6 +10,7 @@ from PIL import Image
 
 from components.camera_control import CameraController
 from components.shader_engine import ShaderEngine
+from components.shadow_map_manager import ShadowMapManager
 from components.texture_manager import TextureManager
 
 # Get the singleton instance of TextureManager
@@ -62,8 +63,8 @@ def common_funcs(func):
         self.set_shader_uniforms()
         check_gl_error("set_shader_uniforms", self.debug_mode)
 
-        # self.set_shadow_shader_uniforms()
-        # check_gl_error("set_shadow_shader_uniforms", self.debug_mode)
+        self.set_shadow_shader_uniforms()
+        check_gl_error("set_shadow_shader_uniforms", self.debug_mode)
 
         if self.lights_enabled:
             self.set_light_uniforms(self.shader_engine.shader_program)
@@ -144,6 +145,7 @@ class AbstractRenderer(ABC):
         lens_rotations=None,
         screen_facing_planar_texture=False,
         debug_mode=False,
+            shadowing_enabled=True,  # New parameter to indicate shadow mapping support
         **kwargs,
     ):
         # Use the memory address of the instance as a unique identifier
@@ -224,11 +226,14 @@ class AbstractRenderer(ABC):
 
         self.shader_engine = None
 
-        self.shadowing_enabled = True
+        self.shadowing_enabled = shadowing_enabled  # Updated initialization
 
         # Shadow map resolution
         self.shadow_width = 128
         self.shadow_height = 128
+
+        # Initialize ShadowMapManager
+        self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
 
         self.phong_shading = phong_shading
 
@@ -265,6 +270,10 @@ class AbstractRenderer(ABC):
         if self.planar_camera:
             self.setup_planar_camera()
 
+    def supports_shadow_mapping(self):
+        """Indicates whether this renderer supports shadow mapping."""
+        return self.shadowing_enabled
+
     def get_winding_constant(self, winding):
         winding_options = {"CW": GL_CW, "CCW": GL_CCW}
         if winding not in winding_options:
@@ -276,56 +285,7 @@ class AbstractRenderer(ABC):
         self.create_buffers()
         self.load_textures()
         self.setup_camera()
-        self.setup_shadow_map()
         self.set_constant_uniforms()
-
-    def setup_shadow_map(self):
-        if self.shadowing_enabled:
-            # Generate framebuffer
-            self.depth_map_fbo = glGenFramebuffers(1)
-
-            # Create depth texture
-            self.depth_map = glGenTextures(1)
-            glBindTexture(GL_TEXTURE_2D, self.depth_map)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-                         self.shadow_width, self.shadow_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, None)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
-            border_color = [1.0, 1.0, 1.0, 1.0]
-            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color)
-
-            # Attach depth texture as FBO's depth buffer
-            glBindFramebuffer(GL_FRAMEBUFFER, self.depth_map_fbo)
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, self.depth_map, 0)
-            glDrawBuffer(GL_NONE)
-            glReadBuffer(GL_NONE)
-            glBindFramebuffer(GL_FRAMEBUFFER, 0)
-
-    def calculate_light_space_matrix(self):
-        # Define the orthographic projection matrix for the light's perspective
-        near_plane = 1.0
-        far_plane = 50.0
-        light_projection = glm.ortho(-10.0, 10.0, -10.0, 10.0, near_plane, far_plane)
-        light_view = glm.lookAt(self.lights[0]["position"], glm.vec3(0.0, 0.0, 0.0), glm.vec3(0.0, 1.0, 0.0))
-        self.light_space_matrix = light_projection * light_view
-
-    def render_shadow_map(self, scene_renderers):
-        if self.shadowing_enabled and self.lights_enabled:
-            # First render pass: Render scene from light's perspective
-            self.calculate_light_space_matrix()
-
-            # Use the shadow map shaders
-            self.shader_engine.use_shader_program()
-            glViewport(0, 0, self.shadow_width, self.shadow_height)
-            glBindFramebuffer(GL_FRAMEBUFFER, self.depth_map_fbo)
-            glClear(GL_DEPTH_BUFFER_BIT)
-
-            for renderer in scene_renderers:
-                renderer.render_from_light(self.light_space_matrix)
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     def setup_planar_camera(self):
         texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
@@ -745,12 +705,11 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
     def set_shadow_shader_uniforms(self):
-        if self.shader_engine.shadow_shader_program and self.shadowing_enabled:
-            # self.shader_engine.use_shadow_shader_program()
+        if self.shadow_map_manager and self.shadowing_enabled:
             self.shader_engine.use_shader_program()
             # Set light space matrix
             glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
-                               1, GL_FALSE, glm.value_ptr(self.light_space_matrix))
+                               1, GL_FALSE, glm.value_ptr(self.shadow_map_manager.light_space_matrix))
 
             # Set light position (uses only the first light in the list to determine shadow)
             glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "lightPosition"),
@@ -759,7 +718,7 @@ class AbstractRenderer(ABC):
             # Bind shadow map
             shadow_map_unit = texture_manager.get_texture_unit(str(self.identifier), "shadow_map")
             glActiveTexture(GL_TEXTURE0 + shadow_map_unit)
-            glBindTexture(GL_TEXTURE_2D, self.depth_map)
+            glBindTexture(GL_TEXTURE_2D, self.shadow_map_manager.depth_map)
             glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowMap"), shadow_map_unit)
 
     def update_camera(self, delta_time):
