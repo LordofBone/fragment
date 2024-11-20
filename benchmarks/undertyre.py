@@ -72,6 +72,7 @@ def run_benchmark(
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        shadowing_enabled=False,
     )
 
     # Add the tyre renderer to the instance with a specific name
