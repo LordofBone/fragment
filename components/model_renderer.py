@@ -10,7 +10,7 @@ texture_manager = TextureManager()
 
 class ModelRenderer(AbstractRenderer):
     def __init__(self, obj_path, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(shadowing_enabled=True, **kwargs)
         self.obj_path = obj_path
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
@@ -57,6 +57,9 @@ class ModelRenderer(AbstractRenderer):
         """Enable a vertex attribute and define its data layout."""
         glEnableVertexAttribArray(location)
         glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(pointer_offset))
+
+    def supports_shadow_mapping(self):
+        return True
 
     @common_funcs
     def render(self):
