@@ -229,8 +229,8 @@ class AbstractRenderer(ABC):
         self.shadowing_enabled = shadowing_enabled  # Updated initialization
 
         # Shadow map resolution
-        self.shadow_width = 128
-        self.shadow_height = 128
+        self.shadow_width = 2048
+        self.shadow_height = 2048
 
         # Initialize ShadowMapManager
         self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
