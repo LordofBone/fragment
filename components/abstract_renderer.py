@@ -127,6 +127,7 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
+            shadowing_enabled=True,
         phong_shading=False,
         opacity=1.0,
         shininess=1.0,
@@ -145,7 +146,6 @@ class AbstractRenderer(ABC):
         lens_rotations=None,
         screen_facing_planar_texture=False,
         debug_mode=False,
-            shadowing_enabled=True,  # New parameter to indicate shadow mapping support
         **kwargs,
     ):
         # Use the memory address of the instance as a unique identifier
