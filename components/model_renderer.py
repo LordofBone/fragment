@@ -10,7 +10,7 @@ texture_manager = TextureManager()
 
 class ModelRenderer(AbstractRenderer):
     def __init__(self, obj_path, **kwargs):
-        super().__init__(shadowing_enabled=True, **kwargs)
+        super().__init__(**kwargs)
         self.obj_path = obj_path
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
