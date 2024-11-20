@@ -7,6 +7,7 @@ from components.model_renderer import ModelRenderer
 from components.particle_renderer import ParticleRenderer
 from components.renderer_window import RendererWindow
 from components.scene_constructor import SceneConstructor
+from components.shadow_map_manager import ShadowMapManager
 from components.skybox_renderer import SkyboxRenderer
 from components.surface_renderer import SurfaceRenderer
 
@@ -21,6 +22,7 @@ class RenderingInstance:
         self.render_order = []
         self.running = False  # Flag to control the main loop
         self.audio_player = None
+        self.shadow_map_manager = None  # Add the ShadowMapManager instance
 
     def setup(self):
         self.render_window = RendererWindow(
@@ -32,6 +34,9 @@ class RenderingInstance:
         )
 
         self.duration = self.config.duration
+
+        # Initialize ShadowMapManager
+        self.shadow_map_manager = ShadowMapManager(shadow_width=1024, shadow_height=1024)
 
         for renderer in self.scene_construct.renderers.values():
             renderer.setup()
@@ -177,6 +182,13 @@ class RenderingInstance:
 
         self.shutdown()
 
+    def render_scene(self, delta_time):
+        glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
+        for renderer_name, _ in self.render_order:
+            renderer = self.scene_construct.renderers[renderer_name]
+            renderer.update_camera(delta_time)
+            self.scene_construct.render(renderer_name)
+
     def render_planar_views(self):
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
@@ -184,19 +196,15 @@ class RenderingInstance:
                 renderer.render_planar_view(self.scene_construct.renderers.values())
 
     def render_shadow_maps(self):
-        # For each renderer, render the shadow map
-        for renderer in self.scene_construct.renderers.values():
-            # Check if renderer is an instance of ModelRenderer
-            if isinstance(renderer, ModelRenderer):
-                scene_renderers = self.scene_construct.renderers.values()
-                renderer.render_shadow_map(scene_renderers)
+        # Setup shadow map rendering
+        main_light_position = self.scene_construct.renderers[next(iter(self.scene_construct.renderers))].lights[0][
+            "position"]
+        self.shadow_map_manager.setup(main_light_position)
 
-    def render_scene(self, delta_time):
-        glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
-        for renderer_name, _ in self.render_order:
-            renderer = self.scene_construct.renderers[renderer_name]
-            renderer.update_camera(delta_time)
-            self.scene_construct.render(renderer_name)
+        # Render only renderers that support shadow mapping
+        for renderer in self.scene_construct.renderers.values():
+            if renderer.supports_shadow_mapping():
+                renderer.render_from_light(self.shadow_map_manager.light_space_matrix)
 
     def shutdown(self):
         """Shut down the rendering instance and clean up resources."""
