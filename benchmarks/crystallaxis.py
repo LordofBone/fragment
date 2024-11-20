@@ -69,6 +69,7 @@ def run_benchmark(
         },
         rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
+        shadowing_enabled=True,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
     )
