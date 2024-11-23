@@ -225,7 +225,7 @@ class AbstractRenderer(ABC):
 
         self.shader_engine = None
 
-        self.shadowing_enabled = shadowing_enabled  # Updated initialization
+        self.shadowing_enabled = shadowing_enabled
 
         # Shadow map resolution
         self.shadow_width = 2048
@@ -538,10 +538,9 @@ class AbstractRenderer(ABC):
             fragment_shader_path = self.shaders["fragment"].get(self.shader_names["fragment"])
         if "compute" in self.shader_names:
             compute_shader_path = self.shaders["compute"].get(self.shader_names["compute"])
-        if "shadow_vertex" in self.shader_names:
-            shadow_vertex_shader_path = self.shaders["vertex"].get(self.shader_names["shadow_vertex"])
-        if "shadow_fragment" in self.shader_names:
-            shadow_fragment_shader_path = self.shaders["fragment"].get(self.shader_names["shadow_fragment"])
+        if self.shadowing_enabled:
+            shadow_vertex_shader_path = self.shaders["vertex"].get("shadow_mapping")
+            shadow_fragment_shader_path = self.shaders["fragment"].get("shadow_mapping")
         if self.debug_mode:
             depth_vis_vertex_shader_path = self.shaders["vertex"].get("depth_test")
             depth_vis_fragment_shader_path = self.shaders["fragment"].get("depth_test")
