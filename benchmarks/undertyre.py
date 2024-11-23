@@ -38,7 +38,7 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=1000,
         lights=[
-            {"position": (-5.0, 0.0, 5.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {"position": (2.85, 2.0, 1.0), "color": (0.55, 0.55, 0.55), "strength": 1.0},
         ],
         anisotropy=anisotropy,
         auto_camera=False,
@@ -65,14 +65,12 @@ def run_benchmark(
         shader_names={
             "vertex": "standard",
             "fragment": "rubber",
-            "shadow_vertex": "shadow_mapping",
-            "shadow_fragment": "shadow_mapping",
         },
         rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        shadowing_enabled=False,
+        shadowing_enabled=True,
     )
 
     # Add the tyre renderer to the instance with a specific name
