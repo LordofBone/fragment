@@ -42,7 +42,7 @@ class ModelRenderer(AbstractRenderer):
         vertex_stride = 8 * float_size
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
-        tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "textureCoords")
+        tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "texCoords")
         normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
 
         self.enable_vertex_attrib(position_loc, 3, vertex_stride, 5 * float_size)
