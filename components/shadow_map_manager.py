@@ -24,14 +24,19 @@ class ShadowMapManager:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
-        border_color = [1.0, 1.0, 1.0, 1.0]
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color)
+        borderColor = [1.0, 1.0, 1.0, 1.0]
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor)
 
-        # Attach depth texture as FBO's depth buffer
         glBindFramebuffer(GL_FRAMEBUFFER, self.depth_map_fbo)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, self.depth_map, 0)
         glDrawBuffer(GL_NONE)
         glReadBuffer(GL_NONE)
+
+        # Check for completeness
+        status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+        if status != GL_FRAMEBUFFER_COMPLETE:
+            print("Shadow Map Framebuffer is not complete:", status)
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     def setup(self, light_position):
