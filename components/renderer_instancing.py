@@ -198,7 +198,7 @@ class RenderingInstance:
         # Render the scene from the light's perspective
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
-            if renderer.supports_shadow_mapping():
+            if renderer.supports_shadow_mapping() and renderer.shadowing_enabled:
                 renderer.render_from_light(light_space_matrix)
 
         # Unbind the framebuffer
