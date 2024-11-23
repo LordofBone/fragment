@@ -3,6 +3,7 @@ import time
 from abc import ABC, abstractmethod
 
 import glm
+import numpy as np
 import pygame
 from OpenGL.GL import *
 from OpenGL.raw.GL.EXT.texture_filter_anisotropic import GL_TEXTURE_MAX_ANISOTROPY_EXT
@@ -12,8 +13,8 @@ from components.camera_control import CameraController
 from components.shader_engine import ShaderEngine
 from components.shadow_map_manager import ShadowMapManager
 from components.texture_manager import TextureManager
+from config.path_config import screenshots_dir
 
-# Get the singleton instance of TextureManager
 texture_manager = TextureManager()
 
 
@@ -148,7 +149,6 @@ class AbstractRenderer(ABC):
         debug_mode=False,
         **kwargs,
     ):
-        # Use the memory address of the instance as a unique identifier
         self.planar_texture = None
         self.planar_framebuffer = None
         self.planar_camera_position = None
@@ -209,17 +209,16 @@ class AbstractRenderer(ABC):
         self.planar_near_plane = planar_near_plane
         self.planar_far_plane = planar_far_plane
 
-        # Planar camera attributes combined
         self.planar_camera_position_rotation = planar_camera_position_rotation
         self.planar_relative_to_camera = planar_relative_to_camera
         self.planar_camera_lens_rotation = planar_camera_lens_rotation
 
-        # New parameter for lens rotations
         self.lens_rotations = lens_rotations or [planar_camera_lens_rotation]
 
-        # New attribute
         self.screen_facing_planar_texture = screen_facing_planar_texture
         self.screen_facing_planar_screenshotted = False
+
+        self.screen_depth_map_screenshotted = False
 
         self.vbos = []
         self.vaos = []
@@ -286,6 +285,67 @@ class AbstractRenderer(ABC):
         self.load_textures()
         self.setup_camera()
         self.set_constant_uniforms()
+        if self.debug_mode:
+            self.init_depth_map_visualization_framebuffer()
+            self.screen_taken = False
+
+    def init_depth_map_visualization_framebuffer(self):
+        self.depth_vis_fbo = glGenFramebuffers(1)
+        self.depth_vis_texture = glGenTextures(1)
+
+        glBindTexture(GL_TEXTURE_2D, self.depth_vis_texture)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.window_size[0], self.window_size[1], 0, GL_RGB, GL_UNSIGNED_BYTE,
+                     None)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
+        glBindFramebuffer(GL_FRAMEBUFFER, self.depth_vis_fbo)
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self.depth_vis_texture, 0)
+
+        # Optionally attach a depth buffer
+        rbo = glGenRenderbuffers(1)
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo)
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, self.window_size[0], self.window_size[1])
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo)
+
+        if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
+            print("Error: Depth Map Visualization Framebuffer is not complete!")
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+    def render_shadow_map_visualization(self):
+        # Ensure the depth map has been rendered before this function is called.
+
+        # Bind the depth map texture
+        glBindTexture(GL_TEXTURE_2D, self.shadow_map_manager.depth_map)
+
+        # Read the depth texture data
+        width = self.shadow_map_manager.shadow_width
+        height = self.shadow_map_manager.shadow_height
+
+        # Create a buffer to store the depth data
+        depth_data = glGetTexImage(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, GL_FLOAT)
+
+        # Convert the data to a NumPy array
+        depth_array = np.frombuffer(depth_data, dtype=np.float32).reshape(height, width)
+
+        # Optionally normalize the depth values to [0, 1] if they are not already
+        depth_array = (depth_array - depth_array.min()) / (depth_array.max() - depth_array.min())
+
+        # Map the depth values to an 8-bit grayscale image
+        depth_image = (depth_array * 255).astype(np.uint8)
+
+        # Convert the NumPy array to an image using PIL
+        image = Image.fromarray(depth_image)
+
+        # Flip the image vertically to match OpenGL's coordinate system
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
+
+        # Save the image to a file for debugging purposes
+        if not self.screen_depth_map_screenshotted:
+            image.save(os.path.join(screenshots_dir, "depth_map.png"))
+            self.screen_depth_map_screenshotted = True
+
+            print(f"Depth map visualization saved to '{screenshots_dir}depth_map.png'")
 
     def setup_planar_camera(self):
         texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
@@ -424,7 +484,6 @@ class AbstractRenderer(ABC):
                 image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Flip the image vertically
 
                 # Create the screenshots directory if it doesn't exist
-                screenshots_dir = "screenshots"
                 if not os.path.exists(screenshots_dir):
                     os.makedirs(screenshots_dir)
 
@@ -461,12 +520,17 @@ class AbstractRenderer(ABC):
             glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
             glBindVertexArray(0)
 
+        if self.debug_mode:
+            self.render_shadow_map_visualization()
+
     def init_shaders(self):
         vertex_shader_path = None
         fragment_shader_path = None
         compute_shader_path = None
         shadow_vertex_shader_path = None
         shadow_fragment_shader_path = None
+        depth_vis_vertex_shader_path = None
+        depth_vis_fragment_shader_path = None
 
         if "vertex" in self.shader_names:
             vertex_shader_path = self.shaders["vertex"].get(self.shader_names["vertex"])
@@ -478,9 +542,13 @@ class AbstractRenderer(ABC):
             shadow_vertex_shader_path = self.shaders["vertex"].get(self.shader_names["shadow_vertex"])
         if "shadow_fragment" in self.shader_names:
             shadow_fragment_shader_path = self.shaders["fragment"].get(self.shader_names["shadow_fragment"])
+        if self.debug_mode:
+            depth_vis_vertex_shader_path = self.shaders["vertex"].get("depth_test")
+            depth_vis_fragment_shader_path = self.shaders["fragment"].get("depth_test")
 
         self.shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path,
-                                          shadow_vertex_shader_path, shadow_fragment_shader_path)
+                                          shadow_vertex_shader_path, shadow_fragment_shader_path,
+                                          depth_vis_vertex_shader_path, depth_vis_fragment_shader_path)
 
     def load_textures(self):
         """Load textures for the model."""
