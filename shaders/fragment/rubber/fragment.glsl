@@ -3,6 +3,7 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
+in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
@@ -10,6 +11,7 @@ uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D displacementMap;
 uniform samplerCube environmentMap;
+uniform sampler2D shadowMap;
 
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
@@ -72,6 +74,35 @@ vec3 computeLightingWithoutPhong(vec3 normal) {
     return ambient + diffuse;
 }
 
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    // Perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // Transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    // Get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // Check whether current fragment is in shadow
+    float bias = 0.005;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+    // Percentage-Closer Filtering (PCF) for softer shadows
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
+
+    return shadow;
+}
+
 void main()
 {
     // Fetch the normal from the normal map and transform it to the range [-1, 1]
@@ -84,12 +115,18 @@ void main()
     vec3 reflectDir = reflect(viewDir, normal);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
+    // Calculate shadow
+    float shadow = ShadowCalculation(FragPosLightSpace);
+
     vec3 finalColor;
     if (phongShading) {
         finalColor = computePhongLighting(normal, viewDir);
     } else {
         finalColor = computeLightingWithoutPhong(normal);
     }
+
+    // Apply shadow to lighting
+    finalColor = (1.0 - shadow) * finalColor;
 
     // Fresnel effect for edges
     float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
