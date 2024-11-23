@@ -156,7 +156,6 @@ class RenderingInstance:
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
             # Render the 3D scene
-            self.render_shadow_maps()
             self.render_planar_views()
             self.render_scene(delta_time)
 
@@ -183,28 +182,44 @@ class RenderingInstance:
         self.shutdown()
 
     def render_scene(self, delta_time):
+        # 1. Render the scene from the light's perspective into the depth map
+        glViewport(0, 0, self.shadow_map_manager.shadow_width, self.shadow_map_manager.shadow_height)
+        glBindFramebuffer(GL_FRAMEBUFFER, self.shadow_map_manager.depth_map_fbo)
+        glClear(GL_DEPTH_BUFFER_BIT)
+        glEnable(GL_DEPTH_TEST)
+        glCullFace(GL_FRONT)  # Optional: to prevent shadow acne
+
+        # Set up the light space matrix
+        light_position = self.scene_construct.renderers[next(iter(self.scene_construct.renderers))].lights[0][
+            "position"]  # Use your actual light position
+        self.shadow_map_manager.setup(light_position)
+        light_space_matrix = self.shadow_map_manager.light_space_matrix
+
+        # Render the scene from the light's perspective
+        for renderer_name, _ in self.render_order:
+            renderer = self.scene_construct.renderers[renderer_name]
+            if renderer.supports_shadow_mapping():
+                renderer.render_from_light(light_space_matrix)
+
+        # Unbind the framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        glCullFace(GL_BACK)
+
+        # 2. Render the scene normally
         glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glEnable(GL_DEPTH_TEST)
+
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
             renderer.update_camera(delta_time)
-            self.scene_construct.render(renderer_name)
+            renderer.render()
 
     def render_planar_views(self):
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
             if renderer.planar_camera:
                 renderer.render_planar_view(self.scene_construct.renderers.values())
-
-    def render_shadow_maps(self):
-        # Setup shadow map rendering
-        main_light_position = self.scene_construct.renderers[next(iter(self.scene_construct.renderers))].lights[0][
-            "position"]
-        self.shadow_map_manager.setup(main_light_position)
-
-        # Render only renderers that support shadow mapping
-        for renderer in self.scene_construct.renderers.values():
-            if renderer.supports_shadow_mapping():
-                renderer.render_from_light(self.shadow_map_manager.light_space_matrix)
 
     def shutdown(self):
         """Shut down the rendering instance and clean up resources."""
