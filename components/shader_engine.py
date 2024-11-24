@@ -3,8 +3,7 @@ from OpenGL.GL import *
 
 class ShaderEngine:
     def __init__(self, vertex_shader_path, fragment_shader_path, compute_shader_path=None,
-                 shadow_vertex_shader_path=None, shadow_fragment_shader_path=None,
-                 depth_vis_vertex_shader_path=None, depth_vis_fragment_shader_path=None):
+                 shadow_vertex_shader_path=None, shadow_fragment_shader_path=None):
         """
         Initialize the ShaderEngine. This class can handle both compute shaders and rendering shaders.
         If a compute shader is provided, it will compile and store it separately from the rendering shaders.
@@ -24,12 +23,6 @@ class ShaderEngine:
         if shadow_vertex_shader_path or shadow_fragment_shader_path:
             self.shadow_shader_program = self.create_shader_program(shadow_vertex_shader_path,
                                                                     shadow_fragment_shader_path)
-
-        # Initialize depth visualization shaders (vertex and fragment)
-        self.depth_visualization_program = None
-        if depth_vis_vertex_shader_path and depth_vis_fragment_shader_path:
-            self.depth_visualization_program = self.create_shader_program(depth_vis_vertex_shader_path,
-                                                                          depth_vis_fragment_shader_path)
 
     def create_shader_program(self, vertex_shader_path, fragment_shader_path):
         """Create and link a program from vertex and fragment shaders."""
@@ -125,11 +118,6 @@ class ShaderEngine:
         if self.shadow_shader_program:
             glUseProgram(self.shadow_shader_program)
 
-    def use_depth_visualization_program(self):
-        """Activate the depth visualization vertex/fragment shader program."""
-        if self.depth_visualization_program:
-            glUseProgram(self.depth_visualization_program)
-
     def delete_shader_programs(self):
         """Delete the shader program."""
         if self.shader_program:
@@ -138,5 +126,3 @@ class ShaderEngine:
             glDeleteProgram(self.compute_shader_program)
         if self.shadow_shader_program:
             glDeleteProgram(self.shadow_shader_program)
-        if self.depth_visualization_program:
-            glDeleteProgram(self.depth_visualization_program)
