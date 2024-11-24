@@ -11,6 +11,9 @@ class SkyboxRenderer(AbstractRenderer):
         self.skybox_vao = None
         self.skybox_vbo = None
 
+    def supports_shadow_mapping(self):
+        return False
+
     def create_buffers(self):
         """Create buffers for the skybox."""
         vertices = self._generate_skybox_vertices()
