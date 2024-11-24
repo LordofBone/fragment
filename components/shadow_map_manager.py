@@ -39,10 +39,7 @@ class ShadowMapManager:
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
-    def setup(self, light_position):
-        # Define the orthographic projection matrix for the light's perspective
-        near_plane = 1.0
-        far_plane = 50.0
-        light_projection = glm.ortho(-10.0, 10.0, -10.0, 10.0, near_plane, far_plane)
+    def setup(self, light_position, near_plane=1.0, far_plane=50.0, left=-10.0, right=10.0, bottom=-10.0, top=10.0):
+        light_projection = glm.ortho(left, right, bottom, top, near_plane, far_plane)
         light_view = glm.lookAt(light_position, glm.vec3(0.0, 0.0, 0.0), glm.vec3(0.0, 1.0, 0.0))
         self.light_space_matrix = light_projection * light_view
