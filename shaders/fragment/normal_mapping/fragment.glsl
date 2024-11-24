@@ -3,13 +3,13 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec4 FragPosLightSpace;// Added for shadow mapping
+in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
-uniform sampler2D shadowMap;// Added for shadow mapping
+uniform sampler2D shadowMap;
 
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
