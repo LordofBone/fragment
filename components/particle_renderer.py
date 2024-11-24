@@ -1144,9 +1144,6 @@ class ParticleRenderer(AbstractRenderer):
         self.particles_to_render = self.max_particles
 
     def print_vao_contents_transform_feedback(self):
-        # Bind the feedback VBO (the buffer with the updated particle data)
-        glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-
         # Get the size of the buffer in bytes
         print(f"Feedback VBO Buffer Size: {self.buffer_size_tf_compute} bytes")
 
