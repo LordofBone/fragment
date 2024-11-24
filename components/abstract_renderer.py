@@ -14,9 +14,11 @@ from components.shader_engine import ShaderEngine
 from components.shadow_map_manager import ShadowMapManager
 from components.texture_manager import TextureManager
 from config.path_config import screenshots_dir
+from utils.image_saver import ImageSaver
 
 texture_manager = TextureManager()
 
+image_saver = ImageSaver(screenshots_dir='screenshots')
 
 def check_gl_error(context, debug_mode):
     if debug_mode:
@@ -344,9 +346,8 @@ class AbstractRenderer(ABC):
         # Flip the image vertically to match OpenGL's coordinate system
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
 
-        # Save the image to a file for debugging purposes
         if not self.screen_depth_map_screenshotted:
-            image.save(os.path.join(screenshots_dir, "depth_map.png"))
+            image_saver.save_image(image, "depth_map.png")
             self.screen_depth_map_screenshotted = True
 
             print(f"Depth map visualization saved to '{screenshots_dir}depth_map.png'")
@@ -495,8 +496,7 @@ class AbstractRenderer(ABC):
                 timestamp = time.strftime("%Y%m%d_%H%M%S")
                 filename = f"screen_texture_output_{timestamp}.png"
 
-                # Save the image in the screenshots directory
-                image.save(os.path.join(screenshots_dir, filename))
+                image_saver.save_image(image, filename)
                 self.screen_facing_planar_screenshotted = True
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
