@@ -75,7 +75,9 @@ class SurfaceRenderer(AbstractRenderer):
         vertex_stride = 5 * float_size
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
-        tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "textureCoords")
+        tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "texCoords")
+
+        print(position_loc), print(tex_coords_loc)
 
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
