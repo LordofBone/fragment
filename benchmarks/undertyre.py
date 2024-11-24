@@ -36,7 +36,7 @@ def run_benchmark(
         up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.1,
-        far_plane=1000,
+        far_plane=50.0,
         lights=[
             {"position": (2.85, 2.0, 1.0), "color": (0.55, 0.55, 0.55), "strength": 1.0},
         ],
