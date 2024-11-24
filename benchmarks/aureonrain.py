@@ -77,8 +77,6 @@ def run_benchmark(
         shader_names={
             "vertex": "standard",
             "fragment": "stealth",
-            "shadow_vertex": "shadow_mapping",
-            "shadow_fragment": "shadow_mapping",
         },
         opacity=0.0,
         distortion_strength=0.2,
@@ -105,8 +103,6 @@ def run_benchmark(
         shader_names={
             "vertex": "standard",
             "fragment": "stealth",
-            "shadow_vertex": "shadow_mapping",
-            "shadow_fragment": "shadow_mapping",
         },
         opacity=0.5,
         distortion_strength=0.2,
@@ -132,8 +128,6 @@ def run_benchmark(
         shader_names={
             "vertex": "standard",
             "fragment": "embm",
-            "shadow_vertex": "shadow_mapping",
-            "shadow_fragment": "shadow_mapping",
         },
         rotation_speed=2000.0,
         shadowing_enabled=True,
