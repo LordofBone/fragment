@@ -228,8 +228,8 @@ class AbstractRenderer(ABC):
         self.shadowing_enabled = shadowing_enabled
 
         # Shadow map resolution
-        self.shadow_width = 2048
-        self.shadow_height = 2048
+        self.shadow_width = 4096
+        self.shadow_height = 4096
 
         # Initialize ShadowMapManager
         self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
@@ -245,6 +245,10 @@ class AbstractRenderer(ABC):
                     "position": glm.vec3(*light.get("position", (0, 0, 0))),
                     "color": glm.vec3(*light.get("color", (1.0, 1.0, 1.0))),
                     "strength": light.get("strength", 1.0),
+                    "orth_left": light.get("orth_left", -10.0),
+                    "orth_right": light.get("orth_right", 10.0),
+                    "orth_bottom": light.get("orth_bottom", -10.0),
+                    "orth_top": light.get("orth_top", 10.0),
                 }
                 for light in lights
             ]
@@ -329,7 +333,7 @@ class AbstractRenderer(ABC):
         depth_array = np.frombuffer(depth_data, dtype=np.float32).reshape(height, width)
 
         # Optionally normalize the depth values to [0, 1] if they are not already
-        depth_array = (depth_array - depth_array.min()) / (depth_array.max() - depth_array.min())
+        # depth_array = (depth_array - depth_array.min()) / (depth_array.max() - depth_array.min())
 
         # Map the depth values to an 8-bit grayscale image
         depth_image = (depth_array * 255).astype(np.uint8)
