@@ -2,7 +2,13 @@ import os
 
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
-from config.path_config import cubemaps_dir, diffuse_textures_dir, displacement_textures_dir, normal_textures_dir
+from config.path_config import (
+    cubemaps_dir,
+    diffuse_textures_dir,
+    displacement_textures_dir,
+    models_dir,
+    normal_textures_dir,
+)
 
 
 def run_benchmark(
@@ -49,7 +55,13 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=1000,
         lights=[
-            {"position": (50.0, 50.0, 50.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
+            {"position": (50.0, 50.0, 50.0),
+             "color": (1.0, 1.0, 1.0),
+             "strength": 0.8,
+             "orth_left": -100.0,
+             "orth_right": 100.0,
+             "orth_bottom": -100.0,
+             "orth_top": 100.0},
         ],
         anisotropy=anisotropy,
         move_speed=0.2,
@@ -66,7 +78,7 @@ def run_benchmark(
 
     # Define the configuration for the sphere model
     sphere_config = base_config.add_model(
-        obj_path="models/sphere.obj",
+        obj_path=os.path.join(models_dir, "sphere.obj"),
         texture_paths={
             "diffuse": os.path.join(diffuse_textures_dir, "metal_1.png"),
             "normal": os.path.join(normal_textures_dir, "metal_1.png"),
@@ -76,6 +88,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "stealth",
         },
+        shadowing_enabled=True,
         opacity=0.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
