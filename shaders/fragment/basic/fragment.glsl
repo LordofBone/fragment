@@ -8,16 +8,16 @@ in vec4 FragPosLightSpace;
 out vec4 FragColor;
 
 uniform sampler2D diffuseMap;
+uniform vec3 ambientColor;
 
 void main()
 {
+    // Sample the diffuse texture to get the base color
     vec3 diffuseColor = texture(diffuseMap, TexCoords).rgb;
 
-    // Use Normal to perform simple lighting to prevent it from being optimized out
-    vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(vec3(0.0, 0.0, 1.0));
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 result = diffuseColor * diff;
+    // Apply the ambient color as flat lighting
+    vec3 resultColor = diffuseColor * ambientColor;
 
-    FragColor = vec4(result, 1.0);
+    // Output the color with full opacity
+    FragColor = vec4(resultColor, 1.0);
 }
