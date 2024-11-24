@@ -533,8 +533,6 @@ class AbstractRenderer(ABC):
         compute_shader_path = None
         shadow_vertex_shader_path = None
         shadow_fragment_shader_path = None
-        depth_vis_vertex_shader_path = None
-        depth_vis_fragment_shader_path = None
 
         if "vertex" in self.shader_names:
             vertex_shader_path = self.shaders["vertex"].get(self.shader_names["vertex"])
@@ -545,13 +543,9 @@ class AbstractRenderer(ABC):
         if self.shadowing_enabled:
             shadow_vertex_shader_path = self.shaders["vertex"].get("shadow_mapping")
             shadow_fragment_shader_path = self.shaders["fragment"].get("shadow_mapping")
-        if self.debug_mode:
-            depth_vis_vertex_shader_path = self.shaders["vertex"].get("depth_test")
-            depth_vis_fragment_shader_path = self.shaders["fragment"].get("depth_test")
 
         self.shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path,
-                                          shadow_vertex_shader_path, shadow_fragment_shader_path,
-                                          depth_vis_vertex_shader_path, depth_vis_fragment_shader_path)
+                                          shadow_vertex_shader_path, shadow_fragment_shader_path)
 
     def load_textures(self):
         """Load textures for the model."""
@@ -725,6 +719,8 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_engine.shader_program, "projection"), 1, GL_FALSE,
             glm.value_ptr(self.projection)
         )
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "near_plane"), self.near_plane)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "far_plane"), self.far_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "opacity"), self.opacity)
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shininess"), self.shininess)
