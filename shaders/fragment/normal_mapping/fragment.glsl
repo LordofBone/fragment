@@ -3,11 +3,13 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
+in vec4 FragPosLightSpace;// Added for shadow mapping
 
 out vec4 FragColor;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
+uniform sampler2D shadowMap;// Added for shadow mapping
 
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
@@ -67,6 +69,35 @@ vec3 computeDiffuseWithNormalMap(vec3 normal) {
     return lighting * texture(diffuseMap, TexCoords).rgb;
 }
 
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    // Perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // Transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    // Get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // Check whether current fragment is in shadow
+    float bias = 0.005;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+    // Percentage-Closer Filtering (PCF) for softer shadows
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
+
+    return shadow;
+}
+
 void main()
 {
     // Fetch the normal from the normal map and transform it to the range [-1, 1]
@@ -82,6 +113,12 @@ void main()
         // Even without Phong shading, we still want the lighting to respect the normal map
         color = computeDiffuseWithNormalMap(normal);
     }
+
+    // Calculate shadow
+    float shadow = ShadowCalculation(FragPosLightSpace);
+
+    // Apply shadow to color
+    color = (1.0 - shadow) * color;
 
     // Add ambient light to the result
     color += ambientColor * texture(diffuseMap, TexCoords).rgb;
