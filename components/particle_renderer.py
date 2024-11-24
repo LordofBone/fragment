@@ -234,6 +234,9 @@ class ParticleRenderer(AbstractRenderer):
                 log = glGetProgramInfoLog(self.shader_engine.shader_program)
                 raise RuntimeError(f"Shader program linking failed: {log.decode()}")
 
+    def supports_shadow_mapping(self):
+        return False
+
     def set_view_projection_matrices(self):
         """
         Send the view and projection matrices to the shader.
