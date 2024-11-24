@@ -1,9 +1,23 @@
-#version 430
+#version 330 core
 
-in vec3 fragColor;
-out vec4 color;
+in vec2 TexCoords;
+in vec3 FragPos;
+in vec3 Normal;
+in vec4 FragPosLightSpace;
 
-void main() {
-    // Output the color with full opacity
-    color = vec4(fragColor, 1.0);
+out vec4 FragColor;
+
+uniform sampler2D diffuseMap;
+
+void main()
+{
+    vec3 diffuseColor = texture(diffuseMap, TexCoords).rgb;
+
+    // Use Normal to perform simple lighting to prevent it from being optimized out
+    vec3 norm = normalize(Normal);
+    vec3 lightDir = normalize(vec3(0.0, 0.0, 1.0));
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 result = diffuseColor * diff;
+
+    FragColor = vec4(result, 1.0);
 }
