@@ -156,7 +156,6 @@ class RenderingInstance:
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
             # Render the 3D scene
-            self.render_planar_views()
             self.render_scene(delta_time)
 
             # Collect FPS data
@@ -211,6 +210,8 @@ class RenderingInstance:
         glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glEnable(GL_DEPTH_TEST)
+
+        self.render_planar_views()
 
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
