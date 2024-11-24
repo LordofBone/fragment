@@ -45,9 +45,12 @@ class ModelRenderer(AbstractRenderer):
         tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "texCoords")
         normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
 
-        self.enable_vertex_attrib(position_loc, 3, vertex_stride, 5 * float_size)
-        self.enable_vertex_attrib(tex_coords_loc, 2, vertex_stride, 0)
-        self.enable_vertex_attrib(normal_loc, 3, vertex_stride, 2 * float_size)
+        if position_loc >= 0:
+            self.enable_vertex_attrib(position_loc, 3, vertex_stride, 5 * float_size)
+        if tex_coords_loc >= 0:
+            self.enable_vertex_attrib(tex_coords_loc, 2, vertex_stride, 0)
+        if normal_loc >= 0:
+            self.enable_vertex_attrib(normal_loc, 3, vertex_stride, 2 * float_size)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
@@ -55,8 +58,9 @@ class ModelRenderer(AbstractRenderer):
 
     def enable_vertex_attrib(self, location, size, stride, pointer_offset):
         """Enable a vertex attribute and define its data layout."""
-        glEnableVertexAttribArray(location)
-        glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(pointer_offset))
+        if location >= 0:
+            glEnableVertexAttribArray(location)
+            glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(pointer_offset))
 
     def supports_shadow_mapping(self):
         return True
