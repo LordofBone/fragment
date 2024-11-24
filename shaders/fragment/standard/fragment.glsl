@@ -13,7 +13,6 @@ void main()
 {
     vec3 diffuseColor = texture(diffuseMap, TexCoords).rgb;
 
-    // Use Normal to perform simple lighting to prevent it from being optimized out
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(vec3(0.0, 0.0, 1.0));
     float diff = max(dot(norm, lightDir), 0.0);
