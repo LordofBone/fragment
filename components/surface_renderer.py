@@ -11,6 +11,9 @@ class SurfaceRenderer(AbstractRenderer):
         self.vbo = None
         self.ebo = None
 
+    def supports_shadow_mapping(self):
+        return False
+
     def create_buffers(self):
         """Create buffers for the surface."""
         vertices, indices = self._generate_surface_geometry()
@@ -76,8 +79,6 @@ class SurfaceRenderer(AbstractRenderer):
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
         tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "texCoords")
-
-        print(position_loc), print(tex_coords_loc)
 
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
