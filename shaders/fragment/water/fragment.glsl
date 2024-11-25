@@ -26,6 +26,9 @@ uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
 
+uniform float liquidDepth;
+uniform float shadowStrength;
+
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -34,9 +37,11 @@ float smoothNoise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
     f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(noise(i + vec2(0.0, 0.0)), noise(i + vec2(1.0, 0.0)), f.x),
+    return mix(
+    mix(noise(i + vec2(0.0, 0.0)), noise(i + vec2(1.0, 0.0)), f.x),
     mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
-    f.y);
+    f.y
+    );
 }
 
 vec3 Uncharted2Tonemap(vec3 x) {
@@ -47,7 +52,8 @@ vec3 Uncharted2Tonemap(vec3 x) {
     float E = 0.02;
     float F = 0.30;
 
-    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+    return ((x * (A * x + C * B) + D * E) /
+    (x * (A * x + B) + D * F)) - E / F;
 }
 
 vec3 toneMapping(vec3 color) {
@@ -56,8 +62,8 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
-    vec3 ambient = ambientColor;// Use the ambientColor uniform for ambient lighting
+vec3 computePhongLighting(vec3 normalMap, vec3 viewDir, vec3 lightDir) {
+    vec3 ambient = ambientColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
 
@@ -74,31 +80,37 @@ vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
     return ambient + diffuse + specular;
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
+float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, float waveHeight) {
     // Perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // Transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
-    // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
+
+    // Offset the depth based on the normal map and wave height
+    projCoords.z -= waveHeight * 0.1;// Adjust scaling factor as needed
+
+    // Get closest depth value from light's perspective
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     // Get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
-    // Check whether current fragment is in shadow
-    float bias = 0.005;
-    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+    // Bias to prevent shadow acne
+    float bias = max(0.05 * (1.0 - dot(normal, normalize(lightPositions[0] - FragPos))), 0.005);
 
     // Percentage-Closer Filtering (PCF) for softer shadows
+    float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    for (int x = -1; x <= 1; ++x)
-    {
-        for (int y = -1; y <= 1; ++y)
-        {
+    int samples = 3;
+    for (int x = -samples; x <= samples; ++x) {
+        for (int y = -samples; y <= samples; ++y) {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
+    shadow /= float((samples * 2 + 1) * (samples * 2 + 1));
+
+    // Attenuate shadow based on water depth
+    shadow *= exp(-liquidDepth * 0.1) * shadowStrength;
 
     return shadow;
 }
@@ -112,51 +124,42 @@ void main()
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
     vec3 normalMap = vec3(0.0, 0.0, 1.0);
-    normalMap.xy += waveAmplitude * vec2(sin(waveTexCoords.y * 10.0), cos(waveTexCoords.x * 10.0));
+    float waveHeightX = sin(waveTexCoords.y * 10.0);
+    float waveHeightY = cos(waveTexCoords.x * 10.0);
+    normalMap.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     normalMap = normalize(normalMap);
 
     vec3 viewDir = normalize(cameraPos - FragPos);
+    vec3 lightDir = normalize(lightPositions[0] - FragPos);// Assuming one light source
 
-    // Phong lighting components
-    vec3 phongColor = vec3(0.0);
+    // Compute reflection and refraction using the environment map
+    vec3 reflectDir = reflect(-viewDir, normalMap);
+    vec3 refractDir = refract(-viewDir, normalMap, 1.0 / 1.33);
 
+    vec3 reflection = texture(environmentMap, reflectDir).rgb;
+    vec3 refraction = texture(environmentMap, refractDir).rgb;
+
+    float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
+
+    vec3 envColor = mix(refraction, reflection, fresnel);
 
     // Calculate shadow
-    float shadow = ShadowCalculation(FragPosLightSpace);
+    float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
+    float shadow = ShadowCalculation(FragPosLightSpace, normalMap, waveHeight);
 
-    // Apply shadow to phongColor
+    // Phong lighting components
     vec3 color = vec3(0.0);
-
     if (phongShading) {
-        vec3 phongColor = computePhongLighting(normalMap, viewDir);
-        phongColor = (1.0 - shadow) * phongColor;// Apply shadow to Phong lighting
+        vec3 phongColor = computePhongLighting(normalMap, viewDir, lightDir);
+        // Apply shadow to Phong lighting
+        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color += phongColor;
     }
 
-    vec3 envColor = vec3(0.0);// Default environment color is black (no reflection)
+    // Combine environment color and apply shadow
+    envColor = mix(envColor, envColor * (1.0 - shadow), shadowStrength);
 
-    // Apply shadow to environment color if needed
-    // Assuming envColor contains reflection/refraction components
-    if (textureSize(environmentMap, 0).x > 1) {
-        // Compute reflection and refraction using the environment map
-        vec3 reflectDir = reflect(-viewDir, normalMap);
-        vec3 refractDir = refract(-viewDir, normalMap, 1.0 / 1.33);
-
-        vec3 reflection = texture(environmentMap, reflectDir).rgb;
-        vec3 refraction = texture(environmentMap, refractDir).rgb;
-
-        float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
-
-        vec3 envColor = mix(refraction, reflection, fresnel);
-
-        // Apply shadow to envColor
-        envColor = (1.0 - shadow) * envColor;
-
-        color += envColor;
-    } else {
-        // Fallback: if no environment map, use ambient lighting and Phong lighting
-        envColor = phongColor + ambientColor * normalMap;
-    }
+    color += envColor;
 
     // Apply tone mapping and gamma correction if enabled
     if (applyToneMapping) {
