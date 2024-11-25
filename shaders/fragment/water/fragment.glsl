@@ -26,7 +26,7 @@ uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
 
-uniform float liquidDepth;
+uniform float surfaceDepth;
 uniform float shadowStrength;
 
 float noise(vec2 p) {
@@ -110,7 +110,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, float waveHeight) {
     shadow /= float((samples * 2 + 1) * (samples * 2 + 1));
 
     // Attenuate shadow based on water depth
-    shadow *= exp(-liquidDepth * 0.1) * shadowStrength;
+    shadow *= exp(-surfaceDepth * 0.1) * shadowStrength;
 
     return shadow;
 }
