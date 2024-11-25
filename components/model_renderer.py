@@ -14,6 +14,9 @@ class ModelRenderer(AbstractRenderer):
         self.obj_path = obj_path
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
+    def supports_shadow_mapping(self):
+        return True
+
     def create_buffers(self):
         """Create buffers for the model."""
         for name, material in self.object.materials.items():
@@ -61,9 +64,6 @@ class ModelRenderer(AbstractRenderer):
         if location >= 0:
             glEnableVertexAttribArray(location)
             glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(pointer_offset))
-
-    def supports_shadow_mapping(self):
-        return True
 
     @common_funcs
     def render(self):
