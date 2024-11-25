@@ -766,6 +766,10 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_engine.shader_program, "texCoordAmplitude"),
             self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
         )
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "liquidDepth"),
+                    self.dynamic_attrs.get("liquid_depth", 0.0))
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shadowStrength"),
+                    self.dynamic_attrs.get("shadow_strength", 1.0))
         glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "cameraPos"), 1,
                      glm.value_ptr(self.camera_position))
 
