@@ -12,7 +12,7 @@ class SurfaceRenderer(AbstractRenderer):
         self.ebo = None
 
     def supports_shadow_mapping(self):
-        return False
+        return True
 
     def create_buffers(self):
         """Create buffers for the surface."""
