@@ -772,7 +772,7 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
     def set_shadow_shader_uniforms(self):
-        if self.shadow_map_manager and self.shadowing_enabled:
+        if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
             self.shader_engine.use_shader_program()
             # Set light space matrix
             glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
