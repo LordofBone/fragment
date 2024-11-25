@@ -188,18 +188,18 @@ class RenderingInstance:
         glEnable(GL_DEPTH_TEST)
         glCullFace(GL_FRONT)  # Optional: to prevent shadow acne
 
-        # Get the first light source
-        light = self.scene_construct.renderers[next(iter(self.scene_construct.renderers))].lights[0]
-        near_plane = self.scene_construct.renderers[next(iter(self.scene_construct.renderers))].near_plane
-        far_plane = self.scene_construct.renderers[next(iter(self.scene_construct.renderers))].far_plane
-
-        self.shadow_map_manager.setup(light, near_plane, far_plane)
-        light_space_matrix = self.shadow_map_manager.light_space_matrix
-
         # Render the scene from the light's perspective
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
-            if renderer.supports_shadow_mapping() and renderer.shadowing_enabled:
+            if renderer.supports_shadow_mapping() and renderer.shadowing_enabled and renderer.lights_enabled:
+                # Get the first light source
+                light = self.scene_construct.renderers[renderer_name].lights[0]
+                near_plane = self.scene_construct.renderers[renderer_name].near_plane
+                far_plane = self.scene_construct.renderers[renderer_name].far_plane
+
+                self.shadow_map_manager.setup(light, near_plane, far_plane)
+                light_space_matrix = self.shadow_map_manager.light_space_matrix
+
                 renderer.render_from_light(light_space_matrix)
 
         # Unbind the framebuffer
