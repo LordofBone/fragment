@@ -44,9 +44,9 @@ def run_benchmark(
         up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.2,
-        far_plane=5000,
+        far_plane=100,
         lights=[
-            {"position": (50.0, 20.0, 30.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
+            {"position": (1.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
         ],
         anisotropy=anisotropy,
         auto_camera=True,
@@ -192,6 +192,8 @@ def run_benchmark(
         tex_coord_amplitude=0.010,
         width=50.0,
         height=50.0,
+        liquid_depth=10.0,
+        shadow_strength=0.85,
         phong_shading=False,
     )
 
