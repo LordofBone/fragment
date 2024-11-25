@@ -192,7 +192,7 @@ def run_benchmark(
         tex_coord_amplitude=0.010,
         width=50.0,
         height=50.0,
-        liquid_depth=10.0,
+        surface_depth=10.0,
         shadow_strength=0.85,
         phong_shading=False,
     )
