@@ -130,7 +130,7 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
-            shadowing_enabled=True,
+            shadowing_enabled=False,
         phong_shading=False,
         opacity=1.0,
         shininess=1.0,
