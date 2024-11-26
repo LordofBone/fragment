@@ -70,6 +70,7 @@ def run_benchmark(
         texture_lod_bias=1.0,
         env_map_lod_bias=2.0,
         phong_shading=True,
+        shadowing_enabled=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -88,7 +89,6 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "stealth",
         },
-        shadowing_enabled=True,
         opacity=0.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
