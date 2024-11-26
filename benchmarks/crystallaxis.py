@@ -47,6 +47,7 @@ def run_benchmark(
         texture_lod_bias=0.85,
         env_map_lod_bias=2.5,
         phong_shading=True,
+        shadowing_enabled=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -67,7 +68,6 @@ def run_benchmark(
         },
         rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
-        shadowing_enabled=True,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
     )
