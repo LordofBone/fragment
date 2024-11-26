@@ -48,6 +48,7 @@ def run_benchmark(
         lights=[
             {"position": (6.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
         ],
+        shadowing_enabled=True,
         anisotropy=anisotropy,
         auto_camera=True,
         move_speed=0.1,
@@ -88,7 +89,6 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
-        shadowing_enabled=True,
     )
 
     # Define the configuration for the opaque pyramid model
@@ -114,7 +114,6 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
-        shadowing_enabled=True,
     )
 
     # Define the configuration for the rotating pyramid model
@@ -130,7 +129,6 @@ def run_benchmark(
             "fragment": "embm",
         },
         rotation_speed=2000.0,
-        shadowing_enabled=True,
     )
 
     # Define the configuration for the particle renderer
