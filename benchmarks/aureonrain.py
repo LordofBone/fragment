@@ -46,7 +46,7 @@ def run_benchmark(
         near_plane=0.2,
         far_plane=100,
         lights=[
-            {"position": (1.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
+            {"position": (6.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
         ],
         anisotropy=anisotropy,
         auto_camera=True,
