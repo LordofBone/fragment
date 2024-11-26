@@ -3,7 +3,7 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec4 FragPosLightSpace;
+in vec4 FragPosLightSpace;// Added for shadow mapping
 
 out vec4 FragColor;
 
@@ -24,7 +24,9 @@ uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
 
-uniform sampler2D shadowMap;
+uniform sampler2D shadowMap;// Added for shadow mapping
+uniform float surfaceDepth;// Depth of the lava surface for shadow attenuation
+uniform float shadowStrength;// Strength of the shadow under lava
 
 // Noise functions
 float noise(vec2 p) {
@@ -62,11 +64,15 @@ vec3 toneMapping(vec3 color) {
 }
 
 // Shadow calculation function
-float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal) {
+float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, float waveHeight) {
     // Perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // Transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
+
+    // Offset the depth based on the normal map and wave height
+    projCoords.z -= waveHeight * 0.1;// Adjust scaling factor as needed
+
     // Check if fragment is outside the shadow map
     if (projCoords.z > 1.0)
     return 0.0;
@@ -81,15 +87,19 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal) {
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     // PCF for soft shadows
-    for (int x = -1; x <= 1; ++x)
+    int samples = 3;
+    for (int x = -samples; x <= samples; ++x)
     {
-        for (int y = -1; y <=1; ++y)
+        for (int y = -samples; y <= samples; ++y)
         {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
+    shadow /= float((samples * 2 + 1) * (samples * 2 + 1));
+
+    // Attenuate shadow based on lava depth and shadow strength
+    shadow *= exp(-surfaceDepth * 0.1) * shadowStrength;// Adjust attenuation factor as needed
 
     // Clamp shadow value
     shadow = clamp(shadow, 0.0, 1.0);
@@ -124,10 +134,9 @@ void main()
 
     // Generate normal map based on wave pattern
     vec3 normalMap = vec3(0.0, 0.0, 1.0);
-    normalMap.xy += waveAmplitude * vec2(
-    sin(waveTexCoords.y * 10.0),
-    cos(waveTexCoords.x * 10.0)
-    );
+    float waveHeightX = sin(waveTexCoords.y * 10.0);
+    float waveHeightY = cos(waveTexCoords.x * 10.0);
+    normalMap.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     normalMap = normalize(normalMap);
 
     vec3 viewDir = normalize(cameraPos - FragPos);
@@ -145,8 +154,11 @@ void main()
     vec3 lavaColor = mix(baseColor, brightColor, noiseValue);
     vec3 color = mix(lavaColor, reflection, fresnel * 0.2);
 
+    // Compute wave height for shadow offset
+    float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
+
     // Compute shadow
-    float shadow = ShadowCalculation(FragPosLightSpace, normalMap);
+    float shadow = ShadowCalculation(FragPosLightSpace, normalMap, waveHeight);
 
     // Apply shadow to lighting
     if (phongShading) {
@@ -155,7 +167,7 @@ void main()
         color = mix(color, color * (1.0 - shadow * 0.5), 0.5) + phongColor * 0.5;
     } else {
         // Apply shadow to color directly
-        color *= (1.0 - shadow * 0.5);
+        color = mix(color, color * (1.0 - shadow * 0.5), 1.0);
     }
 
     // Additional lava effects
