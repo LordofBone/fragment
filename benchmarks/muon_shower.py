@@ -34,7 +34,6 @@ def run_benchmark(
         msaa_level=msaa_level,
         alpha_blending=True,
         culling=True,
-        debug_mode=False,
     )
 
     # Create the rendering instance with the base configuration
