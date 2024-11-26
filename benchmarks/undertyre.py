@@ -47,6 +47,7 @@ def run_benchmark(
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         phong_shading=True,
+        shadowing_enabled=True,
     )
 
     # Create the rendering instance with the base configuration
@@ -70,7 +71,6 @@ def run_benchmark(
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        shadowing_enabled=True,
     )
 
     # Add the tyre renderer to the instance with a specific name
