@@ -1,76 +1,83 @@
+import glm
 import numpy as np
 from OpenGL.GL import *
 
 from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
+class Mesh:
+    def __init__(self, vertices, faces):
+        self.vertices = vertices
+        self.faces = faces
+
+
+class SceneObject:
+    def __init__(self, mesh_list):
+        self.mesh_list = mesh_list
+
 class SurfaceRenderer(AbstractRenderer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.vao = None
-        self.vbo = None
-        self.ebo = None
+        self.vaos = []
+        self.vbos = []
+        self.ebos = []
+        self.object = None  # Initialize self.object
 
     def supports_shadow_mapping(self):
         return True
 
     def create_buffers(self):
         """Create buffers for the surface."""
-        vertices, indices = self._generate_surface_geometry()
-        vertices_array = np.array(vertices, dtype=np.float32)
-        indices_array = np.array(indices, dtype=np.uint32)
+        vertices, faces = self._generate_surface_geometry()
+        mesh = Mesh(vertices, faces)  # Create a Mesh instance with faces
+        self.object = SceneObject(mesh_list=[mesh])  # Store in self.object
 
-        self.vao = glGenVertexArrays(1)
-        glBindVertexArray(self.vao)
+        # Create buffers for each mesh
+        for mesh in self.object.mesh_list:
+            # Create and bind VAO
+            vao = glGenVertexArrays(1)
+            glBindVertexArray(vao)
+            self.vaos.append(vao)
 
-        self._setup_vertex_buffer(vertices_array)
-        self._setup_index_buffer(indices_array)
+            # Convert vertices to numpy array
+            vertices_array = np.array(mesh.vertices, dtype=np.float32)
 
-        self._setup_vertex_attributes()
+            # Setup VBO
+            vbo = glGenBuffers(1)
+            glBindBuffer(GL_ARRAY_BUFFER, vbo)
+            glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
+            self.vbos.append(vbo)
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
+            # No EBO needed
+            self.ebos.append(None)
+
+            # Setup vertex attributes
+            self._setup_vertex_attributes()
+
+            # Unbind VAO
+            glBindVertexArray(0)
 
     def _generate_surface_geometry(self):
-        """Generate vertex and index data for the surface."""
+        """Generate vertex and face data for the surface."""
         half_width = self.dynamic_attrs["width"] / 2.0
         half_height = self.dynamic_attrs["height"] / 2.0
+
+        # Vertex data: positions and texcoords
         vertices = [
-            -half_width,
-            0.0,
-            half_height,
-            0.0,
-            1.0,  # Top-left
-            half_width,
-            0.0,
-            half_height,
-            1.0,
-            1.0,  # Top-right
-            half_width,
-            0.0,
-            -half_height,
-            1.0,
-            0.0,  # Bottom-right
-            -half_width,
-            0.0,
-            -half_height,
-            0.0,
-            0.0,  # Bottom-left
+            # Triangle 1
+            -half_width, 0.0, half_height, 0.0, 1.0,  # Vertex 0: Top-left
+            half_width, 0.0, half_height, 1.0, 1.0,  # Vertex 1: Top-right
+            half_width, 0.0, -half_height, 1.0, 0.0,  # Vertex 2: Bottom-right
+            # Triangle 2
+            half_width, 0.0, -half_height, 1.0, 0.0,  # Vertex 3: Bottom-right
+            -half_width, 0.0, -half_height, 0.0, 0.0,  # Vertex 4: Bottom-left
+            -half_width, 0.0, half_height, 0.0, 1.0,  # Vertex 5: Top-left
         ]
-        indices = [0, 1, 2, 2, 3, 0]  # Two triangles forming the quad
-        return vertices, indices
 
-    def _setup_vertex_buffer(self, vertices_array):
-        """Setup the vertex buffer object."""
-        self.vbo = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
+        # Faces: list of tuples of vertex indices
+        faces = [(0, 1, 2), (3, 4, 5)]
 
-    def _setup_index_buffer(self, indices_array):
-        """Setup the index buffer object."""
-        self.ebo = glGenBuffers(1)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_array.nbytes, indices_array, GL_STATIC_DRAW)
+        return vertices, faces
 
     def _setup_vertex_attributes(self):
         """Setup vertex attribute pointers."""
@@ -80,15 +87,24 @@ class SurfaceRenderer(AbstractRenderer):
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
         tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "texCoords")
 
-        glEnableVertexAttribArray(position_loc)
-        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
+        if position_loc >= 0:
+            glEnableVertexAttribArray(position_loc)
+            glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
 
-        glEnableVertexAttribArray(tex_coords_loc)
-        glVertexAttribPointer(tex_coords_loc, 2, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(3 * float_size))
+        if tex_coords_loc >= 0:
+            glEnableVertexAttribArray(tex_coords_loc)
+            glVertexAttribPointer(tex_coords_loc, 2, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(3 * float_size))
 
     @common_funcs
     def render(self):
         """Render the surface."""
-        glBindVertexArray(self.vao)
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
-        glBindVertexArray(0)
+        self.shader_engine.use_shader_program()
+        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "model"),
+                           1, GL_FALSE, glm.value_ptr(self.model_matrix))
+        self.set_constant_uniforms()
+
+        for mesh in self.object.mesh_list:
+            vao_index = self.object.mesh_list.index(mesh)
+            glBindVertexArray(self.vaos[vao_index])
+            glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
+            glBindVertexArray(0)
