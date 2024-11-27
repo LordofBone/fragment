@@ -132,6 +132,7 @@ class AbstractRenderer(ABC):
         front_face_winding="CCW",
         window_size=(800, 600),
             shadowing_enabled=False,
+            shadow_mapping_resolution=1024,
         phong_shading=False,
         opacity=1.0,
         shininess=1.0,
@@ -231,8 +232,8 @@ class AbstractRenderer(ABC):
         self.shadowing_enabled = shadowing_enabled
 
         # Shadow map resolution
-        self.shadow_width = 4096
-        self.shadow_height = 4096
+        self.shadow_width = shadow_mapping_resolution
+        self.shadow_height = shadow_mapping_resolution
 
         # Initialize ShadowMapManager
         self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
