@@ -18,6 +18,7 @@ def run_benchmark(
     msaa_level=0,
     anisotropy=16,
     particle_render_mode="vertex",
+        shadow_map_resolution=1024,
     vsync_enabled=True,
     fullscreen=False,
 ):
@@ -47,7 +48,7 @@ def run_benchmark(
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         phong_shading=True,
-        shadowing_enabled=True,
+        shadow_map_resolution=shadow_map_resolution,
     )
 
     # Create the rendering instance with the base configuration

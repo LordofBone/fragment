@@ -19,6 +19,7 @@ def run_benchmark(
     msaa_level=0,
     anisotropy=16,
     particle_render_mode="vertex",
+        shadow_map_resolution=1024,
     vsync_enabled=True,
     fullscreen=False,
 ):
@@ -48,7 +49,6 @@ def run_benchmark(
         lights=[
             {"position": (6.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
         ],
-        shadowing_enabled=True,
         anisotropy=anisotropy,
         auto_camera=True,
         move_speed=0.1,
@@ -58,6 +58,7 @@ def run_benchmark(
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
         phong_shading=True,
+        shadow_map_resolution=shadow_map_resolution,
         background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
         audio_delay=0.0,
         audio_loop=True,
