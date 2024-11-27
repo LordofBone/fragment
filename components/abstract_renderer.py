@@ -719,8 +719,8 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_engine.shader_program, "projection"), 1, GL_FALSE,
             glm.value_ptr(self.projection)
         )
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "near_plane"), self.near_plane)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "far_plane"), self.far_plane)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "nearPlane"), self.near_plane)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "farPlane"), self.far_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "opacity"), self.opacity)
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shininess"), self.shininess)
@@ -766,6 +766,8 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_engine.shader_program, "texCoordAmplitude"),
             self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
         )
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowingEnabled"),
+                    int(self.shadowing_enabled))
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "surfaceDepth"),
                     self.dynamic_attrs.get("surface_depth", 0.0))
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shadowStrength"),
