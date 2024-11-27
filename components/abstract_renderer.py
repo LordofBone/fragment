@@ -787,30 +787,27 @@ class AbstractRenderer(ABC):
         return dummy_texture
 
     def set_shadow_shader_uniforms(self):
+        self.shader_engine.use_shader_program()
+        shadow_map_unit = texture_manager.get_texture_unit(str(self.identifier), "shadow_map")
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowMap"), shadow_map_unit)
+
+        glActiveTexture(GL_TEXTURE0 + shadow_map_unit)
+
         if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
-            self.shader_engine.use_shader_program()
             # Set light space matrix
             glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
                                1, GL_FALSE, glm.value_ptr(self.shadow_map_manager.light_space_matrix))
 
-            # Set light position (uses only the first light in the list to determine shadow)
+            # Set light position
             glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "lightPosition"),
                          1, glm.value_ptr(self.lights[0]["position"]))
 
             # Bind shadow map
-            shadow_map_unit = texture_manager.get_texture_unit(str(self.identifier), "shadow_map")
-            glActiveTexture(GL_TEXTURE0 + shadow_map_unit)
             glBindTexture(GL_TEXTURE_2D, self.shadow_map_manager.depth_map)
-            glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowMap"), shadow_map_unit)
         else:
-            # Bind shadow map
-            shadow_map_unit = texture_manager.get_texture_unit(str(self.identifier), "shadow_map")
-            glActiveTexture(GL_TEXTURE0 + shadow_map_unit)
             # Bind dummy texture
-            if not hasattr(self, 'dummy_shadow_map'):
-                self.dummy_shadow_map = self.create_dummy_texture()
-            glBindTexture(GL_TEXTURE_2D, self.dummy_shadow_map)
-            glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowMap"), shadow_map_unit)
+            dummy_texture = texture_manager.get_dummy_texture()
+            glBindTexture(GL_TEXTURE_2D, dummy_texture)
 
     def update_camera(self, delta_time):
         if self.auto_camera:
