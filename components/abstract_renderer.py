@@ -63,15 +63,16 @@ def common_funcs(func):
         self.apply_transformations()
         check_gl_error("apply_transformations", self.debug_mode)
 
+        # **Call set_light_uniforms before set_shader_uniforms and set_shadow_shader_uniforms**
+        if self.lights_enabled:
+            self.set_light_uniforms(self.shader_engine.shader_program)
+        check_gl_error("set_light_uniforms", self.debug_mode)
+
         self.set_shader_uniforms()
         check_gl_error("set_shader_uniforms", self.debug_mode)
 
         self.set_shadow_shader_uniforms()
         check_gl_error("set_shadow_shader_uniforms", self.debug_mode)
-
-        if self.lights_enabled:
-            self.set_light_uniforms(self.shader_engine.shader_program)
-        check_gl_error("set_light_uniforms", self.debug_mode)
 
         result = func(self, *args, **kwargs)
         check_gl_error("render function", self.debug_mode)
