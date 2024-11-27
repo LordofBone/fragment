@@ -8,10 +8,12 @@ from OpenGL.GL import *
 
 
 class RendererWindow:
-    def __init__(self, window_size=(800, 600), title="Renderer", msaa_level=4, vsync_enabled=True, fullscreen=False):
+    def __init__(self, window_size=(800, 600), title="Renderer", msaa_level=4, shadow_map_resolution=1024,
+                 vsync_enabled=True, fullscreen=False):
         self.window_size = window_size
         self.title = title
         self.msaa_level = msaa_level
+        self.shadow_map_resolution = shadow_map_resolution
         self.vsync_enabled = vsync_enabled
         self.fullscreen = fullscreen
         self.clock = None
