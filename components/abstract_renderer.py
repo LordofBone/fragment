@@ -124,14 +124,13 @@ class AbstractRenderer(ABC):
         alpha_blending=False,
         depth_testing=True,
         culling=True,
-        msaa_level=8,
+            msaa_level=4,
         anisotropy=16,
         auto_camera=False,
         move_speed=1.0,
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
-            shadowing_enabled=False,
             shadow_mapping_resolution=1024,
         phong_shading=False,
         opacity=1.0,
@@ -229,11 +228,12 @@ class AbstractRenderer(ABC):
 
         self.shader_engine = None
 
-        self.shadowing_enabled = shadowing_enabled
+        if shadow_mapping_resolution > 0:
+            self.shadowing_enabled = True
 
-        # Shadow map resolution
-        self.shadow_width = shadow_mapping_resolution
-        self.shadow_height = shadow_mapping_resolution
+            # Shadow map resolution
+            self.shadow_width = shadow_mapping_resolution
+            self.shadow_height = shadow_mapping_resolution
 
         # Initialize ShadowMapManager
         self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
