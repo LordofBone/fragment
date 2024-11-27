@@ -25,6 +25,7 @@ uniform float lightStrengths[10];
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
+uniform bool shadowingEnabled;
 
 uniform float surfaceDepth;
 uniform float shadowStrength;
@@ -145,7 +146,11 @@ void main()
 
     // Calculate shadow
     float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
-    float shadow = ShadowCalculation(FragPosLightSpace, normalMap, waveHeight);
+
+    float shadow = 0.0;
+    if (shadowingEnabled) {
+        shadow = ShadowCalculation(FragPosLightSpace, normalMap, waveHeight);
+    }
 
     // Phong lighting components
     vec3 color = vec3(0.0);
