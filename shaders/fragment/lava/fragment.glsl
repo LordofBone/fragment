@@ -24,6 +24,7 @@ uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
 
+uniform bool shadowingEnabled;
 uniform sampler2D shadowMap;
 uniform float surfaceDepth;
 uniform float shadowStrength;
@@ -157,8 +158,11 @@ void main()
     // Compute wave height for shadow offset
     float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
 
-    // Compute shadow
-    float shadow = ShadowCalculation(FragPosLightSpace, normalMap, waveHeight);
+    // Calculate shadow
+    float shadow = 0.0;
+    if (shadowingEnabled) {
+        shadow = ShadowCalculation(FragPosLightSpace, normalMap, waveHeight);
+    }
 
     // Apply shadow to lighting
     if (phongShading) {

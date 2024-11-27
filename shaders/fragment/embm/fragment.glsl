@@ -22,6 +22,7 @@ uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
+uniform bool shadowingEnabled;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -114,7 +115,10 @@ void main()
     vec3 lighting = vec3(0.0);
 
     // Calculate shadow
-    float shadow = ShadowCalculation(FragPosLightSpace);
+    float shadow = 0.0;
+    if (shadowingEnabled) {
+        shadow = ShadowCalculation(FragPosLightSpace);
+    }
 
     if (phongShading) {
         lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);

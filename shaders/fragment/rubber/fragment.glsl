@@ -20,7 +20,8 @@ uniform float textureLodLevel;
 uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;// Uniform to toggle Phong shading
+uniform bool phongShading;
+uniform bool shadowingEnabled;
 uniform float envSpecularStrength;
 
 uniform mat4 view;// Uniform for view matrix
@@ -116,7 +117,10 @@ void main()
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
     // Calculate shadow
-    float shadow = ShadowCalculation(FragPosLightSpace);
+    float shadow = 0.0;
+    if (shadowingEnabled) {
+        shadow = ShadowCalculation(FragPosLightSpace);
+    }
 
     vec3 finalColor;
     if (phongShading) {

@@ -19,6 +19,7 @@ uniform float textureLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
+uniform bool shadowingEnabled;
 uniform vec3 ambientColor;
 
 vec3 Uncharted2Tonemap(vec3 x) {
@@ -115,7 +116,10 @@ void main()
     }
 
     // Calculate shadow
-    float shadow = ShadowCalculation(FragPosLightSpace);
+    float shadow = 0.0;
+    if (shadowingEnabled) {
+        shadow = ShadowCalculation(FragPosLightSpace);
+    }
 
     // Apply shadow to color
     color = (1.0 - shadow) * color;

@@ -29,6 +29,7 @@ uniform float reflectionStrength;
 uniform vec3 ambientColor;
 uniform bool screenFacingPlanarTexture;
 uniform bool warped;
+uniform bool shadowingEnabled;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -151,7 +152,10 @@ void main() {
     vec3 lighting = computeLighting(normal, viewDir, FragPos, diffuseColor);
 
     // Calculate shadow
-    float shadow = ShadowCalculation(FragPosLightSpace);
+    float shadow = 0.0;
+    if (shadowingEnabled) {
+        shadow = ShadowCalculation(FragPosLightSpace);
+    }
 
     // Apply shadow to lighting
     lighting = (1.0 - shadow) * lighting;
