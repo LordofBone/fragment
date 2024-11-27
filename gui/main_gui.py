@@ -184,7 +184,7 @@ class App(customtkinter.CTk):
             values=["0", "2", "4", "8"],  # Common MSAA levels
         )
         self.msaa_level_optionmenu.grid(row=1, column=1, padx=common_padx, pady=common_pady)
-        self.msaa_level_optionmenu.set("0")  # Set default value to 0 (no MSAA)
+        self.msaa_level_optionmenu.set("4")  # Set default value to 0 (no MSAA)
 
         # Anisotropic Filtering setting
         self.anisotropy_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Anisotropy Level:")
