@@ -17,7 +17,7 @@ class BenchmarkManager:
         name,
         run_function,
         resolution,
-        msaa_level=0,
+            msaa_level=4,
         anisotropy=16,
         particle_render_mode="vertex",
         vsync_enabled=True,
