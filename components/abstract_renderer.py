@@ -777,6 +777,15 @@ class AbstractRenderer(ABC):
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
+    def create_dummy_texture(self):
+        dummy_texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, dummy_texture)
+        data = np.array([1.0], dtype=np.float32)  # White color
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, data)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        return dummy_texture
+
     def set_shadow_shader_uniforms(self):
         if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
             self.shader_engine.use_shader_program()
@@ -792,6 +801,15 @@ class AbstractRenderer(ABC):
             shadow_map_unit = texture_manager.get_texture_unit(str(self.identifier), "shadow_map")
             glActiveTexture(GL_TEXTURE0 + shadow_map_unit)
             glBindTexture(GL_TEXTURE_2D, self.shadow_map_manager.depth_map)
+            glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowMap"), shadow_map_unit)
+        else:
+            # Bind shadow map
+            shadow_map_unit = texture_manager.get_texture_unit(str(self.identifier), "shadow_map")
+            glActiveTexture(GL_TEXTURE0 + shadow_map_unit)
+            # Bind dummy texture
+            if not hasattr(self, 'dummy_shadow_map'):
+                self.dummy_shadow_map = self.create_dummy_texture()
+            glBindTexture(GL_TEXTURE_2D, self.dummy_shadow_map)
             glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowMap"), shadow_map_unit)
 
     def update_camera(self, delta_time):
