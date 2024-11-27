@@ -3,7 +3,7 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec4 FragPosLightSpace;// Added for shadow mapping
+in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
@@ -24,9 +24,9 @@ uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
 
-uniform sampler2D shadowMap;// Added for shadow mapping
-uniform float surfaceDepth;// Depth of the lava surface for shadow attenuation
-uniform float shadowStrength;// Strength of the shadow under lava
+uniform sampler2D shadowMap;
+uniform float surfaceDepth;
+uniform float shadowStrength;
 
 // Noise functions
 float noise(vec2 p) {
