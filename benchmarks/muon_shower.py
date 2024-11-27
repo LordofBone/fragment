@@ -6,7 +6,7 @@ def run_benchmark(
     stats_queue=None,
     stop_event=None,
     resolution=(800, 600),
-    msaa_level=0,
+        msaa_level=4,
     anisotropy=16,
     particle_render_mode="transform_feedback",
     vsync_enabled=True,
