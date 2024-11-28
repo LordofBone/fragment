@@ -25,7 +25,7 @@ class RendererConfig:
         msaa_level=8,
         alpha_blending=False,
         depth_testing=True,
-            shadow_map_resolution=1024,
+            shadow_map_resolution=2048,
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
