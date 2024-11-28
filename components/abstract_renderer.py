@@ -734,15 +734,22 @@ class AbstractRenderer(ABC):
 
     def set_shader_uniforms(self):
         self.shader_engine.use_shader_program()
+        # Set model matrix uniform
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "model"),
+            1, GL_FALSE, glm.value_ptr(self.model_matrix)
+        )
+
+        # Set light space matrix uniform
+        if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
+            glUniformMatrix4fv(
+                glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
+                1, GL_FALSE, glm.value_ptr(self.shadow_map_manager.light_space_matrix)
+            )
 
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"), 1,
             glm.value_ptr(self.ambient_lighting_strength)
-        )
-
-        glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_engine.shader_program, "model"), 1, GL_FALSE,
-            glm.value_ptr(self.model_matrix)
         )
 
         glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE,
@@ -752,6 +759,7 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_engine.shader_program, "projection"), 1, GL_FALSE,
             glm.value_ptr(self.projection)
         )
+
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "nearPlane"), self.near_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "farPlane"), self.far_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "opacity"), self.opacity)
