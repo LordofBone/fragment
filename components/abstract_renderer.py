@@ -230,19 +230,14 @@ class AbstractRenderer(ABC):
 
         if shadow_map_resolution > 0:
             self.shadowing_enabled = True
-
-            # Shadow map resolution
-            self.shadow_width = shadow_map_resolution
-            self.shadow_height = shadow_map_resolution
+            self.shadow_width = self.shadow_height = shadow_map_resolution
+            self.shadow_map_manager = ShadowMapManager(
+                shadow_width=self.shadow_width,
+                shadow_height=self.shadow_height
+            )
         else:
             self.shadowing_enabled = False
-            print("shadowing off")
-
-            self.shadow_width = 1024
-            self.shadow_height = 1024
-
-        # Initialize ShadowMapManager
-        self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
+            self.shadow_map_manager = None  # Shadows are disabled
 
         self.phong_shading = phong_shading
 
