@@ -7,7 +7,6 @@ from components.model_renderer import ModelRenderer
 from components.particle_renderer import ParticleRenderer
 from components.renderer_window import RendererWindow
 from components.scene_constructor import SceneConstructor
-from components.shadow_map_manager import ShadowMapManager
 from components.skybox_renderer import SkyboxRenderer
 from components.surface_renderer import SurfaceRenderer
 
@@ -22,7 +21,6 @@ class RenderingInstance:
         self.render_order = []
         self.running = False
         self.audio_player = None
-        self.shadow_map_manager = None
 
     def setup(self):
         self.render_window = RendererWindow(
@@ -34,10 +32,6 @@ class RenderingInstance:
         )
 
         self.duration = self.config.duration
-
-        # Initialize ShadowMapManager
-        self.shadow_map_manager = ShadowMapManager(shadow_width=self.config.shadow_map_resolution,
-                                                   shadow_height=self.config.shadow_map_resolution)
 
         for renderer in self.scene_construct.renderers.values():
             renderer.setup()
@@ -182,42 +176,31 @@ class RenderingInstance:
         self.shutdown()
 
     def render_scene(self, delta_time):
-        # 1. Render the scene from the light's perspective into the depth map
-        glViewport(0, 0, self.shadow_map_manager.shadow_width, self.shadow_map_manager.shadow_height)
-        glBindFramebuffer(GL_FRAMEBUFFER, self.shadow_map_manager.depth_map_fbo)
-        glClear(GL_DEPTH_BUFFER_BIT)
-        glEnable(GL_DEPTH_TEST)
-        glCullFace(GL_FRONT)  # Optional: to prevent shadow acne
+        # Render shadow maps
+        self.render_shadow_maps()
 
-        # Render the scene from the light's perspective
-        for renderer_name, _ in self.render_order:
-            renderer = self.scene_construct.renderers[renderer_name]
-            if renderer.supports_shadow_mapping() and renderer.shadowing_enabled and renderer.lights_enabled:
-                # Get the first light source
-                light = self.scene_construct.renderers[renderer_name].lights[0]
-                near_plane = self.scene_construct.renderers[renderer_name].near_plane
-                far_plane = self.scene_construct.renderers[renderer_name].far_plane
+        # Render planar views
+        self.render_planar_views()
 
-                self.shadow_map_manager.setup(light, near_plane, far_plane)
-                light_space_matrix = self.shadow_map_manager.light_space_matrix
-
-                renderer.render_from_light(light_space_matrix)
-
-        # Unbind the framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, 0)
-        glCullFace(GL_BACK)
-
-        # 2. Render the scene normally
+        # Render the scene normally
         glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glEnable(GL_DEPTH_TEST)
-
-        self.render_planar_views()
 
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
             renderer.update_camera(delta_time)
             renderer.render()
+
+    def render_shadow_maps(self):
+        # Collect all renderers
+        scene_renderers = list(self.scene_construct.renderers.values())
+
+        for renderer_name, _ in self.render_order:
+            renderer = self.scene_construct.renderers[renderer_name]
+            if renderer.supports_shadow_mapping() and renderer.shadowing_enabled and renderer.lights_enabled:
+                renderer.render_shadow_map(scene_renderers)
+                break  # Assuming one shadow map for the first renderer with shadows
 
     def render_planar_views(self):
         for renderer_name, _ in self.render_order:
