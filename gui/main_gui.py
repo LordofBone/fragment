@@ -165,7 +165,7 @@ class App(customtkinter.CTk):
 
         # Settings tab grid layout
         self.tabview.tab("Settings").grid_columnconfigure((0, 1), weight=1)
-        self.tabview.tab("Settings").grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.tabview.tab("Settings").grid_rowconfigure((0, 1, 2, 3, 4, 5), weight=1)
 
         # Settings tab elements
         self.resolution_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Resolution:")
@@ -194,22 +194,30 @@ class App(customtkinter.CTk):
             values=["1", "2", "4", "8", "16"],  # Common anisotropy levels
         )
         self.anisotropy_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
-        self.anisotropy_optionmenu.set("1")  # Set default value to 1 (no anisotropic filtering)
+
+        # Shadow Quality setting
+        self.shadow_quality_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Shadow Quality:")
+        self.shadow_quality_label.grid(row=3, column=0, padx=common_padx, pady=common_pady)
+        self.shadow_quality_optionmenu = customtkinter.CTkOptionMenu(
+            self.tabview.tab("Settings"),
+            values=["None", "1024x1024", "2048x2048", "4096x4096"],
+        )
+        self.shadow_quality_optionmenu.grid(row=3, column=1, padx=common_padx, pady=common_pady)
 
         # Particle Render Mode setting
         self.particle_render_mode_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="Particle Render Mode:"
         )
-        self.particle_render_mode_label.grid(row=3, column=0, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_label.grid(row=4, column=0, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"), values=["CPU", "Transform Feedback", "Compute Shader"]
         )
-        self.particle_render_mode_optionmenu.grid(row=3, column=1, padx=common_padx, pady=common_pady)
-        self.particle_render_mode_optionmenu.set("CPU")  # Set default to "CPU"
+        self.particle_render_mode_label.grid(row=4, column=0, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_optionmenu.grid(row=4, column=1, padx=common_padx, pady=common_pady)
 
         # V-Sync setting
         self.enable_vsync_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"), text="Enable V-Sync")
-        self.enable_vsync_checkbox.grid(row=4, column=0, columnspan=2, padx=common_padx, pady=common_pady)
+        self.enable_vsync_checkbox.grid(row=5, column=0, columnspan=2, padx=common_padx, pady=common_pady)
 
         # Scenarios tab grid layout for consistency
         self.tabview.tab("Scenarios").grid_columnconfigure(0, weight=1)
@@ -286,8 +294,9 @@ class App(customtkinter.CTk):
         self.appearance_mode_optionemenu.set("Dark")
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
-        self.msaa_level_optionmenu.set("0")
+        self.msaa_level_optionmenu.set("4")
         self.anisotropy_optionmenu.set("16")
+        self.shadow_quality_optionmenu.set("2048x2048")
         self.particle_render_mode_optionmenu.set("Transform Feedback")
 
         # Prepare the graph canvas for results
@@ -324,6 +333,13 @@ class App(customtkinter.CTk):
         # Variables to manage resizing
         self.is_resizing = False
         self.resize_after_id = None
+
+        self.shadow_quality_mapping = {
+            "None": 0,
+            "1024x1024": 1024,
+            "2048x2048": 2048,
+            "4096x4096": 4096,
+        }
 
         # Bind the window resize event
         self.bind("<Configure>", self.on_window_resize)
@@ -558,6 +574,10 @@ class App(customtkinter.CTk):
         # Retrieve the selected anisotropy level from the GUI
         anisotropy = int(self.anisotropy_optionmenu.get())
 
+        shadow_quality_str = self.shadow_quality_optionmenu.get()
+
+        shadow_map_resolution = self.shadow_quality_mapping.get(shadow_quality_str, 0)  # Default to 0 if not found
+
         # Retrieve the selected particle render mode from the GUI
         particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
 
@@ -573,13 +593,13 @@ class App(customtkinter.CTk):
 
         for benchmark_name in selected_benchmarks:
             if benchmark_name in benchmark_functions:
-                # Pass the resolution, MSAA level, and particle render mode to the benchmark manager
                 self.benchmark_manager.add_benchmark(
-                    benchmark_name,
-                    benchmark_functions[benchmark_name],
-                    (width, height),
+                    name=benchmark_name,
+                    run_function=benchmark_functions[benchmark_name],
+                    resolution=(width, height),
                     msaa_level=msaa_level,
                     anisotropy=anisotropy,
+                    shadow_map_resolution=shadow_map_resolution,
                     particle_render_mode=particle_render_mode,
                     vsync_enabled=vsync_enabled,
                     fullscreen=fullscreen,
@@ -652,6 +672,10 @@ class App(customtkinter.CTk):
         except ValueError:
             anisotropy = 1  # Default to 1 if invalid
 
+        shadow_quality_str = self.shadow_quality_optionmenu.get()
+
+        shadow_map_resolution = self.shadow_quality_mapping.get(shadow_quality_str, 0)  # Default to 0 if not found
+
         # Retrieve the selected particle render mode from the GUI
         particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
 
@@ -663,6 +687,7 @@ class App(customtkinter.CTk):
             "resolution": (width, height),
             "msaa_level": msaa_level,
             "anisotropy": anisotropy,
+            "shadow_map_resolution": shadow_map_resolution,
             "particle_render_mode": particle_render_mode,
             "vsync_enabled": vsync_enabled,
             "fullscreen": fullscreen,
@@ -673,11 +698,12 @@ class App(customtkinter.CTk):
 
         # Add Demo benchmark to BenchmarkManager
         self.benchmark_manager.add_benchmark(
-            "Demo Mode",  # Unique name for the demo benchmark
-            run_water_pyramid_benchmark,
-            demo_parameters["resolution"],
+            name="Demo Mode",  # Unique name for the demo benchmark
+            run_function=run_water_pyramid_benchmark,
+            resolution=demo_parameters["resolution"],
             msaa_level=demo_parameters["msaa_level"],
             anisotropy=demo_parameters["anisotropy"],
+            shadow_map_resolution=demo_parameters["shadow_map_resolution"],
             particle_render_mode=demo_parameters["particle_render_mode"],
             vsync_enabled=demo_parameters["vsync_enabled"],
             fullscreen=demo_parameters["fullscreen"],
