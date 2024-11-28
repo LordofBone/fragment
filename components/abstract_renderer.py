@@ -131,7 +131,7 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
-            shadow_mapping_resolution=1024,
+            shadow_map_resolution=2048,
         phong_shading=False,
         opacity=1.0,
         shininess=1.0,
@@ -228,12 +228,18 @@ class AbstractRenderer(ABC):
 
         self.shader_engine = None
 
-        if shadow_mapping_resolution > 0:
+        if shadow_map_resolution > 0:
             self.shadowing_enabled = True
 
             # Shadow map resolution
-            self.shadow_width = shadow_mapping_resolution
-            self.shadow_height = shadow_mapping_resolution
+            self.shadow_width = shadow_map_resolution
+            self.shadow_height = shadow_map_resolution
+        else:
+            self.shadowing_enabled = False
+            print("shadowing off")
+
+            self.shadow_width = 1024
+            self.shadow_height = 1024
 
         # Initialize ShadowMapManager
         self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
