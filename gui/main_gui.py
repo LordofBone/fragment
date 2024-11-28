@@ -522,6 +522,7 @@ class App(customtkinter.CTk):
         self.resolution_optionmenu.configure(state="disabled")
         self.msaa_level_optionmenu.configure(state="disabled")
         self.anisotropy_optionmenu.configure(state="disabled")
+        self.shadow_quality_optionmenu.configure(state="disabled")
         self.particle_render_mode_optionmenu.configure(state="disabled")
         # Disable checkboxes
         self.enable_vsync_checkbox.configure(state="disabled")
@@ -542,6 +543,7 @@ class App(customtkinter.CTk):
         self.resolution_optionmenu.configure(state="normal")
         self.msaa_level_optionmenu.configure(state="normal")
         self.anisotropy_optionmenu.configure(state="normal")
+        self.shadow_quality_optionmenu.configure(state="normal")
         self.particle_render_mode_optionmenu.configure(state="normal")
         # Enable checkboxes
         self.enable_vsync_checkbox.configure(state="normal")
