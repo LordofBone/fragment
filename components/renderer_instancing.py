@@ -20,9 +20,9 @@ class RenderingInstance:
         self.scene_construct = SceneConstructor()
         self.framebuffers = {}
         self.render_order = []
-        self.running = False  # Flag to control the main loop
+        self.running = False
         self.audio_player = None
-        self.shadow_map_manager = None  # Add the ShadowMapManager instance
+        self.shadow_map_manager = None
 
     def setup(self):
         self.render_window = RendererWindow(
@@ -36,7 +36,8 @@ class RenderingInstance:
         self.duration = self.config.duration
 
         # Initialize ShadowMapManager
-        self.shadow_map_manager = ShadowMapManager(shadow_width=1024, shadow_height=1024)
+        self.shadow_map_manager = ShadowMapManager(shadow_width=self.config.shadow_map_resolution,
+                                                   shadow_height=self.config.shadow_map_resolution)
 
         for renderer in self.scene_construct.renderers.values():
             renderer.setup()
