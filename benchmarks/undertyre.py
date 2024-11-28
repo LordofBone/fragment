@@ -41,6 +41,7 @@ def run_benchmark(
         lights=[
             {"position": (2.85, 2.0, 1.0), "color": (0.55, 0.55, 0.55), "strength": 1.0},
         ],
+        shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=False,
         msaa_level=msaa_level,
@@ -48,7 +49,6 @@ def run_benchmark(
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         phong_shading=True,
-        shadow_map_resolution=shadow_map_resolution,
     )
 
     # Create the rendering instance with the base configuration

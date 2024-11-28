@@ -64,6 +64,7 @@ def run_benchmark(
              "orth_bottom": -100.0,
              "orth_top": 100.0},
         ],
+        shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         move_speed=0.2,
         msaa_level=msaa_level,
@@ -71,8 +72,6 @@ def run_benchmark(
         texture_lod_bias=1.0,
         env_map_lod_bias=2.0,
         phong_shading=True,
-        shadow_map_resolution=shadow_map_resolution,
-
     )
 
     # Create the rendering instance with the base configuration

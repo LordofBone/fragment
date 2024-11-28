@@ -33,6 +33,7 @@ def run_benchmark(
         lights=[
             {"position": (5.0, 10.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
         ],
+        shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
         msaa_level=msaa_level,

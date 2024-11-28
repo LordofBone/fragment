@@ -30,6 +30,7 @@ def run_benchmark(
         ],
         near_plane=0.1,
         far_plane=5000,
+        shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
         msaa_level=msaa_level,
