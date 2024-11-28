@@ -16,8 +16,8 @@ class SceneObject:
         self.mesh_list = mesh_list
 
 class SurfaceRenderer(AbstractRenderer):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, renderer_name, **kwargs):
+        super().__init__(renderer_name=renderer_name, **kwargs)
         self.vaos = []
         self.vbos = []
         self.ebos = []

@@ -86,19 +86,19 @@ class RenderingInstance:
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     def add_renderer(self, name, renderer_type, order=None, **params):
-        renderer = self.create_renderer(renderer_type, **params)
+        renderer = self.create_renderer(name, renderer_type, **params)
         self.scene_construct.add_renderer(name, renderer)
         self.update_render_order(name, order)
 
-    def create_renderer(self, renderer_type, **params):
+    def create_renderer(self, name, renderer_type, **params):
         if renderer_type == "model":
-            return ModelRenderer(**params)
+            return ModelRenderer(renderer_name=name, **params)
         elif renderer_type == "surface":
-            return SurfaceRenderer(**params)
+            return SurfaceRenderer(renderer_name=name, **params)
         elif renderer_type == "skybox":
-            return SkyboxRenderer(**params)
+            return SkyboxRenderer(renderer_name=name, **params)
         elif renderer_type == "particle":
-            return ParticleRenderer(**params)
+            return ParticleRenderer(renderer_name=name, **params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
 

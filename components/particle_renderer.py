@@ -13,6 +13,7 @@ class ParticleRenderer(AbstractRenderer):
 
     def __init__(
         self,
+            renderer_name,
         max_particles_map=None,
         particles_max=100,
         particle_batch_size=1,
@@ -65,7 +66,7 @@ class ParticleRenderer(AbstractRenderer):
         :param particle_type: Type of primitive used for particles (e.g., 'points').
         :param kwargs: Additional keyword arguments for customization.
         """
-        super().__init__(**kwargs)
+        super().__init__(renderer_name=renderer_name, **kwargs)
 
         # Handle the max_particles_map override
         if max_particles_map is not None:

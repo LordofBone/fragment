@@ -6,8 +6,8 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class SkyboxRenderer(AbstractRenderer):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, renderer_name, **kwargs):
+        super().__init__(renderer_name=renderer_name, **kwargs)
         self.skybox_vao = None
         self.skybox_vbo = None
 
