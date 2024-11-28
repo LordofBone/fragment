@@ -3,10 +3,10 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
+// Uniforms
 uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
 uniform float time;
@@ -28,6 +28,10 @@ uniform bool shadowingEnabled;
 uniform sampler2D shadowMap;
 uniform float surfaceDepth;
 uniform float shadowStrength;
+
+// Added uniforms
+uniform mat4 model;
+uniform mat4 lightSpaceMatrix;
 
 // Noise functions
 float noise(vec2 p) {
@@ -64,35 +68,42 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-// Shadow calculation function
-float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, float waveHeight) {
+// Updated shadow calculation function
+float ShadowCalculation(vec3 fragPosWorld, vec3 normal, float waveHeight) {
+    // Compute the displaced world position
+    vec3 displacedPos = fragPosWorld;
+    displacedPos.y += waveHeight;
+
+    // Transform the displaced position to light space
+    vec4 fragPosLightSpace = lightSpaceMatrix * model * vec4(displacedPos, 1.0);
+
     // Perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // Transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
 
-    // Offset the depth based on the normal map and wave height
-    projCoords.z -= waveHeight * 0.1;// Adjust scaling factor as needed
-
-    // Check if fragment is outside the shadow map
-    if (projCoords.z > 1.0)
-    return 0.0;
+    // Check if projCoords are outside the shadow map boundaries
+    if (projCoords.x < 0.0 || projCoords.x > 1.0 ||
+    projCoords.y < 0.0 || projCoords.y > 1.0 ||
+    projCoords.z < 0.0 || projCoords.z > 1.0)
+    {
+        return 0.0;
+    }
 
     // Get closest depth value from light's perspective
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     // Get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
+
     // Bias to prevent shadow acne
-    float bias = max(0.005 * (1.0 - dot(normal, normalize(lightPositions[0] - FragPos))), 0.0005);
-    // Check whether current fragment is in shadow
+    float bias = max(0.005 * (1.0 - dot(normal, normalize(lightPositions[0] - displacedPos))), 0.0005);
+
+    // Percentage-Closer Filtering (PCF) for softer shadows
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    // PCF for soft shadows
     int samples = 3;
-    for (int x = -samples; x <= samples; ++x)
-    {
-        for (int y = -samples; y <= samples; ++y)
-        {
+    for (int x = -samples; x <= samples; ++x) {
+        for (int y = -samples; y <= samples; ++y) {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
@@ -108,6 +119,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, float waveHeight) {
     return shadow;
 }
 
+// Phong lighting function
 vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
     vec3 ambient = vec3(0.2, 0.1, 0.0);// Warm ambient light
     vec3 diffuse = vec3(0.0);
@@ -140,6 +152,9 @@ void main()
     normalMap.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     normalMap = normalize(normalMap);
 
+    // Compute wave height
+    float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
+
     vec3 viewDir = normalize(cameraPos - FragPos);
     vec3 reflectDir = reflect(-viewDir, normalMap);
 
@@ -155,13 +170,10 @@ void main()
     vec3 lavaColor = mix(baseColor, brightColor, noiseValue);
     vec3 color = mix(lavaColor, reflection, fresnel * 0.2);
 
-    // Compute wave height for shadow offset
-    float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
-
     // Calculate shadow
     float shadow = 0.0;
     if (shadowingEnabled) {
-        shadow = ShadowCalculation(FragPosLightSpace, normalMap, waveHeight);
+        shadow = ShadowCalculation(FragPos, normalMap, waveHeight);
     }
 
     // Apply shadow to lighting
