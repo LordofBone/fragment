@@ -543,6 +543,8 @@ class AbstractRenderer(ABC):
         self.render()
 
     def render_from_light(self, light_space_matrix):
+        self.apply_transformations()
+
         self.shader_engine.use_shadow_shader_program()
         glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shadow_shader_program, "model"),
                            1, GL_FALSE, glm.value_ptr(self.model_matrix))
