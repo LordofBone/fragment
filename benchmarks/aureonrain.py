@@ -3,6 +3,7 @@ import os
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
 from config.path_config import (
+    audio_dir,
     cubemaps_dir,
     diffuse_textures_dir,
     displacement_textures_dir,
