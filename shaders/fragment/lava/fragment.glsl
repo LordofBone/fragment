@@ -6,7 +6,6 @@ in vec3 Normal;
 
 out vec4 FragColor;
 
-// Uniforms
 uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
 uniform float time;
@@ -29,7 +28,6 @@ uniform sampler2D shadowMap;
 uniform float surfaceDepth;
 uniform float shadowStrength;
 
-// Added uniforms
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
 
