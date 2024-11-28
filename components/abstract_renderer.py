@@ -103,6 +103,7 @@ def common_funcs(func):
 class AbstractRenderer(ABC):
     def __init__(
         self,
+            renderer_name,
         shader_names,
         shaders=None,
         texture_paths=None,
@@ -152,6 +153,7 @@ class AbstractRenderer(ABC):
         debug_mode=False,
         **kwargs,
     ):
+        self.renderer_name = renderer_name
         self.planar_texture = None
         self.planar_framebuffer = None
         self.planar_camera_position = None
@@ -350,10 +352,10 @@ class AbstractRenderer(ABC):
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
 
         if not self.screen_depth_map_screenshotted:
-            image_saver.save_image(image, "depth_map.png")
+            filename = f"renderer_{self.renderer_name}_depth_map.png"
+            image_saver.save_image(image, filename)
             self.screen_depth_map_screenshotted = True
-
-            print(f"Depth map visualization saved to '{screenshots_dir}depth_map.png'")
+            print(f"Depth map visualization saved to '{screenshots_dir}{filename}'")
 
     def setup_planar_camera(self):
         texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
@@ -523,8 +525,8 @@ class AbstractRenderer(ABC):
 
                 # Generate the filename with a timestamp
                 timestamp = time.strftime("%Y%m%d_%H%M%S")
-                filename = f"screen_texture_output_{timestamp}.png"
 
+                filename = f"renderer_{self.renderer_name}_screen_texture_{timestamp}.png"
                 image_saver.save_image(image, filename)
                 self.screen_facing_planar_screenshotted = True
 
