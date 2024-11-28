@@ -397,6 +397,32 @@ class AbstractRenderer(ABC):
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
+    def render_shadow_map(self, scene_renderers):
+        if not self.shadowing_enabled or not self.lights_enabled:
+            return
+
+        # Setup shadow map framebuffer and viewport
+        glViewport(0, 0, self.shadow_width, self.shadow_height)
+        glBindFramebuffer(GL_FRAMEBUFFER, self.shadow_map_manager.depth_map_fbo)
+        glClear(GL_DEPTH_BUFFER_BIT)
+        glEnable(GL_DEPTH_TEST)
+        glCullFace(GL_FRONT)  # Optional: to prevent shadow acne
+
+        # Setup light space matrix
+        light = self.lights[0]
+        self.shadow_map_manager.setup(light, self.near_plane, self.far_plane)
+        light_space_matrix = self.shadow_map_manager.light_space_matrix
+
+        # Render the scene from the light's perspective
+        # Exclude self to avoid rendering the object twice
+        for renderer in scene_renderers:
+            if renderer.supports_shadow_mapping():
+                renderer.render_from_light(light_space_matrix)
+
+        # Unbind the framebuffer and reset state
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        glCullFace(GL_BACK)
+
     def render_planar_view(self, scene_renderers):
         if not self.planar_camera:
             return None
