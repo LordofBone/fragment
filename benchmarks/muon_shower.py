@@ -9,6 +9,7 @@ def run_benchmark(
         msaa_level=4,
     anisotropy=16,
     particle_render_mode="transform_feedback",
+        shadow_map_resolution=2048,
     vsync_enabled=True,
     fullscreen=False,
 ):
