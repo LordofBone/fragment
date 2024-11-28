@@ -58,7 +58,7 @@ def run_benchmark(
         env_map_lod_bias=1.5,
         phong_shading=True,
         shadow_map_resolution=shadow_map_resolution,
-        # background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
+        background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
         audio_delay=0.0,
         audio_loop=True,
     )
