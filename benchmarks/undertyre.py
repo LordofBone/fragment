@@ -66,7 +66,7 @@ def run_benchmark(
             "displacement": os.path.join(displacement_textures_dir, "rubber_1.png"),
         },
         shader_names={
-            "vertex": "standard",
+            "vertex": "parallax_mapping",
             "fragment": "rubber",
         },
         rotation_speed=2000.0,
