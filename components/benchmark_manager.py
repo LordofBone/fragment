@@ -17,8 +17,9 @@ class BenchmarkManager:
         name,
         run_function,
         resolution,
-        msaa_level=0,
+        msaa_level=4,
         anisotropy=16,
+        shadow_map_resolution=2048,
         particle_render_mode="vertex",
         vsync_enabled=True,
         fullscreen=False,
@@ -30,6 +31,7 @@ class BenchmarkManager:
                 "resolution": resolution,
                 "msaa_level": msaa_level,
                 "anisotropy": anisotropy,
+                "shadow_map_resolution": shadow_map_resolution,
                 "particle_render_mode": particle_render_mode,
                 "vsync_enabled": vsync_enabled,
                 "fullscreen": fullscreen,
@@ -48,6 +50,7 @@ class BenchmarkManager:
                 benchmark["resolution"],
                 benchmark["msaa_level"],
                 benchmark["anisotropy"],
+                benchmark["shadow_map_resolution"],
                 benchmark["particle_render_mode"],
                 benchmark["vsync_enabled"],
                 benchmark["fullscreen"],
@@ -57,7 +60,15 @@ class BenchmarkManager:
                 break
 
     def run_benchmark(
-        self, run_function, resolution, msaa_level, anisotropy, particle_render_mode, vsync_enabled, fullscreen
+        self,
+        run_function,
+        resolution,
+        msaa_level,
+        anisotropy,
+        shadow_map_resolution,
+        particle_render_mode,
+        vsync_enabled,
+        fullscreen,
     ):
         # Create a multiprocessing Queue to collect stats
         stats_queue = Queue()
@@ -71,6 +82,7 @@ class BenchmarkManager:
                 resolution,
                 msaa_level,
                 anisotropy,
+                shadow_map_resolution,
                 particle_render_mode,
                 vsync_enabled,
                 fullscreen,

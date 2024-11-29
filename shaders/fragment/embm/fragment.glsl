@@ -3,6 +3,7 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
+in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
@@ -10,6 +11,7 @@ uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D displacementMap;
 uniform samplerCube environmentMap;
+uniform sampler2D shadowMap;
 
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
@@ -20,6 +22,7 @@ uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
+uniform bool shadowingEnabled;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -70,6 +73,35 @@ vec3 computeDiffuseLighting(vec3 normal, vec3 FragPos, vec3 diffuseColor) {
     return ambient + diffuse;
 }
 
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    // Perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // Transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    // Get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // Check whether current fragment is in shadow
+    float bias = 0.005;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+    // Percentage-Closer Filtering (PCF) for softer shadows
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
+
+    return shadow;
+}
+
 void main()
 {
     vec3 normal = normalize(Normal + texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0);
@@ -82,11 +114,20 @@ void main()
     vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
     vec3 lighting = vec3(0.0);
 
+    // Calculate shadow
+    float shadow = 0.0;
+    if (shadowingEnabled) {
+        shadow = ShadowCalculation(FragPosLightSpace);
+    }
+
     if (phongShading) {
         lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
     } else {
         lighting = computeDiffuseLighting(normal, FragPos, diffuseColor);
     }
+
+    // Apply shadow to lighting
+    lighting = (1.0 - shadow) * lighting;
 
     vec3 result = lighting + envColor * height;
 

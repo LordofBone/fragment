@@ -16,8 +16,9 @@ def run_benchmark(
     stats_queue=None,
     stop_event=None,
     resolution=(800, 600),
-    msaa_level=0,
+    msaa_level=4,
     anisotropy=16,
+    shadow_map_resolution=2048,
     particle_render_mode="vertex",
     vsync_enabled=True,
     fullscreen=False,
@@ -44,10 +45,19 @@ def run_benchmark(
         up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.2,
-        far_plane=5000,
+        far_plane=100,
         lights=[
-            {"position": (50.0, 20.0, 30.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
+            {
+                "position": (20.85, 16.0, 22.0),
+                "color": (0.55, 0.55, 0.55),
+                "strength": 0.8,
+                "orth_left": -60.0,
+                "orth_right": 60.0,
+                "orth_bottom": -60.0,
+                "orth_top": 60,
+            }
         ],
+        shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
         move_speed=0.1,
@@ -189,6 +199,8 @@ def run_benchmark(
         tex_coord_amplitude=0.010,
         width=50.0,
         height=50.0,
+        surface_depth=10.0,
+        shadow_strength=0.85,
         phong_shading=False,
     )
 
@@ -214,15 +226,15 @@ def run_benchmark(
     instance.scene_construct.set_auto_rotation("rain", False)
 
     # Example transformations
-    instance.scene_construct.translate_renderer("model_rotating", (0, 0, -3))  # Translate first model
+    instance.scene_construct.translate_renderer("model_rotating", (0, 1.5, -3))  # Translate first model
     instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
     instance.scene_construct.set_auto_rotation("model_rotating", True)  # Disable auto-rotation for second model
 
-    instance.scene_construct.translate_renderer("model_stretched", (2, 0, 0))  # Translate second model
+    instance.scene_construct.translate_renderer("model_stretched", (2, 1.5, 0))  # Translate second model
     instance.scene_construct.scale_renderer("model_stretched", (1.2, 1.2, 1.2))  # Scale second model
 
-    instance.scene_construct.translate_renderer("model_opaque", (6, 0, -6))  # Translate second model
+    instance.scene_construct.translate_renderer("model_opaque", (6, 1.5, -6))  # Translate second model
     instance.scene_construct.scale_renderer("model_opaque", (1.3, 1.3, 1.3))  # Scale second model
     instance.scene_construct.set_auto_rotation("model_opaque", False)  # Disable auto-rotation for second model
 

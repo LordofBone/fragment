@@ -19,7 +19,7 @@ class RenderingInstance:
         self.scene_construct = SceneConstructor()
         self.framebuffers = {}
         self.render_order = []
-        self.running = False  # Flag to control the main loop
+        self.running = False
         self.audio_player = None
 
     def setup(self):
@@ -86,19 +86,19 @@ class RenderingInstance:
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     def add_renderer(self, name, renderer_type, order=None, **params):
-        renderer = self.create_renderer(renderer_type, **params)
+        renderer = self.create_renderer(name, renderer_type, **params)
         self.scene_construct.add_renderer(name, renderer)
         self.update_render_order(name, order)
 
-    def create_renderer(self, renderer_type, **params):
+    def create_renderer(self, name, renderer_type, **params):
         if renderer_type == "model":
-            return ModelRenderer(**params)
+            return ModelRenderer(renderer_name=name, **params)
         elif renderer_type == "surface":
-            return SurfaceRenderer(**params)
+            return SurfaceRenderer(renderer_name=name, **params)
         elif renderer_type == "skybox":
-            return SkyboxRenderer(**params)
+            return SkyboxRenderer(renderer_name=name, **params)
         elif renderer_type == "particle":
-            return ParticleRenderer(**params)
+            return ParticleRenderer(renderer_name=name, **params)
         else:
             raise ValueError(f"Unknown renderer type: {renderer_type}")
 
@@ -151,7 +151,6 @@ class RenderingInstance:
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
             # Render the 3D scene
-            self.render_planar_views()
             self.render_scene(delta_time)
 
             # Collect FPS data
@@ -176,18 +175,38 @@ class RenderingInstance:
 
         self.shutdown()
 
+    def render_scene(self, delta_time):
+        # Render shadow maps
+        self.render_shadow_maps()
+
+        # Render planar views
+        self.render_planar_views()
+
+        # Render the scene normally
+        glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glEnable(GL_DEPTH_TEST)
+
+        for renderer_name, _ in self.render_order:
+            renderer = self.scene_construct.renderers[renderer_name]
+            renderer.update_camera(delta_time)
+            renderer.render()
+
+    def render_shadow_maps(self):
+        # Collect all renderers
+        scene_renderers = list(self.scene_construct.renderers.values())
+
+        for renderer_name, _ in self.render_order:
+            renderer = self.scene_construct.renderers[renderer_name]
+            if renderer.supports_shadow_mapping() and renderer.shadowing_enabled and renderer.lights_enabled:
+                renderer.render_shadow_map(scene_renderers)
+                break  # Assuming one shadow map for the first renderer with shadows
+
     def render_planar_views(self):
         for renderer_name, _ in self.render_order:
             renderer = self.scene_construct.renderers[renderer_name]
             if renderer.planar_camera:
                 renderer.render_planar_view(self.scene_construct.renderers.values())
-
-    def render_scene(self, delta_time):
-        glViewport(0, 0, self.render_window.window_size[0], self.render_window.window_size[1])
-        for renderer_name, _ in self.render_order:
-            renderer = self.scene_construct.renderers[renderer_name]
-            renderer.update_camera(delta_time)
-            self.scene_construct.render(renderer_name)
 
     def shutdown(self):
         """Shut down the rendering instance and clean up resources."""

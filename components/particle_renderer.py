@@ -13,6 +13,7 @@ class ParticleRenderer(AbstractRenderer):
 
     def __init__(
         self,
+        renderer_name,
         max_particles_map=None,
         particles_max=100,
         particle_batch_size=1,
@@ -65,7 +66,7 @@ class ParticleRenderer(AbstractRenderer):
         :param particle_type: Type of primitive used for particles (e.g., 'points').
         :param kwargs: Additional keyword arguments for customization.
         """
-        super().__init__(**kwargs)
+        super().__init__(renderer_name=renderer_name, **kwargs)
 
         # Handle the max_particles_map override
         if max_particles_map is not None:
@@ -225,13 +226,18 @@ class ParticleRenderer(AbstractRenderer):
             varyings_c = (ctypes.POINTER(ctypes.c_char) * len(varyings))(
                 *[ctypes.create_string_buffer(v.encode("utf-8")) for v in varyings]
             )
-            glTransformFeedbackVaryings(self.shader_program, len(varyings), varyings_c, GL_INTERLEAVED_ATTRIBS)
-            glLinkProgram(self.shader_program)
+            glTransformFeedbackVaryings(
+                self.shader_engine.shader_program, len(varyings), varyings_c, GL_INTERLEAVED_ATTRIBS
+            )
+            glLinkProgram(self.shader_engine.shader_program)
 
             # Check for successful shader program linking
-            if not glGetProgramiv(self.shader_program, GL_LINK_STATUS):
-                log = glGetProgramInfoLog(self.shader_program)
+            if not glGetProgramiv(self.shader_engine.shader_program, GL_LINK_STATUS):
+                log = glGetProgramInfoLog(self.shader_engine.shader_program)
                 raise RuntimeError(f"Shader program linking failed: {log.decode()}")
+
+    def supports_shadow_mapping(self):
+        return False
 
     def set_view_projection_matrices(self):
         """
@@ -240,10 +246,10 @@ class ParticleRenderer(AbstractRenderer):
         self.setup_camera()
 
         # Get the uniform locations for the view and projection matrices
-        view_location = glGetUniformLocation(self.shader_program, "view")
-        projection_location = glGetUniformLocation(self.shader_program, "projection")
-        camera_position_location = glGetUniformLocation(self.shader_program, "cameraPosition")
-        model_matrix_location = glGetUniformLocation(self.shader_program, "model")
+        view_location = glGetUniformLocation(self.shader_engine.shader_program, "view")
+        projection_location = glGetUniformLocation(self.shader_engine.shader_program, "projection")
+        camera_position_location = glGetUniformLocation(self.shader_engine.shader_program, "cameraPosition")
+        model_matrix_location = glGetUniformLocation(self.shader_engine.shader_program, "model")
 
         # Pass the view and projection matrices to the shader
         glUniformMatrix4fv(view_location, 1, GL_FALSE, glm.value_ptr(self.view))
@@ -308,7 +314,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Setup buffers for transform feedback-based particle rendering.
         """
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Create two VBOs for ping-pong buffering
         self.vbos = glGenBuffers(2)
@@ -334,7 +340,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Setup buffers for compute shader-based particle rendering.
         """
-        glUseProgram(self.compute_shader_program)
+        self.shader_engine.use_compute_shader_program()
 
         # Create the SSBO for particle data
         self.ssbo = glGenBuffers(1)
@@ -363,7 +369,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         self.cpu_particles = particle_data
 
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         self.vao, self.vbo = glGenVertexArrays(1), glGenBuffers(1)
         glBindVertexArray(self.vao)
@@ -496,17 +502,16 @@ class ParticleRenderer(AbstractRenderer):
         """
         vertex_stride = self.stride_length_tf_compute * self.float_size
 
-        # Ensure the correct shader program (vertex/fragment) is active
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Get the attribute locations
-        position_loc = glGetAttribLocation(self.shader_program, "position")
-        velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
-        spawn_time_loc = glGetAttribLocation(self.shader_program, "spawnTime")
-        lifetime_loc = glGetAttribLocation(self.shader_program, "particleLifetime")
-        particle_id_loc = glGetAttribLocation(self.shader_program, "particleID")
-        weight_loc = glGetAttribLocation(self.shader_program, "particleWeight")
-        lifetime_percentage_loc = glGetAttribLocation(self.shader_program, "lifetimePercentage")
+        position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
+        velocity_loc = glGetAttribLocation(self.shader_engine.shader_program, "velocity")
+        spawn_time_loc = glGetAttribLocation(self.shader_engine.shader_program, "spawnTime")
+        lifetime_loc = glGetAttribLocation(self.shader_engine.shader_program, "particleLifetime")
+        particle_id_loc = glGetAttribLocation(self.shader_engine.shader_program, "particleID")
+        weight_loc = glGetAttribLocation(self.shader_engine.shader_program, "particleWeight")
+        lifetime_percentage_loc = glGetAttribLocation(self.shader_engine.shader_program, "lifetimePercentage")
 
         # Ensure all attributes are found
         if (
@@ -562,13 +567,13 @@ class ParticleRenderer(AbstractRenderer):
         """
         Debug function to check vertex attribute pointer setup.
         """
-        position_loc = glGetAttribLocation(self.shader_program, "position")
-        velocity_loc = glGetAttribLocation(self.shader_program, "velocity")
-        spawn_time_loc = glGetAttribLocation(self.shader_program, "spawnTime")
-        lifetime_loc = glGetAttribLocation(self.shader_program, "particleLifetime")
-        particle_id_loc = glGetAttribLocation(self.shader_program, "particleID")
-        particle_weight_loc = glGetAttribLocation(self.shader_program, "particleWeight")
-        particle_lifetime_percentage_loc = glGetAttribLocation(self.shader_program, "lifetimePercentage")
+        position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
+        velocity_loc = glGetAttribLocation(self.shader_engine.shader_program, "velocity")
+        spawn_time_loc = glGetAttribLocation(self.shader_engine.shader_program, "spawnTime")
+        lifetime_loc = glGetAttribLocation(self.shader_engine.shader_program, "particleLifetime")
+        particle_id_loc = glGetAttribLocation(self.shader_engine.shader_program, "particleID")
+        particle_weight_loc = glGetAttribLocation(self.shader_engine.shader_program, "particleWeight")
+        particle_lifetime_percentage_loc = glGetAttribLocation(self.shader_engine.shader_program, "lifetimePercentage")
 
         # Stride and offset values
         position_stride = glGetVertexAttribiv(position_loc, GL_VERTEX_ATTRIB_ARRAY_STRIDE)
@@ -614,13 +619,12 @@ class ParticleRenderer(AbstractRenderer):
         """
         vertex_stride = self.stride_length_cpu * self.float_size
 
-        # Ensure the correct shader program (vertex/fragment) is active
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Get the attribute locations
-        position_loc = glGetAttribLocation(self.shader_program, "position")
-        lifetime_percentage_loc = glGetAttribLocation(self.shader_program, "lifetimePercentage")
-        particle_id_loc = glGetAttribLocation(self.shader_program, "particleID")
+        position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
+        lifetime_percentage_loc = glGetAttribLocation(self.shader_engine.shader_program, "lifetimePercentage")
+        particle_id_loc = glGetAttribLocation(self.shader_engine.shader_program, "particleID")
 
         # Ensure attributes are found
         if position_loc == -1 or lifetime_percentage_loc == -1 or particle_id_loc == -1:
@@ -652,54 +656,63 @@ class ParticleRenderer(AbstractRenderer):
         """
         Set up general uniforms for the particle renderer.
         """
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleSize"),
+            glGetUniformLocation(self.shader_engine.shader_program, "particleSize"),
             self.particle_size,
         )
-        glUniform1i(glGetUniformLocation(self.shader_program, "particleFadeToColor"), int(self.particle_fade_to_color))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "particleFadeToColor"),
+            int(self.particle_fade_to_color),
+        )
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "particleFadeColor"),
+            glGetUniformLocation(self.shader_engine.shader_program, "particleFadeColor"),
             1,
             glm.value_ptr(self.shader_particle_fade_color),
         )
-        glUniform1i(glGetUniformLocation(self.shader_program, "smoothEdges"), int(self.particle_smooth_edges))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "smoothEdges"), int(self.particle_smooth_edges)
+        )
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "minWeight"),
+            glGetUniformLocation(self.shader_engine.shader_program, "minWeight"),
             self.particle_min_weight,
         )
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "maxWeight"),
+            glGetUniformLocation(self.shader_engine.shader_program, "maxWeight"),
             self.particle_max_weight,
         )
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleMaxVelocity"),
+            glGetUniformLocation(self.shader_engine.shader_program, "particleMaxVelocity"),
             self.particle_max_velocity,
         )
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleBounceFactor"),
+            glGetUniformLocation(self.shader_engine.shader_program, "particleBounceFactor"),
             self.particle_bounce_factor,
         )
         glUniform1f(
-            glGetUniformLocation(self.shader_program, "particleGroundPlaneHeight"),
+            glGetUniformLocation(self.shader_engine.shader_program, "particleGroundPlaneHeight"),
             self.particle_ground_plane_height,
         )
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "particleColor"),
+            glGetUniformLocation(self.shader_engine.shader_program, "particleColor"),
             1,
             glm.value_ptr(self.particle_color),
         )
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "particleGravity"),
+            glGetUniformLocation(self.shader_engine.shader_program, "particleGravity"),
             1,
             glm.value_ptr(self.particle_gravity),
         )
-        glUniform1i(glGetUniformLocation(self.shader_program, "fluidSimulation"), int(self.fluid_simulation))
-        glUniform1f(glGetUniformLocation(self.shader_program, "particlePressure"), self.particle_pressure)
-        glUniform1f(glGetUniformLocation(self.shader_program, "particleViscosity"), self.particle_viscosity)
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "fluidSimulation"), int(self.fluid_simulation)
+        )
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "particlePressure"), self.particle_pressure)
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "particleViscosity"), self.particle_viscosity
+        )
         glUniform3fv(
-            glGetUniformLocation(self.shader_program, "particleGroundPlaneNormal"),
+            glGetUniformLocation(self.shader_engine.shader_program, "particleGroundPlaneNormal"),
             1,
             glm.value_ptr(self.particle_ground_plane_normal),
         )
@@ -708,107 +721,126 @@ class ParticleRenderer(AbstractRenderer):
         """
         Set up the uniforms for the compute shader.
         """
-        glUseProgram(self.compute_shader_program)
+        self.shader_engine.use_compute_shader_program()
 
         # Determine 'shouldGenerate' based on timing logic
-        glUniform1i(glGetUniformLocation(self.compute_shader_program, "shouldGenerate"), int(self.should_generate))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "shouldGenerate"), int(self.should_generate)
+        )
 
         # Set other uniforms
         current_time_sec = time.time() - self.start_time
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "currentTime"), np.float32(current_time_sec))
-
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "deltaTime"), np.float32(self.delta_time))
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particleMaxLifetime"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "currentTime"), np.float32(current_time_sec)
+        )
+
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "deltaTime"), np.float32(self.delta_time)
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleMaxLifetime"),
             np.float32(self.particle_max_lifetime),
         )
 
-        glUniform1i(glGetUniformLocation(self.compute_shader_program, "maxParticles"), self.max_particles)
+        glUniform1i(glGetUniformLocation(self.shader_engine.compute_shader_program, "maxParticles"), self.max_particles)
         glUniform1ui(
-            glGetUniformLocation(self.compute_shader_program, "particleBatchSize"), np.uint32(self.particle_batch_size)
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleBatchSize"),
+            np.uint32(self.particle_batch_size),
         )
         glUniform1i(
-            glGetUniformLocation(self.compute_shader_program, "particleGenerator"), int(self.particle_generator)
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleGenerator"),
+            int(self.particle_generator),
         )
 
         # Set spawn time jitter uniforms
         glUniform1i(
-            glGetUniformLocation(self.compute_shader_program, "particleSpawnTimeJitter"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleSpawnTimeJitter"),
             int(self.particle_spawn_time_jitter),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particleMaxSpawnTimeJitter"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleMaxSpawnTimeJitter"),
             np.float32(self.particle_max_spawn_time_jitter),
         )
 
         # Set particle properties
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particleMinWeight"), np.float32(self.particle_min_weight)
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleMinWeight"),
+            np.float32(self.particle_min_weight),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particleMaxWeight"), np.float32(self.particle_max_weight)
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleMaxWeight"),
+            np.float32(self.particle_max_weight),
         )
         glUniform3fv(
-            glGetUniformLocation(self.compute_shader_program, "particleGravity"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleGravity"),
             1,
             glm.value_ptr(self.particle_gravity),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particleMaxVelocity"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleMaxVelocity"),
             np.float32(self.particle_max_velocity),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particleBounceFactor"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleBounceFactor"),
             np.float32(self.particle_bounce_factor),
         )
         glUniform3fv(
-            glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneNormal"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleGroundPlaneNormal"),
             1,
             glm.value_ptr(self.particle_ground_plane_normal),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particleGroundPlaneHeight"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleGroundPlaneHeight"),
             np.float32(self.particle_ground_plane_height),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particlePressure"), np.float32(self.particle_pressure)
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particlePressure"),
+            np.float32(self.particle_pressure),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "particleViscosity"), np.float32(self.particle_viscosity)
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleViscosity"),
+            np.float32(self.particle_viscosity),
         )
-        glUniform1i(glGetUniformLocation(self.compute_shader_program, "fluidSimulation"), int(self.fluid_simulation))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidSimulation"),
+            int(self.fluid_simulation),
+        )
 
         # Pass min and max position values to the compute shader
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minX"), np.float32(self.min_width))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxX"), np.float32(self.max_width))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minY"), np.float32(self.min_height))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxY"), np.float32(self.max_height))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "minZ"), np.float32(self.min_depth))
-        glUniform1f(glGetUniformLocation(self.compute_shader_program, "maxZ"), np.float32(self.max_depth))
+        glUniform1f(glGetUniformLocation(self.shader_engine.compute_shader_program, "minX"), np.float32(self.min_width))
+        glUniform1f(glGetUniformLocation(self.shader_engine.compute_shader_program, "maxX"), np.float32(self.max_width))
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "minY"), np.float32(self.min_height)
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "maxY"), np.float32(self.max_height)
+        )
+        glUniform1f(glGetUniformLocation(self.shader_engine.compute_shader_program, "minZ"), np.float32(self.min_depth))
+        glUniform1f(glGetUniformLocation(self.shader_engine.compute_shader_program, "maxZ"), np.float32(self.max_depth))
 
         # Set min and max initial velocity values
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "minInitialVelocityX"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "minInitialVelocityX"),
             np.float32(self.min_initial_velocity_x),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityX"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "maxInitialVelocityX"),
             np.float32(self.max_initial_velocity_x),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "minInitialVelocityY"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "minInitialVelocityY"),
             np.float32(self.min_initial_velocity_y),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityY"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "maxInitialVelocityY"),
             np.float32(self.max_initial_velocity_y),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "minInitialVelocityZ"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "minInitialVelocityZ"),
             np.float32(self.min_initial_velocity_z),
         )
         glUniform1f(
-            glGetUniformLocation(self.compute_shader_program, "maxInitialVelocityZ"),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "maxInitialVelocityZ"),
             np.float32(self.max_initial_velocity_z),
         )
 
@@ -816,11 +848,15 @@ class ParticleRenderer(AbstractRenderer):
         """
         Set up the uniforms for the CPU-based particle rendering.
         """
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Set other uniforms like particle size, color, etc.
-        glUniform1f(glGetUniformLocation(self.shader_program, "particleSize"), self.particle_size)
-        glUniform3fv(glGetUniformLocation(self.shader_program, "particleColor"), 1, glm.value_ptr(self.particle_color))
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "particleSize"), self.particle_size)
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "particleColor"),
+            1,
+            glm.value_ptr(self.particle_color),
+        )
 
         if self.debug_mode:
             print("Set particle uniforms for CPU mode.")
@@ -838,8 +874,8 @@ class ParticleRenderer(AbstractRenderer):
         self.last_time = self.current_time
 
         # Pass the elapsed time (relative to start) to the shader
-        glUniform1f(glGetUniformLocation(self.shader_program, "currentTime"), np.float32(elapsed_time))
-        glUniform1f(glGetUniformLocation(self.shader_program, "deltaTime"), self.delta_time)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "currentTime"), np.float32(elapsed_time))
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "deltaTime"), self.delta_time)
 
         # Determine if we should generate a new batch of particles (applies to compute shader and cpu modes)
         if self.generator_delay > 0.0:
@@ -1064,7 +1100,7 @@ class ParticleRenderer(AbstractRenderer):
         """
         Update the particle system by dispatching the compute shader, respecting particle generator logic.
         """
-        glUseProgram(self.compute_shader_program)
+        self.shader_engine.use_compute_shader_program()
 
         # Set uniforms and dispatch compute shader
         self.set_compute_uniforms()
@@ -1082,13 +1118,12 @@ class ParticleRenderer(AbstractRenderer):
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, zero_data.nbytes, zero_data)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
-        glUseProgram(self.shader_program)  # Switch back to the vertex/fragment shader
+        self.shader_engine.use_shader_program()
 
         self.particles_to_render = self.max_particles
 
     def _update_particles_transform_feedback(self):
-        # Bind the shader program
-        glUseProgram(self.shader_program)
+        self.shader_engine.use_shader_program()
 
         # Determine source and destination buffers
         source_vbo = self.vbos[self.current_vbo_index]
@@ -1126,9 +1161,6 @@ class ParticleRenderer(AbstractRenderer):
         self.particles_to_render = self.max_particles
 
     def print_vao_contents_transform_feedback(self):
-        # Bind the feedback VBO (the buffer with the updated particle data)
-        glBindBuffer(GL_ARRAY_BUFFER, self.feedback_vbo)
-
         # Get the size of the buffer in bytes
         print(f"Feedback VBO Buffer Size: {self.buffer_size_tf_compute} bytes")
 

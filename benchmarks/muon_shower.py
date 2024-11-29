@@ -6,9 +6,10 @@ def run_benchmark(
     stats_queue=None,
     stop_event=None,
     resolution=(800, 600),
-    msaa_level=0,
+    msaa_level=4,
     anisotropy=16,
-    particle_render_mode="transform_feedback",
+    shadow_map_resolution=2048,
+    particle_render_mode="vertex",
     vsync_enabled=True,
     fullscreen=False,
 ):
@@ -29,12 +30,12 @@ def run_benchmark(
         ],
         near_plane=0.1,
         far_plane=5000,
+        shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
         msaa_level=msaa_level,
         alpha_blending=True,
         culling=True,
-        debug_mode=False,
     )
 
     # Create the rendering instance with the base configuration

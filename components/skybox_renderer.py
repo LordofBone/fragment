@@ -6,10 +6,13 @@ from components.abstract_renderer import AbstractRenderer, common_funcs
 
 
 class SkyboxRenderer(AbstractRenderer):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, renderer_name, **kwargs):
+        super().__init__(renderer_name=renderer_name, **kwargs)
         self.skybox_vao = None
         self.skybox_vbo = None
+
+    def supports_shadow_mapping(self):
+        return False
 
     def create_buffers(self):
         """Create buffers for the skybox."""
@@ -163,7 +166,12 @@ class SkyboxRenderer(AbstractRenderer):
         view_matrix = glm.mat4(glm.mat3(self.view))  # Remove translation from the view matrix
         projection_matrix = self.projection
 
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view_matrix))
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_program, "projection"), 1, GL_FALSE, glm.value_ptr(projection_matrix)
+            glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view_matrix)
+        )
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "projection"),
+            1,
+            GL_FALSE,
+            glm.value_ptr(projection_matrix),
         )

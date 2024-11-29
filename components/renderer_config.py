@@ -25,6 +25,7 @@ class RendererConfig:
         msaa_level=8,
         alpha_blending=False,
         depth_testing=True,
+        shadow_map_resolution=2048,
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
@@ -74,6 +75,7 @@ class RendererConfig:
         self.msaa_level = msaa_level
         self.alpha_blending = alpha_blending
         self.depth_testing = depth_testing
+        self.shadow_map_resolution = shadow_map_resolution
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
@@ -157,6 +159,7 @@ class RendererConfig:
         phong_shading=None,
         opacity=1.0,
         shininess=1.0,
+        shadow_map_resolution=None,
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -193,6 +196,7 @@ class RendererConfig:
             "phong_shading": phong_shading,
             "opacity": opacity,
             "shininess": shininess,
+            "shadow_map_resolution": shadow_map_resolution,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
@@ -231,6 +235,7 @@ class RendererConfig:
         phong_shading=None,
         opacity=1.0,
         shininess=1.0,
+        shadow_map_resolution=None,
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -261,6 +266,7 @@ class RendererConfig:
             "phong_shading": phong_shading,
             "opacity": opacity,
             "shininess": shininess,
+            "shadow_map_resolution": shadow_map_resolution,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,

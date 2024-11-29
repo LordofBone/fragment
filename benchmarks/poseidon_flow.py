@@ -9,8 +9,9 @@ def run_benchmark(
     stats_queue=None,
     stop_event=None,
     resolution=(800, 600),
-    msaa_level=0,
+    msaa_level=4,
     anisotropy=16,
+    shadow_map_resolution=2048,
     particle_render_mode="vertex",
     vsync_enabled=True,
     fullscreen=False,
@@ -32,6 +33,7 @@ def run_benchmark(
         lights=[
             {"position": (5.0, 10.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
         ],
+        shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
         msaa_level=msaa_level,

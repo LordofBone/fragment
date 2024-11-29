@@ -1,3 +1,6 @@
+import numpy as np
+from OpenGL.GL import *
+
 from utils.decorators import singleton
 
 
@@ -26,7 +29,23 @@ class TextureManager:
         self.current_texture_unit += 1
         return texture_unit
 
+    def get_dummy_texture(self):
+        if self.dummy_texture is None:
+            self.dummy_texture = self.create_dummy_texture()
+        return self.dummy_texture
+
+    def create_dummy_texture(self):
+        dummy_texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, dummy_texture)
+        data = np.array([1.0], dtype=np.float32)  # White color for depth value of 1.0
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, data)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glBindTexture(GL_TEXTURE_2D, 0)
+        return dummy_texture
+
     def reset(self):
         """Resets the texture manager, clearing all stored texture units."""
         self.current_texture_unit = 0
         self.texture_unit_map = {}
+        self.dummy_texture = None
