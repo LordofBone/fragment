@@ -29,7 +29,7 @@ uniform float envSpecularStrength;
 uniform mat4 view;
 uniform vec3 cameraPos;
 
-uniform float parallaxScale;// New uniform for parallax mapping
+uniform float parallaxScale;
 
 // Function to compute the TBN matrix
 mat3 computeTBN(vec3 normal, vec3 tangent, vec3 bitangent)
