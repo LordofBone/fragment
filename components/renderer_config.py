@@ -48,7 +48,7 @@ class RendererConfig:
         screen_facing_planar_texture=False,
         lens_rotations=None,
         background_audio=None,
-            sound_enabled=True,
+        sound_enabled=True,
         audio_delay=0.0,
         audio_loop=False,
         debug_mode=None,

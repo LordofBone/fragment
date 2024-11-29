@@ -22,7 +22,7 @@ class BenchmarkManager:
         shadow_map_resolution=2048,
         particle_render_mode="vertex",
         vsync_enabled=True,
-            sound_enabled=True,
+        sound_enabled=True,
         fullscreen=False,
     ):
         self.benchmarks.append(
@@ -71,7 +71,7 @@ class BenchmarkManager:
         shadow_map_resolution,
         particle_render_mode,
         vsync_enabled,
-            sound_enabled,
+        sound_enabled,
         fullscreen,
     ):
         # Create a multiprocessing Queue to collect stats

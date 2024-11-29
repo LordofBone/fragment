@@ -1,3 +1,4 @@
+import _tkinter
 import io
 import multiprocessing
 import os
@@ -7,16 +8,15 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import GPUtil
-import _tkinter
 import customtkinter
+import GPUtil
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
+from PIL import Image, ImageFilter, ImageTk
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.aureonrain import run_benchmark as run_water_pyramid_benchmark
@@ -220,9 +220,7 @@ class App(customtkinter.CTk):
         self.enable_vsync_checkbox.grid(row=5, column=0, columnspan=1, padx=common_padx, pady=common_pady)
 
         # Sound enabled checkbox
-        self.sound_enabled_checkbox = customtkinter.CTkCheckBox(
-            self.tabview.tab("Settings"), text="Enable Sound"
-        )
+        self.sound_enabled_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"), text="Enable Sound")
         self.sound_enabled_checkbox.grid(row=5, column=1, columnspan=1, padx=common_padx, pady=common_pady)
 
         # Scenarios tab grid layout for consistency
