@@ -134,7 +134,7 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
-            parallax_scale=0.0,
+            parallax_scale=0.5,
         shadow_map_resolution=2048,
         phong_shading=False,
         opacity=1.0,
