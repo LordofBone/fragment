@@ -18,7 +18,8 @@ from utils.image_saver import ImageSaver
 
 texture_manager = TextureManager()
 
-image_saver = ImageSaver(screenshots_dir='screenshots')
+image_saver = ImageSaver(screenshots_dir="screenshots")
+
 
 def check_gl_error(context, debug_mode):
     if debug_mode:
@@ -47,8 +48,9 @@ def common_funcs(func):
         check_gl_error("Depth testing setup", self.debug_mode)
 
         view_position = self.camera_position
-        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "viewPosition"), 1,
-                     glm.value_ptr(view_position))
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "viewPosition"), 1, glm.value_ptr(view_position)
+        )
         check_gl_error("Setting viewPosition uniform", self.debug_mode)
 
         # Culling setup
@@ -103,7 +105,7 @@ def common_funcs(func):
 class AbstractRenderer(ABC):
     def __init__(
         self,
-            renderer_name,
+        renderer_name,
         shader_names,
         shaders=None,
         texture_paths=None,
@@ -125,14 +127,14 @@ class AbstractRenderer(ABC):
         alpha_blending=False,
         depth_testing=True,
         culling=True,
-            msaa_level=4,
+        msaa_level=4,
         anisotropy=16,
         auto_camera=False,
         move_speed=1.0,
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
-            shadow_map_resolution=2048,
+        shadow_map_resolution=2048,
         phong_shading=False,
         opacity=1.0,
         shininess=1.0,
@@ -233,10 +235,7 @@ class AbstractRenderer(ABC):
         if shadow_map_resolution > 0:
             self.shadowing_enabled = True
             self.shadow_width = self.shadow_height = shadow_map_resolution
-            self.shadow_map_manager = ShadowMapManager(
-                shadow_width=self.shadow_width,
-                shadow_height=self.shadow_height
-            )
+            self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
         else:
             self.shadowing_enabled = False
             self.shadow_map_manager = None  # Shadows are disabled
@@ -305,8 +304,9 @@ class AbstractRenderer(ABC):
         self.depth_vis_texture = glGenTextures(1)
 
         glBindTexture(GL_TEXTURE_2D, self.depth_vis_texture)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.window_size[0], self.window_size[1], 0, GL_RGB, GL_UNSIGNED_BYTE,
-                     None)
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGB, self.window_size[0], self.window_size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, None
+        )
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
@@ -546,10 +546,18 @@ class AbstractRenderer(ABC):
         self.apply_transformations()
 
         self.shader_engine.use_shadow_shader_program()
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shadow_shader_program, "model"),
-                           1, GL_FALSE, glm.value_ptr(self.model_matrix))
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shadow_shader_program, "lightSpaceMatrix"),
-                           1, GL_FALSE, glm.value_ptr(light_space_matrix))
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_engine.shadow_shader_program, "model"),
+            1,
+            GL_FALSE,
+            glm.value_ptr(self.model_matrix),
+        )
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_engine.shadow_shader_program, "lightSpaceMatrix"),
+            1,
+            GL_FALSE,
+            glm.value_ptr(light_space_matrix),
+        )
 
         for mesh in self.object.mesh_list:
             vao_index = self.object.mesh_list.index(mesh)
@@ -577,8 +585,13 @@ class AbstractRenderer(ABC):
             shadow_vertex_shader_path = self.shaders["vertex"].get("shadow_mapping")
             shadow_fragment_shader_path = self.shaders["fragment"].get("shadow_mapping")
 
-        self.shader_engine = ShaderEngine(vertex_shader_path, fragment_shader_path, compute_shader_path,
-                                          shadow_vertex_shader_path, shadow_fragment_shader_path)
+        self.shader_engine = ShaderEngine(
+            vertex_shader_path,
+            fragment_shader_path,
+            compute_shader_path,
+            shadow_vertex_shader_path,
+            shadow_fragment_shader_path,
+        )
 
     def load_textures(self):
         """Load textures for the model."""
@@ -726,38 +739,48 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "textureLodLevel"), self.texture_lod_bias)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
 
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "applyToneMapping"),
-                    self.apply_tone_mapping)
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "applyToneMapping"), self.apply_tone_mapping
+        )
 
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "applyGammaCorrection"),
-                    self.apply_gamma_correction)
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "applyGammaCorrection"), self.apply_gamma_correction
+        )
 
     def set_shader_uniforms(self):
         self.shader_engine.use_shader_program()
         # Set model matrix uniform
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_engine.shader_program, "model"),
-            1, GL_FALSE, glm.value_ptr(self.model_matrix)
+            1,
+            GL_FALSE,
+            glm.value_ptr(self.model_matrix),
         )
 
         # Set light space matrix uniform
         if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
             glUniformMatrix4fv(
                 glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
-                1, GL_FALSE, glm.value_ptr(self.shadow_map_manager.light_space_matrix)
+                1,
+                GL_FALSE,
+                glm.value_ptr(self.shadow_map_manager.light_space_matrix),
             )
 
         glUniform3fv(
-            glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"), 1,
-            glm.value_ptr(self.ambient_lighting_strength)
+            glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),
+            1,
+            glm.value_ptr(self.ambient_lighting_strength),
         )
 
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE,
-                           glm.value_ptr(self.view))
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(self.view)
+        )
 
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_engine.shader_program, "projection"), 1, GL_FALSE,
-            glm.value_ptr(self.projection)
+            glGetUniformLocation(self.shader_engine.shader_program, "projection"),
+            1,
+            GL_FALSE,
+            glm.value_ptr(self.projection),
         )
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "nearPlane"), self.near_plane)
@@ -766,17 +789,20 @@ class AbstractRenderer(ABC):
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shininess"), self.shininess)
 
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "distortionStrength"),
-                    self.distortion_strength)
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "distortionStrength"), self.distortion_strength
+        )
 
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "reflectionStrength"),
-                    self.reflection_strength)
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "reflectionStrength"), self.reflection_strength
+        )
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "warped"), self.distortion_warped)
 
         glUniform2f(
-            glGetUniformLocation(self.shader_engine.shader_program, "screenResolution"), self.window_size[0],
-            self.window_size[1]
+            glGetUniformLocation(self.shader_engine.shader_program, "screenResolution"),
+            self.window_size[0],
+            self.window_size[1],
         )
 
         if self.screen_texture:
@@ -788,16 +814,20 @@ class AbstractRenderer(ABC):
             int(self.screen_facing_planar_texture),
         )
 
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "waveSpeed"),
-                    self.dynamic_attrs.get("wave_speed", 10.0))
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "waveSpeed"),
+            self.dynamic_attrs.get("wave_speed", 10.0),
+        )
 
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "waveAmplitude"),
-            self.dynamic_attrs.get("wave_amplitude", 0.1)
+            self.dynamic_attrs.get("wave_amplitude", 0.1),
         )
 
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "randomness"),
-                    self.dynamic_attrs.get("randomness", 0.8))
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "randomness"),
+            self.dynamic_attrs.get("randomness", 0.8),
+        )
 
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "texCoordFrequency"),
@@ -807,14 +837,20 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_engine.shader_program, "texCoordAmplitude"),
             self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
         )
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowingEnabled"),
-                    int(self.shadowing_enabled))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "surfaceDepth"),
-                    self.dynamic_attrs.get("surface_depth", 0.0))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shadowStrength"),
-                    self.dynamic_attrs.get("shadow_strength", 1.0))
-        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "cameraPos"), 1,
-                     glm.value_ptr(self.camera_position))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "shadowingEnabled"), int(self.shadowing_enabled)
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "surfaceDepth"),
+            self.dynamic_attrs.get("surface_depth", 0.0),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "shadowStrength"),
+            self.dynamic_attrs.get("shadow_strength", 1.0),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position)
+        )
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
@@ -836,12 +872,19 @@ class AbstractRenderer(ABC):
 
         if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
             # Set light space matrix
-            glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
-                               1, GL_FALSE, glm.value_ptr(self.shadow_map_manager.light_space_matrix))
+            glUniformMatrix4fv(
+                glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
+                1,
+                GL_FALSE,
+                glm.value_ptr(self.shadow_map_manager.light_space_matrix),
+            )
 
             # Set light position
-            glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "lightPosition"),
-                         1, glm.value_ptr(self.lights[0]["position"]))
+            glUniform3fv(
+                glGetUniformLocation(self.shader_engine.shader_program, "lightPosition"),
+                1,
+                glm.value_ptr(self.lights[0]["position"]),
+            )
 
             # Bind shadow map
             glBindTexture(GL_TEXTURE_2D, self.shadow_map_manager.depth_map)

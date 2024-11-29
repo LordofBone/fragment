@@ -7,7 +7,7 @@ from utils.decorators import singleton
 
 @singleton
 class ImageSaver:
-    def __init__(self, screenshots_dir='screenshots', timestamp_format='%Y%m%d_%H%M%S'):
+    def __init__(self, screenshots_dir="screenshots", timestamp_format="%Y%m%d_%H%M%S"):
         self.screenshots_dir = screenshots_dir
         self.timestamp_format = timestamp_format
         self.lock = Lock()
@@ -34,7 +34,7 @@ class ImageSaver:
                 # Extract the file extension
                 name, ext = os.path.splitext(filename)
                 if not ext:
-                    ext = '.png'  # Default to .png if no extension is provided
+                    ext = ".png"  # Default to .png if no extension is provided
 
                 # Create the timestamped filename
                 filename = f"{name}_{timestamp}{ext}"

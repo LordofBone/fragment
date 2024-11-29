@@ -15,6 +15,7 @@ class SceneObject:
     def __init__(self, mesh_list):
         self.mesh_list = mesh_list
 
+
 class SurfaceRenderer(AbstractRenderer):
     def __init__(self, renderer_name, **kwargs):
         super().__init__(renderer_name=renderer_name, **kwargs)
@@ -65,13 +66,37 @@ class SurfaceRenderer(AbstractRenderer):
         # Vertex data: positions and texcoords
         vertices = [
             # Triangle 1
-            -half_width, 0.0, half_height, 0.0, 1.0,  # Vertex 0: Top-left
-            half_width, 0.0, half_height, 1.0, 1.0,  # Vertex 1: Top-right
-            half_width, 0.0, -half_height, 1.0, 0.0,  # Vertex 2: Bottom-right
+            -half_width,
+            0.0,
+            half_height,
+            0.0,
+            1.0,  # Vertex 0: Top-left
+            half_width,
+            0.0,
+            half_height,
+            1.0,
+            1.0,  # Vertex 1: Top-right
+            half_width,
+            0.0,
+            -half_height,
+            1.0,
+            0.0,  # Vertex 2: Bottom-right
             # Triangle 2
-            half_width, 0.0, -half_height, 1.0, 0.0,  # Vertex 3: Bottom-right
-            -half_width, 0.0, -half_height, 0.0, 0.0,  # Vertex 4: Bottom-left
-            -half_width, 0.0, half_height, 0.0, 1.0,  # Vertex 5: Top-left
+            half_width,
+            0.0,
+            -half_height,
+            1.0,
+            0.0,  # Vertex 3: Bottom-right
+            -half_width,
+            0.0,
+            -half_height,
+            0.0,
+            0.0,  # Vertex 4: Bottom-left
+            -half_width,
+            0.0,
+            half_height,
+            0.0,
+            1.0,  # Vertex 5: Top-left
         ]
 
         # Faces: list of tuples of vertex indices
@@ -99,8 +124,12 @@ class SurfaceRenderer(AbstractRenderer):
     def render(self):
         """Render the surface."""
         self.shader_engine.use_shader_program()
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "model"),
-                           1, GL_FALSE, glm.value_ptr(self.model_matrix))
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "model"),
+            1,
+            GL_FALSE,
+            glm.value_ptr(self.model_matrix),
+        )
         self.set_constant_uniforms()
 
         for mesh in self.object.mesh_list:

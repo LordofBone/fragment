@@ -166,9 +166,12 @@ class SkyboxRenderer(AbstractRenderer):
         view_matrix = glm.mat4(glm.mat3(self.view))  # Remove translation from the view matrix
         projection_matrix = self.projection
 
-        glUniformMatrix4fv(glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE,
-                           glm.value_ptr(view_matrix))
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_engine.shader_program, "projection"), 1, GL_FALSE,
-            glm.value_ptr(projection_matrix)
+            glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view_matrix)
+        )
+        glUniformMatrix4fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "projection"),
+            1,
+            GL_FALSE,
+            glm.value_ptr(projection_matrix),
         )

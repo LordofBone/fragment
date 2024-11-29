@@ -2,8 +2,14 @@ from OpenGL.GL import *
 
 
 class ShaderEngine:
-    def __init__(self, vertex_shader_path, fragment_shader_path, compute_shader_path=None,
-                 shadow_vertex_shader_path=None, shadow_fragment_shader_path=None):
+    def __init__(
+        self,
+        vertex_shader_path,
+        fragment_shader_path,
+        compute_shader_path=None,
+        shadow_vertex_shader_path=None,
+        shadow_fragment_shader_path=None,
+    ):
         """
         Initialize the ShaderEngine. This class can handle both compute shaders and rendering shaders.
         If a compute shader is provided, it will compile and store it separately from the rendering shaders.
@@ -21,8 +27,9 @@ class ShaderEngine:
         # Initialize shadow shaders (vertex and fragment)
         self.shadow_shader_program = None
         if shadow_vertex_shader_path or shadow_fragment_shader_path:
-            self.shadow_shader_program = self.create_shader_program(shadow_vertex_shader_path,
-                                                                    shadow_fragment_shader_path)
+            self.shadow_shader_program = self.create_shader_program(
+                shadow_vertex_shader_path, shadow_fragment_shader_path
+            )
 
     def create_shader_program(self, vertex_shader_path, fragment_shader_path):
         """Create and link a program from vertex and fragment shaders."""

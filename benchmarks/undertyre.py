@@ -15,10 +15,10 @@ def run_benchmark(
     stats_queue=None,
     stop_event=None,
     resolution=(800, 600),
-        msaa_level=4,
+    msaa_level=4,
     anisotropy=16,
-        shadow_map_resolution=2048,
-        particle_render_mode="vertex",
+    shadow_map_resolution=2048,
+    particle_render_mode="vertex",
     vsync_enabled=True,
     fullscreen=False,
 ):

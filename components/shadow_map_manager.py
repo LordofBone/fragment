@@ -18,8 +18,17 @@ class ShadowMapManager:
 
     def _initialize_depth_map(self):
         glBindTexture(GL_TEXTURE_2D, self.depth_map)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-                     self.shadow_width, self.shadow_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, None)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_DEPTH_COMPONENT,
+            self.shadow_width,
+            self.shadow_height,
+            0,
+            GL_DEPTH_COMPONENT,
+            GL_FLOAT,
+            None,
+        )
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
@@ -40,7 +49,8 @@ class ShadowMapManager:
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
     def setup(self, light, near_plane=1.0, far_plane=50.0):
-        light_projection = glm.ortho(light['orth_left'], light['orth_right'], light['orth_bottom'], light['orth_top'],
-                                     near_plane, far_plane)
-        light_view = glm.lookAt(light['position'], glm.vec3(0.0, 0.0, 0.0), glm.vec3(0.0, 1.0, 0.0))
+        light_projection = glm.ortho(
+            light["orth_left"], light["orth_right"], light["orth_bottom"], light["orth_top"], near_plane, far_plane
+        )
+        light_view = glm.lookAt(light["position"], glm.vec3(0.0, 0.0, 0.0), glm.vec3(0.0, 1.0, 0.0))
         self.light_space_matrix = light_projection * light_view
