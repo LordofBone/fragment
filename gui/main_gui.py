@@ -217,13 +217,13 @@ class App(customtkinter.CTk):
 
         # V-Sync setting
         self.enable_vsync_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"), text="Enable V-Sync")
-        self.enable_vsync_checkbox.grid(row=5, column=0, columnspan=2, padx=common_padx, pady=common_pady)
+        self.enable_vsync_checkbox.grid(row=5, column=0, columnspan=1, padx=common_padx, pady=common_pady)
 
         # Sound enabled checkbox
         self.sound_enabled_checkbox = customtkinter.CTkCheckBox(
             self.tabview.tab("Settings"), text="Enable Sound"
         )
-        self.sound_enabled_checkbox.grid(row=6, column=0, columnspan=2, padx=common_padx, pady=common_pady)
+        self.sound_enabled_checkbox.grid(row=5, column=1, columnspan=1, padx=common_padx, pady=common_pady)
 
         # Scenarios tab grid layout for consistency
         self.tabview.tab("Scenarios").grid_columnconfigure(0, weight=1)
