@@ -123,7 +123,8 @@ float ShadowCalculation(vec3 fragPosWorld, vec3 normal, float waveHeight) {
     for (int x = -samples; x <= samples; ++x) {
         for (int y = -samples; y <= samples; ++y) {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+            float comparison = currentDepth - bias - pcfDepth;
+            shadow += smoothstep(0.0, 0.005, comparison);
         }
     }
     shadow /= float((samples * 2 + 1) * (samples * 2 + 1));
