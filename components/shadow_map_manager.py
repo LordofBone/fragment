@@ -11,7 +11,7 @@ class ShadowMapManager:
         self.shadow_height = shadow_height
         self.depth_map_fbo = glGenFramebuffers(1)
         self.depth_map = glGenTextures(1)
-        self.light_space_matrix = None
+        self.light_space_matrix = glm.mat4(1)
 
         # Initialize depth map texture and framebuffer
         self._initialize_depth_map()
