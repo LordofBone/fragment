@@ -21,6 +21,7 @@ def run_benchmark(
     shadow_map_resolution=2048,
     particle_render_mode="vertex",
     vsync_enabled=True,
+        sound_enabled=True,
     fullscreen=False,
 ):
     # Initialize the base configuration for the renderer
@@ -67,6 +68,7 @@ def run_benchmark(
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
         phong_shading=True,
+        sound_enabled=sound_enabled,
         background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
         audio_delay=0.0,
         audio_loop=True,

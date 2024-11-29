@@ -20,6 +20,7 @@ def run_benchmark(
     shadow_map_resolution=2048,
     particle_render_mode="vertex",
     vsync_enabled=True,
+        sound_enabled=True,
     fullscreen=False,
 ):
     # Initialize the base configuration for the renderer
