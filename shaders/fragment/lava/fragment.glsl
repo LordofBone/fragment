@@ -94,7 +94,7 @@ float ShadowCalculation(vec3 fragPosWorld, vec3 normal, float waveHeight) {
     float currentDepth = projCoords.z;
 
     // Bias to prevent shadow acne
-    float bias = max(0.005 * (1.0 - dot(normal, normalize(lightPositions[0] - displacedPos))), 0.0005);
+    float bias = max(0.05 * (1.0 - dot(normal, normalize(lightPositions[0] - displacedPos))), 0.0005);
 
     // Percentage-Closer Filtering (PCF) for softer shadows
     float shadow = 0.0;
