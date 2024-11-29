@@ -47,8 +47,10 @@ def run_benchmark(
         near_plane=0.2,
         far_plane=100,
         lights=[
-            {"position": (6.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
-        ],
+            {"position": (20.85, 16.0, 22.0), "color": (0.55, 0.55, 0.55), "strength": 0.8, "orth_left": -60.0,
+             "orth_right": 60.0,
+             "orth_bottom": -60.0,
+             "orth_top": 60}],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
@@ -218,15 +220,15 @@ def run_benchmark(
     instance.scene_construct.set_auto_rotation("rain", False)
 
     # Example transformations
-    instance.scene_construct.translate_renderer("model_rotating", (0, 0, -3))  # Translate first model
+    instance.scene_construct.translate_renderer("model_rotating", (0, 1.5, -3))  # Translate first model
     instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
     instance.scene_construct.set_auto_rotation("model_rotating", True)  # Disable auto-rotation for second model
 
-    instance.scene_construct.translate_renderer("model_stretched", (2, 0, 0))  # Translate second model
+    instance.scene_construct.translate_renderer("model_stretched", (2, 1.5, 0))  # Translate second model
     instance.scene_construct.scale_renderer("model_stretched", (1.2, 1.2, 1.2))  # Scale second model
 
-    instance.scene_construct.translate_renderer("model_opaque", (6, 0, -6))  # Translate second model
+    instance.scene_construct.translate_renderer("model_opaque", (6, 1.5, -6))  # Translate second model
     instance.scene_construct.scale_renderer("model_opaque", (1.3, 1.3, 1.3))  # Scale second model
     instance.scene_construct.set_auto_rotation("model_opaque", False)  # Disable auto-rotation for second model
 
