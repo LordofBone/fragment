@@ -134,6 +134,7 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
+            parallax_scale=0.0,
         shadow_map_resolution=2048,
         phong_shading=False,
         opacity=1.0,
@@ -203,6 +204,8 @@ class AbstractRenderer(ABC):
         self.loop = loop
         self.front_face_winding = self.get_winding_constant(front_face_winding)
         self.window_size = window_size
+
+        self.parallax_scale = parallax_scale
 
         self.opacity = opacity
         self.shininess = shininess
@@ -765,6 +768,9 @@ class AbstractRenderer(ABC):
                 GL_FALSE,
                 glm.value_ptr(self.shadow_map_manager.light_space_matrix),
             )
+
+        # Set the heightScale uniform, to control the parallax mapping effect
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "parallaxScale"), self.parallax_scale)
 
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),
