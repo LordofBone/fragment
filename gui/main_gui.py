@@ -217,7 +217,11 @@ class App(customtkinter.CTk):
 
         # V-Sync setting
         self.enable_vsync_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"), text="Enable V-Sync")
-        self.enable_vsync_checkbox.grid(row=5, column=0, columnspan=2, padx=common_padx, pady=common_pady)
+        self.enable_vsync_checkbox.grid(row=5, column=0, columnspan=1, padx=common_padx, pady=common_pady)
+
+        # Sound enabled checkbox
+        self.sound_enabled_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"), text="Enable Sound")
+        self.sound_enabled_checkbox.grid(row=5, column=1, columnspan=1, padx=common_padx, pady=common_pady)
 
         # Scenarios tab grid layout for consistency
         self.tabview.tab("Scenarios").grid_columnconfigure(0, weight=1)
@@ -298,6 +302,7 @@ class App(customtkinter.CTk):
         self.anisotropy_optionmenu.set("16")
         self.shadow_quality_optionmenu.set("2048x2048")
         self.particle_render_mode_optionmenu.set("Transform Feedback")
+        self.sound_enabled_checkbox.select()
 
         # Prepare the graph canvas for results
         self.fig = None  # Will be created in display_results
@@ -526,6 +531,7 @@ class App(customtkinter.CTk):
         self.particle_render_mode_optionmenu.configure(state="disabled")
         # Disable checkboxes
         self.enable_vsync_checkbox.configure(state="disabled")
+        self.sound_enabled_checkbox.configure(state="disabled")
         for item in self.benchmark_vars.values():
             item["checkbox"].configure(state="disabled")
         # Disable 'Select All' and 'Deselect All' buttons
@@ -547,6 +553,7 @@ class App(customtkinter.CTk):
         self.particle_render_mode_optionmenu.configure(state="normal")
         # Enable checkboxes
         self.enable_vsync_checkbox.configure(state="normal")
+        self.sound_enabled_checkbox.configure(state="normal")
         for item in self.benchmark_vars.values():
             item["checkbox"].configure(state="normal")
         # Enable 'Select All' and 'Deselect All' buttons
@@ -586,6 +593,9 @@ class App(customtkinter.CTk):
         vsync_enabled = self.enable_vsync_checkbox.get()
         vsync_enabled = bool(vsync_enabled)
 
+        # Retrieve the sound enabled setting from the GUI
+        sound_enabled = self.sound_enabled_checkbox.get()
+
         # Map benchmark names to functions using the central BENCHMARKS dictionary
         benchmark_functions = BENCHMARKS
 
@@ -604,6 +614,7 @@ class App(customtkinter.CTk):
                     shadow_map_resolution=shadow_map_resolution,
                     particle_render_mode=particle_render_mode,
                     vsync_enabled=vsync_enabled,
+                    sound_enabled=sound_enabled,
                     fullscreen=fullscreen,
                 )
             else:
@@ -684,6 +695,9 @@ class App(customtkinter.CTk):
         vsync_enabled = self.enable_vsync_checkbox.get()
         vsync_enabled = bool(vsync_enabled)
 
+        # Retrieve the sound enabled setting from the GUI
+        sound_enabled = self.sound_enabled_checkbox.get()
+
         # Prepare parameters for the demo
         demo_parameters = {
             "resolution": (width, height),
@@ -692,6 +706,7 @@ class App(customtkinter.CTk):
             "shadow_map_resolution": shadow_map_resolution,
             "particle_render_mode": particle_render_mode,
             "vsync_enabled": vsync_enabled,
+            "sound_enabled": sound_enabled,
             "fullscreen": fullscreen,
         }
 
@@ -708,6 +723,7 @@ class App(customtkinter.CTk):
             shadow_map_resolution=demo_parameters["shadow_map_resolution"],
             particle_render_mode=demo_parameters["particle_render_mode"],
             vsync_enabled=demo_parameters["vsync_enabled"],
+            sound_enabled=demo_parameters["sound_enabled"],
             fullscreen=demo_parameters["fullscreen"],
         )
 

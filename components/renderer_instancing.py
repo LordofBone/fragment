@@ -39,6 +39,10 @@ class RenderingInstance:
         self.initialize_framebuffers(self.config.window_size[0], self.config.window_size[1])
 
     def start_audio(self):
+        # Check if sound is enabled
+        if not self.config.sound_enabled:
+            return  # Do not start audio if sound is disabled
+
         # Initialize and start the audio player if background_audio is provided
         if self.config.background_audio:
             self.audio_player = AudioPlayer(

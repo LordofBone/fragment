@@ -48,6 +48,7 @@ class RendererConfig:
         screen_facing_planar_texture=False,
         lens_rotations=None,
         background_audio=None,
+        sound_enabled=True,
         audio_delay=0.0,
         audio_loop=False,
         debug_mode=None,
@@ -103,6 +104,7 @@ class RendererConfig:
         self.lens_rotations = lens_rotations or [0.0] * len(self.camera_positions)
 
         # Audio settings
+        self.sound_enabled = sound_enabled
         self.background_audio = background_audio
         self.audio_delay = audio_delay
         self.audio_loop = audio_loop

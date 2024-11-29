@@ -22,6 +22,7 @@ class BenchmarkManager:
         shadow_map_resolution=2048,
         particle_render_mode="vertex",
         vsync_enabled=True,
+        sound_enabled=True,
         fullscreen=False,
     ):
         self.benchmarks.append(
@@ -34,6 +35,7 @@ class BenchmarkManager:
                 "shadow_map_resolution": shadow_map_resolution,
                 "particle_render_mode": particle_render_mode,
                 "vsync_enabled": vsync_enabled,
+                "sound_enabled": sound_enabled,
                 "fullscreen": fullscreen,
             }
         )
@@ -53,6 +55,7 @@ class BenchmarkManager:
                 benchmark["shadow_map_resolution"],
                 benchmark["particle_render_mode"],
                 benchmark["vsync_enabled"],
+                benchmark["sound_enabled"],
                 benchmark["fullscreen"],
             )
             if self.benchmark_stopped_by_user:
@@ -68,6 +71,7 @@ class BenchmarkManager:
         shadow_map_resolution,
         particle_render_mode,
         vsync_enabled,
+        sound_enabled,
         fullscreen,
     ):
         # Create a multiprocessing Queue to collect stats
@@ -85,6 +89,7 @@ class BenchmarkManager:
                 shadow_map_resolution,
                 particle_render_mode,
                 vsync_enabled,
+                sound_enabled,
                 fullscreen,
             ),
         )
