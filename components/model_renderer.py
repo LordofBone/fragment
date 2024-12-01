@@ -181,7 +181,16 @@ class ModelRenderer(AbstractRenderer):
     def render(self):
         """Render the model."""
         for i, mesh in enumerate(self.object.mesh_list):
+            # Skip meshes with no materials
+            if not mesh.materials:
+                continue
+
             material = mesh.materials[0]  # Assuming one material per mesh
+
+            # Skip meshes with no faces
+            if not mesh.faces:
+                continue
+
             self.apply_material(material)
             vao_index = i
             count = len(mesh.faces) * 3  # Each face is a triangle
