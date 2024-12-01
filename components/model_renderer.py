@@ -13,6 +13,7 @@ class ModelRenderer(AbstractRenderer):
         super().__init__(renderer_name=renderer_name, **kwargs)
         self.obj_path = obj_path
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
+        self.materials = []
 
     def supports_shadow_mapping(self):
         return True
@@ -43,6 +44,7 @@ class ModelRenderer(AbstractRenderer):
 
                 self.vbos.append(vbo)
                 self.vaos.append(vao)
+                self.materials.append(material)
 
     def get_vertex_stride(self, vertex_format):
         """Calculate the number of floats per vertex based on the vertex format."""
