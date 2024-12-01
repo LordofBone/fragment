@@ -3,8 +3,7 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec3 Tangent;
-in vec3 Bitangent;
+in vec3 TangentViewDir;// View direction in tangent space
 in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
@@ -25,36 +24,10 @@ uniform bool applyGammaCorrection;
 uniform bool phongShading;
 uniform bool shadowingEnabled;
 uniform float envSpecularStrength;
+uniform float parallaxScale;// New uniform for parallax scale
 
-uniform mat4 view;
-uniform vec3 cameraPos;
+uniform mat4 view;// Uniform for view matrix
 
-uniform float parallaxScale;
-
-// Function to compute the TBN matrix
-mat3 computeTBN(vec3 normal, vec3 tangent, vec3 bitangent)
-{
-    // Normalize the input vectors
-    vec3 T = normalize(tangent);
-    vec3 B = normalize(bitangent);
-    vec3 N = normalize(normal);
-
-    return mat3(T, B, N);
-}
-
-// Parallax mapping function
-vec2 parallaxMapping(vec2 texCoords, vec3 viewDirTangent)
-{
-    float height = texture(displacementMap, texCoords).r;
-    // Adjust the height value (invert if necessary)
-    height = height * parallaxScale - (parallaxScale / 2.0);
-
-    // Offset texture coordinates
-    vec2 p = viewDirTangent.xy * height;
-    return texCoords + p;
-}
-
-// Tone mapping functions
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
     float B = 0.50;
@@ -63,8 +36,7 @@ vec3 Uncharted2Tonemap(vec3 x) {
     float E = 0.02;
     float F = 0.30;
 
-    return ((x * (A * x + C * B) + D * E) /
-    (x * (A * x + B) + D * F)) - E / F;
+    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
 }
 
 vec3 toneMapping(vec3 color) {
@@ -73,9 +45,17 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-// Lighting functions
-vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec2 texCoords) {
-    vec3 ambient = 0.1 * texture(diffuseMap, texCoords, textureLodLevel).rgb;
+vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
+{
+    float height =  texture(displacementMap, texCoords).r;
+    float heightScale = parallaxScale;// Adjust parallax scale (0.0 to disable)
+    float heightBias = heightScale * 0.5;
+    vec2 p = viewDir.xy / viewDir.z * (height * heightScale - heightBias);
+    return texCoords + p;
+}
+
+vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
     float roughness = 0.5;// Reduced roughness for more shine
@@ -83,7 +63,7 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec2 texCoords) {
     for (int i = 0; i < 10; i++) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * texture(diffuseMap, texCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
+        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
 
         vec3 halfwayDir = normalize(lightDir + viewDir);
         float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0 * (1.0 - roughness));// Adjusted shininess
@@ -93,39 +73,32 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec2 texCoords) {
     return ambient + diffuse + specular;
 }
 
-vec3 computeLightingWithoutPhong(vec3 normal, vec2 texCoords) {
-    vec3 ambient = 0.1 * texture(diffuseMap, texCoords, textureLodLevel).rgb;
+vec3 computeLightingWithoutPhong(vec3 normal) {
+    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
     vec3 diffuse = vec3(0.0);
 
     for (int i = 0; i < 10; i++) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * texture(diffuseMap, texCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
+        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
     }
 
     return ambient + diffuse;
 }
 
-// Shadow calculation function
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
     // Perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // Transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
-
-    // Check if fragment is outside the shadow map
-    if (projCoords.z > 1.0)
-    return 0.0;
-
-    // Get closest depth value from light's perspective
+    // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     // Get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
-
-    // Bias to prevent shadow acne
+    // Check whether current fragment is in shadow
     float bias = 0.005;
-    float shadow = 0.0;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
     // Percentage-Closer Filtering (PCF) for softer shadows
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
@@ -144,28 +117,34 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 void main()
 {
-    // Compute the TBN matrix
-    mat3 TBN = computeTBN(Normal, Tangent, Bitangent);
+    // Parallax mapping
+    vec3 viewDir = normalize(TangentViewDir);
+    vec2 texCoords = TexCoords;
+    if (parallaxScale > 0.0)
+    {
+        texCoords = ParallaxMapping(TexCoords, viewDir);
+        // Discard fragments with invalid texture coordinates
+        if (texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0)
+        discard;
+    }
 
-    // Calculate view direction in tangent space
-    vec3 viewDir = normalize(view * vec4(-FragPos, 0.0)).xyz;
-    vec3 viewDirTangent = normalize(TBN * viewDir);
+    // Fetch the normal from the normal map and transform it to the range [-1, 1]
+    vec3 normal = texture(normalMap, texCoords, textureLodLevel).rgb;
+    normal = normalize(normal * 2.0 - 1.0);
 
-    // Apply parallax mapping to adjust texture coordinates
-    vec2 texCoords = parallaxMapping(TexCoords, viewDirTangent);
+    // Reconstruct TBN matrix in fragment shader (optional but necessary if not passed from vertex shader)
+    vec3 tangent = normalize(vec3(1.0, 0.0, 0.0));
+    vec3 bitangent = normalize(vec3(0.0, 1.0, 0.0));
+    mat3 TBN = mat3(tangent, bitangent, vec3(0.0, 0.0, 1.0));
 
-    // Sample the normal map using adjusted texture coordinates
-    vec3 sampledNormal = texture(normalMap, texCoords, textureLodLevel).rgb;
-    sampledNormal = normalize(sampledNormal * 2.0 - 1.0);
-
-    // Transform normal to world space
-    vec3 normal = normalize(TBN * sampledNormal);
+    // Transform normal to world space (if necessary)
+    normal = normalize(TBN * normal);
 
     // Recalculate view direction in world space
-    viewDir = normalize(cameraPos - FragPos);// Assuming you have cameraPos uniform
+    vec3 viewFragPos = FragPos;
+    viewDir = normalize(-vec3(view * vec4(viewFragPos, 1.0)));
 
-    // Reflect direction for environment mapping
-    vec3 reflectDir = reflect(-viewDir, normal);
+    vec3 reflectDir = reflect(viewDir, normal);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
     // Calculate shadow
@@ -176,9 +155,9 @@ void main()
 
     vec3 finalColor;
     if (phongShading) {
-        finalColor = computePhongLighting(normal, viewDir, texCoords);
+        finalColor = computePhongLighting(normal, viewDir);
     } else {
-        finalColor = computeLightingWithoutPhong(normal, texCoords);
+        finalColor = computeLightingWithoutPhong(normal);
     }
 
     // Apply shadow to lighting
