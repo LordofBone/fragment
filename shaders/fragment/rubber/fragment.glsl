@@ -3,7 +3,7 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec3 TangentViewDir;// View direction in tangent space
+in vec3 TangentViewDir;
 in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
@@ -24,9 +24,9 @@ uniform bool applyGammaCorrection;
 uniform bool phongShading;
 uniform bool shadowingEnabled;
 uniform float envSpecularStrength;
-uniform float parallaxScale;// New uniform for parallax scale
+uniform float parallaxScale;
 
-uniform mat4 view;// Uniform for view matrix
+uniform mat4 view;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -47,11 +47,16 @@ vec3 toneMapping(vec3 color) {
 
 vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 {
-    float height =  texture(displacementMap, texCoords).r;
+    float height = texture(displacementMap, texCoords).r;
     float heightScale = parallaxScale;// Adjust parallax scale (0.0 to disable)
     float heightBias = heightScale * 0.5;
     vec2 p = viewDir.xy / viewDir.z * (height * heightScale - heightBias);
-    return texCoords + p;
+    vec2 texCoordsOffset = texCoords + p;
+
+    // Clamp the texture coordinates to prevent invalid accesses
+    texCoordsOffset = clamp(texCoordsOffset, 0.0, 1.0);
+
+    return texCoordsOffset;
 }
 
 vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
