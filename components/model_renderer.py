@@ -148,8 +148,7 @@ class ModelRenderer(AbstractRenderer):
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
-        float_size = 4
-        vertex_stride = 14 * float_size  # 14 floats per vertex
+        vertex_stride = 14 * self.float_size  # 14 floats per vertex
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
         normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
@@ -160,13 +159,13 @@ class ModelRenderer(AbstractRenderer):
         if position_loc >= 0:
             self.enable_vertex_attrib(position_loc, 3, vertex_stride, 0)
         if normal_loc >= 0:
-            self.enable_vertex_attrib(normal_loc, 3, vertex_stride, 3 * float_size)
+            self.enable_vertex_attrib(normal_loc, 3, vertex_stride, 3 * self.float_size)
         if tex_coords_loc >= 0:
-            self.enable_vertex_attrib(tex_coords_loc, 2, vertex_stride, 6 * float_size)
+            self.enable_vertex_attrib(tex_coords_loc, 2, vertex_stride, 6 * self.float_size)
         if tangent_loc >= 0:
-            self.enable_vertex_attrib(tangent_loc, 3, vertex_stride, 8 * float_size)
+            self.enable_vertex_attrib(tangent_loc, 3, vertex_stride, 8 * self.float_size)
         if bitangent_loc >= 0:
-            self.enable_vertex_attrib(bitangent_loc, 3, vertex_stride, 11 * float_size)
+            self.enable_vertex_attrib(bitangent_loc, 3, vertex_stride, 11 * self.float_size)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)

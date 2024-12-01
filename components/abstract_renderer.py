@@ -230,6 +230,8 @@ class AbstractRenderer(ABC):
 
         self.screen_depth_map_screenshotted = False
 
+        self.float_size = 4  # Size of a float in bytes
+
         self.vbos = []
         self.vaos = []
 

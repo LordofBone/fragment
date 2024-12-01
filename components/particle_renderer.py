@@ -101,8 +101,6 @@ class ParticleRenderer(AbstractRenderer):
         else:
             self.should_generate = False
 
-        self.float_size = 4  # Size of a float in bytes
-
         # Set up specific particle attributes for transform feedback mode, these are computed in the stack_initial_data method
         self.stride_length_tf_compute = None
         self.particle_byte_size_tf_compute = None
