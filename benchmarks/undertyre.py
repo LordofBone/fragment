@@ -59,11 +59,11 @@ def run_benchmark(
 
     # Define the configuration for the tyre model
     tyre_config = base_config.add_model(
-        obj_path=os.path.join(models_dir, "tyre.obj"),
+        obj_path=os.path.join(models_dir, "tyre2.obj"),
         texture_paths={
-            "diffuse": os.path.join(diffuse_textures_dir, "rubber_1.png"),
-            "normal": os.path.join(normal_textures_dir, "rubber_1.png"),
-            "displacement": os.path.join(displacement_textures_dir, "rubber_1.png"),
+            "diffuse": os.path.join(diffuse_textures_dir, "rubber_3.png"),
+            "normal": os.path.join(normal_textures_dir, "rubber_3.png"),
+            "displacement": os.path.join(displacement_textures_dir, "rubber_3.png"),
         },
         shader_names={
             "vertex": "parallax_mapping",
