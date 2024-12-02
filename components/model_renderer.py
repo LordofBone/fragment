@@ -13,7 +13,13 @@ class ModelRenderer(AbstractRenderer):
         super().__init__(renderer_name=renderer_name, **kwargs)
         self.obj_path = obj_path
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
+        self.vertex_counts = []
+        self.index_counts = []
         self.materials = []
+        self.vbos = []
+        self.ebos = []
+        self.vaos = []
+
 
     def supports_shadow_mapping(self):
         return True
@@ -27,22 +33,60 @@ class ModelRenderer(AbstractRenderer):
                 vertices = material.vertices
                 vertex_format = material.vertex_format  # e.g., 'T2F_N3F_V3F'
                 vertex_stride = self.get_vertex_stride(vertex_format)
-                vertex_count = len(vertices) // vertex_stride
 
                 # Build the indices list from mesh.faces
-                # Each face in mesh.faces is a list of indices
                 indices = []
+                vertex_dict = {}
+                unique_vertices = []
+                index = 0
+
                 for face in mesh.faces:
-                    indices.extend(face)
+                    if len(face) >= 3:
+                        # Triangulate face if necessary
+                        triangles = []
+                        v0 = face[0]
+                        for j in range(1, len(face) - 1):
+                            triangles.append((v0, face[j], face[j + 1]))
+
+                        for tri in triangles:
+                            for idx in tri:
+                                # Extract the vertex data
+                                start = idx * vertex_stride
+                                end = start + vertex_stride
+                                vertex_data = tuple(vertices[start:end])
+
+                                # Check if vertex already exists
+                                if vertex_data not in vertex_dict:
+                                    vertex_dict[vertex_data] = index
+                                    unique_vertices.extend(vertex_data)
+                                    indices.append(index)
+                                    index += 1
+                                else:
+                                    indices.append(vertex_dict[vertex_data])
+                    else:
+                        # Skip faces with less than 3 vertices
+                        continue
 
                 # Now, calculate tangents and bitangents
-                vertices_with_tangents = self.calculate_tangents(vertices, indices, vertex_stride)
+                vertices_with_tangents = self.calculate_tangents(unique_vertices, indices, vertex_stride)
                 vertices_array = np.array(vertices_with_tangents, dtype=np.float32)
 
+                # Create VBO and EBO
                 vbo = self.create_vbo(vertices_array)
-                vao = self.create_vao()
+                indices_array = np.array(indices, dtype=np.uint32)
+                ebo = self.create_ebo(indices_array)
 
+                # Create VAO
+                vao = self.create_vao(vbo, ebo)
+
+                vertex_count = len(vertices_with_tangents) // 14  # 14 floats per vertex
+                index_count = len(indices)
+
+                # Store counts and buffers
+                self.vertex_counts.append(vertex_count)
+                self.index_counts.append(index_count)
                 self.vbos.append(vbo)
+                self.ebos.append(ebo)
                 self.vaos.append(vao)
                 self.materials.append(material)
 
@@ -124,10 +168,14 @@ class ModelRenderer(AbstractRenderer):
             tangent_norm = np.linalg.norm(tangent)
             if tangent_norm != 0:
                 tangent = tangent / tangent_norm
+            else:
+                tangent = np.array([1.0, 0.0, 0.0])
 
             bitangent_norm = np.linalg.norm(bitangent)
             if bitangent_norm != 0:
                 bitangent = bitangent / bitangent_norm
+            else:
+                bitangent = np.array([0.0, 1.0, 0.0])
 
             # Append position, normal, texCoords, tangent, bitangent
             vertices_with_tangents.extend(position)
@@ -145,10 +193,20 @@ class ModelRenderer(AbstractRenderer):
         glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
         return vbo
 
-    def create_vao(self):
+    def create_ebo(self, indices_array):
+        """Create an Element Buffer Object (EBO)."""
+        ebo = glGenBuffers(1)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_array.nbytes, indices_array, GL_STATIC_DRAW)
+        return ebo
+
+    def create_vao(self, vbo, ebo):
         """Create a Vertex Array Object (VAO) and configure vertex attributes."""
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
 
         vertex_stride = 14 * self.float_size  # 14 floats per vertex
 
@@ -182,21 +240,13 @@ class ModelRenderer(AbstractRenderer):
     @common_funcs
     def render(self):
         """Render the model."""
-        for i, mesh in enumerate(self.object.mesh_list):
-            # Skip meshes with no materials
-            if not mesh.materials:
-                continue
-
-            material = mesh.materials[0]  # Assuming one material per mesh
-
-            # Skip meshes with no faces
-            if not mesh.faces:
-                continue
-
+        for i, material in enumerate(self.materials):
             self.apply_material(material)
             vao_index = i
-            count = len(mesh.faces) * 3  # Each face is a triangle
-            self.bind_and_draw_vao(vao_index, count)
+            count = self.index_counts[i]  # Number of indices
+            glBindVertexArray(self.vaos[vao_index])
+            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, None)
+            glBindVertexArray(0)
 
     def apply_material(self, material):
         """Apply material properties to the shader."""
@@ -210,3 +260,16 @@ class ModelRenderer(AbstractRenderer):
         glBindVertexArray(self.vaos[vao_index])
         glDrawArrays(GL_TRIANGLES, 0, count)
         glBindVertexArray(0)
+
+    def shutdown(self):
+        """Clean up OpenGL resources used by the renderer."""
+        if hasattr(self, "vaos") and len(self.vaos) > 0:
+            glDeleteVertexArrays(len(self.vaos), self.vaos)
+
+        if hasattr(self, "vbos") and len(self.vbos) > 0:
+            glDeleteBuffers(len(self.vbos), self.vbos)
+
+        if hasattr(self, "ebos") and len(self.ebos) > 0:
+            glDeleteBuffers(len(self.ebos), self.ebos)
+
+        self.shader_engine.delete_shader_programs()
