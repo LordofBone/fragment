@@ -3,14 +3,15 @@
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 texCoords;
-layout(location = 3) in vec3 tangent;// Tangent vector
-layout(location = 4) in vec3 bitangent;// Bitangent vector
+layout(location = 3) in vec3 tangent;
+layout(location = 4) in vec3 bitangent;
 
 out vec2 TexCoords;
 out vec3 FragPos;
 out vec3 Normal;
-out vec3 TangentViewDir;// View direction in tangent space
-out vec3 TangentFragPos;// Fragment position in tangent space
+out vec3 TangentFragPos;
+out vec3 Tangent;
+out vec3 Bitangent;
 out vec4 FragPosLightSpace;
 
 uniform mat4 model;
@@ -31,11 +32,10 @@ void main()
     Normal
     ));
 
-    vec3 viewPos = vec3(inverse(view) * vec4(0.0, 0.0, 0.0, 1.0));// Camera position in world space
-    vec3 viewDir = normalize(viewPos - FragPos);
-    TangentViewDir = TBN * viewDir;
-
     TangentFragPos = TBN * FragPos;
+
+    Tangent = normalize(mat3(model) * tangent);
+    Bitangent = normalize(mat3(model) * bitangent);
 
     // Calculate position in light space
     FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
