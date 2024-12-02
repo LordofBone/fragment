@@ -14,10 +14,8 @@ class ModelRenderer(AbstractRenderer):
         self.obj_path = obj_path
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
         self.vertex_counts = []
-        self.index_counts = []
         self.materials = []
         self.vbos = []
-        self.ebos = []
         self.vaos = []
 
 
@@ -26,67 +24,24 @@ class ModelRenderer(AbstractRenderer):
 
     def create_buffers(self):
         """Create buffers for the model."""
-        for mesh_name, mesh in self.object.meshes.items():
-            # Each mesh may have multiple materials
+        for mesh in self.object.mesh_list:
             for material in mesh.materials:
-                # Access the vertices associated with this material
                 vertices = material.vertices
                 vertex_format = material.vertex_format  # e.g., 'T2F_N3F_V3F'
                 vertex_stride = self.get_vertex_stride(vertex_format)
-
-                # Build the indices list from mesh.faces
-                indices = []
-                vertex_dict = {}
-                unique_vertices = []
-                index = 0
-
-                for face in mesh.faces:
-                    if len(face) >= 3:
-                        # Triangulate face if necessary
-                        triangles = []
-                        v0 = face[0]
-                        for j in range(1, len(face) - 1):
-                            triangles.append((v0, face[j], face[j + 1]))
-
-                        for tri in triangles:
-                            for idx in tri:
-                                # Extract the vertex data
-                                start = idx * vertex_stride
-                                end = start + vertex_stride
-                                vertex_data = tuple(vertices[start:end])
-
-                                # Check if vertex already exists
-                                if vertex_data not in vertex_dict:
-                                    vertex_dict[vertex_data] = index
-                                    unique_vertices.extend(vertex_data)
-                                    indices.append(index)
-                                    index += 1
-                                else:
-                                    indices.append(vertex_dict[vertex_data])
-                    else:
-                        # Skip faces with less than 3 vertices
-                        continue
+                vertex_count = len(vertices) // vertex_stride
 
                 # Now, calculate tangents and bitangents
-                vertices_with_tangents = self.calculate_tangents(unique_vertices, indices, vertex_stride)
+                vertices_with_tangents = self.calculate_tangents(vertices, vertex_stride)
                 vertices_array = np.array(vertices_with_tangents, dtype=np.float32)
 
-                # Create VBO and EBO
                 vbo = self.create_vbo(vertices_array)
-                indices_array = np.array(indices, dtype=np.uint32)
-                ebo = self.create_ebo(indices_array)
-
-                # Create VAO
-                vao = self.create_vao(vbo, ebo)
+                self.vbos.append(vbo)
+                vao = self.create_vao()
 
                 vertex_count = len(vertices_with_tangents) // 14  # 14 floats per vertex
-                index_count = len(indices)
-
-                # Store counts and buffers
                 self.vertex_counts.append(vertex_count)
-                self.index_counts.append(index_count)
                 self.vbos.append(vbo)
-                self.ebos.append(ebo)
                 self.vaos.append(vao)
                 self.materials.append(material)
 
@@ -103,7 +58,7 @@ class ModelRenderer(AbstractRenderer):
             stride += format_mappings.get(component, 0)
         return stride
 
-    def calculate_tangents(self, vertices, indices, vertex_stride):
+    def calculate_tangents(self, vertices, vertex_stride):
         """Calculate tangent and bitangent vectors for the mesh."""
         vertex_count = len(vertices) // vertex_stride
 
@@ -116,9 +71,10 @@ class ModelRenderer(AbstractRenderer):
         normal_offset = texCoord_offset + 2
         position_offset = normal_offset + 3
 
-        for i in range(0, len(indices), 3):
-            # Get indices of the triangle
-            i0, i1, i2 = indices[i], indices[i + 1], indices[i + 2]
+        # Process vertices in groups of 3 (per triangle)
+        for i in range(0, vertex_count, 3):
+            # Get indices of the triangle's vertices
+            i0, i1, i2 = i, i + 1, i + 2
 
             # Extract vertex positions and texture coordinates
             v0 = np.array(vertices[i0 * vertex_stride + position_offset: i0 * vertex_stride + position_offset + 3])
@@ -193,20 +149,12 @@ class ModelRenderer(AbstractRenderer):
         glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
         return vbo
 
-    def create_ebo(self, indices_array):
-        """Create an Element Buffer Object (EBO)."""
-        ebo = glGenBuffers(1)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_array.nbytes, indices_array, GL_STATIC_DRAW)
-        return ebo
-
-    def create_vao(self, vbo, ebo):
+    def create_vao(self):
         """Create a Vertex Array Object (VAO) and configure vertex attributes."""
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
-        glBindBuffer(GL_ARRAY_BUFFER, vbo)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbos[-1])  # Bind the last created VBO
 
         vertex_stride = 14 * self.float_size  # 14 floats per vertex
 
@@ -227,7 +175,6 @@ class ModelRenderer(AbstractRenderer):
         if bitangent_loc >= 0:
             self.enable_vertex_attrib(bitangent_loc, 3, vertex_stride, 11 * self.float_size)
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
         return vao
 
@@ -243,9 +190,9 @@ class ModelRenderer(AbstractRenderer):
         for i, material in enumerate(self.materials):
             self.apply_material(material)
             vao_index = i
-            count = self.index_counts[i]  # Number of indices
+            count = self.vertex_counts[i]
             glBindVertexArray(self.vaos[vao_index])
-            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, None)
+            glDrawArrays(GL_TRIANGLES, 0, count)
             glBindVertexArray(0)
 
     def apply_material(self, material):
