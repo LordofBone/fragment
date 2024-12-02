@@ -3,7 +3,8 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec3 TangentViewDir;
+in vec3 Tangent;
+in vec3 Bitangent;
 in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
@@ -27,6 +28,7 @@ uniform float envSpecularStrength;
 uniform float parallaxScale;
 
 uniform mat4 view;
+uniform vec3 cameraPos;
 
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
@@ -122,12 +124,18 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 void main()
 {
+    // Reconstruct TBN matrix
+    mat3 TBN = mat3(normalize(Tangent), normalize(Bitangent), normalize(Normal));
+
+    vec3 viewDir = normalize(cameraPos - FragPos);
+    vec3 tangentViewDir = normalize(TBN * viewDir);
+
+
     // Parallax mapping
-    vec3 viewDir = normalize(TangentViewDir);
     vec2 texCoords = TexCoords;
     if (parallaxScale > 0.0)
     {
-        texCoords = ParallaxMapping(TexCoords, viewDir);
+        texCoords = ParallaxMapping(TexCoords, tangentViewDir);
         // Discard fragments with invalid texture coordinates
         if (texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0)
         discard;
@@ -136,11 +144,6 @@ void main()
     // Fetch the normal from the normal map and transform it to the range [-1, 1]
     vec3 normal = texture(normalMap, texCoords, textureLodLevel).rgb;
     normal = normalize(normal * 2.0 - 1.0);
-
-    // Reconstruct TBN matrix in fragment shader (optional but necessary if not passed from vertex shader)
-    vec3 tangent = normalize(vec3(1.0, 0.0, 0.0));
-    vec3 bitangent = normalize(vec3(0.0, 1.0, 0.0));
-    mat3 TBN = mat3(tangent, bitangent, vec3(0.0, 0.0, 1.0));
 
     // Transform normal to world space (if necessary)
     normal = normalize(TBN * normal);
