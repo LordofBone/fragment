@@ -27,6 +27,10 @@ class ModelRenderer(AbstractRenderer):
         for mesh in self.object.mesh_list:
             for material in mesh.materials:
                 vertices = material.vertices
+                if not vertices:
+                    print(f"Material '{material.name}' has no vertices. Skipping.")
+                    continue  # Skip materials with no vertices
+
                 vertex_format = material.vertex_format  # e.g., 'T2F_N3F_V3F'
                 vertex_stride = self.get_vertex_stride(vertex_format)
                 vertex_count = len(vertices) // vertex_stride
@@ -40,6 +44,8 @@ class ModelRenderer(AbstractRenderer):
                 vao = self.create_vao()
 
                 vertex_count = len(vertices_with_tangents) // 14  # 14 floats per vertex
+
+                # Store counts and buffers
                 self.vertex_counts.append(vertex_count)
                 self.vbos.append(vbo)
                 self.vaos.append(vao)
@@ -187,11 +193,9 @@ class ModelRenderer(AbstractRenderer):
     @common_funcs
     def render(self):
         """Render the model."""
-        for i, material in enumerate(self.materials):
+        for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
             self.apply_material(material)
-            vao_index = i
-            count = self.vertex_counts[i]
-            glBindVertexArray(self.vaos[vao_index])
+            glBindVertexArray(vao)
             glDrawArrays(GL_TRIANGLES, 0, count)
             glBindVertexArray(0)
 
