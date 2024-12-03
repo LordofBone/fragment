@@ -564,14 +564,13 @@ class AbstractRenderer(ABC):
             glm.value_ptr(light_space_matrix),
         )
 
-        for i, mesh in enumerate(self.object.mesh_list):
-            # Skip meshes with no faces
-            if not mesh.faces:
+        # Iterate over materials, vaos, and vertex_counts
+        for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
+            # Skip materials with no vertices
+            if count == 0:
                 continue
 
-            vao_index = i
-            glBindVertexArray(self.vaos[vao_index])
-            count = len(mesh.faces) * 3  # Each face is a triangle
+            glBindVertexArray(vao)
             glDrawArrays(GL_TRIANGLES, 0, count)
             glBindVertexArray(0)
 
