@@ -40,8 +40,7 @@ class ModelRenderer(AbstractRenderer):
                 vertices_array = np.array(vertices_with_tangents, dtype=np.float32)
 
                 vbo = self.create_vbo(vertices_array)
-                self.vbos.append(vbo)
-                vao = self.create_vao()
+                vao = self.create_vao(vbo)  # Pass the VBO to create_vao
 
                 vertex_count = len(vertices_with_tangents) // 14  # 14 floats per vertex
 
@@ -155,12 +154,11 @@ class ModelRenderer(AbstractRenderer):
         glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
         return vbo
 
-    def create_vao(self):
+    def create_vao(self, vbo):
         """Create a Vertex Array Object (VAO) and configure vertex attributes."""
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbos[-1])  # Bind the last created VBO
+        glBindBuffer(GL_ARRAY_BUFFER, vbo)  # Use the provided VBO
 
         vertex_stride = 14 * self.float_size  # 14 floats per vertex
 
