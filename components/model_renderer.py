@@ -18,7 +18,6 @@ class ModelRenderer(AbstractRenderer):
         self.vbos = []
         self.vaos = []
 
-
     def supports_shadow_mapping(self):
         return True
 
