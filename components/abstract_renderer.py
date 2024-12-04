@@ -134,7 +134,7 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
-            parallax_scale=0.05,
+            parallax_scale=0.005,
             max_displacement=0.02,
         shadow_map_resolution=2048,
         phong_shading=False,
@@ -567,15 +567,22 @@ class AbstractRenderer(ABC):
             glm.value_ptr(light_space_matrix),
         )
 
-        # Iterate over materials, vaos, and vertex_counts
-        for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
-            # Skip materials with no vertices
-            if count == 0:
-                continue
+        try:
+            # Iterate over materials, vaos, and vertex_counts
+            for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
+                # Skip materials with no vertices
+                if count == 0:
+                    continue
 
-            glBindVertexArray(vao)
-            glDrawArrays(GL_TRIANGLES, 0, count)
-            glBindVertexArray(0)
+                glBindVertexArray(vao)
+                glDrawArrays(GL_TRIANGLES, 0, count)
+        # If the object has no materials (e.g., SurfaceRenderer)
+        except AttributeError:
+            for mesh in self.object.mesh_list:
+                vao_index = self.object.mesh_list.index(mesh)
+                glBindVertexArray(self.vaos[vao_index])
+                glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
+                glBindVertexArray(0)
 
         if self.debug_mode:
             self.render_shadow_map_visualization()
