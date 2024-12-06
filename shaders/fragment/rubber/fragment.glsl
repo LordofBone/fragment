@@ -47,18 +47,39 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
+vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
 {
-    float height = texture(displacementMap, texCoords).r;
-    float heightScale = parallaxScale;// Adjust parallax scale (0.0 to disable)
-    float heightBias = heightScale * 0.5;
-    vec2 p = viewDir.xy / viewDir.z * (height * heightScale - heightBias);
-    vec2 texCoordsOffset = texCoords + p;
+    // Number of layers
+    const float minLayers = 8.0;
+    const float maxLayers = 32.0;
+    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
 
-    // Clamp the texture coordinates to prevent invalid accesses
-    texCoordsOffset = clamp(texCoordsOffset, 0.0, 1.0);
+    // Calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    float currentLayerDepth = 0.0;
+    float currentDepthMapValue = texture(displacementMap, texCoords).r;
 
-    return texCoordsOffset;
+    // Calculate the direction to step in texture space
+    vec2 P = viewDir.xy / viewDir.z * parallaxScale;
+    vec2 deltaTexCoords = P / numLayers;
+
+    vec2 currentTexCoords = texCoords;
+
+    while (currentLayerDepth < currentDepthMapValue)
+    {
+        currentTexCoords -= deltaTexCoords;
+        currentDepthMapValue = texture(displacementMap, currentTexCoords).r;
+        currentLayerDepth += layerDepth;
+    }
+
+    // Perform linear interpolation between the last two steps
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+    float afterDepth = currentDepthMapValue - currentLayerDepth;
+    float beforeDepth = texture(displacementMap, prevTexCoords).r - (currentLayerDepth - layerDepth);
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
+
+    return finalTexCoords;
 }
 
 vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
@@ -99,7 +120,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // Transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
-    // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
+    // Get closest depth value from light's perspective
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     // Get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
@@ -125,17 +146,18 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 void main()
 {
     // Reconstruct TBN matrix
-    mat3 TBN = mat3(normalize(Tangent), normalize(Bitangent), normalize(Normal));
+    mat3 TBN = mat3(Tangent, Bitangent, Normal);
 
     vec3 viewDir = normalize(cameraPos - FragPos);
+
+    // Transform view direction to tangent space
     vec3 tangentViewDir = normalize(TBN * viewDir);
 
-
-    // Parallax mapping
+    // Parallax Occlusion Mapping
     vec2 texCoords = TexCoords;
     if (parallaxScale > 0.0)
     {
-        texCoords = ParallaxMapping(TexCoords, tangentViewDir);
+        texCoords = ParallaxOcclusionMapping(TexCoords, tangentViewDir);
         // Discard fragments with invalid texture coordinates
         if (texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0)
         discard;
@@ -145,14 +167,10 @@ void main()
     vec3 normal = texture(normalMap, texCoords, textureLodLevel).rgb;
     normal = normalize(normal * 2.0 - 1.0);
 
-    // Transform normal to world space (if necessary)
+    // Transform normal to world space
     normal = normalize(TBN * normal);
 
-    // Recalculate view direction in world space
-    vec3 viewFragPos = FragPos;
-    viewDir = normalize(-vec3(view * vec4(viewFragPos, 1.0)));
-
-    vec3 reflectDir = reflect(viewDir, normal);
+    vec3 reflectDir = reflect(-viewDir, normal);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
     // Calculate shadow
