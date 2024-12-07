@@ -567,22 +567,31 @@ class AbstractRenderer(ABC):
             glm.value_ptr(light_space_matrix),
         )
 
-        try:
-            # Iterate over materials, vaos, and vertex_counts
-            for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
-                # Skip materials with no vertices
-                if count == 0:
-                    continue
-
-                glBindVertexArray(vao)
-                glDrawArrays(GL_TRIANGLES, 0, count)
-        # If the object has no materials (e.g., SurfaceRenderer)
-        except AttributeError:
-            for mesh in self.object.mesh_list:
-                vao_index = self.object.mesh_list.index(mesh)
-                glBindVertexArray(self.vaos[vao_index])
-                glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
-                glBindVertexArray(0)
+        # Check if this renderer uses an object with mesh_list (like ModelRenderer)
+        if hasattr(self, "object") and hasattr(self.object, "mesh_list"):
+            # Use the object.mesh_list approach
+            for i, mesh in enumerate(self.object.mesh_list):
+                vao_index = i
+                if vao_index < len(self.vaos):
+                    glBindVertexArray(self.vaos[vao_index])
+                    glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
+                    glBindVertexArray(0)
+                else:
+                    # If for some reason vaos aren't aligned with mesh_list
+                    print("Warning: VAO index out of range for mesh list.")
+        else:
+            # If this renderer uses materials and vertex_counts (like some other custom renderer),
+            # ensure these attributes exist before using them.
+            if hasattr(self, "materials") and hasattr(self, "vertex_counts"):
+                for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
+                    if count == 0:
+                        continue
+                    glBindVertexArray(vao)
+                    glDrawArrays(GL_TRIANGLES, 0, count)
+                    glBindVertexArray(0)
+            else:
+                # If neither approach works, print a warning or handle gracefully.
+                print("No mesh_list or materials/vertex_counts to render from light.")
 
         if self.debug_mode:
             self.render_shadow_map_visualization()
@@ -788,6 +797,13 @@ class AbstractRenderer(ABC):
         # Set the parallax mapping uniforms
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "parallaxScale"), self.parallax_scale)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "maxDisplacement"), self.max_displacement)
+
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "heightScale"),
+                    self.dynamic_attrs.get("height_scale", 0.04))
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "minSteps"),
+                    self.dynamic_attrs.get("min_steps", 8))
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "maxSteps"),
+                    self.dynamic_attrs.get("max_steps", 32))
 
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),
