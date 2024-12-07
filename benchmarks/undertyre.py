@@ -40,7 +40,7 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=50.0,
         lights=[
-            {"position": (2.85, 2.0, 1.0), "color": (0.55, 0.55, 0.55), "strength": 1.0},
+            {"position": (5.0, 12.0, 8.0), "color": (0.55, 0.55, 0.55), "strength": 1.0},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -59,7 +59,7 @@ def run_benchmark(
 
     # Define the configuration for the tyre model
     tyre_config = base_config.add_model(
-        obj_path=os.path.join(models_dir, "tyre2.obj"),
+        obj_path=os.path.join(models_dir, "tyre.obj"),
         texture_paths={
             "diffuse": os.path.join(diffuse_textures_dir, "rubber_3.png"),
             "normal": os.path.join(normal_textures_dir, "rubber_3.png"),
