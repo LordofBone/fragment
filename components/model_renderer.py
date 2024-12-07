@@ -18,6 +18,10 @@ class ModelRenderer(AbstractRenderer):
         self.vbos = []
         self.vaos = []
 
+        # Optional: If you need to flip the green channel of the normal map,
+        # set this uniform accordingly. Ensure your shader uses this uniform.
+        self.flip_green_channel = kwargs.get("flip_green_channel", False)
+
     def supports_shadow_mapping(self):
         return True
 
@@ -41,13 +45,21 @@ class ModelRenderer(AbstractRenderer):
                 vbo = self.create_vbo(vertices_array)
                 vao = self.create_vao(vbo)  # Pass the VBO to create_vao
 
-                vertex_count = len(vertices_with_tangents) // 14  # 14 floats per vertex
+                vertex_count = len(vertices_with_tangents) // 12
 
                 # Store counts and buffers
                 self.vertex_counts.append(vertex_count)
                 self.vbos.append(vbo)
                 self.vaos.append(vao)
                 self.materials.append(material)
+
+        # Note: Proper handling of normalMatrix occurs in the vertex shader.
+        # Ensure that your vertex shader uses the normalMatrix to correctly
+        # transform normals and tangents for non-uniform scaling.
+
+        # UV Seams: If you encounter artifacts at UV seams, consider ensuring
+        # the model data splits vertices at seams or verifying tangent calculation
+        # across those seams.
 
     def get_vertex_stride(self, vertex_format):
         """Calculate the number of floats per vertex based on the vertex format."""
@@ -77,10 +89,8 @@ class ModelRenderer(AbstractRenderer):
 
         # Process vertices in groups of 3 (per triangle)
         for i in range(0, vertex_count, 3):
-            # Get indices of the triangle's vertices
             i0, i1, i2 = i, i + 1, i + 2
 
-            # Extract vertex positions and texture coordinates
             v0 = np.array(vertices[i0 * vertex_stride + position_offset: i0 * vertex_stride + position_offset + 3])
             v1 = np.array(vertices[i1 * vertex_stride + position_offset: i1 * vertex_stride + position_offset + 3])
             v2 = np.array(vertices[i2 * vertex_stride + position_offset: i2 * vertex_stride + position_offset + 3])
@@ -89,22 +99,21 @@ class ModelRenderer(AbstractRenderer):
             uv1 = np.array(vertices[i1 * vertex_stride + texCoord_offset: i1 * vertex_stride + texCoord_offset + 2])
             uv2 = np.array(vertices[i2 * vertex_stride + texCoord_offset: i2 * vertex_stride + texCoord_offset + 2])
 
-            # Compute delta positions and UVs
             deltaPos1 = v1 - v0
             deltaPos2 = v2 - v0
             deltaUV1 = uv1 - uv0
             deltaUV2 = uv2 - uv0
 
-            # Calculate tangent and bitangent
             denominator = (deltaUV1[0] * deltaUV2[1] - deltaUV2[0] * deltaUV1[1])
-            if denominator == 0.0:
+            epsilon = 1e-6  # Small value to prevent division by zero
+            if abs(denominator) < epsilon:
                 r = 0.0
             else:
                 r = 1.0 / denominator
+
             tangent = (deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r
             bitangent = (deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r
 
-            # Accumulate the tangents and bitangents
             tangents[i0] += tangent
             tangents[i1] += tangent
             tangents[i2] += tangent
@@ -124,25 +133,26 @@ class ModelRenderer(AbstractRenderer):
             tangent = tangents[i]
             bitangent = bitangents[i]
 
-            # Normalize and handle zero-length vectors
-            tangent_norm = np.linalg.norm(tangent)
-            if tangent_norm != 0:
-                tangent = tangent / tangent_norm
+            # Gram-Schmidt Orthogonalization
+            n = normal / np.linalg.norm(normal)
+            t = tangent - n * np.dot(n, tangent)
+            t_norm = np.linalg.norm(t)
+            if t_norm > 0.0:
+                t = t / t_norm
             else:
-                tangent = np.array([1.0, 0.0, 0.0])
+                t = np.array([1.0, 0.0, 0.0])
 
-            bitangent_norm = np.linalg.norm(bitangent)
-            if bitangent_norm != 0:
-                bitangent = bitangent / bitangent_norm
-            else:
-                bitangent = np.array([0.0, 1.0, 0.0])
+            # Compute handedness
+            b = np.cross(n, t)
+            handedness = 1.0 if np.dot(b, bitangent) > 0.0 else -1.0
 
-            # Append position, normal, texCoords, tangent, bitangent
+            # Append position, normal, texCoords, tangent (including handedness)
+            # 3 (pos) + 3 (normal) + 2 (texCoords) + 3 (tangent) + 1 (handedness) = 12 floats
             vertices_with_tangents.extend(position)
             vertices_with_tangents.extend(normal)
             vertices_with_tangents.extend(texCoords)
-            vertices_with_tangents.extend(tangent)
-            vertices_with_tangents.extend(bitangent)
+            vertices_with_tangents.extend(t)
+            vertices_with_tangents.append(handedness)
 
         return vertices_with_tangents
 
@@ -159,13 +169,14 @@ class ModelRenderer(AbstractRenderer):
         glBindVertexArray(vao)
         glBindBuffer(GL_ARRAY_BUFFER, vbo)  # Use the provided VBO
 
-        vertex_stride = 14 * self.float_size  # 14 floats per vertex
+        # 12 floats per vertex (not 13)
+        vertex_stride = 12 * self.float_size
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
         normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
         tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "texCoords")
         tangent_loc = glGetAttribLocation(self.shader_engine.shader_program, "tangent")
-        bitangent_loc = glGetAttribLocation(self.shader_engine.shader_program, "bitangent")
+        handedness_loc = glGetAttribLocation(self.shader_engine.shader_program, "tangentHandedness")
 
         if position_loc >= 0:
             self.enable_vertex_attrib(position_loc, 3, vertex_stride, 0)
@@ -175,8 +186,8 @@ class ModelRenderer(AbstractRenderer):
             self.enable_vertex_attrib(tex_coords_loc, 2, vertex_stride, 6 * self.float_size)
         if tangent_loc >= 0:
             self.enable_vertex_attrib(tangent_loc, 3, vertex_stride, 8 * self.float_size)
-        if bitangent_loc >= 0:
-            self.enable_vertex_attrib(bitangent_loc, 3, vertex_stride, 11 * self.float_size)
+        if handedness_loc >= 0:
+            self.enable_vertex_attrib(handedness_loc, 1, vertex_stride, 11 * self.float_size)
 
         glBindVertexArray(0)
         return vao
@@ -190,18 +201,39 @@ class ModelRenderer(AbstractRenderer):
     @common_funcs
     def render(self):
         """Render the model."""
+
+        # Set a uniform to handle normal map flipping if needed
+        # Ensure your fragment shader has a uniform bool "flipGreenChannel"
+        if self.flip_green_channel:
+            flip_uniform_loc = glGetUniformLocation(self.shader_engine.shader_program, "flipGreenChannel")
+            if flip_uniform_loc != -1:
+                glUniform1i(flip_uniform_loc, 1)
+        else:
+            flip_uniform_loc = glGetUniformLocation(self.shader_engine.shader_program, "flipGreenChannel")
+            if flip_uniform_loc != -1:
+                glUniform1i(flip_uniform_loc, 0)
+
+        # Instead of legacy fixed-function pipeline for materials,
+        # pass material properties as uniforms to the shader.
+        # This is a placeholder. You must ensure your shader supports these uniforms.
         for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
-            self.apply_material(material)
+            material_ambient_loc = glGetUniformLocation(self.shader_engine.shader_program, "materialAmbient")
+            material_diffuse_loc = glGetUniformLocation(self.shader_engine.shader_program, "materialDiffuse")
+            material_specular_loc = glGetUniformLocation(self.shader_engine.shader_program, "materialSpecular")
+            material_shininess_loc = glGetUniformLocation(self.shader_engine.shader_program, "materialShininess")
+
+            if material_ambient_loc != -1:
+                glUniform3f(material_ambient_loc, material.ambient[0], material.ambient[1], material.ambient[2])
+            if material_diffuse_loc != -1:
+                glUniform3f(material_diffuse_loc, material.diffuse[0], material.diffuse[1], material.diffuse[2])
+            if material_specular_loc != -1:
+                glUniform3f(material_specular_loc, material.specular[0], material.specular[1], material.specular[2])
+            if material_shininess_loc != -1:
+                glUniform1f(material_shininess_loc, min(128.0, material.shininess))
+
             glBindVertexArray(vao)
             glDrawArrays(GL_TRIANGLES, 0, count)
             glBindVertexArray(0)
-
-    def apply_material(self, material):
-        """Apply material properties to the shader."""
-        glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, material.diffuse)
-        glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
-        glMaterialf(GL_FRONT, GL_SHININESS, min(128, material.shininess))
 
     def bind_and_draw_vao(self, vao_index, count):
         """Bind a VAO and issue a draw call."""
