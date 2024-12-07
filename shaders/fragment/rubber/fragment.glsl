@@ -49,17 +49,14 @@ vec3 toneMapping(vec3 color) {
 
 vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
 {
-    // Number of layers
     const float minLayers = 8.0;
     const float maxLayers = 32.0;
     float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
 
-    // Calculate the size of each layer
     float layerDepth = 1.0 / numLayers;
     float currentLayerDepth = 0.0;
     float currentDepthMapValue = texture(displacementMap, texCoords).r;
 
-    // Calculate the direction to step in texture space
     vec2 P = viewDir.xy / viewDir.z * parallaxScale;
     vec2 deltaTexCoords = P / numLayers;
 
@@ -72,7 +69,6 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
         currentLayerDepth += layerDepth;
     }
 
-    // Perform linear interpolation between the last two steps
     vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
     float afterDepth = currentDepthMapValue - currentLayerDepth;
     float beforeDepth = texture(displacementMap, prevTexCoords).r - (currentLayerDepth - layerDepth);
@@ -86,7 +82,7 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
     vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    float roughness = 0.5;// Reduced roughness for more shine
+    float roughness = 0.5;
 
     for (int i = 0; i < 10; i++) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
@@ -94,7 +90,7 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
         diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
 
         vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0 * (1.0 - roughness));// Adjusted shininess
+        float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0 * (1.0 - roughness));
         specular += spec * lightColors[i] * lightStrengths[i];
     }
 
@@ -116,19 +112,14 @@ vec3 computeLightingWithoutPhong(vec3 normal) {
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
-    // Perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // Transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
-    // Get closest depth value from light's perspective
     float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // Get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
-    // Check whether current fragment is in shadow
+
     float bias = 0.005;
     float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
-    // Percentage-Closer Filtering (PCF) for softer shadows
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     for (int x = -1; x <= 1; ++x)
     {
@@ -148,24 +139,26 @@ void main()
     // Reconstruct TBN matrix
     mat3 TBN = mat3(Tangent, Bitangent, Normal);
 
+    // View direction in world space
     vec3 viewDir = normalize(cameraPos - FragPos);
 
     // Transform view direction to tangent space
-    vec3 tangentViewDir = normalize(TBN * viewDir);
+    vec3 tangentViewDir = normalize(transpose(TBN) * viewDir);
 
     // Parallax Occlusion Mapping
     vec2 texCoords = TexCoords;
     if (parallaxScale > 0.0)
     {
         texCoords = ParallaxOcclusionMapping(TexCoords, tangentViewDir);
-        // Discard fragments with invalid texture coordinates
         if (texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0)
         discard;
     }
 
-    // Fetch the normal from the normal map and transform it to the range [-1, 1]
-    vec3 normal = texture(normalMap, texCoords, textureLodLevel).rgb;
-    normal = normalize(normal * 2.0 - 1.0);
+    // Fetch the normal from the normal map
+    vec3 normalTex = texture(normalMap, texCoords, textureLodLevel).rgb;
+    // Flip the green channel (if needed)
+    normalTex.g = 1.0 - normalTex.g;
+    vec3 normal = normalize(normalTex * 2.0 - 1.0);
 
     // Transform normal to world space
     normal = normalize(TBN * normal);
@@ -173,7 +166,6 @@ void main()
     vec3 reflectDir = reflect(-viewDir, normal);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
-    // Calculate shadow
     float shadow = 0.0;
     if (shadowingEnabled) {
         shadow = ShadowCalculation(FragPosLightSpace);
@@ -186,10 +178,8 @@ void main()
         finalColor = computeLightingWithoutPhong(normal);
     }
 
-    // Apply shadow to lighting
     finalColor = (1.0 - shadow) * finalColor;
 
-    // Fresnel effect for edges
     float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
     vec3 reflection = mix(envColor, vec3(1.0), fresnel);
 
