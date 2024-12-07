@@ -150,8 +150,7 @@ void main()
     if (parallaxScale > 0.0)
     {
         texCoords = ParallaxOcclusionMapping(TexCoords, tangentViewDir);
-        if (texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0)
-        discard;
+        texCoords = clamp(texCoords, 0.0, 1.0);
     }
 
     // Fetch the normal from the normal map
