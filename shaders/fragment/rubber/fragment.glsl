@@ -33,11 +33,11 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 viewPosition;
 
-uniform float pomHeightScale;// Parallax Occlusion Mapping height scale
-uniform int pomMinSteps;// Minimum steps for POM
-uniform int pomMaxSteps;// Maximum steps for POM
+uniform float pomHeightScale;
+uniform int pomMinSteps;
+uniform int pomMaxSteps;
 
-uniform bool invertDisplacementMap;// Controls inversion of the displacement map
+uniform bool invertDisplacementMap;
 
 // Tone mapping and other utility functions
 vec3 Uncharted2Tonemap(vec3 x) {
