@@ -7,6 +7,7 @@ in vec3 TangentLightPos;
 in vec3 TangentViewPos;
 in vec3 TangentFragPos;
 in vec4 FragPosLightSpace;
+in float FragPosW;// Receive w component from vertex shader
 
 out vec4 FragColor;
 
@@ -32,11 +33,11 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 viewPosition;
 
-uniform float pomHeightScale;
-uniform int pomMinSteps;
-uniform int pomMaxSteps;
+uniform float pomHeightScale;// Parallax Occlusion Mapping height scale
+uniform int pomMinSteps;// Minimum steps for POM
+uniform int pomMaxSteps;// Maximum steps for POM
 
-uniform bool invertDisplacementMap;
+uniform bool invertDisplacementMap;// Controls inversion of the displacement map
 
 // Tone mapping and other utility functions
 vec3 Uncharted2Tonemap(vec3 x) {
@@ -102,8 +103,8 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
     float weight = (depthFromTexture - currentLayerDepth) / ((depthFromTexture - currentLayerDepth) - (prevDepthFromTexture - prevLayerDepth));
     vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
 
-    // Compute depth offset
-    depthOffset = pomHeightScale * (1.0 - mix(currentLayerDepth, prevLayerDepth, weight));
+    // Compute depth offset (scaled appropriately)
+    depthOffset = pomHeightScale * (1.0 - mix(currentLayerDepth, prevLayerDepth, weight)) * 0.0001;// Adjust scaling factor as needed
 
     return finalTexCoords;
 }
