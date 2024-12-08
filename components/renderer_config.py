@@ -86,8 +86,8 @@ class RendererConfig:
         self.env_map_lod_bias = env_map_lod_bias
         self.invert_displacement_map = invert_displacement_map
         self.pom_height_scale = pom_height_scale
-        self.min_steps = pom_min_steps
-        self.max_steps = pom_max_steps
+        self.pom_min_steps = pom_min_steps
+        self.pom_max_steps = pom_max_steps
         self.move_speed = move_speed
         self.loop = loop
         self.front_face_winding = front_face_winding
