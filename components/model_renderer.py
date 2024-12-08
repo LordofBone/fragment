@@ -18,6 +18,33 @@ class ModelRenderer(AbstractRenderer):
         return True
 
     def create_buffers(self):
+        """
+        Create buffers for each mesh material in the object's mesh list.
+
+        This method iterates through each mesh in the object's mesh list and processes its materials.
+        For each material, it extracts vertex data and performs transformations to reorder and enhance
+        vertex attributes. The method constructs vertex buffer objects (VBOs) and vertex array objects
+        (VAOs) for handling the vertex data in OpenGL. It accounts for tangents and bitangents calculations
+        necessary for advanced shading techniques. The method appends created VBOs, VAOs, and a mapping
+        relation for each material to the respective internal lists.
+
+        Attributes
+        ----------
+        vaos : list
+            A list to store vertex array objects for the processed meshes.
+        vbos : list
+            A list to store vertex buffer objects for the processed meshes.
+        mesh_material_index_map : list
+            A list to store the mapping between mesh index and material names for the
+            processed materials.
+
+        Parameters
+        ----------
+        self : object
+            The instance of the object containing mesh_list attribute which holds
+            the meshes to be processed.
+
+        """
         self.vaos = []
         self.vbos = []
         self.mesh_material_index_map = []
@@ -59,6 +86,22 @@ class ModelRenderer(AbstractRenderer):
                 self.mesh_material_index_map.append((mesh_index, material.name))
 
     def compute_tangents_and_bitangents(self, verts):
+        """
+        Computes the tangent and bitangent vectors for a given set of vertices. The input
+        vertices are expected to be in the format of N x 8 array, where each row consists
+        of position (x, y, z), normal (nx, ny, nz), and texture coordinates (u, v). The
+        method appends calculated tangent and bitangent vectors to each vertex, resulting
+        in an output array of N x 14.
+
+        Parameters:
+            verts (np.ndarray): An array of shape (N, 8) containing vertices data which
+                                include positions, normals, and texture coordinates.
+
+        Returns:
+            np.ndarray: An array of shape (N, 14), where each row is composed of the original
+                        input data followed by calculated tangent (tx, ty, tz) and bitangent
+                        (bx, by, bz) vectors.
+        """
         # verts: N x 8 array: (x,y,z, nx,ny,nz, u,v)
         # We want to add tangent and bitangent: final will be N x 14
         # Initialize tangent and bitangent arrays
@@ -129,12 +172,45 @@ class ModelRenderer(AbstractRenderer):
         return final_array
 
     def create_vbo(self, vertices_array):
+        """
+        Creates a Vertex Buffer Object (VBO) using the provided array of vertices.
+        The VBO is generated, bound to the GL_ARRAY_BUFFER target, and loaded
+        with the vertex data from the given array. The data is specified to be
+        static and drawn frequently.
+
+        Parameters:
+            vertices_array: numpy.ndarray
+                An array of vertex data used to populate the VBO.
+
+        Returns:
+            int: An integer representing the generated VBO handle.
+        """
         vbo = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, vbo)
         glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
         return vbo
 
     def create_vao(self, with_tangents=False):
+        """
+        Creates a Vertex Array Object (VAO) and sets up vertex attributes for
+        rendering. The attributes can include position, normal, texture coordinates,
+        and optionally tangent and bitangent vectors if specified.
+
+        The method initializes a new VAO, binds it, and then retrieves attribute
+        locations from the shader program. It enables vertex attributes based on
+        whether tangents are included or not, with specific offsets for each type
+        of attribute data within the vertex layout.
+
+        Parameters:
+        with_tangents: bool
+            Flag indicating whether tangent and bitangent attributes should be
+            included in the vertex layout. If True, the VAO includes these
+            attributes; otherwise, it does not.
+
+        Returns:
+        int
+            The ID of the created VAO used for rendering operations.
+        """
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
@@ -174,6 +250,21 @@ class ModelRenderer(AbstractRenderer):
         return vao
 
     def get_vertex_stride(self, vertex_format):
+        """
+        Calculate the total vertex stride from a given vertex format.
+
+        The method parses the input vertex format string, which is expected to be
+        composed of parts separated by underscores, with each part containing a
+        single character specification followed by an integer. The integer indicates
+        the number of floats in that portion of the vertex. It totals these numbers
+        to compute the total stride count.
+
+        Args:
+            vertex_format (str): A string representing the format of the vertex.
+
+        Returns:
+            int: The total vertex stride calculated from the format.
+        """
         count = 0
         format_parts = vertex_format.split('_')
         for part in format_parts:
@@ -182,13 +273,40 @@ class ModelRenderer(AbstractRenderer):
         return count
 
     def enable_vertex_attrib(self, location, size, stride, pointer_offset):
+        """
+        Enables a vertex attribute array and defines an array of generic vertex
+        attribute data. This function is primarily used in OpenGL to specify the
+        organization of data in the vertex buffer and to pass it to the vertex
+        shader.
+
+        Parameters:
+        location (int): The location of the vertex attribute to be enabled.
+        size (int): The number of components per attribute. Must be 1, 2, 3, or 4.
+        stride (int): The byte offset between consecutive vertex attributes.
+        pointer_offset (int): The offset of the first component of the first
+        generic vertex attribute in the buffer.
+        """
         if location >= 0:
             glEnableVertexAttribArray(location)
             glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(pointer_offset))
 
     @common_funcs
     def render(self):
-        """Render the model."""
+        """
+        Render all meshes of the object with their corresponding materials.
+
+        This method iterates over each mesh in the object's mesh list. For each
+        material in the mesh, it checks if the material has associated vertices. If
+        vertices are present, it applies the material to the context and calculates
+        the number of vertices to draw based on the vertex stride of the material.
+        Then, it binds and draws the vertex array object for that material. The
+        vao_counter is incremented after each draw call to ensure uniqueness for
+        each material's vertex array object.
+
+        Raises:
+            Any exceptions pertaining to applying material or drawing a vertex
+            array may be raised during execution.
+        """
         vao_counter = 0
         for mesh_index, mesh in enumerate(self.object.mesh_list):
             for material in mesh.materials:
@@ -201,12 +319,29 @@ class ModelRenderer(AbstractRenderer):
                 vao_counter += 1
 
     def apply_material(self, material):
+        """
+        Old material method; to be removed.
+        """
         glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
         glMaterialfv(GL_FRONT, GL_DIFFUSE, material.diffuse)
         glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
         glMaterialf(GL_FRONT, GL_SHININESS, min(128, material.shininess))
 
     def bind_and_draw_vao(self, vao_index, count):
+        """
+        Binds a Vertex Array Object (VAO) and issues a draw call for rendering.
+
+        This method activates a specific VAO from a list of VAOs and performs a
+        drawing operation using OpenGL's glDrawArrays function. After drawing,
+        it unbinds the VAO. This is typically used in rendering pipelines
+        where objects are drawn using vertex data stored in a VAO.
+
+        Parameters:
+            vao_index: int
+                The index of the VAO to bind from the list of available VAOs.
+            count: int
+                The number of vertices to render.
+        """
         glBindVertexArray(self.vaos[vao_index])
         glDrawArrays(GL_TRIANGLES, 0, count)
         glBindVertexArray(0)
