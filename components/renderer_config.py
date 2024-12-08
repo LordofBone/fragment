@@ -83,7 +83,7 @@ class RendererConfig:
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
-        self.height_scale = pom_height_scale
+        self.pom_height_scale = pom_height_scale
         self.min_steps = pom_min_steps
         self.max_steps = pom_max_steps
         self.move_speed = move_speed
