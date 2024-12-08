@@ -49,11 +49,11 @@ def run_benchmark(
         culling=True,
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
-        phong_shading=True,
+        phong_shading=False,
         # POM parameters
-        height_scale=0.04,
-        min_steps=8,
-        max_steps=32,
+        pom_height_scale=0.02,
+        pom_min_steps=32,
+        pom_max_steps=128,
     )
 
     # Create the rendering instance with the base configuration
