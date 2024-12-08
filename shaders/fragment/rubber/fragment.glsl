@@ -29,6 +29,8 @@ uniform bool shadowingEnabled;
 uniform float envSpecularStrength;
 
 uniform mat4 view;
+uniform mat4 projection;
+uniform vec3 viewPosition;
 
 uniform float pomHeightScale;
 uniform int pomMinSteps;
@@ -53,89 +55,61 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-// Enhanced POM function with binary search
-vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
+// Enhanced POM function with depth correction
+vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffset)
 {
     // Number of layers based on view angle
     float numLayers = mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
     float layerDepth = 1.0 / numLayers;
-    float currentDepth = 0.0;
+    float currentLayerDepth = 0.0;
     vec2 P = viewDir.xy * pomHeightScale;
     vec2 deltaTexCoords = P / numLayers;
 
-    // Get the initial depth from the displacement map
-    float depthFromTex = texture(displacementMap, texCoords, textureLodLevel).r;
-
-    // Conditionally invert the displacement map
+    // Initial values
+    vec2 currentTexCoords = texCoords;
+    float currentDepthMapValue = texture(displacementMap, currentTexCoords, textureLodLevel).r;
     if (invertDisplacementMap)
     {
-        depthFromTex = 1.0 - depthFromTex;
+        currentDepthMapValue = 1.0 - currentDepthMapValue;
     }
 
-    // Linear search to find the intersection layer
-    vec2 currentTexCoords = texCoords;
-    vec2 previousTexCoords = texCoords;
-    float previousDepth = depthFromTex;
-    bool hit = false;
+    // Depth from displacement map
+    float depthFromTexture = currentDepthMapValue;
 
-    for (int i = 0; i < int(numLayers); i++)
+    // Linear search to find the layer where the view ray intersects the depth
+    while (currentLayerDepth < depthFromTexture)
     {
         currentTexCoords -= deltaTexCoords;
-        depthFromTex = texture(displacementMap, currentTexCoords, textureLodLevel).r;
+        currentDepthMapValue = texture(displacementMap, currentTexCoords, textureLodLevel).r;
         if (invertDisplacementMap)
         {
-            depthFromTex = 1.0 - depthFromTex;
+            currentDepthMapValue = 1.0 - currentDepthMapValue;
         }
-
-        if (currentDepth >= depthFromTex)
-        {
-            hit = true;
-            break;
-        }
-
-        previousTexCoords = currentTexCoords;
-        previousDepth = depthFromTex;
-        currentDepth += layerDepth;
+        depthFromTexture = currentDepthMapValue;
+        currentLayerDepth += layerDepth;
     }
 
-    if (hit)
+    // Backtrack to previous layer
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+    float prevLayerDepth = currentLayerDepth - layerDepth;
+    float prevDepthFromTexture = texture(displacementMap, prevTexCoords, textureLodLevel).r;
+    if (invertDisplacementMap)
     {
-        // Binary search for precise intersection
-        float low = currentDepth - layerDepth;
-        float high = currentDepth;
-        vec2 lowTex = previousTexCoords;
-        vec2 highTex = currentTexCoords;
-
-        for (int i = 0; i < 5; i++)// 5 iterations for precision
-        {
-            float midDepth = (low + high) / 2.0;
-            vec2 midTex = mix(lowTex, highTex, 0.5);
-            float midDepthFromTex = texture(displacementMap, midTex, textureLodLevel).r;
-            if (invertDisplacementMap)
-            {
-                midDepthFromTex = 1.0 - midDepthFromTex;
-            }
-
-            if (midDepth < midDepthFromTex)
-            {
-                low = midDepth;
-                lowTex = midTex;
-            }
-            else
-            {
-                high = midDepth;
-                highTex = midTex;
-            }
-        }
-
-        return highTex;
+        prevDepthFromTexture = 1.0 - prevDepthFromTexture;
     }
 
-    return currentTexCoords;
+    // Refine intersection point with linear interpolation
+    float weight = (depthFromTexture - currentLayerDepth) / ((depthFromTexture - currentLayerDepth) - (prevDepthFromTexture - prevLayerDepth));
+    vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
+
+    // Compute depth offset
+    depthOffset = pomHeightScale * (1.0 - mix(currentLayerDepth, prevLayerDepth, weight));
+
+    return finalTexCoords;
 }
 
-vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
+vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec2 texCoords) {
+    vec3 ambient = 0.1 * texture(diffuseMap, texCoords, textureLodLevel).rgb;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
     float roughness = 0.5;// Reduced roughness for more shine
@@ -143,7 +117,7 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
     for (int i = 0; i < 10; i++) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
+        diffuse += diff * texture(diffuseMap, texCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
 
         vec3 halfwayDir = normalize(lightDir + viewDir);
         float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0 * (1.0 - roughness));
@@ -153,14 +127,14 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
     return ambient + diffuse + specular;
 }
 
-vec3 computeLightingWithoutPhong(vec3 normal) {
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
+vec3 computeLightingWithoutPhong(vec3 normal, vec2 texCoords) {
+    vec3 ambient = 0.1 * texture(diffuseMap, texCoords, textureLodLevel).rgb;
     vec3 diffuse = vec3(0.0);
 
     for (int i = 0; i < 10; i++) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * texture(diffuseMap, TexCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
+        diffuse += diff * texture(diffuseMap, texCoords, textureLodLevel).rgb * lightColors[i] * lightStrengths[i];
     }
 
     return ambient + diffuse;
@@ -194,8 +168,9 @@ void main()
     // Transform view direction into tangent space
     vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
 
-    // Apply Enhanced POM
-    vec2 newTexCoords = ParallaxOcclusionMapping(TexCoords, viewDir);
+    // Apply Enhanced POM with Depth Correction
+    float depthOffset = 0.0;
+    vec2 newTexCoords = ParallaxOcclusionMapping(TexCoords, viewDir, depthOffset);
 
     // If parallax mapping results in coords outside 0-1, discard
     if (newTexCoords.x > 1.0 || newTexCoords.y > 1.0 || newTexCoords.x < 0.0 || newTexCoords.y < 0.0)
@@ -206,10 +181,10 @@ void main()
     norm = normalize(norm * 2.0 - 1.0);
 
     // View direction in world space:
-    vec4 viewFragPos = view * vec4(FragPos, 1.0);
-    vec3 worldViewDir = normalize(-viewFragPos.xyz);
+    vec3 worldViewDir = normalize(viewPosition - FragPos);
 
-    vec3 reflectDir = reflect(worldViewDir, norm);
+    // Compute reflection
+    vec3 reflectDir = reflect(-worldViewDir, norm);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
     float shadow = 0.0;
@@ -219,9 +194,9 @@ void main()
 
     vec3 finalColor;
     if (phongShading) {
-        finalColor = computePhongLighting(norm, worldViewDir);
+        finalColor = computePhongLighting(norm, worldViewDir, newTexCoords);
     } else {
-        finalColor = computeLightingWithoutPhong(norm);
+        finalColor = computeLightingWithoutPhong(norm, newTexCoords);
     }
 
     finalColor = (1.0 - shadow) * finalColor;
@@ -241,4 +216,8 @@ void main()
     }
 
     FragColor = vec4(clamp(result, 0.0, 1.0), 1.0);
+
+    // Depth Correction
+    float correctedDepth = gl_FragCoord.z + depthOffset * (1.0 / gl_FragCoord.w);
+    //    gl_FragDepth = clamp(correctedDepth, 0.0, 1.0);
 }
