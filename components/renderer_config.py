@@ -29,9 +29,9 @@ class RendererConfig:
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
-            height_scale=0.04,
-            min_steps=8,
-            max_steps=32,
+            pom_height_scale=0.04,
+            pom_min_steps=8,
+            pom_max_steps=32,
         move_speed=1.0,
         loop=True,
         front_face_winding="CCW",
@@ -83,9 +83,9 @@ class RendererConfig:
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
-        self.height_scale = height_scale
-        self.min_steps = min_steps
-        self.max_steps = max_steps
+        self.height_scale = pom_height_scale
+        self.min_steps = pom_min_steps
+        self.max_steps = pom_max_steps
         self.move_speed = move_speed
         self.loop = loop
         self.front_face_winding = front_face_winding
@@ -168,9 +168,9 @@ class RendererConfig:
         opacity=1.0,
         shininess=1.0,
         shadow_map_resolution=None,
-            height_scale=None,
-            min_steps=None,
-            max_steps=None,
+            pom_height_scale=None,
+            pom_min_steps=None,
+            pom_max_steps=None,
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -208,9 +208,9 @@ class RendererConfig:
             "opacity": opacity,
             "shininess": shininess,
             "shadow_map_resolution": shadow_map_resolution,
-            "height_scale": height_scale,
-            "min_steps": min_steps,
-            "max_steps": max_steps,
+            "height_scale": pom_height_scale,
+            "min_steps": pom_min_steps,
+            "max_steps": pom_max_steps,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
