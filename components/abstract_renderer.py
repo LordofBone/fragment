@@ -134,6 +134,7 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
+            invert_displacement_map=False,
             pom_height_scale=0.04,
             pom_min_steps=8,
             pom_max_steps=32,
@@ -208,6 +209,7 @@ class AbstractRenderer(ABC):
         self.window_size = window_size
 
         # Parallax mapping attributes
+        self.invert_displacement_map = invert_displacement_map
         self.pom_height_scale = pom_height_scale
         self.pom_min_steps = pom_min_steps
         self.pom_max_steps = pom_max_steps
@@ -797,6 +799,8 @@ class AbstractRenderer(ABC):
             )
 
         # Set the parallax mapping uniforms
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "invertDisplacementMap"),
+                    int(self.invert_displacement_map))
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "pomHeightScale"),
                     self.pom_height_scale)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMinSteps"),
