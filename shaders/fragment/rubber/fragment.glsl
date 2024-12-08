@@ -34,7 +34,8 @@ uniform float pomHeightScale;
 uniform int pomMinSteps;
 uniform int pomMaxSteps;
 
-// Tone mapping and other functions as before
+uniform bool invertDisplacementMap;
+
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
     float B = 0.50;
@@ -51,10 +52,9 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-// POM function
 vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
 {
-    // number of layers
+    // Number of layers
     float numLayers = mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
     float layerDepth = 1.0 / numLayers;
     float currentDepth = 0.0;
@@ -63,15 +63,23 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
 
     // Get the depth from the displacement map (height map)
     float depthFromTex = texture(displacementMap, texCoords, textureLodLevel).r;
-    depthFromTex = 1.0 - depthFromTex;// Assuming height is stored in displacementMap as [0,1], invert if needed
 
-    // binary search approach
+    // Conditionally invert the displacement map
+    if (invertDisplacementMap)
+    {
+        depthFromTex = 1.0 - depthFromTex;
+    }
+
+    // Binary search approach
     vec2 currentTexCoords = texCoords;
     while (currentDepth < depthFromTex)
     {
         currentTexCoords -= deltaTexCoords;
         depthFromTex = texture(displacementMap, currentTexCoords, textureLodLevel).r;
-        depthFromTex = 1.0 - depthFromTex;
+        if (invertDisplacementMap)
+        {
+            depthFromTex = 1.0 - depthFromTex;
+        }
         currentDepth += layerDepth;
     }
 
@@ -112,7 +120,6 @@ vec3 computeLightingWithoutPhong(vec3 normal) {
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
-    // Same as before
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
     float closestDepth = texture(shadowMap, projCoords.xy).r;
