@@ -11,6 +11,7 @@ class ModelRenderer(AbstractRenderer):
     def __init__(self, renderer_name, obj_path, **kwargs):
         super().__init__(renderer_name=renderer_name, **kwargs)
         self.obj_path = obj_path
+        # create_materials=True and collect_faces=True ensure we have materials and faces data
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
     def supports_shadow_mapping(self):
@@ -28,21 +29,11 @@ class ModelRenderer(AbstractRenderer):
                     print(f"Material '{material.name}' in mesh '{mesh.name}' has no vertices. Skipping.")
                     continue
 
-                vertex_format = material.vertex_format  # 'T2F_N3F_V3F'
-                # vertex_format is known: 2 floats (tex), 3 floats (normal), 3 floats (pos) = 8 floats total
-
-                # Convert vertices to numpy array
-                vertices_array = np.array(vertices, dtype=np.float32)
-                # Reshape to [N,8] because we know it's T2F_N3F_V3F
-                vertices_array = vertices_array.reshape(-1, 8)
+                # vertex_format: 'T2F_N3F_V3F' => uv(2), normal(3), position(3) = 8 floats total
+                vertices_array = np.array(vertices, dtype=np.float32).reshape(-1, 8)
 
                 # Current order: (u,v, nx,ny,nz, x,y,z)
                 # Desired order: (x,y,z, nx,ny,nz, u,v)
-                # Reorder columns:
-                # positions are currently at indices [5,6,7]
-                # normals are at indices [2,3,4]
-                # texcoords are at indices [0,1]
-
                 reordered = np.column_stack((
                     vertices_array[:, 5],  # x
                     vertices_array[:, 6],  # y
@@ -54,70 +45,139 @@ class ModelRenderer(AbstractRenderer):
                     vertices_array[:, 1]  # v
                 ))
 
-                # Now reordered data matches (position, normal, texcoords) order
-                # No tangents/bitangents yet, so just 8 floats per vertex
+                # Now we have (x,y,z, nx,ny,nz, u,v) per vertex
+                # Compute tangent and bitangent
+                # We'll assume the vertices are arranged as triangles (every 3 vertices is a triangle)
+                reordered = self.compute_tangents_and_bitangents(reordered)
+
+                # Now reordered has (x,y,z, nx,ny,nz, u,v, tx,ty,tz, bx,by,bz) = 14 floats/vertex
                 vbo = self.create_vbo(reordered)
-                vao = self.create_vao()  # This VAO will be configured for 8-float vertices
+                vao = self.create_vao(with_tangents=True)
 
                 self.vbos.append(vbo)
                 self.vaos.append(vao)
                 self.mesh_material_index_map.append((mesh_index, material.name))
 
+    def compute_tangents_and_bitangents(self, verts):
+        # verts: N x 8 array: (x,y,z, nx,ny,nz, u,v)
+        # We want to add tangent and bitangent: final will be N x 14
+        # Initialize tangent and bitangent arrays
+        tangent = np.zeros((verts.shape[0], 3), dtype=np.float32)
+        bitangent = np.zeros((verts.shape[0], 3), dtype=np.float32)
+
+        # Assume every 3 vertices form a triangle
+        num_triangles = verts.shape[0] // 3
+        for i in range(num_triangles):
+            i0 = i * 3
+            i1 = i * 3 + 1
+            i2 = i * 3 + 2
+
+            v0 = verts[i0]
+            v1 = verts[i1]
+            v2 = verts[i2]
+
+            pos0 = v0[0:3]
+            pos1 = v1[0:3]
+            pos2 = v2[0:3]
+
+            uv0 = v0[6:8]
+            uv1 = v1[6:8]
+            uv2 = v2[6:8]
+
+            deltaPos1 = pos1 - pos0
+            deltaPos2 = pos2 - pos0
+            deltaUV1 = uv1 - uv0
+            deltaUV2 = uv2 - uv0
+
+            r = 1.0 / (deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0] + 1e-8)
+            T = (deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r
+            B = (deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r
+
+            tangent[i0] += T
+            tangent[i1] += T
+            tangent[i2] += T
+
+            bitangent[i0] += B
+            bitangent[i1] += B
+            bitangent[i2] += B
+
+        # Normalize tangent/bitangent
+        # Also ensure tangent is orthogonal to normal if necessary.
+        for i in range(verts.shape[0]):
+            n = verts[i, 3:6]  # normal
+            t = tangent[i]
+            b = bitangent[i]
+
+            # Gram-Schmidt orthogonalization
+            # t = t - n*(n·t)
+            t = t - n * np.dot(n, t)
+            # Normalize t
+            if np.linalg.norm(t) > 1e-8:
+                t = t / np.linalg.norm(t)
+
+            # b = b - n*(n·b) - t*(t·b)
+            b = b - n * np.dot(n, b) - t * np.dot(t, b)
+            # Normalize b
+            if np.linalg.norm(b) > 1e-8:
+                b = b / np.linalg.norm(b)
+
+            tangent[i] = t
+            bitangent[i] = b
+
+        # Combine data into a single array: now (x,y,z, nx,ny,nz, u,v, tx,ty,tz, bx,by,bz)
+        final_array = np.hstack((verts, tangent, bitangent)).astype(np.float32)
+        return final_array
+
     def create_vbo(self, vertices_array):
-        """Create a Vertex Buffer Object (VBO)."""
         vbo = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, vbo)
         glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
         return vbo
 
-    def create_vao(self):
+    def create_vao(self, with_tangents=False):
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
         float_size = 4
-        # Now the stride is 8 floats total (no tangents/bitangents yet)
-        vertex_stride = 8 * float_size
+        if with_tangents:
+            # (x,y,z, nx,ny,nz, u,v, tx,ty,tz, bx,by,bz) = 14 floats
+            vertex_stride = 14 * float_size
+        else:
+            # Without tangents, we had 8 floats
+            vertex_stride = 8 * float_size
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
         normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
         tex_coords_loc = glGetAttribLocation(self.shader_engine.shader_program, "texCoords")
-
-        # We will assume tangent=location 3, bitangent=location 4
         tangent_loc = glGetAttribLocation(self.shader_engine.shader_program, "tangent")
         bitangent_loc = glGetAttribLocation(self.shader_engine.shader_program, "bitangent")
 
-        # position: offset 0
-
-        # position: offset 0 (3 floats)
+        # Position: (x,y,z) at offset 0
         if position_loc >= 0:
             self.enable_vertex_attrib(position_loc, 3, vertex_stride, 0)
-        # normal: offset 3 floats
+        # Normal: (nx,ny,nz) at offset 3 floats
         if normal_loc >= 0:
             self.enable_vertex_attrib(normal_loc, 3, vertex_stride, 3 * float_size)
-        # texCoords: offset 6 floats
+        # UV: (u,v) at offset 6 floats
         if tex_coords_loc >= 0:
             self.enable_vertex_attrib(tex_coords_loc, 2, vertex_stride, 6 * float_size)
-        # tangent: offset 8 floats
-        if tangent_loc >= 0:
-            self.enable_vertex_attrib(tangent_loc, 3, vertex_stride, 8 * float_size)
-        # bitangent: offset 11 floats
-        if bitangent_loc >= 0:
-            self.enable_vertex_attrib(bitangent_loc, 3, vertex_stride, 11 * float_size)
+        if with_tangents:
+            # Tangent: at offset 8 floats
+            if tangent_loc >= 0:
+                self.enable_vertex_attrib(tangent_loc, 3, vertex_stride, 8 * float_size)
+            # Bitangent: at offset 11 floats
+            if bitangent_loc >= 0:
+                self.enable_vertex_attrib(bitangent_loc, 3, vertex_stride, 11 * float_size)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
         return vao
 
     def get_vertex_stride(self, vertex_format):
-        # Example: T2F_N3F_V3F means 2 floats for texCoords, 3 for normal, 3 for vertex
-        # Adjust according to your formats.
         count = 0
         format_parts = vertex_format.split('_')
         for part in format_parts:
-            # part like 'T2F' or 'N3F' or 'V3F'
-            letter = part[0]  # T=tex, N=normal, V=vertex
             num = int(part[1])  # number of floats
-            # F just stands for float
             count += num
         return count
 
@@ -152,7 +212,6 @@ class ModelRenderer(AbstractRenderer):
         glBindVertexArray(0)
 
     def shutdown(self):
-        """Clean up OpenGL resources used by the renderer."""
         if hasattr(self, "vaos") and len(self.vaos) > 0:
             glDeleteVertexArrays(len(self.vaos), self.vaos)
 
