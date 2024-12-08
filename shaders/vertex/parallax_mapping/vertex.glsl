@@ -13,6 +13,7 @@ out vec3 TangentLightPos;
 out vec3 TangentViewPos;
 out vec3 TangentFragPos;
 out vec4 FragPosLightSpace;
+out float FragPosW;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -41,5 +42,8 @@ void main()
     // Light space position
     FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
 
-    gl_Position = projection * view * vec4(FragPos, 1.0);
+    vec4 clipSpacePos = projection * view * vec4(FragPos, 1.0);
+    gl_Position = clipSpacePos;
+
+    FragPosW = clipSpacePos.w;// Pass w component to fragment shader
 }
