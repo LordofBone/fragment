@@ -17,33 +17,51 @@ class ModelRenderer(AbstractRenderer):
         return True
 
     def create_buffers(self):
-        """Create VAOs and VBOs for each material of each mesh."""
         self.vaos = []
         self.vbos = []
-        self.mesh_material_index_map = []  # Optional: track which (mesh,material) index corresponds to each VAO
+        self.mesh_material_index_map = []
 
         for mesh_index, mesh in enumerate(self.object.mesh_list):
-            # If meshes can have multiple materials, handle all:
             for material in mesh.materials:
                 vertices = material.vertices
                 if not vertices:
                     print(f"Material '{material.name}' in mesh '{mesh.name}' has no vertices. Skipping.")
                     continue
 
-                # Determine the vertex format and stride
-                vertex_format = material.vertex_format  # e.g. 'T2F_N3F_V3F'
-                vertex_stride = self.get_vertex_stride(vertex_format)  # You'll need to implement this function
+                vertex_format = material.vertex_format  # 'T2F_N3F_V3F'
+                # vertex_format is known: 2 floats (tex), 3 floats (normal), 3 floats (pos) = 8 floats total
 
-                # Create a VBO/VAO pair for this material
+                # Convert vertices to numpy array
                 vertices_array = np.array(vertices, dtype=np.float32)
-                vbo = self.create_vbo(vertices_array)
-                vao = self.create_vao()
+                # Reshape to [N,8] because we know it's T2F_N3F_V3F
+                vertices_array = vertices_array.reshape(-1, 8)
+
+                # Current order: (u,v, nx,ny,nz, x,y,z)
+                # Desired order: (x,y,z, nx,ny,nz, u,v)
+                # Reorder columns:
+                # positions are currently at indices [5,6,7]
+                # normals are at indices [2,3,4]
+                # texcoords are at indices [0,1]
+
+                reordered = np.column_stack((
+                    vertices_array[:, 5],  # x
+                    vertices_array[:, 6],  # y
+                    vertices_array[:, 7],  # z
+                    vertices_array[:, 2],  # nx
+                    vertices_array[:, 3],  # ny
+                    vertices_array[:, 4],  # nz
+                    vertices_array[:, 0],  # u
+                    vertices_array[:, 1]  # v
+                ))
+
+                # Now reordered data matches (position, normal, texcoords) order
+                # No tangents/bitangents yet, so just 8 floats per vertex
+                vbo = self.create_vbo(reordered)
+                vao = self.create_vao()  # This VAO will be configured for 8-float vertices
 
                 self.vbos.append(vbo)
                 self.vaos.append(vao)
                 self.mesh_material_index_map.append((mesh_index, material.name))
-
-        # If you rely on a single VAO per mesh rather than per material, you can handle that logic here.
 
     def create_vbo(self, vertices_array):
         """Create a Vertex Buffer Object (VBO)."""
@@ -53,15 +71,12 @@ class ModelRenderer(AbstractRenderer):
         return vbo
 
     def create_vao(self):
-        """Create a Vertex Array Object (VAO) and configure vertex attributes."""
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
         float_size = 4
-        # Original vertex has 8 floats: position(3), normal(3), texCoord(2)
-        # Now we added tangent(3), bitangent(3)
-        # total = 8 + 3 + 3 = 14 floats per vertex
-        vertex_stride = 14 * float_size
+        # Now the stride is 8 floats total (no tangents/bitangents yet)
+        vertex_stride = 8 * float_size
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
         normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
@@ -72,6 +87,8 @@ class ModelRenderer(AbstractRenderer):
         bitangent_loc = glGetAttribLocation(self.shader_engine.shader_program, "bitangent")
 
         # position: offset 0
+
+        # position: offset 0 (3 floats)
         if position_loc >= 0:
             self.enable_vertex_attrib(position_loc, 3, vertex_stride, 0)
         # normal: offset 3 floats
