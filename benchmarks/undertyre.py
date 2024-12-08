@@ -50,6 +50,10 @@ def run_benchmark(
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         phong_shading=True,
+        # POM parameters
+        height_scale=0.04,
+        min_steps=8,
+        max_steps=32,
     )
 
     # Create the rendering instance with the base configuration
