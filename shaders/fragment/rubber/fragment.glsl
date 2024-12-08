@@ -36,6 +36,7 @@ uniform int pomMaxSteps;
 
 uniform bool invertDisplacementMap;
 
+// Tone mapping and other utility functions
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
     float B = 0.50;
@@ -52,16 +53,17 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
+// Enhanced POM function with binary search
 vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
 {
-    // Number of layers
+    // Number of layers based on view angle
     float numLayers = mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
     float layerDepth = 1.0 / numLayers;
     float currentDepth = 0.0;
     vec2 P = viewDir.xy * pomHeightScale;
     vec2 deltaTexCoords = P / numLayers;
 
-    // Get the depth from the displacement map (height map)
+    // Get the initial depth from the displacement map
     float depthFromTex = texture(displacementMap, texCoords, textureLodLevel).r;
 
     // Conditionally invert the displacement map
@@ -70,9 +72,13 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
         depthFromTex = 1.0 - depthFromTex;
     }
 
-    // Binary search approach
+    // Linear search to find the intersection layer
     vec2 currentTexCoords = texCoords;
-    while (currentDepth < depthFromTex)
+    vec2 previousTexCoords = texCoords;
+    float previousDepth = depthFromTex;
+    bool hit = false;
+
+    for (int i = 0; i < int(numLayers); i++)
     {
         currentTexCoords -= deltaTexCoords;
         depthFromTex = texture(displacementMap, currentTexCoords, textureLodLevel).r;
@@ -80,7 +86,49 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
         {
             depthFromTex = 1.0 - depthFromTex;
         }
+
+        if (currentDepth >= depthFromTex)
+        {
+            hit = true;
+            break;
+        }
+
+        previousTexCoords = currentTexCoords;
+        previousDepth = depthFromTex;
         currentDepth += layerDepth;
+    }
+
+    if (hit)
+    {
+        // Binary search for precise intersection
+        float low = currentDepth - layerDepth;
+        float high = currentDepth;
+        vec2 lowTex = previousTexCoords;
+        vec2 highTex = currentTexCoords;
+
+        for (int i = 0; i < 5; i++)// 5 iterations for precision
+        {
+            float midDepth = (low + high) / 2.0;
+            vec2 midTex = mix(lowTex, highTex, 0.5);
+            float midDepthFromTex = texture(displacementMap, midTex, textureLodLevel).r;
+            if (invertDisplacementMap)
+            {
+                midDepthFromTex = 1.0 - midDepthFromTex;
+            }
+
+            if (midDepth < midDepthFromTex)
+            {
+                low = midDepth;
+                lowTex = midTex;
+            }
+            else
+            {
+                high = midDepth;
+                highTex = midTex;
+            }
+        }
+
+        return highTex;
     }
 
     return currentTexCoords;
@@ -146,7 +194,7 @@ void main()
     // Transform view direction into tangent space
     vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
 
-    // Apply POM
+    // Apply Enhanced POM
     vec2 newTexCoords = ParallaxOcclusionMapping(TexCoords, viewDir);
 
     // If parallax mapping results in coords outside 0-1, discard
