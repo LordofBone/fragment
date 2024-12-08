@@ -218,6 +218,6 @@ void main()
     FragColor = vec4(clamp(result, 0.0, 1.0), 1.0);
 
     // Depth Correction
-    float correctedDepth = gl_FragCoord.z + depthOffset * (1.0 / gl_FragCoord.w);
-    //    gl_FragDepth = clamp(correctedDepth, 0.0, 1.0);
+    float correctedDepth = clamp(gl_FragCoord.z - depthOffset, 0.0, 1.0);
+    gl_FragDepth = correctedDepth;
 }
