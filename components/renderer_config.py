@@ -29,6 +29,7 @@ class RendererConfig:
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
+            invert_displacement_map=False,
             pom_height_scale=0.04,
             pom_min_steps=8,
             pom_max_steps=32,
@@ -83,6 +84,7 @@ class RendererConfig:
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
+        self.invert_displacement_map = invert_displacement_map
         self.pom_height_scale = pom_height_scale
         self.min_steps = pom_min_steps
         self.max_steps = pom_max_steps
@@ -168,6 +170,7 @@ class RendererConfig:
         opacity=1.0,
         shininess=1.0,
         shadow_map_resolution=None,
+            invert_displacement_map=None,
             pom_height_scale=None,
             pom_min_steps=None,
             pom_max_steps=None,
@@ -208,6 +211,7 @@ class RendererConfig:
             "opacity": opacity,
             "shininess": shininess,
             "shadow_map_resolution": shadow_map_resolution,
+            "invert_displacement_map": invert_displacement_map,
             "height_scale": pom_height_scale,
             "min_steps": pom_min_steps,
             "max_steps": pom_max_steps,
