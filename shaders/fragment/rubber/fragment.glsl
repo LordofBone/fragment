@@ -30,9 +30,9 @@ uniform float envSpecularStrength;
 
 uniform mat4 view;
 
-uniform float heightScale;
-uniform int minSteps;
-uniform int maxSteps;
+uniform float pomHeightScale;
+uniform int pomMinSteps;
+uniform int pomMaxSteps;
 
 // Tone mapping and other functions as before
 vec3 Uncharted2Tonemap(vec3 x) {
@@ -55,10 +55,10 @@ vec3 toneMapping(vec3 color) {
 vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
 {
     // number of layers
-    float numLayers = mix(float(maxSteps), float(minSteps), abs(viewDir.z));
+    float numLayers = mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
     float layerDepth = 1.0 / numLayers;
     float currentDepth = 0.0;
-    vec2 P = viewDir.xy * heightScale;
+    vec2 P = viewDir.xy * pomHeightScale;
     vec2 deltaTexCoords = P / numLayers;
 
     // Get the depth from the displacement map (height map)
