@@ -3,8 +3,9 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec3 Tangent;
-in vec3 Bitangent;
+in vec3 TangentLightPos;
+in vec3 TangentViewPos;
+in vec3 TangentFragPos;
 in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
@@ -18,6 +19,7 @@ uniform sampler2D shadowMap;
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
+
 uniform float textureLodLevel;
 uniform float envMapLodLevel;
 uniform bool applyToneMapping;
@@ -25,11 +27,14 @@ uniform bool applyGammaCorrection;
 uniform bool phongShading;
 uniform bool shadowingEnabled;
 uniform float envSpecularStrength;
-uniform float parallaxScale;
 
 uniform mat4 view;
-uniform vec3 cameraPos;
 
+uniform float heightScale;// New uniform for POM
+uniform int minSteps;// Minimum steps for POM
+uniform int maxSteps;// Maximum steps for POM
+
+// Tone mapping and other functions as before
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
     float B = 0.50;
@@ -37,8 +42,7 @@ vec3 Uncharted2Tonemap(vec3 x) {
     float D = 0.20;
     float E = 0.02;
     float F = 0.30;
-
-    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
 vec3 toneMapping(vec3 color) {
@@ -47,42 +51,38 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
+// POM function
 vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir)
 {
-    const float minLayers = 8.0;
-    const float maxLayers = 32.0;
-    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
-
+    // number of layers
+    float numLayers = mix(float(maxSteps), float(minSteps), abs(viewDir.z));
     float layerDepth = 1.0 / numLayers;
-    float currentLayerDepth = 0.0;
-    float currentDepthMapValue = texture(displacementMap, texCoords).r;
-
-    vec2 P = viewDir.xy / viewDir.z * parallaxScale;
+    float currentDepth = 0.0;
+    vec2 P = viewDir.xy * heightScale;
     vec2 deltaTexCoords = P / numLayers;
 
-    vec2 currentTexCoords = texCoords;
+    // Get the depth from the displacement map (height map)
+    float depthFromTex = texture(displacementMap, texCoords, textureLodLevel).r;
+    depthFromTex = 1.0 - depthFromTex;// Assuming height is stored in displacementMap as [0,1], invert if needed
 
-    while (currentLayerDepth < currentDepthMapValue)
+    // binary search approach
+    vec2 currentTexCoords = texCoords;
+    while (currentDepth < depthFromTex)
     {
         currentTexCoords -= deltaTexCoords;
-        currentDepthMapValue = texture(displacementMap, currentTexCoords).r;
-        currentLayerDepth += layerDepth;
+        depthFromTex = texture(displacementMap, currentTexCoords, textureLodLevel).r;
+        depthFromTex = 1.0 - depthFromTex;
+        currentDepth += layerDepth;
     }
 
-    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-    float afterDepth = currentDepthMapValue - currentLayerDepth;
-    float beforeDepth = texture(displacementMap, prevTexCoords).r - (currentLayerDepth - layerDepth);
-    float weight = afterDepth / (afterDepth - beforeDepth);
-    vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
-
-    return finalTexCoords;
+    return currentTexCoords;
 }
 
 vec3 computePhongLighting(vec3 normal, vec3 viewDir) {
     vec3 ambient = 0.1 * texture(diffuseMap, TexCoords, textureLodLevel).rgb;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
-    float roughness = 0.5;
+    float roughness = 0.5;// Reduced roughness for more shine
 
     for (int i = 0; i < 10; i++) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
@@ -112,20 +112,20 @@ vec3 computeLightingWithoutPhong(vec3 normal) {
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
+    // Same as before
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-
     float bias = 0.005;
-    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    float shadow = 0.0;
 
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     for (int x = -1; x <= 1; ++x)
     {
         for (int y = -1; y <= 1; ++y)
         {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y)*texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
@@ -136,33 +136,25 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 void main()
 {
-    // Reconstruct TBN matrix
-    mat3 TBN = mat3(Tangent, Bitangent, Normal);
+    // Transform view direction into tangent space
+    vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
 
-    // View direction in world space
-    vec3 viewDir = normalize(cameraPos - FragPos);
+    // Apply POM
+    vec2 newTexCoords = ParallaxOcclusionMapping(TexCoords, viewDir);
 
-    // Transform view direction to tangent space
-    vec3 tangentViewDir = normalize(transpose(TBN) * viewDir);
+    // If parallax mapping results in coords outside 0-1, discard
+    if (newTexCoords.x > 1.0 || newTexCoords.y > 1.0 || newTexCoords.x < 0.0 || newTexCoords.y < 0.0)
+    discard;
 
-    // Parallax Occlusion Mapping
-    vec2 texCoords = TexCoords;
-    if (parallaxScale > 0.0)
-    {
-        texCoords = ParallaxOcclusionMapping(TexCoords, tangentViewDir);
-        texCoords = clamp(texCoords, 0.0, 1.0);
-    }
+    // Recalculate normal from normal map using the newTexCoords
+    vec3 norm = texture(normalMap, newTexCoords, textureLodLevel).rgb;
+    norm = normalize(norm * 2.0 - 1.0);
 
-    // Fetch the normal from the normal map
-    vec3 normalTex = texture(normalMap, texCoords, textureLodLevel).rgb;
-    // Flip the green channel (if needed)
-    normalTex.g = 1.0 - normalTex.g;
-    vec3 normal = normalize(normalTex * 2.0 - 1.0);
+    // View direction in world space:
+    vec4 viewFragPos = view * vec4(FragPos, 1.0);
+    vec3 worldViewDir = normalize(-viewFragPos.xyz);
 
-    // Transform normal to world space
-    normal = normalize(TBN * normal);
-
-    vec3 reflectDir = reflect(-viewDir, normal);
+    vec3 reflectDir = reflect(worldViewDir, norm);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
     float shadow = 0.0;
@@ -172,14 +164,15 @@ void main()
 
     vec3 finalColor;
     if (phongShading) {
-        finalColor = computePhongLighting(normal, viewDir);
+        finalColor = computePhongLighting(norm, worldViewDir);
     } else {
-        finalColor = computeLightingWithoutPhong(normal);
+        finalColor = computeLightingWithoutPhong(norm);
     }
 
     finalColor = (1.0 - shadow) * finalColor;
 
-    float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
+    // Fresnel effect
+    float fresnel = pow(1.0 - dot(worldViewDir, norm), 3.0);
     vec3 reflection = mix(envColor, vec3(1.0), fresnel);
 
     vec3 result = finalColor + reflection * envSpecularStrength;
@@ -189,9 +182,8 @@ void main()
     }
 
     if (applyGammaCorrection) {
-        result = pow(result, vec3(1.0 / 2.2));
+        result = pow(result, vec3(1.0/2.2));
     }
 
-    result = clamp(result, 0.0, 1.0);
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(clamp(result, 0.0, 1.0), 1.0);
 }
