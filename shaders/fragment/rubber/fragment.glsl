@@ -30,9 +30,9 @@ uniform float envSpecularStrength;
 
 uniform mat4 view;
 
-uniform float heightScale;// New uniform for POM
-uniform int minSteps;// Minimum steps for POM
-uniform int maxSteps;// Maximum steps for POM
+uniform float heightScale;
+uniform int minSteps;
+uniform int maxSteps;
 
 // Tone mapping and other functions as before
 vec3 Uncharted2Tonemap(vec3 x) {
