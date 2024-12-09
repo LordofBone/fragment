@@ -1,7 +1,4 @@
-# Blender 3.5.1 MTL File: 'None'
-# www.blender.org
-
-newmtl Material.001
+newmtl Material
 Ns 383.391357
 Ka 1.000000 1.000000 1.000000
 Kd 0.020792 0.020792 0.020792

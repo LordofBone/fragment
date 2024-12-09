@@ -50,6 +50,10 @@ def run_benchmark(
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         phong_shading=True,
+        invert_displacement_map=False,
+        pom_height_scale=0.06,
+        pom_min_steps=128,
+        pom_max_steps=512,
     )
 
     # Create the rendering instance with the base configuration
@@ -61,9 +65,9 @@ def run_benchmark(
     tyre_config = base_config.add_model(
         obj_path=os.path.join(models_dir, "tyre.obj"),
         texture_paths={
-            "diffuse": os.path.join(diffuse_textures_dir, "rubber_3.png"),
-            "normal": os.path.join(normal_textures_dir, "rubber_3.png"),
-            "displacement": os.path.join(displacement_textures_dir, "rubber_3.png"),
+            "diffuse": os.path.join(diffuse_textures_dir, "rubber.png"),
+            "normal": os.path.join(normal_textures_dir, "rubber.png"),
+            "displacement": os.path.join(displacement_textures_dir, "rubber.png"),
         },
         shader_names={
             "vertex": "parallax_mapping",
