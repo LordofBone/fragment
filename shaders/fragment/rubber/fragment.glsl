@@ -7,7 +7,7 @@ in vec3 TangentLightPos;
 in vec3 TangentViewPos;
 in vec3 TangentFragPos;
 in vec4 FragPosLightSpace;
-in float FragPosW;// Receive w component from vertex shader
+in float FragPosW;
 
 out vec4 FragColor;
 
