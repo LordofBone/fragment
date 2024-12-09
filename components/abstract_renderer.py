@@ -134,10 +134,10 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
-            invert_displacement_map=False,
-            pom_height_scale=0.04,
-            pom_min_steps=8,
-            pom_max_steps=32,
+        invert_displacement_map=False,
+        pom_height_scale=0.04,
+        pom_min_steps=8,
+        pom_max_steps=32,
         shadow_map_resolution=2048,
         phong_shading=False,
         opacity=1.0,
@@ -799,14 +799,13 @@ class AbstractRenderer(ABC):
             )
 
         # Set the parallax mapping uniforms
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "invertDisplacementMap"),
-                    int(self.invert_displacement_map))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "pomHeightScale"),
-                    self.pom_height_scale)
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMinSteps"),
-                    self.pom_min_steps)
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMaxSteps"),
-                    self.pom_max_steps)
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "invertDisplacementMap"),
+            int(self.invert_displacement_map),
+        )
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "pomHeightScale"), self.pom_height_scale)
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMinSteps"), self.pom_min_steps)
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMaxSteps"), self.pom_max_steps)
 
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),

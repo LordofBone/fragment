@@ -7,6 +7,7 @@ from components.texture_manager import TextureManager
 
 texture_manager = TextureManager()
 
+
 class ModelRenderer(AbstractRenderer):
     def __init__(self, renderer_name, obj_path, **kwargs):
         super().__init__(renderer_name=renderer_name, **kwargs)
@@ -61,16 +62,18 @@ class ModelRenderer(AbstractRenderer):
 
                 # Current order: (u,v, nx,ny,nz, x,y,z)
                 # Desired order: (x,y,z, nx,ny,nz, u,v)
-                reordered = np.column_stack((
-                    vertices_array[:, 5],  # x
-                    vertices_array[:, 6],  # y
-                    vertices_array[:, 7],  # z
-                    vertices_array[:, 2],  # nx
-                    vertices_array[:, 3],  # ny
-                    vertices_array[:, 4],  # nz
-                    vertices_array[:, 0],  # u
-                    vertices_array[:, 1]  # v
-                ))
+                reordered = np.column_stack(
+                    (
+                        vertices_array[:, 5],  # x
+                        vertices_array[:, 6],  # y
+                        vertices_array[:, 7],  # z
+                        vertices_array[:, 2],  # nx
+                        vertices_array[:, 3],  # ny
+                        vertices_array[:, 4],  # nz
+                        vertices_array[:, 0],  # u
+                        vertices_array[:, 1],  # v
+                    )
+                )
 
                 # Now we have (x,y,z, nx,ny,nz, u,v) per vertex
                 # Compute tangent and bitangent
@@ -266,7 +269,7 @@ class ModelRenderer(AbstractRenderer):
             int: The total vertex stride calculated from the format.
         """
         count = 0
-        format_parts = vertex_format.split('_')
+        format_parts = vertex_format.split("_")
         for part in format_parts:
             num = int(part[1])  # number of floats
             count += num
