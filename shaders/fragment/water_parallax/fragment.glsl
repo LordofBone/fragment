@@ -38,13 +38,12 @@ uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
 
 // POM uniforms
-uniform bool usePOM;
-uniform float pomHeightScale;
+uniform float pomHeightScale;// If 0.0, no POM
 uniform int pomMinSteps;
 uniform int pomMaxSteps;
 uniform bool invertDisplacementMap;
 
-// Noise functions (unchanged)
+// Noise functions
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -52,7 +51,7 @@ float noise(vec2 p) {
 float smoothNoise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
+    f = f*f*(3.0 - 2.0*f);
     return mix(
     mix(noise(i + vec2(0.0, 0.0)), noise(i + vec2(1.0, 0.0)), f.x),
     mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
@@ -68,8 +67,7 @@ vec3 Uncharted2Tonemap(vec3 x) {
     float D = 0.20;
     float E = 0.02;
     float F = 0.30;
-
-    return ((x * (A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
 vec3 toneMapping(vec3 color) {
@@ -80,12 +78,10 @@ vec3 toneMapping(vec3 color) {
 
 // Procedural displacement for POM
 float proceduralDisplacement(vec2 coords) {
-    // Similar logic to generate a wave-based height
     float nf = smoothNoise(coords * randomness);
     float waveX = sin(coords.y * 10.0 + time * waveSpeed + nf * texCoordFrequency);
     float waveY = cos(coords.x * 10.0 + time * waveSpeed + nf * texCoordFrequency);
     float h = (waveX + waveY)*0.5;
-    // Map h to [0,1]
     return 0.5 + 0.5 * h * waveAmplitude;
 }
 
@@ -101,21 +97,16 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
     vec2 currentTexCoords = texCoords;
     float currentDepth = proceduralDisplacement(currentTexCoords);
     if (invertDisplacementMap) currentDepth = 1.0 - currentDepth;
-
     float depthFromTexture = currentDepth;
 
-    // Linear search
-    while (currentLayerDepth < depthFromTexture)
-    {
+    while (currentLayerDepth < depthFromTexture) {
         currentTexCoords -= deltaTexCoords;
         currentDepth = proceduralDisplacement(currentTexCoords);
         if (invertDisplacementMap) currentDepth = 1.0 - currentDepth;
-
         depthFromTexture = currentDepth;
         currentLayerDepth += layerDepth;
     }
 
-    // Backtrack
     vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
     float prevLayerDepth = currentLayerDepth - layerDepth;
     float prevDepth = proceduralDisplacement(prevTexCoords);
@@ -125,13 +116,11 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
     ((depthFromTexture - currentLayerDepth) - (prevDepth - prevLayerDepth));
     vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
 
-    // Compute depth offset if needed
     depthOffset = pomHeightScale * (1.0 - mix(currentLayerDepth, prevLayerDepth, weight)) * 0.0001;
-
     return finalTexCoords;
 }
 
-// Phong lighting function (unchanged)
+// Phong lighting function
 vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
     vec3 ambient = ambientColor;
     vec3 diffuse = vec3(0.0);
@@ -191,16 +180,16 @@ void main()
 {
     vec3 viewDir = normalize(cameraPos - FragPos);
 
-    // If usePOM is true, do parallax mapping:
+    // If pomHeightScale > 0, do POM, otherwise skip
     float depthOffset = 0.0;
     vec2 workingTexCoords = TexCoords;
-    if (usePOM) {
+    if (pomHeightScale > 0.0) {
         vec3 tangentViewDir = normalize(TangentViewPos - TangentFragPos);
         workingTexCoords = ParallaxOcclusionMapping(TexCoords, tangentViewDir, depthOffset);
         workingTexCoords = clamp(workingTexCoords, 0.0, 1.0);
     }
 
-    // Perform wave calculations using workingTexCoords instead of TexCoords
+    // Perform wave calculations using workingTexCoords
     vec2 waveTexCoords = workingTexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
     waveTexCoords.x += sin(time * waveSpeed + waveTexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
