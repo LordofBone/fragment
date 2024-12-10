@@ -855,6 +855,11 @@ class AbstractRenderer(ABC):
             int(self.screen_facing_planar_texture),
         )
 
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "useCheckerPattern"),
+            int(self.dynamic_attrs.get("use_checker_pattern", 1))
+        )
+
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "waveSpeed"),
             self.dynamic_attrs.get("wave_speed", 10.0),
