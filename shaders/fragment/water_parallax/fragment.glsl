@@ -43,6 +43,9 @@ uniform int pomMinSteps;
 uniform int pomMaxSteps;
 uniform bool invertDisplacementMap;
 
+// Add a new uniform if you want to toggle checker pattern
+uniform bool useCheckerPattern;// Set to true to use checker pattern
+
 // Noise functions
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -76,13 +79,34 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-// Procedural displacement for POM
+// Modified Procedural displacement for POM
 float proceduralDisplacement(vec2 coords) {
-    float nf = smoothNoise(coords * randomness);
-    float waveX = sin(coords.y * 10.0 + time * waveSpeed + nf * texCoordFrequency);
-    float waveY = cos(coords.x * 10.0 + time * waveSpeed + nf * texCoordFrequency);
-    float h = (waveX + waveY)*0.5;
-    return 0.5 + 0.5 * h * waveAmplitude;
+    if (useCheckerPattern) {
+        // **Checker pattern**:
+        // Scale coords to define how many cells per unit:
+        float cellCount = 5.0;// Try adjusting this for more or fewer cells
+        vec2 cellCoords = fract(coords * cellCount);
+
+        // Determine cell color based on whether we're in an even or odd cell
+        // We'll produce a binary pattern: 1.0 for one cell, -1.0 for the alternate cell.
+        float cellVal = (step(0.5, cellCoords.x) == step(0.5, cellCoords.y)) ? 1.0 : -1.0;
+
+        // Map cellVal from [-1,1] to [0,1] and apply waveAmplitude for height:
+        // We still use waveAmplitude, but to get more "3D" effect, consider increasing pomHeightScale too.
+        return 0.5 + 0.5 * cellVal * waveAmplitude;
+    } else {
+        // **Enhanced contrast wave pattern**
+        float nf = smoothNoise(coords * randomness);
+        float waveX = sin(coords.y * 10.0 + time * waveSpeed + nf * texCoordFrequency);
+        float waveY = cos(coords.x * 10.0 + time * waveSpeed + nf * texCoordFrequency);
+        float h = (waveX + waveY)*0.5;
+
+        // Increase contrast using pow():
+        // Take abs(h), raise it to a power >1 for stronger peaks, then reapply sign:
+        h = sign(h)*pow(abs(h), 2.0);// Adjust power for desired contrast; try 2.0 or higher
+
+        return 0.5 + 0.5 * h * waveAmplitude;
+    }
 }
 
 // Parallax Occlusion Mapping function using procedural displacement
@@ -193,10 +217,9 @@ void main()
     vec2 waveTexCoords = workingTexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
 
-    // Use original TexCoords.x and TexCoords.y where you did before:
+    // Use original TexCoords.x and TexCoords.y as suggested:
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
-
 
     vec3 normalMap = vec3(0.0, 0.0, 1.0);
     float waveHeightX = sin(waveTexCoords.y * 10.0);
