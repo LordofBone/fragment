@@ -173,9 +173,10 @@ void main()
     float depthOffset = 0.0;
     vec2 newTexCoords = ParallaxOcclusionMapping(TexCoords, viewDir, depthOffset);
 
-    // If parallax mapping results in coords outside 0-1, discard
-    if (newTexCoords.x > 1.0 || newTexCoords.y > 1.0 || newTexCoords.x < 0.0 || newTexCoords.y < 0.0)
-    discard;
+    // If parallax mapping results in coords outside 0-1, clamp
+    if (newTexCoords.x > 1.0 || newTexCoords.y > 1.0 || newTexCoords.x < 0.0 || newTexCoords.y < 0.0) {
+        newTexCoords = clamp(newTexCoords, 0.0, 1.0);
+    }
 
     // Recalculate normal from normal map using the newTexCoords
     vec3 norm = texture(normalMap, newTexCoords, textureLodLevel).rgb;
