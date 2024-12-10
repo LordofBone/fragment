@@ -192,8 +192,11 @@ void main()
     // Perform wave calculations using workingTexCoords
     vec2 waveTexCoords = workingTexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
-    waveTexCoords.x += sin(time * waveSpeed + waveTexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
-    waveTexCoords.y += cos(time * waveSpeed + waveTexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+
+    // Use original TexCoords.x and TexCoords.y where you did before:
+    waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+    waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+
 
     vec3 normalMap = vec3(0.0, 0.0, 1.0);
     float waveHeightX = sin(waveTexCoords.y * 10.0);
