@@ -1,4 +1,3 @@
-import _tkinter
 import io
 import multiprocessing
 import os
@@ -8,15 +7,16 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import customtkinter
 import GPUtil
+import _tkinter
+import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from customtkinter import CTkImage
 from PIL import Image, ImageFilter, ImageTk
+from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.aureonrain import run_benchmark as run_water_pyramid_benchmark
@@ -35,7 +35,7 @@ customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"
 BENCHMARKS = {
     "Crystallaxis - EMBM Test": run_pyramid_benchmark,
     "Nebulon - Transparency Shader Test": run_sphere_benchmark,
-    "Undertyre - Rubber Shader Test": run_tyre_benchmark,
+    "Undertyre - Parallax Shader Test": run_tyre_benchmark,
     "Poseidon Flow - Reflection Test": run_water_benchmark,
     "Muon Shower - Particle System Test": run_muon_shower_benchmark,
 }
