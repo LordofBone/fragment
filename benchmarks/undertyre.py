@@ -40,7 +40,7 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=50.0,
         lights=[
-            {"position": (5.0, 12.0, 8.0), "color": (0.55, 0.55, 0.55), "strength": 1.0},
+            {"position": (3.85, 0.5, 5.0), "color": (0.50, 0.50, 0.50), "strength": 0.75},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -50,8 +50,8 @@ def run_benchmark(
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         phong_shading=True,
-        invert_displacement_map=False,
-        pom_height_scale=0.06,
+        invert_displacement_map=True,
+        pom_height_scale=0.016,
         pom_min_steps=128,
         pom_max_steps=512,
     )
