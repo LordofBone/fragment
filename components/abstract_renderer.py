@@ -134,6 +134,10 @@ class AbstractRenderer(ABC):
         loop=True,
         front_face_winding="CCW",
         window_size=(800, 600),
+        invert_displacement_map=False,
+        pom_height_scale=0.04,
+        pom_min_steps=8,
+        pom_max_steps=32,
         shadow_map_resolution=2048,
         phong_shading=False,
         opacity=1.0,
@@ -204,6 +208,12 @@ class AbstractRenderer(ABC):
         self.front_face_winding = self.get_winding_constant(front_face_winding)
         self.window_size = window_size
 
+        # Parallax mapping attributes
+        self.invert_displacement_map = invert_displacement_map
+        self.pom_height_scale = pom_height_scale
+        self.pom_min_steps = pom_min_steps
+        self.pom_max_steps = pom_max_steps
+
         self.opacity = opacity
         self.shininess = shininess
         self.distortion_strength = distortion_strength
@@ -226,6 +236,8 @@ class AbstractRenderer(ABC):
         self.screen_facing_planar_screenshotted = False
 
         self.screen_depth_map_screenshotted = False
+
+        self.float_size = 4  # Size of a float in bytes
 
         self.vbos = []
         self.vaos = []
@@ -559,11 +571,50 @@ class AbstractRenderer(ABC):
             glm.value_ptr(light_space_matrix),
         )
 
-        for mesh in self.object.mesh_list:
-            vao_index = self.object.mesh_list.index(mesh)
-            glBindVertexArray(self.vaos[vao_index])
-            glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
-            glBindVertexArray(0)
+        # Check if this renderer uses an object with mesh_list (like ModelRenderer or SurfaceRenderer)
+        if hasattr(self, "object") and hasattr(self.object, "mesh_list"):
+            # Try the model-like approach first:
+            # Model-like meshes (from pywavefront) have 'materials'
+            # Surfaces don't have 'materials', just a single mesh with vertices/faces.
+
+            for i, mesh in enumerate(self.object.mesh_list):
+                # Check if mesh has materials attribute
+                if hasattr(mesh, "materials"):
+                    # Model mesh: iterate over materials
+                    vao_counter = 0
+                    for material in mesh.materials:
+                        vertices = material.vertices
+                        if not vertices:
+                            continue
+                        count = len(vertices) // self.get_vertex_stride(material.vertex_format)
+                        if vao_counter < len(self.vaos):
+                            glBindVertexArray(self.vaos[vao_counter])
+                            glDrawArrays(GL_TRIANGLES, 0, count)
+                            glBindVertexArray(0)
+                        else:
+                            print("Warning: VAO index out of range for mesh list.")
+                        vao_counter += 1
+                else:
+                    # Surface-like mesh: no materials, just a single set of vertices/faces
+                    if i < len(self.vaos):
+                        glBindVertexArray(self.vaos[i])
+                        glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
+                        glBindVertexArray(0)
+                    else:
+                        print("Warning: VAO index out of range for mesh list.")
+        else:
+            # If this renderer doesn't have an object with mesh_list,
+            # check if it has materials/vertex_counts
+            if hasattr(self, "materials") and hasattr(self, "vertex_counts"):
+                for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
+                    if count == 0:
+                        continue
+                    glBindVertexArray(vao)
+                    glDrawArrays(GL_TRIANGLES, 0, count)
+                    glBindVertexArray(0)
+            else:
+                # If neither approach works, print a warning or handle gracefully.
+                print("No mesh_list or materials/vertex_counts to render from light.")
 
         if self.debug_mode:
             self.render_shadow_map_visualization()
@@ -766,6 +817,15 @@ class AbstractRenderer(ABC):
                 glm.value_ptr(self.shadow_map_manager.light_space_matrix),
             )
 
+        # Set the parallax mapping uniforms
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "invertDisplacementMap"),
+            int(self.invert_displacement_map),
+        )
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "pomHeightScale"), self.pom_height_scale)
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMinSteps"), self.pom_min_steps)
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMaxSteps"), self.pom_max_steps)
+
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),
             1,
@@ -812,6 +872,11 @@ class AbstractRenderer(ABC):
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "screenFacingPlanarTexture"),
             int(self.screen_facing_planar_texture),
+        )
+
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "useCheckerPattern"),
+            int(self.dynamic_attrs.get("use_checker_pattern", 1)),
         )
 
         glUniform1f(

@@ -35,7 +35,7 @@ customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"
 BENCHMARKS = {
     "Crystallaxis - EMBM Test": run_pyramid_benchmark,
     "Nebulon - Transparency Shader Test": run_sphere_benchmark,
-    "Undertyre - Rubber Shader Test": run_tyre_benchmark,
+    "Undertyre - Parallax Shader Test": run_tyre_benchmark,
     "Poseidon Flow - Reflection Test": run_water_benchmark,
     "Muon Shower - Particle System Test": run_muon_shower_benchmark,
 }

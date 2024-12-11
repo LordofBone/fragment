@@ -40,7 +40,7 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=50.0,
         lights=[
-            {"position": (2.85, 2.0, 1.0), "color": (0.55, 0.55, 0.55), "strength": 1.0},
+            {"position": (3.85, 5.5, 2.85), "color": (0.50, 0.50, 0.50), "strength": 0.75},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -50,6 +50,10 @@ def run_benchmark(
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         phong_shading=True,
+        invert_displacement_map=True,
+        pom_height_scale=0.016,
+        pom_min_steps=128,
+        pom_max_steps=512,
     )
 
     # Create the rendering instance with the base configuration
@@ -61,15 +65,15 @@ def run_benchmark(
     tyre_config = base_config.add_model(
         obj_path=os.path.join(models_dir, "tyre.obj"),
         texture_paths={
-            "diffuse": os.path.join(diffuse_textures_dir, "rubber_1.png"),
-            "normal": os.path.join(normal_textures_dir, "rubber_1.png"),
-            "displacement": os.path.join(displacement_textures_dir, "rubber_1.png"),
+            "diffuse": os.path.join(diffuse_textures_dir, "rubber.png"),
+            "normal": os.path.join(normal_textures_dir, "rubber.png"),
+            "displacement": os.path.join(displacement_textures_dir, "rubber.png"),
         },
         shader_names={
-            "vertex": "standard",
-            "fragment": "rubber",
+            "vertex": "parallax_mapping",
+            "fragment": "parallax_mapping",
         },
-        rotation_speed=2000.0,
+        rotation_speed=4000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
