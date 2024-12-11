@@ -571,35 +571,49 @@ class AbstractRenderer(ABC):
             glm.value_ptr(light_space_matrix),
         )
 
-        # If we have an object with a mesh_list and materials (like ModelRenderer):
+        # Check if this renderer uses an object with mesh_list (like ModelRenderer or SurfaceRenderer)
         if hasattr(self, "object") and hasattr(self.object, "mesh_list"):
-            vao_counter = 0
-            for mesh in self.object.mesh_list:
-                for material in mesh.materials:
-                    vertices = material.vertices
-                    if not vertices:
-                        continue
-                    # Compute count the same as in render():
-                    count = len(vertices) // self.get_vertex_stride(material.vertex_format)
+            # Try the model-like approach first:
+            # Model-like meshes (from pywavefront) have 'materials'
+            # Surfaces don't have 'materials', just a single mesh with vertices/faces.
 
-                    glBindVertexArray(self.vaos[vao_counter])
-                    glDrawArrays(GL_TRIANGLES, 0, count)
-                    glBindVertexArray(0)
-
-                    vao_counter += 1
-
+            for i, mesh in enumerate(self.object.mesh_list):
+                # Check if mesh has materials attribute
+                if hasattr(mesh, 'materials'):
+                    # Model mesh: iterate over materials
+                    vao_counter = 0
+                    for material in mesh.materials:
+                        vertices = material.vertices
+                        if not vertices:
+                            continue
+                        count = len(vertices) // self.get_vertex_stride(material.vertex_format)
+                        if vao_counter < len(self.vaos):
+                            glBindVertexArray(self.vaos[vao_counter])
+                            glDrawArrays(GL_TRIANGLES, 0, count)
+                            glBindVertexArray(0)
+                        else:
+                            print("Warning: VAO index out of range for mesh list.")
+                        vao_counter += 1
+                else:
+                    # Surface-like mesh: no materials, just a single set of vertices/faces
+                    if i < len(self.vaos):
+                        glBindVertexArray(self.vaos[i])
+                        glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
+                        glBindVertexArray(0)
+                    else:
+                        print("Warning: VAO index out of range for mesh list.")
         else:
-            # If we rely on materials and vertex_counts (other renderer types)
+            # If this renderer doesn't have an object with mesh_list,
+            # check if it has materials/vertex_counts
             if hasattr(self, "materials") and hasattr(self, "vertex_counts"):
-                vao_counter = 0
                 for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
                     if count == 0:
                         continue
                     glBindVertexArray(vao)
                     glDrawArrays(GL_TRIANGLES, 0, count)
                     glBindVertexArray(0)
-                    vao_counter += 1
             else:
+                # If neither approach works, print a warning or handle gracefully.
                 print("No mesh_list or materials/vertex_counts to render from light.")
 
         if self.debug_mode:
