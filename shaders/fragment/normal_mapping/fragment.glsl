@@ -3,6 +3,7 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
+in mat3 TBN;
 in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
@@ -13,6 +14,7 @@ uniform sampler2D shadowMap;
 
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
+uniform vec3 viewPosition;
 uniform float lightStrengths[10];
 uniform float textureLodLevel;
 
@@ -22,6 +24,7 @@ uniform bool phongShading;
 uniform bool shadowingEnabled;
 uniform vec3 ambientColor;
 
+// Tone mapping functions
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
     float B = 0.50;
@@ -29,8 +32,7 @@ vec3 Uncharted2Tonemap(vec3 x) {
     float D = 0.20;
     float E = 0.02;
     float F = 0.30;
-
-    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
 vec3 toneMapping(vec3 color) {
@@ -39,8 +41,30 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos) {
-    vec3 ambient = 0.1 * texture(diffuseMap, TexCoords).rgb;
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+
+    // PCF
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y)*texelSize).r;
+            shadow += (currentDepth - bias > pcfDepth) ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
+    return shadow;
+}
+
+vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos, vec2 TexCoords) {
+    vec3 diffuseColor = texture(diffuseMap, TexCoords).rgb;
+    vec3 ambient = 0.1 * diffuseColor + ambientColor * diffuseColor;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
     vec3 specularColor = vec3(1.0);
@@ -48,7 +72,7 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos) {
     for (int i = 0; i < 10; ++i) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += lightColors[i] * diff * texture(diffuseMap, TexCoords).rgb * lightStrengths[i];
+        diffuse += diff * diffuseColor * lightColors[i] * lightStrengths[i];
 
         vec3 reflectDir = reflect(-lightDir, normal);
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
@@ -58,74 +82,46 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 FragPos) {
     return ambient + diffuse + specular;
 }
 
-vec3 computeDiffuseWithNormalMap(vec3 normal) {
-    vec3 lighting = vec3(0.0);
+vec3 computeDiffuseLighting(vec3 normal, vec3 FragPos, vec2 TexCoords) {
+    vec3 diffuseColor = texture(diffuseMap, TexCoords).rgb;
+    vec3 ambient = 0.1 * diffuseColor + ambientColor * diffuseColor;
+    vec3 diffuse = vec3(0.0);
 
     for (int i = 0; i < 10; ++i) {
         vec3 lightDir = normalize(lightPositions[i] - FragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        lighting += lightColors[i] * diff * lightStrengths[i];
+        diffuse += diff * diffuseColor * lightColors[i] * lightStrengths[i];
     }
 
-    return lighting * texture(diffuseMap, TexCoords).rgb;
-}
-
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
-    // Perform perspective divide
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // Transform to [0,1] range
-    projCoords = projCoords * 0.5 + 0.5;
-    // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
-    // Get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
-    // Check whether current fragment is in shadow
-    float bias = 0.005;
-    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
-
-    // Percentage-Closer Filtering (PCF) for softer shadows
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    for (int x = -1; x <= 1; ++x)
-    {
-        for (int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
-        }
-    }
-    shadow /= 9.0;
-
-    return shadow;
+    return ambient + diffuse;
 }
 
 void main()
 {
-    // Fetch the normal from the normal map and transform it to the range [-1, 1]
-    vec3 normal = normalize(Normal + texture(normalMap, TexCoords).rgb * 2.0 - 1.0);
+    // Sample the tangent-space normal
+    vec3 normalTangent = texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0;
+    // Transform it to world space
+    vec3 normal = normalize(TBN * normalTangent);
 
-    // Calculate view direction (from fragment position to camera position)
-    vec3 viewDir = normalize(-FragPos);// Assuming camera is at the origin (0, 0, 0)
+    // For simplicity, assume the camera is at viewPosition (passed as a uniform if needed)
+    // If not provided, you can assume the camera at (0,0,0) and adjust calculations
+    // Let's assume we have a uniform vec3 viewPosition somewhere outside:
+    // If not, just define it or pass it in:
+
+    vec3 viewDir = normalize(viewPosition - FragPos);
 
     vec3 color;
     if (phongShading) {
-        color = computePhongLighting(normal, viewDir, FragPos);
+        color = computePhongLighting(normal, viewDir, FragPos, TexCoords);
     } else {
-        // Even without Phong shading, we still want the lighting to respect the normal map
-        color = computeDiffuseWithNormalMap(normal);
+        color = computeDiffuseLighting(normal, FragPos, TexCoords);
     }
 
-    // Calculate shadow
     float shadow = 0.0;
     if (shadowingEnabled) {
         shadow = ShadowCalculation(FragPosLightSpace);
     }
-
-    // Apply shadow to color
     color = (1.0 - shadow) * color;
-
-    // Add ambient light to the result
-    color += ambientColor * texture(diffuseMap, TexCoords).rgb;
 
     if (applyToneMapping) {
         color = toneMapping(color);
