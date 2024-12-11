@@ -71,7 +71,7 @@ def run_benchmark(
         },
         shader_names={
             "vertex": "parallax_mapping",
-            "fragment": "rubber",
+            "fragment": "parallax_mapping",
         },
         rotation_speed=4000.0,
         rotation_axis=(0, 3, 0),
