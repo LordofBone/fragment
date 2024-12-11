@@ -571,30 +571,35 @@ class AbstractRenderer(ABC):
             glm.value_ptr(light_space_matrix),
         )
 
-        # Check if this renderer uses an object with mesh_list (like ModelRenderer)
+        # If we have an object with a mesh_list and materials (like ModelRenderer):
         if hasattr(self, "object") and hasattr(self.object, "mesh_list"):
-            # Use the object.mesh_list approach
-            for i, mesh in enumerate(self.object.mesh_list):
-                vao_index = i
-                if vao_index < len(self.vaos):
-                    glBindVertexArray(self.vaos[vao_index])
-                    glDrawArrays(GL_TRIANGLES, 0, len(mesh.faces) * 3)
+            vao_counter = 0
+            for mesh in self.object.mesh_list:
+                for material in mesh.materials:
+                    vertices = material.vertices
+                    if not vertices:
+                        continue
+                    # Compute count the same as in render():
+                    count = len(vertices) // self.get_vertex_stride(material.vertex_format)
+
+                    glBindVertexArray(self.vaos[vao_counter])
+                    glDrawArrays(GL_TRIANGLES, 0, count)
                     glBindVertexArray(0)
-                else:
-                    # If for some reason vaos aren't aligned with mesh_list
-                    print("Warning: VAO index out of range for mesh list.")
+
+                    vao_counter += 1
+
         else:
-            # If this renderer uses materials and vertex_counts (like some other custom renderer),
-            # ensure these attributes exist before using them.
+            # If we rely on materials and vertex_counts (other renderer types)
             if hasattr(self, "materials") and hasattr(self, "vertex_counts"):
+                vao_counter = 0
                 for material, vao, count in zip(self.materials, self.vaos, self.vertex_counts):
                     if count == 0:
                         continue
                     glBindVertexArray(vao)
                     glDrawArrays(GL_TRIANGLES, 0, count)
                     glBindVertexArray(0)
+                    vao_counter += 1
             else:
-                # If neither approach works, print a warning or handle gracefully.
                 print("No mesh_list or materials/vertex_counts to render from light.")
 
         if self.debug_mode:
