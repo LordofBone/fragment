@@ -10,9 +10,11 @@ class Mesh:
         self.vertices = vertices
         self.faces = faces
 
+
 class SceneObject:
     def __init__(self, mesh_list):
         self.mesh_list = mesh_list
+
 
 class SurfaceRenderer(AbstractRenderer):
     def __init__(self, renderer_name, **kwargs):
@@ -47,9 +49,24 @@ class SurfaceRenderer(AbstractRenderer):
         expanded = []
         for v in verts:
             x, y, z, u, vtex = v
-            expanded.append([x, y, z, normal[0], normal[1], normal[2], u, vtex,
-                             tangent[0], tangent[1], tangent[2],
-                             bitangent[0], bitangent[1], bitangent[2]])
+            expanded.append(
+                [
+                    x,
+                    y,
+                    z,
+                    normal[0],
+                    normal[1],
+                    normal[2],
+                    u,
+                    vtex,
+                    tangent[0],
+                    tangent[1],
+                    tangent[2],
+                    bitangent[0],
+                    bitangent[1],
+                    bitangent[2],
+                ]
+            )
         expanded = np.array(expanded, dtype=np.float32)
 
         mesh = Mesh(expanded, faces)
@@ -78,13 +95,37 @@ class SurfaceRenderer(AbstractRenderer):
         # Vertex layout: x,y,z,u,v
         vertices = [
             # Triangle 1
-            -half_width, 0.0, half_height, 0.0, 1.0,  # V0 top-left
-            half_width, 0.0, half_height, 1.0, 1.0,  # V1 top-right
-            half_width, 0.0, -half_height, 1.0, 0.0,  # V2 bottom-right
+            -half_width,
+            0.0,
+            half_height,
+            0.0,
+            1.0,  # V0 top-left
+            half_width,
+            0.0,
+            half_height,
+            1.0,
+            1.0,  # V1 top-right
+            half_width,
+            0.0,
+            -half_height,
+            1.0,
+            0.0,  # V2 bottom-right
             # Triangle 2
-            half_width, 0.0, -half_height, 1.0, 0.0,  # V3 bottom-right
-            -half_width, 0.0, -half_height, 0.0, 0.0,  # V4 bottom-left
-            -half_width, 0.0, half_height, 0.0, 1.0  # V5 top-left
+            half_width,
+            0.0,
+            -half_height,
+            1.0,
+            0.0,  # V3 bottom-right
+            -half_width,
+            0.0,
+            -half_height,
+            0.0,
+            0.0,  # V4 bottom-left
+            -half_width,
+            0.0,
+            half_height,
+            0.0,
+            1.0,  # V5 top-left
         ]
 
         faces = [(0, 1, 2), (3, 4, 5)]

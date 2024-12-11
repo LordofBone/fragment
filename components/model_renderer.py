@@ -133,7 +133,7 @@ class ModelRenderer(AbstractRenderer):
             deltaUV2 = uv2 - uv0
 
             # Compute denominator for tangent calculation
-            denom = (deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0])
+            denom = deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0]
             if abs(denom) < 1e-8:
                 # Degenerate UV mapping, choose fallback tangent and bitangent
                 # For fallback, pick a vector perpendicular to normal and another perpendicular to that.

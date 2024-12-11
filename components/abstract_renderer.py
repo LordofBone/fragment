@@ -579,7 +579,7 @@ class AbstractRenderer(ABC):
 
             for i, mesh in enumerate(self.object.mesh_list):
                 # Check if mesh has materials attribute
-                if hasattr(mesh, 'materials'):
+                if hasattr(mesh, "materials"):
                     # Model mesh: iterate over materials
                     vao_counter = 0
                     for material in mesh.materials:
@@ -876,7 +876,7 @@ class AbstractRenderer(ABC):
 
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "useCheckerPattern"),
-            int(self.dynamic_attrs.get("use_checker_pattern", 1))
+            int(self.dynamic_attrs.get("use_checker_pattern", 1)),
         )
 
         glUniform1f(
