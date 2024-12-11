@@ -40,7 +40,7 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=50.0,
         lights=[
-            {"position": (3.85, 0.5, 5.0), "color": (0.50, 0.50, 0.50), "strength": 0.75},
+            {"position": (3.85, 5.5, 2.85), "color": (0.50, 0.50, 0.50), "strength": 0.75},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -73,7 +73,7 @@ def run_benchmark(
             "vertex": "parallax_mapping",
             "fragment": "rubber",
         },
-        rotation_speed=2000.0,
+        rotation_speed=4000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
