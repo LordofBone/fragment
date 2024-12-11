@@ -75,9 +75,7 @@ class ModelRenderer(AbstractRenderer):
                     )
                 )
 
-                # Now we have (x,y,z, nx,ny,nz, u,v) per vertex
-                # Compute tangent and bitangent
-                # We'll assume the vertices are arranged as triangles (every 3 vertices is a triangle)
+                # Compute tangents and bitangents
                 reordered = self.compute_tangents_and_bitangents(reordered)
 
                 # Now reordered has (x,y,z, nx,ny,nz, u,v, tx,ty,tz, bx,by,bz) = 14 floats/vertex
@@ -105,9 +103,8 @@ class ModelRenderer(AbstractRenderer):
                         input data followed by calculated tangent (tx, ty, tz) and bitangent
                         (bx, by, bz) vectors.
         """
-        # verts: N x 8 array: (x,y,z, nx,ny,nz, u,v)
-        # We want to add tangent and bitangent: final will be N x 14
-        # Initialize tangent and bitangent arrays
+        # verts: N x 8: (x,y,z, nx,ny,nz, u,v)
+        # We add tangent and bitangent: result N x 14
         tangent = np.zeros((verts.shape[0], 3), dtype=np.float32)
         bitangent = np.zeros((verts.shape[0], 3), dtype=np.float32)
 
@@ -135,10 +132,33 @@ class ModelRenderer(AbstractRenderer):
             deltaUV1 = uv1 - uv0
             deltaUV2 = uv2 - uv0
 
-            r = 1.0 / (deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0] + 1e-8)
-            T = (deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r
-            B = (deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r
+            # Compute denominator for tangent calculation
+            denom = (deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0])
+            if abs(denom) < 1e-8:
+                # Degenerate UV mapping, choose fallback tangent and bitangent
+                # For fallback, pick a vector perpendicular to normal and another perpendicular to that.
+                N = v0[3:6]
+                # If N.z is not near 1, pick T along X:
+                if abs(N[2]) < 0.9:
+                    fallbackT = np.cross([0, 0, 1], N)
+                else:
+                    fallbackT = np.cross([0, 1, 0], N)
+                if np.linalg.norm(fallbackT) < 1e-8:
+                    fallbackT = [1, 0, 0]
+                fallbackT = fallbackT / np.linalg.norm(fallbackT)
 
+                fallbackB = np.cross(N, fallbackT)
+                if np.linalg.norm(fallbackB) < 1e-8:
+                    fallbackB = [0, 1, 0]
+
+                T = fallbackT
+                B = fallbackB
+            else:
+                r = 1.0 / denom
+                T = (deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r
+                B = (deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r
+
+            # Add tangent/bitangent to all three vertices of the triangle
             tangent[i0] += T
             tangent[i1] += T
             tangent[i2] += T
@@ -147,30 +167,41 @@ class ModelRenderer(AbstractRenderer):
             bitangent[i1] += B
             bitangent[i2] += B
 
-        # Normalize tangent/bitangent
-        # Also ensure tangent is orthogonal to normal if necessary.
+        # Normalize and fix handedness
         for i in range(verts.shape[0]):
-            n = verts[i, 3:6]  # normal
-            t = tangent[i]
-            b = bitangent[i]
+            N = verts[i, 3:6]
+            T = tangent[i]
+            B = bitangent[i]
 
-            # Gram-Schmidt orthogonalization
-            # t = t - n*(n·t)
-            t = t - n * np.dot(n, t)
-            # Normalize t
-            if np.linalg.norm(t) > 1e-8:
-                t = t / np.linalg.norm(t)
+            # Orthogonalize T against N
+            T = T - N * np.dot(N, T)
+            if np.linalg.norm(T) < 1e-8:
+                # fallback T if needed
+                # pick arbitrary perpendicular
+                if abs(N[2]) < 0.9:
+                    T = np.cross([0, 0, 1], N)
+                else:
+                    T = np.cross([0, 1, 0], N)
+            T = T / np.linalg.norm(T)
 
-            # b = b - n*(n·b) - t*(t·b)
-            b = b - n * np.dot(n, b) - t * np.dot(t, b)
-            # Normalize b
-            if np.linalg.norm(b) > 1e-8:
-                b = b / np.linalg.norm(b)
+            # Orthogonalize B
+            B = B - N * np.dot(N, B) - T * np.dot(T, B)
+            if np.linalg.norm(B) < 1e-8:
+                # fallback B if needed
+                B = np.cross(N, T)
+                if np.linalg.norm(B) < 1e-8:
+                    B = [0, 1, 0]
+            B = B / np.linalg.norm(B)
 
-            tangent[i] = t
-            bitangent[i] = b
+            # Enforce consistent handedness
+            # If cross(N, T) dot B < 0, invert B
+            handedness = np.dot(np.cross(N, T), B)
+            if handedness < 0.0:
+                B = -B
 
-        # Combine data into a single array: now (x,y,z, nx,ny,nz, u,v, tx,ty,tz, bx,by,bz)
+            tangent[i] = T
+            bitangent[i] = B
+
         final_array = np.hstack((verts, tangent, bitangent)).astype(np.float32)
         return final_array
 
@@ -223,6 +254,9 @@ class ModelRenderer(AbstractRenderer):
         else:
             # Without tangents, we had 8 floats
             vertex_stride = 8 * self.float_size
+
+        vao = glGenVertexArrays(1)
+        glBindVertexArray(vao)
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
         normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
