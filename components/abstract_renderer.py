@@ -142,6 +142,7 @@ class AbstractRenderer(ABC):
         phong_shading=False,
         opacity=1.0,
         shininess=1.0,
+            env_map_strength=0.5,
         distortion_strength=0.3,
         reflection_strength=0.0,
         distortion_warped=False,
@@ -216,6 +217,7 @@ class AbstractRenderer(ABC):
 
         self.opacity = opacity
         self.shininess = shininess
+        self.env_map_strength = env_map_strength
         self.distortion_strength = distortion_strength
         self.reflection_strength = reflection_strength
         self.distortion_warped = distortion_warped
@@ -848,6 +850,9 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "opacity"), self.opacity)
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shininess"), self.shininess)
+
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "environmentMapStrength"),
+                    self.env_map_strength)
 
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "distortionStrength"), self.distortion_strength
