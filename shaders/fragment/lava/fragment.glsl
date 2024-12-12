@@ -3,6 +3,8 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
+in mat3 TBN;
+in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
@@ -27,6 +29,7 @@ uniform bool shadowingEnabled;
 uniform sampler2D shadowMap;
 uniform float surfaceDepth;
 uniform float shadowStrength;
+uniform float environmentMapStrength;
 
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
@@ -120,7 +123,7 @@ float ShadowCalculation(vec3 fragPosWorld, vec3 normal, float waveHeight) {
 
 // Phong lighting function
 vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
-    vec3 ambient = vec3(0.2, 0.1, 0.0);// Warm ambient light
+    vec3 ambient = vec3(0.2, 0.1, 0.0);
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
     for (int i = 0; i < 10; ++i) {
@@ -128,7 +131,6 @@ vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
         float diff = max(dot(normalMap, lightDir), 0.0);
         diffuse += lightColors[i] * diff * lightStrengths[i];
 
-        // Specular component
         vec3 halfwayDir = normalize(lightDir + viewDir);
         float spec = pow(max(dot(normalMap, halfwayDir), 0.0), 32.0);
         specular += lightColors[i] * spec * lightStrengths[i];
@@ -138,32 +140,36 @@ vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
 
 void main()
 {
-    // Generate dynamic texture coordinates
+    // Generate dynamic coords
     vec2 waveTexCoords = TexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    // Generate normal map based on wave pattern
+    // Procedural normal for lava
     vec3 normalMap = vec3(0.0, 0.0, 1.0);
     float waveHeightX = sin(waveTexCoords.y * 10.0);
     float waveHeightY = cos(waveTexCoords.x * 10.0);
     normalMap.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     normalMap = normalize(normalMap);
 
-    // Compute wave height
+    // Transform normal using TBN if you had a normal map:
+    // If you add a normalMap uniform, you can sample it and transform:
+    // vec3 normalFromMap = (texture(normalMap, TexCoords).rgb * 2.0 - 1.0);
+    // normalMap = normalize(TBN * normalFromMap);
+
     float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
 
     vec3 viewDir = normalize(cameraPos - FragPos);
     vec3 reflectDir = reflect(-viewDir, normalMap);
 
-    // Environment reflection
-    vec3 reflection = texture(environmentMap, reflectDir).rgb;
+    // Sample environment and apply environmentMapStrength
+    vec3 reflection = texture(environmentMap, reflectDir).rgb * environmentMapStrength;
+
     float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
 
-    // Lava color based on noise
-    vec3 baseColor = vec3(1.0, 0.3, 0.0);// Deep lava color
-    vec3 brightColor = vec3(1.0, 0.7, 0.0);// Bright lava color
+    vec3 baseColor = vec3(1.0, 0.3, 0.0);
+    vec3 brightColor = vec3(1.0, 0.7, 0.0);
 
     float noiseValue = smoothNoise(TexCoords * 5.0 + time * 0.5);
     vec3 lavaColor = mix(baseColor, brightColor, noiseValue);
