@@ -39,7 +39,7 @@ def run_benchmark(
         auto_camera=True,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        phong_shading=False,
     )
 
     # Create the rendering instance with the base configuration
@@ -59,6 +59,7 @@ def run_benchmark(
         tex_coord_amplitude=0.085,
         width=50.0,
         height=50.0,
+        env_map_strength=1.0,
     )
 
     # Add the water surface renderer to the instance with a specific name

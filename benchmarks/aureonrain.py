@@ -203,6 +203,7 @@ def run_benchmark(
         height=50.0,
         surface_depth=10.0,
         shadow_strength=0.85,
+        env_map_strength=1.0,
         phong_shading=False,
     )
 
