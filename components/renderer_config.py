@@ -29,6 +29,7 @@ class RendererConfig:
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
+            env_map_strength=0.5,
         invert_displacement_map=False,
         pom_height_scale=0.04,
         pom_min_steps=8,
@@ -84,6 +85,7 @@ class RendererConfig:
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
+        self.env_map_strength = env_map_strength
         self.invert_displacement_map = invert_displacement_map
         self.pom_height_scale = pom_height_scale
         self.pom_min_steps = pom_min_steps
@@ -169,6 +171,7 @@ class RendererConfig:
         phong_shading=None,
         opacity=1.0,
         shininess=1.0,
+            env_map_strength=None,
         shadow_map_resolution=None,
         invert_displacement_map=None,
         pom_height_scale=None,
@@ -210,6 +213,7 @@ class RendererConfig:
             "phong_shading": phong_shading,
             "opacity": opacity,
             "shininess": shininess,
+            "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
             "invert_displacement_map": invert_displacement_map,
             "height_scale": pom_height_scale,
@@ -253,6 +257,7 @@ class RendererConfig:
         phong_shading=None,
         opacity=1.0,
         shininess=1.0,
+            env_map_strength=None,
         shadow_map_resolution=None,
         planar_camera=None,
         planar_fov=None,
@@ -284,6 +289,7 @@ class RendererConfig:
             "phong_shading": phong_shading,
             "opacity": opacity,
             "shininess": shininess,
+            "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
