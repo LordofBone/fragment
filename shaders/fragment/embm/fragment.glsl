@@ -24,6 +24,8 @@ uniform bool applyGammaCorrection;
 uniform bool phongShading;
 uniform bool shadowingEnabled;
 
+uniform float environmentMapStrength;
+
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
     float B = 0.50;
@@ -116,9 +118,9 @@ void main()
 
     lighting = (1.0 - shadow) * lighting;
 
-    // Mix lighting and environment color. You previously used "envColor * height"
-    // If you want a specific formula, adjust as desired:
-    vec3 result = lighting + envColor;
+    // Control how much envColor contributes:
+    // Simple blend: mix lighting and envColor based on environmentMapStrength
+    vec3 result = mix(lighting, lighting + envColor, environmentMapStrength);
 
     if (applyToneMapping) {
         result = toneMapping(result);
