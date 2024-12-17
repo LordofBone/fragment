@@ -4,49 +4,60 @@ in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
 
+// These are for POM, referencing tangent space positions/view directions
 in vec3 TangentFragPos;
 in vec3 TangentViewPos;
 in vec3 TangentLightPos;
+
 in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
+// Environment/lighting uniforms
 uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
 uniform vec3 ambientColor;
+
+// Wave/time parameters
 uniform float time;
 uniform float waveSpeed;
 uniform float waveAmplitude;
 uniform float randomness;
 uniform float texCoordFrequency;
 uniform float texCoordAmplitude;
-uniform sampler2D shadowMap;
 
+// Shadow map & lighting data
+uniform sampler2D shadowMap;
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
 
+// Render toggles
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
 uniform bool shadowingEnabled;
 
+// Additional wave/geometry parameters
 uniform float surfaceDepth;
 uniform float shadowStrength;
-
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
 
-// POM uniforms
+// POM (Parallax Occlusion Mapping) uniforms
 uniform float pomHeightScale;// If 0.0, no POM
 uniform int pomMinSteps;
 uniform int pomMaxSteps;
 uniform bool invertDisplacementMap;
+uniform bool useCheckerPattern;// Toggle checker pattern displacement
 
-// Add a new uniform if you want to toggle checker pattern
-uniform bool useCheckerPattern;// Set to true to use checker pattern
+// NEW uniform to control environment reflection intensity
+uniform float environmentMapStrength;// e.g., set from 0.0 to 1.0
 
-// Noise functions
+//---------------------------------------------------------------
+// Noise & Tone Mapping Functions
+//---------------------------------------------------------------
+
 float noise(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -54,15 +65,14 @@ float noise(vec2 p) {
 float smoothNoise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
-    f = f*f*(3.0 - 2.0*f);
+    f = f * f * (3.0 - 2.0 * f);
     return mix(
     mix(noise(i + vec2(0.0, 0.0)), noise(i + vec2(1.0, 0.0)), f.x),
     mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
-    f.y
-    );
+    f.y);
 }
 
-// Tone mapping functions
+// Uncharted2 tone mapping
 vec3 Uncharted2Tonemap(vec3 x) {
     float A = 0.15;
     float B = 0.50;
@@ -70,7 +80,7 @@ vec3 Uncharted2Tonemap(vec3 x) {
     float D = 0.20;
     float E = 0.02;
     float F = 0.30;
-    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+    return ((x * (A*x + C*B) + D*E) / (x * (A*x + B) + D*F)) - E/F;
 }
 
 vec3 toneMapping(vec3 color) {
@@ -79,42 +89,37 @@ vec3 toneMapping(vec3 color) {
     return curr * whiteScale;
 }
 
-// Modified Procedural displacement for POM
+//---------------------------------------------------------------
+// Procedural Displacement for POM
+//---------------------------------------------------------------
+
 float proceduralDisplacement(vec2 coords) {
     if (useCheckerPattern) {
-        // **Checker pattern**:
-        // Scale coords to define how many cells per unit:
-        float cellCount = 5.0;// Try adjusting this for more or fewer cells
+        // Checker pattern
+        float cellCount = 5.0;
         vec2 cellCoords = fract(coords * cellCount);
-
-        // Determine cell color based on whether we're in an even or odd cell
-        // We'll produce a binary pattern: 1.0 for one cell, -1.0 for the alternate cell.
         float cellVal = (step(0.5, cellCoords.x) == step(0.5, cellCoords.y)) ? 1.0 : -1.0;
-
-        // Map cellVal from [-1,1] to [0,1] and apply waveAmplitude for height:
-        // We still use waveAmplitude, but to get more "3D" effect, consider increasing pomHeightScale too.
+        // Map [-1,1] to [0,1] and scale by waveAmplitude
         return 0.5 + 0.5 * cellVal * waveAmplitude;
     } else {
-        // **Enhanced contrast wave pattern**
+        // Enhanced wave pattern with contrast
         float nf = smoothNoise(coords * randomness);
         float waveX = sin(coords.y * 10.0 + time * waveSpeed + nf * texCoordFrequency);
         float waveY = cos(coords.x * 10.0 + time * waveSpeed + nf * texCoordFrequency);
-        float h = (waveX + waveY)*0.5;
-
-        // Increase contrast using pow():
-        // Take abs(h), raise it to a power >1 for stronger peaks, then reapply sign:
-        h = sign(h)*pow(abs(h), 2.0);// Adjust power for desired contrast; try 2.0 or higher
-
+        float h = (waveX + waveY) * 0.5;
+        // Increase contrast
+        h = sign(h) * pow(abs(h), 2.0);
         return 0.5 + 0.5 * h * waveAmplitude;
     }
 }
 
-// Parallax Occlusion Mapping function using procedural displacement
+// Parallax Occlusion Mapping with procedural displacement
 vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffset)
 {
     float numLayers = mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
     float layerDepth = 1.0 / numLayers;
     float currentLayerDepth = 0.0;
+
     vec2 P = viewDir.xy * pomHeightScale;
     vec2 deltaTexCoords = P / numLayers;
 
@@ -123,6 +128,7 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
     if (invertDisplacementMap) currentDepth = 1.0 - currentDepth;
     float depthFromTexture = currentDepth;
 
+    // Linear search approach
     while (currentLayerDepth < depthFromTexture) {
         currentTexCoords -= deltaTexCoords;
         currentDepth = proceduralDisplacement(currentTexCoords);
@@ -131,6 +137,7 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
         currentLayerDepth += layerDepth;
     }
 
+    // Backtrack to previous layer
     vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
     float prevLayerDepth = currentLayerDepth - layerDepth;
     float prevDepth = proceduralDisplacement(prevTexCoords);
@@ -138,13 +145,17 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
 
     float weight = (depthFromTexture - currentLayerDepth) /
     ((depthFromTexture - currentLayerDepth) - (prevDepth - prevLayerDepth));
+
     vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
 
+    // Depth offset
     depthOffset = pomHeightScale * (1.0 - mix(currentLayerDepth, prevLayerDepth, weight)) * 0.0001;
     return finalTexCoords;
 }
 
-// Phong lighting function
+//---------------------------------------------------------------
+// Phong Lighting (simple version, using only wave-based normal)
+//---------------------------------------------------------------
 vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
     vec3 ambient = ambientColor;
     vec3 diffuse = vec3(0.0);
@@ -159,17 +170,17 @@ vec3 computePhongLighting(vec3 normalMap, vec3 viewDir) {
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
         specular += lightColors[i] * spec * lightStrengths[i];
     }
-
     return ambient + diffuse + specular;
 }
 
-// Shadow calculation
+//---------------------------------------------------------------
+// Shadow Calculation
+//---------------------------------------------------------------
 float ShadowCalculation(vec3 fragPosWorld, vec3 normal, float waveHeight) {
     vec3 displacedPos = fragPosWorld;
     displacedPos.y += waveHeight;
 
     vec4 fragPosLightSpace = lightSpaceMatrix * model * vec4(displacedPos, 1.0);
-
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
@@ -182,8 +193,8 @@ float ShadowCalculation(vec3 fragPosWorld, vec3 normal, float waveHeight) {
 
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-
     float bias = max(0.05 * (1.0 - dot(normal, normalize(lightPositions[0] - displacedPos))), 0.005);
+
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     int samples = 3;
@@ -194,17 +205,20 @@ float ShadowCalculation(vec3 fragPosWorld, vec3 normal, float waveHeight) {
             shadow += smoothstep(0.0, 0.005, comparison);
         }
     }
-    shadow /= float((samples*2+1)*(samples*2+1));
+    shadow /= float((samples * 2 + 1) * (samples * 2 + 1));
 
     shadow *= exp(-surfaceDepth * 0.1) * shadowStrength;
     return shadow;
 }
 
+//---------------------------------------------------------------
+// MAIN
+//---------------------------------------------------------------
 void main()
 {
     vec3 viewDir = normalize(cameraPos - FragPos);
 
-    // If pomHeightScale > 0, do POM, otherwise skip
+    // POM
     float depthOffset = 0.0;
     vec2 workingTexCoords = TexCoords;
     if (pomHeightScale > 0.0) {
@@ -213,14 +227,15 @@ void main()
         workingTexCoords = clamp(workingTexCoords, 0.0, 1.0);
     }
 
-    // Perform wave calculations using workingTexCoords
+    // Wave calculations using workingTexCoords
     vec2 waveTexCoords = workingTexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
 
-    // Use original TexCoords.x and TexCoords.y as suggested:
+    // Keep original TexCoords.x/.y for the wave offset
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
+    // Procedural wave normal
     vec3 normalMap = vec3(0.0, 0.0, 1.0);
     float waveHeightX = sin(waveTexCoords.y * 10.0);
     float waveHeightY = cos(waveTexCoords.x * 10.0);
@@ -229,36 +244,46 @@ void main()
 
     float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
 
+    // Reflect & refract
     vec3 reflectDir = reflect(-viewDir, normalMap);
     vec3 refractDir = refract(-viewDir, normalMap, 1.0 / 1.33);
 
+    // Sample env map (reflection, refraction)
     vec3 reflection = texture(environmentMap, reflectDir).rgb;
     vec3 refraction = texture(environmentMap, refractDir).rgb;
 
+    // Fresnel
     float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
+    // We will later multiply by environmentMapStrength (new uniform)
     vec3 envColor = mix(refraction, reflection, fresnel);
 
+    // Shadow
     float shadow = 0.0;
     if (shadowingEnabled) {
         shadow = ShadowCalculation(FragPos, normalMap, waveHeight);
     }
 
+    // Combine
     vec3 color = vec3(0.0);
     if (phongShading) {
         vec3 phongColor = computePhongLighting(normalMap, viewDir);
+        // Shadow reduces brightness
         phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color += phongColor;
     }
 
+    // Mix environment with shadow
     envColor = mix(envColor, envColor * (1.0 - shadow), shadowStrength);
-    color += envColor;
 
+    // Finally, add environment reflection * environmentMapStrength
+    color += envColor * environmentMapStrength;
+
+    // Tone mapping, gamma
     if (applyToneMapping) {
         color = toneMapping(color);
     }
-
     if (applyGammaCorrection) {
-        color = pow(color, vec3(1.0 / 2.2));
+        color = pow(color, vec3(1.0/2.2));
     }
 
     color = clamp(color, 0.0, 1.0);
