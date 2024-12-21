@@ -1,3 +1,5 @@
+import os
+
 from OpenGL.GL import *
 
 
@@ -9,11 +11,14 @@ class ShaderEngine:
         compute_shader_path=None,
         shadow_vertex_shader_path=None,
         shadow_fragment_shader_path=None,
+            shader_base_dir="shaders"  # base directory for shaders
     ):
         """
-        Initialize the ShaderEngine. This class can handle both compute shaders and rendering shaders.
-        If a compute shader is provided, it will compile and store it separately from the rendering shaders.
+        Initialize the ShaderEngine.
+        You can specify a shader_base_dir as the root directory of your shader files.
         """
+        self.shader_base_dir = shader_base_dir
+
         # Initialize rendering shaders (vertex and fragment)
         self.shader_program = None
         if vertex_shader_path or fragment_shader_path:
@@ -73,9 +78,53 @@ class ShaderEngine:
         return self._compile_shader(shader_source, shader_type)
 
     def _load_shader_code(self, shader_file):
-        """Load the shader code from a file."""
-        with open(shader_file, "r") as file:
-            return file.read()
+        """Load the shader code from a file and process includes."""
+        # Resolve absolute path relative to self.shader_base_dir
+        full_path = os.path.join(self.shader_base_dir, shader_file)
+        if not os.path.isfile(full_path):
+            raise FileNotFoundError(f"Shader file not found: {full_path}")
+
+        with open(full_path, "r") as file:
+            source = file.read()
+
+        # Process includes
+        source = self._process_includes(source, os.path.dirname(full_path))
+        return source
+
+    def _process_includes(self, source, current_dir):
+        """
+        Recursively process #include "filename.glsl" directives.
+        This replaces the line with the contents of the included file.
+        """
+        lines = source.split('\n')
+        processed_lines = []
+        for line in lines:
+            line_stripped = line.strip()
+            if line_stripped.startswith('#include'):
+                # Expecting something like: #include "filename.glsl"
+                start_idx = line_stripped.find('"')
+                end_idx = line_stripped.find('"', start_idx + 1)
+                if start_idx == -1 or end_idx == -1:
+                    raise RuntimeError("Malformed #include directive. Must be #include \"filename\"")
+
+                include_filename = line_stripped[start_idx + 1:end_idx]
+
+                # Load included file
+                include_path = os.path.join(current_dir, include_filename)
+                if not os.path.isfile(include_path):
+                    raise FileNotFoundError(f"Included shader file not found: {include_path}")
+
+                with open(include_path, 'r') as inc_file:
+                    inc_source = inc_file.read()
+
+                # Process includes in the included file as well
+                inc_source = self._process_includes(inc_source, os.path.dirname(include_path))
+
+                processed_lines.append(inc_source)
+            else:
+                processed_lines.append(line)
+
+        return "\n".join(processed_lines)
 
     def _compile_shader(self, source, shader_type):
         """Compile the shader source code."""
