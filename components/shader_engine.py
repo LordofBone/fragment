@@ -11,13 +11,16 @@ class ShaderEngine:
         compute_shader_path=None,
         shadow_vertex_shader_path=None,
         shadow_fragment_shader_path=None,
-            shader_base_dir="shaders"  # base directory for shaders
+            shader_base_dir="shaders",
+            common_dir_name="common",  # subfolder name that holds .glsl common files
     ):
         """
         Initialize the ShaderEngine.
-        You can specify a shader_base_dir as the root directory of your shader files.
+        - `shader_base_dir` is the root directory of your shader files.
+        - `common_dir_name` is the subfolder name for common GLSL includes (e.g., 'common').
         """
         self.shader_base_dir = shader_base_dir
+        self.common_dir_name = common_dir_name
 
         # Initialize rendering shaders (vertex and fragment)
         self.shader_program = None
@@ -95,9 +98,13 @@ class ShaderEngine:
         """
         Recursively process #include "filename.glsl" directives.
         This replaces the line with the contents of the included file.
+        We'll look in:
+            1) The current directory of the referencing file
+            2) The base_dir/common_dir_name folder (for "common_funcs.glsl", etc.)
         """
         lines = source.split('\n')
         processed_lines = []
+
         for line in lines:
             line_stripped = line.strip()
             if line_stripped.startswith('#include'):
@@ -109,17 +116,26 @@ class ShaderEngine:
 
                 include_filename = line_stripped[start_idx + 1:end_idx]
 
-                # Load included file
-                include_path = os.path.join(current_dir, include_filename)
-                if not os.path.isfile(include_path):
-                    raise FileNotFoundError(f"Included shader file not found: {include_path}")
+                # First, try local directory
+                include_path_local = os.path.join(current_dir, include_filename)
+                if os.path.isfile(include_path_local):
+                    use_path = include_path_local
+                else:
+                    # Fallback to base_dir/common_dir_name
+                    fallback_path = os.path.join(self.shader_base_dir, self.common_dir_name, include_filename)
+                    if os.path.isfile(fallback_path):
+                        use_path = fallback_path
+                    else:
+                        raise FileNotFoundError(f"Included shader file not found in either:\n"
+                                                f"  {include_path_local}\n"
+                                                f"  {fallback_path}")
 
-                with open(include_path, 'r') as inc_file:
+                # Read included file
+                with open(use_path, 'r') as inc_file:
                     inc_source = inc_file.read()
 
                 # Process includes in the included file as well
-                inc_source = self._process_includes(inc_source, os.path.dirname(include_path))
-
+                inc_source = self._process_includes(inc_source, os.path.dirname(use_path))
                 processed_lines.append(inc_source)
             else:
                 processed_lines.append(line)
