@@ -87,7 +87,7 @@ class ShaderEngine:
         if not os.path.isfile(full_path):
             raise FileNotFoundError(f"Shader file not found: {full_path}")
 
-        with open(full_path, "r") as file:
+        with open(full_path, "r", encoding='utf-8') as file:
             source = file.read()
 
         # Process includes
@@ -131,7 +131,7 @@ class ShaderEngine:
                                                 f"  {fallback_path}")
 
                 # Read included file
-                with open(use_path, 'r') as inc_file:
+                with open(use_path, 'r', encoding='utf-8') as inc_file:
                     inc_source = inc_file.read()
 
                 # Process includes in the included file as well
