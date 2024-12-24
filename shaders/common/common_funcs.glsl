@@ -1,6 +1,24 @@
 #ifndef COMMON_FUNCS_GLSL
 #define COMMON_FUNCS_GLSL
 
+// POM
+uniform float pomHeightScale;
+uniform int pomMinSteps;
+uniform int pomMaxSteps;
+
+uniform bool invertDisplacementMap;
+uniform bool useCheckerPattern;
+
+uniform float time;
+uniform float waveSpeed;
+uniform float waveAmplitude;
+uniform float randomness;
+uniform float texCoordFrequency;
+uniform float texCoordAmplitude;
+
+uniform sampler2D displacementMap;
+uniform float textureLodLevel;
+
 // ---------------------------------------------------
 // Global uniform arrays for lights
 // ---------------------------------------------------
@@ -185,6 +203,116 @@ vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
     }
 
     return ambient + diffuse;
+}
+
+//---------------- Procedural Displacement for POM -----------------
+float proceduralDisplacement(vec2 coords) {
+    if (useCheckerPattern) {
+        float cellCount=5.0;
+        vec2 cellCoords=fract(coords*cellCount);
+        float cellVal=(step(0.5, cellCoords.x)==step(0.5, cellCoords.y))?1.0:-1.0;
+        return 0.5+0.5*cellVal*waveAmplitude;
+    } else {
+        float nf=smoothNoise(coords*randomness);
+        float waveX=sin(coords.y*10.0+time*waveSpeed+nf*texCoordFrequency);
+        float waveY=cos(coords.x*10.0+time*waveSpeed+nf*texCoordFrequency);
+        float h=(waveX+waveY)*0.5;
+        // Increase contrast
+        h=sign(h)*pow(abs(h), 2.0);
+        return 0.5+0.5*h*waveAmplitude;
+    }
+}
+
+// ---------------------------------------------------
+// Parallax Occlusion Mapping
+// ---------------------------------------------------
+vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffset)
+{
+    // Number of layers based on view angle
+    float numLayers = mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
+    float layerDepth = 1.0 / numLayers;
+    float currentLayerDepth = 0.0;
+    vec2 P = viewDir.xy * pomHeightScale;
+    vec2 deltaTexCoords = P / numLayers;
+
+    // Initial values
+    vec2 currentTexCoords = texCoords;
+    float currentDepthMapValue = texture(displacementMap, currentTexCoords, textureLodLevel).r;
+    if (invertDisplacementMap)
+    {
+        currentDepthMapValue = 1.0 - currentDepthMapValue;
+    }
+
+    // Depth from displacement map
+    float depthFromTexture = currentDepthMapValue;
+
+    // Linear search to find the layer where the view ray intersects the depth
+    while (currentLayerDepth < depthFromTexture)
+    {
+        currentTexCoords -= deltaTexCoords;
+        currentDepthMapValue = texture(displacementMap, currentTexCoords, textureLodLevel).r;
+        if (invertDisplacementMap)
+        {
+            currentDepthMapValue = 1.0 - currentDepthMapValue;
+        }
+        depthFromTexture = currentDepthMapValue;
+        currentLayerDepth += layerDepth;
+    }
+
+    // Backtrack to previous layer
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+    float prevLayerDepth = currentLayerDepth - layerDepth;
+    float prevDepthFromTexture = texture(displacementMap, prevTexCoords, textureLodLevel).r;
+    if (invertDisplacementMap)
+    {
+        prevDepthFromTexture = 1.0 - prevDepthFromTexture;
+    }
+
+    // Refine intersection point with linear interpolation
+    float weight = (depthFromTexture - currentLayerDepth) / ((depthFromTexture - currentLayerDepth) - (prevDepthFromTexture - prevLayerDepth));
+    vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
+
+    // Compute depth offset (scaled appropriately)
+    depthOffset = pomHeightScale * (1.0 - mix(currentLayerDepth, prevLayerDepth, weight)) * 0.0001;// Adjust scaling factor as needed
+
+    return finalTexCoords;
+}
+
+// ---------------------------------------------------
+// Procedural Parallax Occlusion Mapping
+// ---------------------------------------------------
+vec2 ProceduralParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffset) {
+    float numLayers=mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
+    float layerDepth=1.0/numLayers;
+    float currentLayerDepth=0.0;
+
+    vec2 P=viewDir.xy*pomHeightScale;
+    vec2 deltaTexCoords=P/numLayers;
+
+    vec2 currentTexCoords=texCoords;
+    float currentDepth=proceduralDisplacement(currentTexCoords);
+    if (invertDisplacementMap) currentDepth=1.0-currentDepth;
+    float depthFromTexture=currentDepth;
+
+    while (currentLayerDepth<depthFromTexture){
+        currentTexCoords-=deltaTexCoords;
+        currentDepth=proceduralDisplacement(currentTexCoords);
+        if (invertDisplacementMap) currentDepth=1.0-currentDepth;
+        depthFromTexture=currentDepth;
+        currentLayerDepth+=layerDepth;
+    }
+
+    vec2 prevTexCoords=currentTexCoords+deltaTexCoords;
+    float prevLayerDepth=currentLayerDepth - layerDepth;
+    float prevDepth=proceduralDisplacement(prevTexCoords);
+    if (invertDisplacementMap) prevDepth=1.0-prevDepth;
+
+    float weight=(depthFromTexture - currentLayerDepth)/
+    ((depthFromTexture - currentLayerDepth)-(prevDepth - prevLayerDepth));
+    vec2 finalTexCoords=mix(currentTexCoords, prevTexCoords, weight);
+
+    depthOffset = pomHeightScale*(1.0 - mix(currentLayerDepth, prevLayerDepth, weight))*0.0001;
+    return finalTexCoords;
 }
 
 #endif// COMMON_FUNCS_GLSL
