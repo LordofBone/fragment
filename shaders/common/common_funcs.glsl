@@ -7,7 +7,7 @@
 uniform float textureLodLevel;
 
 // ---------------------------------------------------
-// POM
+// Parallax Occlusion Mapping (POM) uniforms
 // ---------------------------------------------------
 uniform float pomHeightScale;
 uniform int pomMinSteps;
