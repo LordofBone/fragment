@@ -1,11 +1,18 @@
 #ifndef COMMON_FUNCS_GLSL
 #define COMMON_FUNCS_GLSL
 
+// ---------------------------------------------------
+// Global uniforms
+// ---------------------------------------------------
+uniform float textureLodLevel;
+
+// ---------------------------------------------------
 // POM
+// ---------------------------------------------------
 uniform float pomHeightScale;
 uniform int pomMinSteps;
 uniform int pomMaxSteps;
-
+uniform sampler2D displacementMap;
 uniform bool invertDisplacementMap;
 uniform bool useCheckerPattern;
 
@@ -15,9 +22,6 @@ uniform float waveAmplitude;
 uniform float randomness;
 uniform float texCoordFrequency;
 uniform float texCoordAmplitude;
-
-uniform sampler2D displacementMap;
-uniform float textureLodLevel;
 
 // ---------------------------------------------------
 // Global uniform arrays for lights
