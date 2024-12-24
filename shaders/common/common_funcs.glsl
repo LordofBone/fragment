@@ -16,6 +16,9 @@ uniform sampler2D displacementMap;
 uniform bool invertDisplacementMap;
 uniform bool useCheckerPattern;
 
+// ---------------------------------------------------
+// Liquid simulation uniforms
+// ---------------------------------------------------
 uniform float time;
 uniform float waveSpeed;
 uniform float waveAmplitude;
