@@ -34,6 +34,14 @@ uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
 
 // ---------------------------------------------------
+// Pseudo-random function for color variation
+// ---------------------------------------------------
+float generateRandomValue(vec2 uv, float id)
+{
+    return fract(sin(dot(uv + id, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+// ---------------------------------------------------
 // Noise & Smooth Noise
 // ---------------------------------------------------
 float noise(vec2 p)
