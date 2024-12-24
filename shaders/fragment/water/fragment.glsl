@@ -12,12 +12,6 @@ out vec4 FragColor;
 uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
 uniform vec3 ambientColor;
-uniform float time;
-uniform float waveSpeed;
-uniform float waveAmplitude;
-uniform float randomness;
-uniform float texCoordFrequency;
-uniform float texCoordAmplitude;
 uniform sampler2D shadowMap;
 
 uniform bool applyToneMapping;
