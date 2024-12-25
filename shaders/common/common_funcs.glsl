@@ -27,6 +27,12 @@ uniform float texCoordFrequency;
 uniform float texCoordAmplitude;
 
 // ---------------------------------------------------
+// Particle simulation uniforms for fluid dynamics
+// ---------------------------------------------------
+uniform float particlePressure;
+uniform float particleViscosity;
+
+// ---------------------------------------------------
 // Global uniform arrays for lights
 // ---------------------------------------------------
 uniform vec3 lightPositions[10];
@@ -59,6 +65,18 @@ float smoothNoise(vec2 p)
     mix(noise(i + vec2(0.0, 1.0)), noise(i + vec2(1.0, 1.0)), f.x),
     f.y
     );
+}
+
+// ---------------------------------------------------
+// Calculate fluid forces (pressure & viscosity)
+// ---------------------------------------------------
+vec3 calculateFluidForces(vec3 velocity) {
+    vec3 pressureForce = vec3(0.0);
+    if (length(velocity) > 0.0) {
+        pressureForce = -normalize(velocity) * particlePressure;
+    }
+    vec3 viscosityForce = -velocity * particleViscosity;
+    return pressureForce + viscosityForce;
 }
 
 // ---------------------------------------------------
