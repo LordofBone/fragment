@@ -16,7 +16,6 @@ uniform samplerCube environmentMap;
 uniform sampler2D shadowMap;
 
 // Light/camera uniforms
-// (lightPositions, lightColors, lightStrengths are in common_funcs.glsl)
 uniform vec3 viewPosition;
 uniform float envMapLodLevel;
 uniform bool applyToneMapping;
