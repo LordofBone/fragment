@@ -1,4 +1,5 @@
 #version 430 core
+#include "common_funcs.glsl"
 
 // Define the particle structure
 struct Particle {
@@ -57,8 +58,6 @@ uniform float maxInitialVelocityZ;
 uniform bool particleSpawnTimeJitter;
 uniform float particleMaxSpawnTimeJitter;
 
-uniform float particlePressure;
-uniform float particleViscosity;
 uniform bool fluidSimulation;
 
 // Shared variable for particles generated in the workgroup
@@ -76,16 +75,6 @@ uint hash(uint x) {
 
 float rand(uint seed) {
     return float(hash(seed)) / 4294967295.0;
-}
-
-// Function to calculate fluid forces (simple pressure and viscosity model)
-vec3 calculateFluidForces(vec3 velocity) {
-    vec3 pressureForce = vec3(0.0);
-    if (length(velocity) > 0.0) {
-        pressureForce = -normalize(velocity) * particlePressure;
-    }
-    vec3 viscosityForce = -velocity * particleViscosity;
-    return pressureForce + viscosityForce;
 }
 
 void main() {
