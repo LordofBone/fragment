@@ -220,6 +220,58 @@ vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
     return ambient + diffuse;
 }
 
+// ---------------------------------------------------
+// Particle-specific lighting with distance attenuation
+// ---------------------------------------------------
+vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor, float shininess)
+{
+    vec3 ambient = 0.1 * baseColor;
+    vec3 diffuse = vec3(0.0);
+    vec3 specular = vec3(0.0);
+
+    for (int i = 0; i < 10; ++i)
+    {
+        // Distance-based attenuation
+        vec3 lightVec = lightPositions[i] - fragPos;
+        float distance = length(lightVec);
+        vec3 lightDir = normalize(lightVec);
+
+        float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
+
+        // Diffuse shading
+        float diff = max(dot(normal, lightDir), 0.0);
+        diffuse += attenuation * lightColors[i] * diff * baseColor * lightStrengths[i];
+
+        // Blinn-Phong specular
+        vec3 halfwayDir = normalize(lightDir + viewDir);
+        float specAngle = max(dot(normal, halfwayDir), 0.0);
+        float spec = pow(specAngle, max(shininess, 0.0));
+        specular += attenuation * spec * lightColors[i] * lightStrengths[i];
+    }
+
+    return ambient + diffuse + specular;
+}
+
+vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
+{
+    vec3 ambient = 0.1 * baseColor;
+    vec3 diffuse = vec3(0.0);
+
+    for (int i = 0; i < 10; ++i)
+    {
+        vec3 lightVec = lightPositions[i] - fragPos;
+        float distance = length(lightVec);
+        vec3 lightDir = normalize(lightVec);
+
+        float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
+
+        float diff = max(dot(normal, lightDir), 0.0);
+        diffuse += attenuation * lightColors[i] * diff * baseColor * lightStrengths[i];
+    }
+
+    return ambient + diffuse;
+}
+
 //---------------- Procedural Displacement for POM -----------------
 float proceduralDisplacement(vec2 coords) {
     if (useCheckerPattern) {
