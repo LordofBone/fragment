@@ -1,4 +1,5 @@
 #version 430
+#include "common_funcs.glsl"
 
 layout (location = 0) in vec4 position;// Input particle position (x, y, z, w)
 layout (location = 1) in vec4 velocity;// Input particle velocity (x, y, z, w)
@@ -15,8 +16,6 @@ uniform float particleBounceFactor;// How much velocity is preserved upon bounci
 uniform vec3 particleGroundPlaneNormal;// Normal vector of the ground plane
 uniform float particleGroundPlaneHeight;// Height of the ground plane
 uniform float particleMaxVelocity;// Maximum allowed velocity for particles
-uniform float particlePressure;// Pressure force for fluid dynamics
-uniform float particleViscosity;// Viscosity force for fluid dynamics
 uniform float particleSize;// Size of the particle
 uniform vec3 particleColor;// Base color of the particle
 uniform bool fluidSimulation;// Flag to enable fluid simulation
@@ -40,13 +39,6 @@ out float lifetimePercentageToFragment;// For fragment shader
 out vec3 fragColor;// Output color to the fragment shader
 flat out float particleIDOut;// Pass the particle ID to the fragment shader
 out vec3 fragPos;// Particle's position in world space
-
-// Function to simulate fluid forces (pressure and viscosity)
-vec3 calculateFluidForces(vec3 velocity) {
-    vec3 pressureForce = -normalize(velocity) * particlePressure;
-    vec3 viscosityForce = -velocity * particleViscosity;
-    return pressureForce + viscosityForce;
-}
 
 void main() {
     // Initialize outputs
