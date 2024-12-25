@@ -25,7 +25,7 @@ layout(std430, binding = 1) buffer GenerationData {
 layout(local_size_x = 128) in;
 
 // Uniforms
-uniform float currentTime;// Time in seconds
+uniform float currentTime;
 uniform float deltaTime;
 uniform float particleMaxLifetime;
 uniform vec3 particleGravity;
@@ -38,7 +38,7 @@ uniform float particleGroundPlaneHeight;
 uniform int maxParticles;
 uniform bool particleGenerator;
 uniform uint particleBatchSize;
-uniform bool shouldGenerate;// New uniform to control generation
+uniform bool shouldGenerate;
 
 uniform float minX;
 uniform float maxX;
