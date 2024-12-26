@@ -1007,8 +1007,13 @@ class ParticleRenderer(AbstractRenderer):
             # Apply fluid forces if fluid simulation is enabled
             if self.fluid_simulation:
                 # Calculate fluid damping forces
+                # 1) Pressure ~ -velocity * particle_pressure
                 pressure_force = -velocity[:3] * self.particle_pressure
+
+                # 2) Viscosity ~ -velocity * particle_viscosity
                 viscosity_force = -velocity[:3] * self.particle_viscosity
+
+                # Combine
                 total_fluid_force = pressure_force + viscosity_force
 
                 # Optionally clamp the total fluid force
@@ -1017,6 +1022,7 @@ class ParticleRenderer(AbstractRenderer):
                 if total_fluid_force_norm > max_fluid_force:
                     total_fluid_force = (total_fluid_force / total_fluid_force_norm) * max_fluid_force
 
+                # Integrate: add to velocity
                 velocity[:3] += total_fluid_force * self.delta_time
 
             # Clamp velocity to the max velocity
