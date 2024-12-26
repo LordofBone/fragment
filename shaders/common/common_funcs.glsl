@@ -29,6 +29,7 @@ uniform float texCoordAmplitude;
 // ---------------------------------------------------
 // Particle simulation uniforms for fluid dynamics
 // ---------------------------------------------------
+uniform float maxFluidForce;
 uniform float particlePressure;
 uniform float particleViscosity;
 
@@ -89,13 +90,20 @@ float smoothNoise(vec2 p)
 // ---------------------------------------------------
 // Calculate fluid forces (pressure & viscosity)
 // ---------------------------------------------------
-vec3 calculateFluidForces(vec3 velocity) {
-    vec3 pressureForce = vec3(0.0);
-    if (length(velocity) > 0.0) {
-        pressureForce = -normalize(velocity) * particlePressure;
-    }
+vec3 calculateFluidForces(vec3 velocity)
+{
+    // pressure = -velocity * particlePressure
+    vec3 pressureForce = -velocity * particlePressure;
+    // viscosity = -velocity * particleViscosity
     vec3 viscosityForce = -velocity * particleViscosity;
-    return pressureForce + viscosityForce;
+    vec3 totalFluidForce = pressureForce + viscosityForce;
+
+    float forceMag = length(totalFluidForce);
+    if (forceMag > maxFluidForce && forceMag > 0.0)
+    {
+        totalFluidForce = normalize(totalFluidForce) * maxFluidForce;
+    }
+    return totalFluidForce;
 }
 
 // ---------------------------------------------------
