@@ -63,20 +63,6 @@ uniform bool fluidSimulation;
 // Shared variable for particles generated in the workgroup
 shared uint particlesGeneratedInWorkgroup;
 
-// Improved hash function for better randomness
-uint hash(uint x) {
-    x ^= x >> 16u;
-    x *= 0x7feb352du;
-    x ^= x >> 15u;
-    x *= 0x846ca68bu;
-    x ^= x >> 16u;
-    return x;
-}
-
-float rand(uint seed) {
-    return float(hash(seed)) / 4294967295.0;
-}
-
 void main() {
     uint index = gl_GlobalInvocationID.x;
 
