@@ -40,6 +40,25 @@ uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
 
 // ---------------------------------------------------
+// Improved integer-based hash & rand
+// ---------------------------------------------------
+uint hash(uint x)
+{
+    x ^= x >> 16u;
+    x *= 0x7feb352du;
+    x ^= x >> 15u;
+    x *= 0x846ca68bu;
+    x ^= x >> 16u;
+    return x;
+}
+
+float rand(uint seed)
+{
+    // Returns [0..1]
+    return float(hash(seed)) / 4294967295.0;
+}
+
+// ---------------------------------------------------
 // Pseudo-random function for color variation
 // ---------------------------------------------------
 float generateRandomValue(vec2 uv, float id)
