@@ -27,9 +27,8 @@ uniform float texCoordFrequency;
 uniform float texCoordAmplitude;
 
 // ---------------------------------------------------
-// Particle simulation uniforms for fluid dynamics
+// Example uniform for controlling fluid force
 // ---------------------------------------------------
-uniform float maxFluidForce;
 uniform float particlePressure;
 uniform float particleViscosity;
 
@@ -87,22 +86,43 @@ float smoothNoise(vec2 p)
     );
 }
 
-// ---------------------------------------------------
-// Calculate fluid forces (pressure & viscosity)
-// ---------------------------------------------------
-vec3 calculateFluidForces(vec3 velocity)
+/*******************************************************
+ *  Fluid Forces (Explicit Parameters)
+ *    velocity          : the particle’s current velocity
+ *    adjustedGravity   : pass in if you want to base clamping on gravity’s magnitude
+ *    particlePressure  : how strong the "pressure" drag is
+ *    particleViscosity : how strong the "viscous" drag is
+ *    fluidForceMultiplier : used for computing max fluid force
+ *******************************************************/
+vec3 calculateFluidForces(
+vec3 velocity,
+vec3 adjustedGravity,
+float particlePressure,
+float particleViscosity,
+float fluidForceMultiplier
+)
 {
-    // pressure = -velocity * particlePressure
+    // 1) gravityNorm from the adjustedGravity
+    float gravityNorm = length(adjustedGravity);
+
+    // 2) computedMaxFluidForce
+    float computedMaxFluidForce = gravityNorm * fluidForceMultiplier;
+
+    // 3) Pressure ~ -velocity * particlePressure
     vec3 pressureForce = -velocity * particlePressure;
-    // viscosity = -velocity * particleViscosity
+
+    // 4) Viscosity ~ -velocity * particleViscosity
     vec3 viscosityForce = -velocity * particleViscosity;
+
     vec3 totalFluidForce = pressureForce + viscosityForce;
 
+    // 5) Clamp if above computedMaxFluidForce
     float forceMag = length(totalFluidForce);
-    if (forceMag > maxFluidForce && forceMag > 0.0)
+    if (forceMag > computedMaxFluidForce && forceMag > 0.0)
     {
-        totalFluidForce = normalize(totalFluidForce) * maxFluidForce;
+        totalFluidForce = normalize(totalFluidForce) * computedMaxFluidForce;
     }
+
     return totalFluidForce;
 }
 
