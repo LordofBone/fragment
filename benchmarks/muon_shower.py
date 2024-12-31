@@ -87,6 +87,7 @@ def run_benchmark(
         fluid_simulation=False,  # Enable fluid simulation
         particle_pressure=6.5,  # Pressure factor for the particles
         particle_viscosity=5.1,  # Viscosity factor for the particles
+        fluid_force_multiplier=1.0,  # Force multiplier for the fluid simulation
         particle_spawn_time_jitter=True,  # Jitter for spawn time
         particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
         min_width=-0.1,  # Adjusted for a realistic spread along X and Z-axes
