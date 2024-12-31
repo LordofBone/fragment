@@ -30,7 +30,7 @@ def run_benchmark(
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
-        cubemap_folder=os.path.join(cubemaps_dir, "mountain_lake/"),
+        cubemap_folder=os.path.join(cubemaps_dir, "garage/"),
         camera_positions=[
             (6.4, 6.4, 6.4, -45.0, 36.0),
         ],
@@ -79,7 +79,16 @@ def run_benchmark(
         apply_gamma_correction=False,
     )
 
+    # Define the configuration for the skybox
+    skybox_config = base_config.add_skybox(
+        shader_names={
+            "vertex": "skybox",
+            "fragment": "skybox",
+        },
+    )
+
     # Add the tyre renderer to the instance with a specific name
+    instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("tyre", "model", **tyre_config)
 
     # Run the rendering instance
