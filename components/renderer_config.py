@@ -388,6 +388,7 @@ class RendererConfig:
         fluid_simulation=False,
         particle_pressure=0.0,
         particle_viscosity=0.0,
+            fluid_force_multiplier=1.0,
         **kwargs,
     ):
         """Add a particle renderer to the configuration."""
@@ -440,6 +441,7 @@ class RendererConfig:
             "fluid_simulation": fluid_simulation,
             "particle_pressure": particle_pressure,
             "particle_viscosity": particle_viscosity,
+            "fluid_force_multiplier": fluid_force_multiplier,
         }
 
         # Update the configuration with particle renderer specifics, preserving non-None values
