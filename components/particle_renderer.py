@@ -51,8 +51,8 @@ class ParticleRenderer(AbstractRenderer):
         particle_max_weight=1.0,
         fluid_simulation=False,
         fluid_force_multiplier=1.0,
-            fluid_pressure=1.0,
-            fluid_viscosity=0.5,
+        fluid_pressure=1.0,
+        fluid_viscosity=0.5,
         **kwargs,
     ):
         """
@@ -706,9 +706,7 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.shader_program, "fluidSimulation"), int(self.fluid_simulation)
         )
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "fluidPressure"), self.fluid_pressure)
-        glUniform1f(
-            glGetUniformLocation(self.shader_engine.shader_program, "fluidViscosity"), self.fluid_viscosity
-        )
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "fluidViscosity"), self.fluid_viscosity)
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "fluidForceMultiplier"), self.fluid_force_multiplier
         )
@@ -804,7 +802,7 @@ class ParticleRenderer(AbstractRenderer):
         )
         glUniform1f(
             glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidForceMultiplier"),
-            self.fluid_force_multiplier
+            self.fluid_force_multiplier,
         )
         glUniform1i(
             glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidSimulation"),

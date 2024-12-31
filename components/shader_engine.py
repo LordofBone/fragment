@@ -11,8 +11,8 @@ class ShaderEngine:
         compute_shader_path=None,
         shadow_vertex_shader_path=None,
         shadow_fragment_shader_path=None,
-            shader_base_dir="shaders",
-            common_dir_name="common",  # subfolder name that holds .glsl common files
+        shader_base_dir="shaders",
+        common_dir_name="common",  # subfolder name that holds .glsl common files
     ):
         """
         Initialize the ShaderEngine.
@@ -87,7 +87,7 @@ class ShaderEngine:
         if not os.path.isfile(full_path):
             raise FileNotFoundError(f"Shader file not found: {full_path}")
 
-        with open(full_path, "r", encoding='utf-8') as file:
+        with open(full_path, "r", encoding="utf-8") as file:
             source = file.read()
 
         # Process includes
@@ -102,19 +102,19 @@ class ShaderEngine:
             1) The current directory of the referencing file
             2) The base_dir/common_dir_name folder (for "common_funcs.glsl", etc.)
         """
-        lines = source.split('\n')
+        lines = source.split("\n")
         processed_lines = []
 
         for line in lines:
             line_stripped = line.strip()
-            if line_stripped.startswith('#include'):
+            if line_stripped.startswith("#include"):
                 # Expecting something like: #include "filename.glsl"
                 start_idx = line_stripped.find('"')
                 end_idx = line_stripped.find('"', start_idx + 1)
                 if start_idx == -1 or end_idx == -1:
-                    raise RuntimeError("Malformed #include directive. Must be #include \"filename\"")
+                    raise RuntimeError('Malformed #include directive. Must be #include "filename"')
 
-                include_filename = line_stripped[start_idx + 1:end_idx]
+                include_filename = line_stripped[start_idx + 1 : end_idx]
 
                 # First, try local directory
                 include_path_local = os.path.join(current_dir, include_filename)
@@ -126,12 +126,14 @@ class ShaderEngine:
                     if os.path.isfile(fallback_path):
                         use_path = fallback_path
                     else:
-                        raise FileNotFoundError(f"Included shader file not found in either:\n"
-                                                f"  {include_path_local}\n"
-                                                f"  {fallback_path}")
+                        raise FileNotFoundError(
+                            f"Included shader file not found in either:\n"
+                            f"  {include_path_local}\n"
+                            f"  {fallback_path}"
+                        )
 
                 # Read included file
-                with open(use_path, 'r', encoding='utf-8') as inc_file:
+                with open(use_path, "r", encoding="utf-8") as inc_file:
                     inc_source = inc_file.read()
 
                 # Process includes in the included file as well
