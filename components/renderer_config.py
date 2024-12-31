@@ -386,8 +386,8 @@ class RendererConfig:
         max_height=10.1,
         max_depth=0.5,
         fluid_simulation=False,
-        particle_pressure=0.0,
-        particle_viscosity=0.0,
+            fluid_pressure=0.0,
+            fluid_viscosity=0.0,
             fluid_force_multiplier=1.0,
         **kwargs,
     ):
@@ -439,8 +439,8 @@ class RendererConfig:
             "max_height": max_height,
             "max_depth": max_depth,
             "fluid_simulation": fluid_simulation,
-            "particle_pressure": particle_pressure,
-            "particle_viscosity": particle_viscosity,
+            "fluid_pressure": fluid_pressure,
+            "fluid_viscosity": fluid_viscosity,
             "fluid_force_multiplier": fluid_force_multiplier,
         }
 

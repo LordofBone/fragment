@@ -26,8 +26,8 @@ uniform vec3  particleColor;
 
 uniform bool  fluidSimulation;
 uniform vec3  particleGravity;
-uniform float particlePressure;
-uniform float particleViscosity;
+uniform float fluidPressure;
+uniform float fluidViscosity;
 uniform float fluidForceMultiplier;
 
 uniform mat4  view;
@@ -106,8 +106,8 @@ void main()
         vec3 fluidForces = calculateFluidForces(
         newVelocity,
         adjustedGravity,
-        particlePressure,
-        particleViscosity,
+        fluidPressure,
+        fluidViscosity,
         fluidForceMultiplier
         );
         newVelocity += fluidForces * deltaTime;

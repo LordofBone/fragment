@@ -68,8 +68,8 @@ uniform float particleMaxSpawnTimeJitter;
 // Fluid simulation
 uniform bool  fluidSimulation;
 uniform vec3  particleGravity;
-uniform float particlePressure;
-uniform float particleViscosity;
+uniform float fluidPressure;
+uniform float fluidViscosity;
 uniform float fluidForceMultiplier;
 
 // -----------------------------------------------------------------------------
@@ -179,8 +179,8 @@ void main()
             vec3 fluidForces = calculateFluidForces(
             particle.velocity.xyz,
             adjustedGravity,
-            particlePressure,
-            particleViscosity,
+            fluidPressure,
+            fluidViscosity,
             fluidForceMultiplier
             );
             particle.velocity.xyz += fluidForces * deltaTime;

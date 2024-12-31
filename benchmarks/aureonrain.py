@@ -176,8 +176,8 @@ def run_benchmark(
         particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
         particle_ground_plane_height=1.0,  # Height of the ground plane (y = 0)
         fluid_simulation=True,  # Enable fluid simulation
-        particle_pressure=0.75,  # Pressure factor for the particles
-        particle_viscosity=0.25,  # Viscosity factor for the particles
+        fluid_pressure=0.75,  # Pressure factor for the particles
+        fluid_viscosity=0.25,  # Viscosity factor for the particles
         particle_spawn_time_jitter=True,  # Jitter for spawn time
         particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
         min_width=-25.0,  # Adjusted for a realistic spread along X and Z-axes

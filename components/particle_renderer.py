@@ -51,8 +51,8 @@ class ParticleRenderer(AbstractRenderer):
         particle_max_weight=1.0,
         fluid_simulation=False,
         fluid_force_multiplier=1.0,
-        particle_pressure=1.0,
-        particle_viscosity=0.5,
+            fluid_pressure=1.0,
+            fluid_viscosity=0.5,
         **kwargs,
     ):
         """
@@ -188,8 +188,8 @@ class ParticleRenderer(AbstractRenderer):
         self.fluid_simulation = fluid_simulation
         # Currently fluid force multiplier is only used in CPU mode
         self.fluid_force_multiplier = fluid_force_multiplier
-        self.particle_pressure = particle_pressure
-        self.particle_viscosity = particle_viscosity
+        self.fluid_pressure = fluid_pressure
+        self.fluid_viscosity = fluid_viscosity
 
         self.current_time = time.time()
         self.delta_time = min(self.current_time - self.last_time, 0.016)  # Clamp to ~60 FPS
@@ -705,9 +705,9 @@ class ParticleRenderer(AbstractRenderer):
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "fluidSimulation"), int(self.fluid_simulation)
         )
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "particlePressure"), self.particle_pressure)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "fluidPressure"), self.fluid_pressure)
         glUniform1f(
-            glGetUniformLocation(self.shader_engine.shader_program, "particleViscosity"), self.particle_viscosity
+            glGetUniformLocation(self.shader_engine.shader_program, "fluidViscosity"), self.fluid_viscosity
         )
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "fluidForceMultiplier"), self.fluid_force_multiplier
@@ -795,12 +795,12 @@ class ParticleRenderer(AbstractRenderer):
             np.float32(self.particle_ground_plane_height),
         )
         glUniform1f(
-            glGetUniformLocation(self.shader_engine.compute_shader_program, "particlePressure"),
-            np.float32(self.particle_pressure),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidPressure"),
+            np.float32(self.fluid_pressure),
         )
         glUniform1f(
-            glGetUniformLocation(self.shader_engine.compute_shader_program, "particleViscosity"),
-            np.float32(self.particle_viscosity),
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidViscosity"),
+            np.float32(self.fluid_viscosity),
         )
         glUniform1f(
             glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidForceMultiplier"),
@@ -1014,11 +1014,11 @@ class ParticleRenderer(AbstractRenderer):
             # Apply fluid forces if fluid simulation is enabled
             if self.fluid_simulation:
                 # Calculate fluid damping forces
-                # 1) Pressure ~ -velocity * particle_pressure
-                pressure_force = -velocity[:3] * self.particle_pressure
+                # 1) Pressure ~ -velocity * fluid_pressure
+                pressure_force = -velocity[:3] * self.fluid_pressure
 
-                # 2) Viscosity ~ -velocity * particle_viscosity
-                viscosity_force = -velocity[:3] * self.particle_viscosity
+                # 2) Viscosity ~ -velocity * fluid_viscosity
+                viscosity_force = -velocity[:3] * self.fluid_viscosity
 
                 # Combine
                 total_fluid_force = pressure_force + viscosity_force

@@ -84,15 +84,15 @@ float smoothNoise(vec2 p)
  *  Fluid Forces (Explicit Parameters)
  *    velocity          : the particle’s current velocity
  *    adjustedGravity   : pass in if you want to base clamping on gravity’s magnitude
- *    particlePressure  : how strong the "pressure" drag is
- *    particleViscosity : how strong the "viscous" drag is
+ *    fluidPressure  : how strong the "pressure" drag is
+ *    fluidViscosity : how strong the "viscous" drag is
  *    fluidForceMultiplier : used for computing max fluid force
  *******************************************************/
 vec3 calculateFluidForces(
 vec3 velocity,
 vec3 adjustedGravity,
-float particlePressure,
-float particleViscosity,
+float fluidPressure,
+float fluidViscosity,
 float fluidForceMultiplier
 )
 {
@@ -102,11 +102,11 @@ float fluidForceMultiplier
     // 2) computedMaxFluidForce
     float computedMaxFluidForce = gravityNorm * fluidForceMultiplier;
 
-    // 3) Pressure ~ -velocity * particlePressure
-    vec3 pressureForce = -velocity * particlePressure;
+    // 3) Pressure ~ -velocity * fluidPressure
+    vec3 pressureForce = -velocity * fluidPressure;
 
-    // 4) Viscosity ~ -velocity * particleViscosity
-    vec3 viscosityForce = -velocity * particleViscosity;
+    // 4) Viscosity ~ -velocity * fluidViscosity
+    vec3 viscosityForce = -velocity * fluidViscosity;
 
     vec3 totalFluidForce = pressureForce + viscosityForce;
 
