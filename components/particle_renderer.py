@@ -802,6 +802,10 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.compute_shader_program, "particleViscosity"),
             np.float32(self.particle_viscosity),
         )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidForceMultiplier"),
+            self.fluid_force_multiplier
+        )
         glUniform1i(
             glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidSimulation"),
             int(self.fluid_simulation),
