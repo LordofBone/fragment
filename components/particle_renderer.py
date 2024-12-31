@@ -709,6 +709,9 @@ class ParticleRenderer(AbstractRenderer):
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "particleViscosity"), self.particle_viscosity
         )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "fluidForceMultiplier"), self.fluid_force_multiplier
+        )
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "particleGroundPlaneNormal"),
             1,
