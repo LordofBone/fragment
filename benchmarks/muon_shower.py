@@ -84,7 +84,7 @@ def run_benchmark(
         particle_bounce_factor=0.65,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
         particle_ground_plane_height=1.0,  # Height of the ground plane (y = 0)
-        fluid_simulation=True,  # Enable fluid simulation
+        fluid_simulation=False,  # Enable fluid simulation
         fluid_pressure=6.5,  # Pressure factor for the particles
         fluid_viscosity=5.1,  # Viscosity factor for the particles
         fluid_force_multiplier=1.0,  # Force multiplier for the fluid simulation
