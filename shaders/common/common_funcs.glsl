@@ -27,12 +27,6 @@ uniform float texCoordFrequency;
 uniform float texCoordAmplitude;
 
 // ---------------------------------------------------
-// Example uniform for controlling fluid force
-// ---------------------------------------------------
-uniform float particlePressure;
-uniform float particleViscosity;
-
-// ---------------------------------------------------
 // Global uniform arrays for lights
 // ---------------------------------------------------
 uniform vec3 lightPositions[10];
