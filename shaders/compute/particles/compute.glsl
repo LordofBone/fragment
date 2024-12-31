@@ -1,45 +1,52 @@
 #version 430 core
+#include "common_funcs.glsl"
 
-// Define the particle structure
+// -----------------------------------------------------------------------------
+// Particle Structure & Buffers
+// -----------------------------------------------------------------------------
 struct Particle {
-    vec4 position;// Use only the first 3 components (x, y, z)
-    vec4 velocity;// Use only the first 3 components (x, y, z)
-    float spawnTime;// 1 float (4 bytes)
-    float lifetime;// 1 float (4 bytes)
-    float particleID;// 1 float (4 bytes)
-    float particleWeight;// 1 float (4 bytes)
-    float lifetimePercentage;// 1 float (4 bytes)
+    vec4  position;// (x, y, z, w)
+    vec4  velocity;// (x, y, z, w)
+    float spawnTime;
+    float lifetime;
+    float particleID;
+    float particleWeight;
+    float lifetimePercentage;
 };
 
-// Bind the particle buffer as a shader storage buffer
 layout(std430, binding = 0) buffer ParticleBuffer {
     Particle particles[];
 };
 
-// Buffer for generation data
 layout(std430, binding = 1) buffer GenerationData {
-    uint particlesGenerated;
+    uint particlesGenerated;// used when shouldGenerate = true
 };
 
-// Specify workgroup size
+// -----------------------------------------------------------------------------
+// Workgroup size
+// -----------------------------------------------------------------------------
 layout(local_size_x = 128) in;
 
+// -----------------------------------------------------------------------------
 // Uniforms
-uniform float currentTime;// Time in seconds
+// -----------------------------------------------------------------------------
+uniform float currentTime;
 uniform float deltaTime;
 uniform float particleMaxLifetime;
-uniform vec3 particleGravity;
 uniform float particleMaxVelocity;
 uniform float particleMinWeight;
 uniform float particleMaxWeight;
 uniform float particleBounceFactor;
-uniform vec3 particleGroundPlaneNormal;
+uniform vec3  particleGroundPlaneNormal;
 uniform float particleGroundPlaneHeight;
-uniform int maxParticles;
-uniform bool particleGenerator;
-uniform uint particleBatchSize;
-uniform bool shouldGenerate;// New uniform to control generation
+uniform int   maxParticles;
 
+// Particle generation logic
+uniform bool  particleGenerator;
+uniform uint  particleBatchSize;
+uniform bool  shouldGenerate;
+
+// Ranges for random spawn positions
 uniform float minX;
 uniform float maxX;
 uniform float minY;
@@ -47,6 +54,7 @@ uniform float maxY;
 uniform float minZ;
 uniform float maxZ;
 
+// Ranges for random initial velocities
 uniform float minInitialVelocityX;
 uniform float maxInitialVelocityX;
 uniform float minInitialVelocityY;
@@ -54,163 +62,188 @@ uniform float maxInitialVelocityY;
 uniform float minInitialVelocityZ;
 uniform float maxInitialVelocityZ;
 
-uniform bool particleSpawnTimeJitter;
+uniform bool  particleSpawnTimeJitter;
 uniform float particleMaxSpawnTimeJitter;
 
-uniform float particlePressure;
-uniform float particleViscosity;
-uniform bool fluidSimulation;
+// Fluid simulation
+uniform bool  fluidSimulation;
+uniform vec3  particleGravity;
+uniform float fluidPressure;
+uniform float fluidViscosity;
+uniform float fluidForceMultiplier;
 
-// Shared variable for particles generated in the workgroup
+// -----------------------------------------------------------------------------
+// Shared variable for counting how many new particles are created per dispatch
+// -----------------------------------------------------------------------------
 shared uint particlesGeneratedInWorkgroup;
 
-// Improved hash function for better randomness
-uint hash(uint x) {
-    x ^= x >> 16u;
-    x *= 0x7feb352du;
-    x ^= x >> 15u;
-    x *= 0x846ca68bu;
-    x ^= x >> 16u;
-    return x;
-}
-
-float rand(uint seed) {
-    return float(hash(seed)) / 4294967295.0;
-}
-
-// Function to calculate fluid forces (simple pressure and viscosity model)
-vec3 calculateFluidForces(vec3 velocity) {
-    vec3 pressureForce = vec3(0.0);
-    if (length(velocity) > 0.0) {
-        pressureForce = -normalize(velocity) * particlePressure;
-    }
-    vec3 viscosityForce = -velocity * particleViscosity;
-    return pressureForce + viscosityForce;
-}
-
-void main() {
+// -----------------------------------------------------------------------------
+// Main
+// -----------------------------------------------------------------------------
+void main()
+{
     uint index = gl_GlobalInvocationID.x;
-
-    if (index >= uint(maxParticles)) return;// Avoid updating more particles than allowed
+    if (index >= uint(maxParticles)) return;
 
     Particle particle = particles[index];
-
-    // Always set particleID
     particle.particleID = float(index);
 
     bool isExpired = (particle.lifetimePercentage >= 1.0);
 
-    // Initialize the shared counter to 0 only once per workgroup
+    // Initialize the shared counter once per workgroup
     if (gl_LocalInvocationID.x == 0) {
         particlesGeneratedInWorkgroup = 0u;
     }
-
-    // Synchronize to ensure all threads in the workgroup see the updated value
     barrier();
 
-    if (shouldGenerate && particleGenerator && isExpired) {
-        // Atomically increment the particlesGenerated counter and check if we can generate more particles
+    // -------------------------------------------------------------------------
+    //  1) Generation Logic
+    // -------------------------------------------------------------------------
+    if (shouldGenerate && particleGenerator && isExpired)
+    {
+        // Atomically increment the global generation counter
         uint globalGenerated = atomicAdd(particlesGenerated, 1u);
-        if (globalGenerated < particleBatchSize) {
-            // Atomically increment the local workgroup counter
-            uint localGenerated = atomicAdd(particlesGeneratedInWorkgroup, 1u);
+        if (globalGenerated < particleBatchSize)
+        {
+            // We'll seed our random generator with ID + time
+            uint baseSeed = uint(particle.particleID)*1664525u
+            + uint(gl_GlobalInvocationID.x)*1013904223u
+            + uint(currentTime * 1000.0);
 
-            // Regenerate the particle
-            uint baseSeed = uint(particle.particleID) * 1664525u + uint(gl_GlobalInvocationID.x) * 1013904223u + uint(currentTime * 1000.0);
-
-            // Generate random positions
+            // Random position
             float randX = rand(baseSeed + 101u);
             float randY = rand(baseSeed + 102u);
             float randZ = rand(baseSeed + 103u);
-            particle.position.x = mix(minX, maxX, randX);
-            particle.position.y = mix(minY, maxY, randY);
-            particle.position.z = mix(minZ, maxZ, randZ);
-            particle.position.w = 1.0;
+            particle.position = vec4(
+            mix(minX, maxX, randX),
+            mix(minY, maxY, randY),
+            mix(minZ, maxZ, randZ),
+            1.0
+            );
 
-            // Generate random initial velocities
+            // Random velocity
             float randVelX = rand(baseSeed + 201u);
             float randVelY = rand(baseSeed + 202u);
             float randVelZ = rand(baseSeed + 203u);
-            particle.velocity.x = mix(minInitialVelocityX, maxInitialVelocityX, randVelX);
-            particle.velocity.y = mix(minInitialVelocityY, maxInitialVelocityY, randVelY);
-            particle.velocity.z = mix(minInitialVelocityZ, maxInitialVelocityZ, randVelZ);
-            particle.velocity.w = 0.0;
+            particle.velocity = vec4(
+            mix(minInitialVelocityX, maxInitialVelocityX, randVelX),
+            mix(minInitialVelocityY, maxInitialVelocityY, randVelY),
+            mix(minInitialVelocityZ, maxInitialVelocityZ, randVelZ),
+            0.0
+            );
 
-            // Assign lifetime
-            if (particleMaxLifetime > 0.0) {
+            // Lifetime (0.0 means immortal)
+            if (particleMaxLifetime > 0.0)
+            {
                 float randLifetime = rand(baseSeed + 204u);
-                particle.lifetime = mix(0.1, particleMaxLifetime, randLifetime);
-            } else {
-                particle.lifetime = 0.0;
+                particle.lifetime  = mix(0.1, particleMaxLifetime, randLifetime);
+            }
+            else
+            {
+                particle.lifetime  = 0.0;
             }
 
-            // Generate random weight within min and max values
-            particle.particleWeight = mix(particleMinWeight, particleMaxWeight, rand(baseSeed + 205u));
+            // Weight
+            particle.particleWeight = mix(
+            particleMinWeight,
+            particleMaxWeight,
+            rand(baseSeed + 205u)
+            );
 
-            // Initialize spawn time with optional jitter
+            // Spawn time + optional jitter
             particle.spawnTime = currentTime;
-            if (particleSpawnTimeJitter) {
-                float randJitter = rand(baseSeed + 206u);
+            if (particleSpawnTimeJitter)
+            {
+                float randJitter  = rand(baseSeed + 206u);
                 float jitterValue = randJitter * particleMaxSpawnTimeJitter;
                 particle.spawnTime += jitterValue;
             }
 
+            // Reset lifetimePercentage
             particle.lifetimePercentage = 0.0;
         }
     }
 
-    // Process the particles that are currently active
-    if (particle.lifetimePercentage < 1.0) {
-        // Scale gravity based on weight (optional)
+    // -------------------------------------------------------------------------
+    //  2) Update existing (active) particles
+    // -------------------------------------------------------------------------
+    if (particle.lifetimePercentage < 1.0)
+    {
+        // Gravity scaled by weight
         vec3 adjustedGravity = particleGravity * particle.particleWeight;
         particle.velocity.xyz += adjustedGravity * deltaTime;
 
-        // Apply fluid simulation forces if enabled
-        if (fluidSimulation) {
-            vec3 fluidForces = calculateFluidForces(particle.velocity.xyz);
+        // Fluid simulation
+        if (fluidSimulation)
+        {
+            vec3 fluidForces = calculateFluidForces(
+            particle.velocity.xyz,
+            adjustedGravity,
+            fluidPressure,
+            fluidViscosity,
+            fluidForceMultiplier
+            );
             particle.velocity.xyz += fluidForces * deltaTime;
         }
 
-        // Clamp the velocity to the maximum allowed value
+        // Clamp velocity
         float speed = length(particle.velocity.xyz);
-        if (speed > particleMaxVelocity) {
+        if (speed > particleMaxVelocity)
+        {
             particle.velocity.xyz = normalize(particle.velocity.xyz) * particleMaxVelocity;
         }
 
-        // Update position based on velocity
+        // Integrate position
         particle.position.xyz += particle.velocity.xyz * deltaTime;
 
-        // Check for collision with the ground plane
+        // Ground-plane collision
         float distanceToGround = dot(particle.position.xyz, particleGroundPlaneNormal) - particleGroundPlaneHeight;
-        if (distanceToGround < 0.0) {
-            // Reflect the velocity based on the ground plane normal
+        if (distanceToGround < 0.0)
+        {
+            // Reflect
             particle.velocity.xyz = reflect(particle.velocity.xyz, particleGroundPlaneNormal) * particleBounceFactor;
 
-            // Clamp the reflected velocity to the maximum allowed value
-            speed = length(particle.velocity.xyz);
-            if (speed > particleMaxVelocity) {
+            // Re-clamp after bounce
+            float bounceSpeed = length(particle.velocity.xyz);
+            if (bounceSpeed > particleMaxVelocity)
+            {
                 particle.velocity.xyz = normalize(particle.velocity.xyz) * particleMaxVelocity;
             }
 
-            // Prevent the particle from penetrating the ground plane
+            // Nudges the particle back on top
             particle.position.xyz -= particleGroundPlaneNormal * distanceToGround;
+
+            // CPU logic: ensure we have at least a small upward velocity
+            if (abs(particle.velocity.y) < 0.1)
+            {
+                particle.velocity.y = 0.1;
+            }
         }
 
-        // Calculate the elapsed time and update the lifetime percentage
+        // Lifetime percentage update
         float elapsedTime = currentTime - particle.spawnTime;
-        if (particle.lifetime > 0.0) {
+        if (particle.lifetime > 0.0)
+        {
             particle.lifetimePercentage = clamp(elapsedTime / particle.lifetime, 0.0, 1.0);
         }
+        else
+        {
+            // Immortal
+            particle.lifetimePercentage = 0.0;
+        }
 
-        // Handle precision issues
-        if (particle.lifetimePercentage >= 0.9999) {
+        // If nearly expired, clamp to 1.0
+        if (particle.lifetimePercentage >= 0.9999)
+        {
             particle.lifetimePercentage = 1.0;
         }
-    } else {
-        // If particle expired and not regenerated, reset velocity
+    }
+    else
+    {
+        // If expired, zero velocity
         particle.velocity.xyz = vec3(0.0);
     }
 
-    // Write the updated particle data back to the buffer
+    // Write particle back
     particles[index] = particle;
 }

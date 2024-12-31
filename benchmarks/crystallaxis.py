@@ -40,7 +40,7 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=100,
         lights=[
-            {"position": (1.85, 3.0, 7.0), "color": (0.55, 0.55, 0.55), "strength": 0.8},
+            {"position": (1.85, 5.0, 7.0), "color": (0.85, 0.85, 0.85), "strength": 1.0},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -49,7 +49,7 @@ def run_benchmark(
         culling=True,
         texture_lod_bias=0.85,
         env_map_lod_bias=2.5,
-        phong_shading=True,
+        phong_shading=False,
     )
 
     # Create the rendering instance with the base configuration
@@ -72,6 +72,7 @@ def run_benchmark(
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        env_map_strength=0.3,
     )
 
     # Add the pyramid renderer to the instance with a specific name

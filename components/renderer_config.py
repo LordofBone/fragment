@@ -29,6 +29,7 @@ class RendererConfig:
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
+        env_map_strength=0.5,
         invert_displacement_map=False,
         pom_height_scale=0.04,
         pom_min_steps=8,
@@ -84,6 +85,7 @@ class RendererConfig:
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
+        self.env_map_strength = env_map_strength
         self.invert_displacement_map = invert_displacement_map
         self.pom_height_scale = pom_height_scale
         self.pom_min_steps = pom_min_steps
@@ -169,6 +171,7 @@ class RendererConfig:
         phong_shading=None,
         opacity=1.0,
         shininess=1.0,
+        env_map_strength=None,
         shadow_map_resolution=None,
         invert_displacement_map=None,
         pom_height_scale=None,
@@ -210,6 +213,7 @@ class RendererConfig:
             "phong_shading": phong_shading,
             "opacity": opacity,
             "shininess": shininess,
+            "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
             "invert_displacement_map": invert_displacement_map,
             "height_scale": pom_height_scale,
@@ -253,7 +257,12 @@ class RendererConfig:
         phong_shading=None,
         opacity=1.0,
         shininess=1.0,
+        env_map_strength=None,
         shadow_map_resolution=None,
+        invert_displacement_map=None,
+        pom_height_scale=None,
+        pom_min_steps=None,
+        pom_max_steps=None,
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -284,7 +293,12 @@ class RendererConfig:
             "phong_shading": phong_shading,
             "opacity": opacity,
             "shininess": shininess,
+            "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
+            "invert_displacement_map": invert_displacement_map,
+            "height_scale": pom_height_scale,
+            "min_steps": pom_min_steps,
+            "max_steps": pom_max_steps,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
@@ -372,8 +386,9 @@ class RendererConfig:
         max_height=10.1,
         max_depth=0.5,
         fluid_simulation=False,
-        particle_pressure=0.0,
-        particle_viscosity=0.0,
+        fluid_pressure=0.0,
+        fluid_viscosity=0.0,
+        fluid_force_multiplier=1.0,
         **kwargs,
     ):
         """Add a particle renderer to the configuration."""
@@ -424,8 +439,9 @@ class RendererConfig:
             "max_height": max_height,
             "max_depth": max_depth,
             "fluid_simulation": fluid_simulation,
-            "particle_pressure": particle_pressure,
-            "particle_viscosity": particle_viscosity,
+            "fluid_pressure": fluid_pressure,
+            "fluid_viscosity": fluid_viscosity,
+            "fluid_force_multiplier": fluid_force_multiplier,
         }
 
         # Update the configuration with particle renderer specifics, preserving non-None values
