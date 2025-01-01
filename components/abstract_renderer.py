@@ -687,10 +687,11 @@ class AbstractRenderer(ABC):
         glBindTexture(GL_TEXTURE_2D, 0)
 
     def load_cubemap(self, folder_path, texture):
-        faces = ["right.png", "left.png", "bottom.png", "top.png", "front.png", "back.png"]
+        faces = ["right.png", "left.png", "top.png", "bottom.png", "front.png", "back.png"]
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
             surface = pygame.image.load(folder_path + face)
+            surface = pygame.transform.flip(surface, False, True)
             img_data = pygame.image.tostring(surface, "RGB", True)
             width, height = surface.get_size()
             glTexImage2D(
