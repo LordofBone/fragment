@@ -120,6 +120,38 @@ float fluidForceMultiplier
     return totalFluidForce;
 }
 
+// ----------------------------------------------------------------------
+// A simple "tent" (pyramid) filter for cubemaps
+// Samples 4 nearby directions and does a weighted average
+// 'dir' is your 3D direction for the cubemap
+// 'offset' is how big of an angular offset you want
+// ----------------------------------------------------------------------
+vec4 sampleCubemapTent(samplerCube cubemap, vec3 dir, float offset)
+{
+    // The base color at the exact direction
+    vec4 center = texture(cubemap, dir);
+
+    // We'll pick 3 offsets in a triangular pattern around 'dir'.
+    // In practice, you might pick 8 offsets for a more thorough filter.
+    // Or do a small random distribution if you want a "soft" look.
+    vec3 right    = normalize(cross(dir, vec3(0.0, 1.0, 0.0)));
+    vec3 up       = normalize(cross(right, dir));
+
+    // Sample directions
+    vec3 dir1 = normalize(dir + offset * right);
+    vec3 dir2 = normalize(dir - offset * right);
+    vec3 dir3 = normalize(dir + offset * up);
+
+    // Grab the colors
+    vec4 col1 = texture(cubemap, dir1);
+    vec4 col2 = texture(cubemap, dir2);
+    vec4 col3 = texture(cubemap, dir3);
+
+    // Weighted average: center has a higher weight
+    // so that we don't blur too heavily
+    return (center * 0.4 + col1 * 0.2 + col2 * 0.2 + col3 * 0.2);
+}
+
 // ---------------------------------------------------
 // Tone Mapping (Uncharted2)
 // ---------------------------------------------------
