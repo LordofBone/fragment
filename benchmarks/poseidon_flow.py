@@ -24,7 +24,7 @@ def run_benchmark(
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
-        cubemap_folder=os.path.join(cubemaps_dir, "mountain_lake/"),
+        cubemap_folder=os.path.join(cubemaps_dir, "glacier/"),
         camera_positions=[(4.2, 4.2, 4.2, -60.0, 55.0)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
