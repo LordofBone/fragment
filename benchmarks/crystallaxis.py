@@ -30,7 +30,7 @@ def run_benchmark(
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
-        cubemap_folder=os.path.join(cubemaps_dir, "mountain_lake/"),
+        cubemap_folder=os.path.join(cubemaps_dir, "magick_dome/"),
         camera_positions=[
             (3.4, 3.4, 3.4, -39.0, 39.0),
         ],
@@ -75,7 +75,16 @@ def run_benchmark(
         env_map_strength=0.3,
     )
 
+    # Define the configuration for the skybox
+    skybox_config = base_config.add_skybox(
+        shader_names={
+            "vertex": "skybox",
+            "fragment": "skybox",
+        },
+    )
+
     # Add the pyramid renderer to the instance with a specific name
+    instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("pyramid", "model", **pyramid_config)
 
     # Enable auto-rotation for the pyramid model
