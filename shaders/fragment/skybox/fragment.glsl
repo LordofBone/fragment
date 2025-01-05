@@ -2,16 +2,16 @@
 #include "common_funcs.glsl"
 
 in vec3 TexCoords;
-
 out vec4 FragColor;
 
 uniform samplerCube environmentMap;
 
 void main()
 {
-    // A small offset ~ 0.01 or 0.02
-    float offsetAngle = 0.015;
+    // Lanczos upsampling
+    float offset     = 0.005;
+    float lobes      = 3.0;
+    int sampleRadius = 2;// -2..2 => 25 taps
 
-    // Now do your custom 4-tap sampling
-    FragColor = sampleCubemapTent(environmentMap, TexCoords, offsetAngle);
+    FragColor = sampleCubemapLanczos(environmentMap, TexCoords, offset, lobes, sampleRadius);
 }
