@@ -6,12 +6,22 @@ out vec4 FragColor;
 
 uniform samplerCube environmentMap;
 
+// Lanczos parameters
+uniform float uOffset;// baseOffset
+uniform float uLobes;// e.g. 2.0 or 3.0
+uniform int   uSampleRadius;// e.g. 2
+uniform float uStepSize;// e.g. 0.5, 0.75, ...
+uniform float uSharpen;// e.g. 0.0 for no sharpen, 0.5 for mild, etc.
+
 void main()
 {
-    // Lanczos upsampling
-    float offset     = 0.005;
-    float lobes      = 3.0;
-    int sampleRadius = 2;// -2..2 => 25 taps
-
-    FragColor = sampleCubemapLanczos(environmentMap, TexCoords, offset, lobes, sampleRadius);
+    FragColor = sampleCubemapLanczos(
+    environmentMap,
+    TexCoords,
+    uOffset,
+    uLobes,
+    uSampleRadius,
+    uStepSize,
+    uSharpen
+    );
 }
