@@ -282,35 +282,33 @@ float baseOffset,
 float lobes,
 int sampleRadius)
 {
-    // Build local frame
     vec3 fwd = normalize(dir);
-    // pick an arbitrary up
-    vec3 tempUp = abs(fwd.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0);
-    vec3 side = normalize(cross(fwd, tempUp));
-    vec3 up   = normalize(cross(side, fwd));
 
-    vec4 accumColor = vec4(0.0);
+    // Build local tangent frame
+    vec3 tempUp = (abs(fwd.y) < 0.99) ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 side   = normalize(cross(fwd, tempUp));
+    vec3 up     = normalize(cross(side, fwd));
+
+    vec4 accumColor  = vec4(0.0);
     float accumWeight = 0.0;
 
-    // For each integer offset in [-sampleRadius..sampleRadius]
-    for (int i = -sampleRadius; i <= sampleRadius; i++)
+    // Use half-integer steps so Lanczos is non-zero away from the center
+    // e.g. for radius=2, i goes in [-2 .. 2] in increments of 0.5 => 9 steps
+    for (float i = -float(sampleRadius); i <= float(sampleRadius) + 0.001; i += 0.5)
     {
-        for (int j = -sampleRadius; j <= sampleRadius; j++)
+        for (float j = -float(sampleRadius); j <= float(sampleRadius) + 0.001; j += 0.5)
         {
-            float offU = float(i);
-            float offV = float(j);
+            // Evaluate 2D Lanczos weight at (i, j)
+            float w = lanczos2D(i, j, lobes);
 
-            float w = lanczos2D(offU, offV, lobes);
-
-            // convert offU, offV to directions
+            // Build a sample direction
             vec3 sampleDir = fwd
-            + (offU * baseOffset) * side
-            + (offV * baseOffset) * up;
-
+            + (i * baseOffset) * side
+            + (j * baseOffset) * up;
             sampleDir = normalize(sampleDir);
 
+            // Fetch the color, accumulate
             vec4 c = texture(cubemap, sampleDir);
-
             accumColor  += c * w;
             accumWeight += w;
         }
