@@ -268,19 +268,20 @@ float lanczos2D(float u, float v, float lobes)
 
 // ----------------------------------------------------------------------
 // sampleCubemapLanczos
-//   - cubemap : the samplerCube
-//   - dir : the main direction
-//   - baseOffset : how big each sample step is
-//   - lobes : e.g. 2.0 or 3.0
-//   - sampleRadius : how many integer steps in each direction?
-//       e.g. if sampleRadius=2, we do i,j in [-2..2], total 25 samples
+//   - cubemap      : the samplerCube
+//   - dir          : the main direction in 3D
+//   - baseOffset   : how big each sample step is (e.g. 0.005 radians)
+//   - lobes        : e.g. 2.0 or 3.0
+//   - sampleRadius : integer radius in "step" units, e.g. 2 => i,j in [-2..2]
+//   - stepSize     : fractional increment, e.g. 0.5 => [-2, -1.5, -1, ... , +2]
 // ----------------------------------------------------------------------
 vec4 sampleCubemapLanczos(
 samplerCube cubemap,
 vec3 dir,
 float baseOffset,
 float lobes,
-int sampleRadius)
+int   sampleRadius,
+float stepSize)
 {
     vec3 fwd = normalize(dir);
 
@@ -292,28 +293,32 @@ int sampleRadius)
     vec4 accumColor  = vec4(0.0);
     float accumWeight = 0.0;
 
-    // Use half-integer steps so Lanczos is non-zero away from the center
-    // e.g. for radius=2, i goes in [-2 .. 2] in increments of 0.5 => 9 steps
-    for (float i = -float(sampleRadius); i <= float(sampleRadius) + 0.001; i += 0.5)
+    // We loop over i, j from -sampleRadius..sampleRadius in increments of stepSize.
+    float minRange = -float(sampleRadius);
+    float maxRange =  float(sampleRadius) + 0.001;// small epsilon to include last step
+
+    for (float i = minRange; i <= maxRange; i += stepSize)
     {
-        for (float j = -float(sampleRadius); j <= float(sampleRadius) + 0.001; j += 0.5)
+        for (float j = minRange; j <= maxRange; j += stepSize)
         {
-            // Evaluate 2D Lanczos weight at (i, j)
             float w = lanczos2D(i, j, lobes);
 
-            // Build a sample direction
+            // Build the sample direction
             vec3 sampleDir = fwd
             + (i * baseOffset) * side
             + (j * baseOffset) * up;
             sampleDir = normalize(sampleDir);
 
-            // Fetch the color, accumulate
+            // Sample the cubemap
             vec4 c = texture(cubemap, sampleDir);
+
+            // Accumulate
             accumColor  += c * w;
             accumWeight += w;
         }
     }
 
+    // Normalize if we got any non-zero weights
     if (accumWeight > 0.0)
     return accumColor / accumWeight;
     else
