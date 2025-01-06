@@ -193,7 +193,3 @@ class SkyboxRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.shader_program, "uStepSize"),
             self.dynamic_attrs.get("upscale_step_size", 0.5),
         )
-        glUniform1f(
-            glGetUniformLocation(self.shader_engine.shader_program, "uSharpen"),
-            self.dynamic_attrs.get("upscale_sharpen", 0.0),
-        )
