@@ -1,5 +1,10 @@
+import os
+
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
+from config.path_config import (
+    cubemaps_dir,
+)
 
 
 def run_benchmark(
@@ -21,6 +26,7 @@ def run_benchmark(
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
+        cubemap_folder=os.path.join(cubemaps_dir, "space/"),
         camera_positions=[(4.2, 6.2, 4.2, -60.0, 55.0)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
@@ -97,6 +103,17 @@ def run_benchmark(
         max_height=0.1,  # Adjusted for a realistic spread along Y-axis
         max_depth=0.1,  # Adjusted for a realistic spread along X and Z-axes
     )
+
+    # Define the configuration for the skybox
+    skybox_config = base_config.add_skybox(
+        shader_names={
+            "vertex": "skybox",
+            "fragment": "skybox",
+        },
+    )
+
+    # Add the tyre renderer to the instance with a specific name
+    instance.add_renderer("skybox", "skybox", **skybox_config)
 
     # Add the particle renderer to the instance with a specific name
     instance.add_renderer("sparks", "particle", **particle_config)
