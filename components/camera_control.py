@@ -4,7 +4,7 @@ import glm
 class CameraController:
     def __init__(self, camera_positions, lens_rotations=None, move_speed=1.0, loop=True):
         # Ensure camera_positions is a list of tuples (x, y, z, rotation_x, rotation_y)
-        self.camera_positions = [(*pos[:3], *pos[3:]) for pos in camera_positions]
+        self.camera_positions = [(*pos[:3], pos[3], pos[4]) for pos in camera_positions]
 
         # Ensure lens_rotations is a list, even if a single float is passed
         self.lens_rotations = self.ensure_list(lens_rotations, default=0.0)
@@ -47,8 +47,14 @@ class CameraController:
 
     def interpolate_rotations(self):
         """Interpolate between current and next camera rotations."""
-        current_rotation = glm.vec2(*self.camera_positions[self.current_position_index][3:])
-        next_rotation = glm.vec2(*self.camera_positions[self.next_position_index][3:])
+        current_rotation = glm.vec2(
+            self.camera_positions[self.current_position_index][4],
+            self.camera_positions[self.current_position_index][3],
+        )
+        next_rotation = glm.vec2(
+            self.camera_positions[self.next_position_index][4],
+            self.camera_positions[self.next_position_index][3],
+        )
         return glm.mix(current_rotation, next_rotation, self.t)
 
     def get_current_target(self):
