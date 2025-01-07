@@ -181,7 +181,6 @@ class AbstractRenderer(ABC):
         self.texture_paths = texture_paths or {}
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions or [(0, 0, 0, 0, 0)]
-        self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
         self.fov = fov
         self.near_plane = near_plane
@@ -1004,7 +1003,6 @@ class AbstractRenderer(ABC):
     def update_camera(self, delta_time):
         if self.auto_camera:
             self.camera_position, self.camera_rotation = self.camera_controller.update(delta_time)
-            self.camera_target = self.camera_controller.get_current_target()
             self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
         else:
             self.camera_position = glm.vec3(*self.camera_positions[0][:3])
