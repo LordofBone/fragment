@@ -708,14 +708,18 @@ class AbstractRenderer(ABC):
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
 
     def setup_camera(self):
+        """Setup camera position and rotation."""
         if self.auto_camera:
+            # Auto camera mode: Use interpolated values
             self.camera_position, self.camera_rotation = self.camera_controller.update(0)
             self.camera_target = self.camera_controller.get_current_target()
             self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
         else:
+            # Manual mode: Use fixed camera position
             self.camera_position = glm.vec3(*self.camera_positions[0][:3])
-            self.camera_rotation = glm.vec2(*self.camera_positions[0][3:])
+            self.camera_rotation = glm.vec2(self.camera_positions[0][3], self.camera_positions[0][4])
             self.main_camera_lens_rotation = self.camera_controller.lens_rotations[0]
+
         self.setup_camera_matrices()
 
     def setup_camera_matrices(self):
