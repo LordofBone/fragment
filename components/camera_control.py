@@ -61,12 +61,12 @@ class CameraController:
         Pitch: Vertical rotation (x-axis)
         """
         current_rotation = glm.vec2(
-            self.camera_positions[self.current_position_index][4],  # yaw
-            self.camera_positions[self.current_position_index][3],  # pitch
+            self.camera_positions[self.current_position_index][3],  # yaw
+            self.camera_positions[self.current_position_index][4],  # pitch
         )
         next_rotation = glm.vec2(
-            self.camera_positions[self.next_position_index][4],  # yaw
-            self.camera_positions[self.next_position_index][3],  # pitch
+            self.camera_positions[self.next_position_index][3],  # yaw
+            self.camera_positions[self.next_position_index][4],  # pitch
         )
         return glm.mix(current_rotation, next_rotation, self.t)
 
