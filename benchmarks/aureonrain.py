@@ -33,13 +33,13 @@ def run_benchmark(
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
         camera_positions=[
-            (10.0, 10.0, 10.0, -30.0, 0.0),  # Initial position
-            (6.0, 6.0, 6.0, -30.0, 0.0),  # Zoom in
-            (4.0, 4.0, 10.0, -20.0, 15.0),  # Rotate around
-            (0.0, 6.0, 6.0, -15.0, 15.0),  # Rotate around
-            (4.0, 10.0, 4.0, -15.0, 15.0),  # Rotate around
-            (6.0, 6.0, 6.0, -15.0, 15.0),  # Zoom out to origin
-            (10.0, 10.0, 10.0, -30.0, 15.0),  # Back to initial
+            (10.0, 10.0, 10.0, 0.0, -30.0),  # Initial position
+            (6.0, 6.0, 6.0, 0.0, -30.0),  # Zoom in
+            (4.0, 4.0, 10.0, 15.0, -20.0),  # Rotate around
+            (0.0, 6.0, 6.0, 15.0, -15.0),  # Rotate around
+            (4.0, 10.0, 4.0, 15.0, -15.0),  # Rotate around
+            (6.0, 6.0, 6.0, 15.0, -15.0),  # Zoom out to origin
+            (10.0, 10.0, 10.0, 15.0, -30.0),  # Back to initial
         ],
         lens_rotations=[0.0],
         camera_target=(0, 0, 0),
