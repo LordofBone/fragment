@@ -65,8 +65,6 @@ def run_benchmark(
         loop=True,
         msaa_level=msaa_level,
         culling=True,
-        texture_lod_bias=0.8,
-        env_map_lod_bias=1.5,
         phong_shading=True,
         sound_enabled=sound_enabled,
         background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
@@ -100,6 +98,8 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=1.5,
     )
 
     # Define the configuration for the opaque pyramid model
@@ -125,6 +125,8 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=1.5,
     )
 
     # Define the configuration for the rotating pyramid model
@@ -140,6 +142,8 @@ def run_benchmark(
             "fragment": "embm",
         },
         rotation_speed=2000.0,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=1.5,
     )
 
     # Define the configuration for the particle renderer
@@ -205,6 +209,8 @@ def run_benchmark(
         shadow_strength=0.85,
         env_map_strength=1.0,
         phong_shading=False,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=1.5,
     )
 
     # Add a skybox renderer
