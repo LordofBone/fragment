@@ -719,24 +719,33 @@ class AbstractRenderer(ABC):
         self.setup_camera_matrices()
 
     def setup_camera_matrices(self):
+        """Setup camera view and projection matrices."""
         aspect_ratio = self.window_size[0] / self.window_size[1]
 
-        # Apply rotations to the camera direction
-        direction_to_target = glm.vec3(0, 0, -1.0)  # Assuming default forward direction is along -Z axis
-        rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.camera_rotation.x), glm.vec3(1.0, 0.0, 0.0))
-        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.camera_rotation.y), glm.vec3(0.0, 1.0, 0.0))
-        adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
+        # Apply yaw (y-axis) and pitch (x-axis)
+        rotation_matrix = glm.mat4(1.0)
+        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.camera_rotation.x),
+                                     glm.vec3(1.0, 0.0, 0.0))  # Pitch
+        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.camera_rotation.y),
+                                     glm.vec3(0.0, 1.0, 0.0))  # Yaw
 
-        # Create the view matrix
-        self.view = glm.lookAt(self.camera_position, self.camera_position + adjusted_direction, self.up_vector)
+        # Default camera forward direction (-Z axis)
+        forward_direction = glm.vec3(0.0, 0.0, -1.0)
+        adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(forward_direction, 0.0))
 
-        # Apply lens rotation by rotating around the forward axis
-        lens_rotation_matrix = glm.rotate(
-            glm.mat4(1.0), glm.radians(self.main_camera_lens_rotation), adjusted_direction
+        # Create view matrix
+        self.view = glm.lookAt(
+            self.camera_position,  # Camera Position
+            self.camera_position + adjusted_direction,  # Look-at target
+            self.up_vector,  # Up vector
         )
+
+        # Lens rotation around camera direction
+        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.main_camera_lens_rotation),
+                                          adjusted_direction)
         self.view = lens_rotation_matrix * self.view
 
-        # Create the projection matrix
+        # Create projection matrix
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
     def set_light_uniforms(self, shader_program):
