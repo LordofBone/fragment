@@ -51,8 +51,6 @@ def run_benchmark(
             0.0,  # No rotation at the start
         ],
         auto_camera=True,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
         fov=90,
         near_plane=0.1,
         far_plane=1000,
@@ -72,8 +70,6 @@ def run_benchmark(
         move_speed=0.2,
         msaa_level=msaa_level,
         culling=True,
-        texture_lod_bias=1.0,
-        env_map_lod_bias=2.0,
         phong_shading=True,
     )
 
@@ -106,6 +102,8 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=30.0,
         screen_facing_planar_texture=True,
+        texture_lod_bias=1.0,
+        env_map_lod_bias=2.0,
     )
 
     # Define the configuration for the skybox
