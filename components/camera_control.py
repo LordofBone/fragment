@@ -34,7 +34,7 @@ class CameraController:
         return value
 
     def update(self, delta_time):
-        """Update camera position and rotation."""
+        """Update camera position and rotation based on time."""
         self.t += self.move_speed * delta_time
         if self.t > 1.0:
             self.t = 0.0
@@ -49,14 +49,14 @@ class CameraController:
         return interpolated_position, interpolated_rotation
 
     def interpolate_positions(self):
-        """Interpolate between current and next camera positions."""
+        """Interpolate between current and next camera positions (x, y, z)."""
         current_pos = glm.vec3(*self.camera_positions[self.current_position_index][:3])
         next_pos = glm.vec3(*self.camera_positions[self.next_position_index][:3])
         return glm.mix(current_pos, next_pos, self.t)
 
     def interpolate_rotations(self):
         """
-        Interpolate between current and next camera rotations (yaw and pitch).
+        Interpolate between current and next camera rotations (yaw, pitch).
         Yaw: Horizontal rotation (y-axis)
         Pitch: Vertical rotation (x-axis)
         """
@@ -69,9 +69,6 @@ class CameraController:
             self.camera_positions[self.next_position_index][3],  # pitch
         )
         return glm.mix(current_rotation, next_rotation, self.t)
-
-    def get_current_target(self):
-        return glm.vec3(0, 0, 0)
 
     def get_current_lens_rotation(self):
         """Interpolate lens rotation."""
