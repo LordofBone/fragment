@@ -32,10 +32,9 @@ def run_benchmark(
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "magick_dome/"),
         camera_positions=[
-            (3.4, 3.4, 3.4, -39.0, 39.0),
+            # (x, y, z, yaw, pitch)
+            (4.5, 2.85, -1.4, 120.0, 55.0),
         ],
-        camera_target=(0, 0.75, 0),
-        up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.1,
         far_plane=100,
@@ -83,11 +82,11 @@ def run_benchmark(
         },
     )
 
-    # Add the pyramid renderer to the instance with a specific name
+    # Add the skybox and the pyramid to the scene
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("pyramid", "model", **pyramid_config)
 
-    # Enable auto-rotation for the pyramid model
+    # Optionally enable auto-rotation for the pyramid
     instance.scene_construct.set_auto_rotation("pyramid", True)
 
     # Run the rendering instance
