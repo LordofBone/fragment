@@ -32,7 +32,7 @@ def run_benchmark(
         up_vector=(0, 1, 0),
         fov=60,
         lights=[
-            {"position": (0.0, 0.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {"position": (-0.8, 0.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
         ],
         near_plane=0.1,
         far_plane=5000,
@@ -68,24 +68,24 @@ def run_benchmark(
         particle_generator=True,
         generator_delay=0.0,
         particle_size=18.0,
-        min_initial_velocity_x=-0.3,
-        max_initial_velocity_x=0.3,
-        min_initial_velocity_y=-0.3,
-        max_initial_velocity_y=0.3,
-        min_initial_velocity_z=0.3,
-        max_initial_velocity_z=0.3,
+        min_initial_velocity_x=-6.5,
+        max_initial_velocity_x=6.5,
+        min_initial_velocity_y=-2.5,
+        max_initial_velocity_y=2.5,
+        min_initial_velocity_z=-7.5,
+        max_initial_velocity_z=0.0,
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
         particle_max_lifetime=15.0,  # Set max lifetime to a realistic value
         particle_max_weight=1.5,  # Set max weight to a realistic value
         particle_min_weight=0.5,  # Set min weight to a realistic value
         particle_smooth_edges=True,
         particle_color=(0.929, 0.929, 0.204),
-        particle_fade_to_color=True,
+        particle_fade_to_color=False,
         particle_fade_color=(0.941, 0.537, 0.012),
         phong_shading=True,
         opacity=1.0,
         shininess=0.001,
-        particle_gravity=(0.0, 0.0, -0.61),
+        particle_gravity=(0.178, 0.0233, 0.3),
         particle_bounce_factor=0.65,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
         particle_ground_plane_height=-7.15,  # Height of the ground plane (y = 0)
