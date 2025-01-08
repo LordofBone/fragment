@@ -88,17 +88,17 @@ def run_benchmark(
         particle_gravity=(0.0, 0.0, -0.81),
         particle_bounce_factor=0.65,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
-        particle_ground_plane_height=-6.0,  # Height of the ground plane (y = 0)
+        particle_ground_plane_height=-7.15,  # Height of the ground plane (y = 0)
         fluid_simulation=False,  # Enable fluid simulation
         fluid_pressure=6.5,  # Pressure factor for the particles
         fluid_viscosity=5.1,  # Viscosity factor for the particles
         fluid_force_multiplier=1.0,  # Force multiplier for the fluid simulation
         particle_spawn_time_jitter=True,  # Jitter for spawn time
         particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
-        min_width=-0.39,  # Adjusted for a realistic spread along X and Z-axes
-        min_height=-0.31,  # Adjusted for a realistic spread along Y-axis
+        min_width=-0.35,  # Adjusted for a realistic spread along X and Z-axes
+        min_height=-0.27,  # Adjusted for a realistic spread along Y-axis
         min_depth=-0.1,  # Adjusted for a realistic spread along X and Z-axes
-        max_width=0.39,  # Adjusted for a realistic spread along X and Z-axes
+        max_width=0.27,  # Adjusted for a realistic spread along X and Z-axes
         max_height=0.31,  # Adjusted for a realistic spread along Y-axis
         max_depth=0.1,  # Adjusted for a realistic spread along X and Z-axes
     )
