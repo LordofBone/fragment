@@ -87,6 +87,7 @@ def run_benchmark(
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("tyre", "model", **tyre_config)
 
+    # Translate the tyre model to a specific position, to get best view of skybox
     instance.scene_construct.translate_renderer("tyre", (-6.85, 6.25, 6.5))
 
     # Slightly rotate it so it's angled in view
