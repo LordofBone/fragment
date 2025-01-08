@@ -27,7 +27,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "space/"),
-        camera_positions=[(4.2, 6.2, 4.2, -60.0, 55.0)],
+        camera_positions=[(0.0, 0.0, -7.2, 187.0, 0.0)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=60,
@@ -69,38 +69,38 @@ def run_benchmark(
         particle_generator=True,
         generator_delay=0.0,
         particle_size=36.0,
-        min_initial_velocity_x=-3.0,
-        max_initial_velocity_x=3.0,
-        min_initial_velocity_y=-0.0,
-        max_initial_velocity_y=20.0,
-        min_initial_velocity_z=-3.0,
-        max_initial_velocity_z=3.0,
+        min_initial_velocity_x=-0.3,
+        max_initial_velocity_x=0.3,
+        min_initial_velocity_y=-0.3,
+        max_initial_velocity_y=0.3,
+        min_initial_velocity_z=0.3,
+        max_initial_velocity_z=0.3,
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
         particle_max_lifetime=15.0,  # Set max lifetime to a realistic value
         particle_max_weight=1.5,  # Set max weight to a realistic value
         particle_min_weight=0.5,  # Set min weight to a realistic value
-        particle_smooth_edges=False,
-        particle_color=(1.0, 0.7, 0.2),
-        particle_fade_to_color=False,
-        particle_fade_color=(0.0, 1.0, 0.0),
+        particle_smooth_edges=True,
+        particle_color=(1.0, 1.0, 0.4),
+        particle_fade_to_color=True,
+        particle_fade_color=(0.659, 0.471, 0.8),
         phong_shading=True,
         opacity=1.0,
         shininess=0.001,
-        particle_gravity=(0.0, -9.81, 0.0),
+        particle_gravity=(0.0, 0.0, -1.81),
         particle_bounce_factor=0.65,  # Standard bounce factor
-        particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
-        particle_ground_plane_height=1.0,  # Height of the ground plane (y = 0)
+        particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
+        particle_ground_plane_height=-6.0,  # Height of the ground plane (y = 0)
         fluid_simulation=False,  # Enable fluid simulation
         fluid_pressure=6.5,  # Pressure factor for the particles
         fluid_viscosity=5.1,  # Viscosity factor for the particles
         fluid_force_multiplier=1.0,  # Force multiplier for the fluid simulation
         particle_spawn_time_jitter=True,  # Jitter for spawn time
         particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
-        min_width=-0.1,  # Adjusted for a realistic spread along X and Z-axes
-        min_height=-0.1,  # Adjusted for a realistic spread along Y-axis
+        min_width=-0.39,  # Adjusted for a realistic spread along X and Z-axes
+        min_height=-0.31,  # Adjusted for a realistic spread along Y-axis
         min_depth=-0.1,  # Adjusted for a realistic spread along X and Z-axes
-        max_width=0.1,  # Adjusted for a realistic spread along X and Z-axes
-        max_height=0.1,  # Adjusted for a realistic spread along Y-axis
+        max_width=0.39,  # Adjusted for a realistic spread along X and Z-axes
+        max_height=0.31,  # Adjusted for a realistic spread along Y-axis
         max_depth=0.1,  # Adjusted for a realistic spread along X and Z-axes
     )
 
@@ -117,7 +117,7 @@ def run_benchmark(
 
     # Add the particle renderer to the instance with a specific name
     instance.add_renderer("sparks", "particle", **particle_config)
-    instance.scene_construct.translate_renderer("sparks", (-1, 0, 2.45))  # Translate first model
+
     instance.scene_construct.set_auto_rotation("sparks", False)
 
     # Run the rendering instance
