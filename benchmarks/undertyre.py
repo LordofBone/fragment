@@ -38,7 +38,7 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=50.0,
         lights=[
-            {"position": (3.85, 5.5, 2.85), "color": (0.50, 0.50, 0.50), "strength": 0.75},
+            {"position": (3.85, 0.0, 2.85), "color": (1.0, 1.0, 1.0), "strength": 1.0},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -89,10 +89,10 @@ def run_benchmark(
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("tyre", "model", **tyre_config)
 
-    instance.scene_construct.translate_renderer("tyre", (-4, 5, 6))
+    instance.scene_construct.translate_renderer("tyre", (-6.85, 6.25, 6.5))
 
     # Slightly rotate it so it's angled in view
-    instance.scene_construct.rotate_renderer("tyre", 45, (0, 1, 0))
+    instance.scene_construct.rotate_renderer("tyre", 0, (0, 1, 0))
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
