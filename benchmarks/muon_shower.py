@@ -53,8 +53,8 @@ def run_benchmark(
     # Define the configuration for the particle renderer
     particle_config = base_config.add_particle_renderer(
         particle_render_mode=particle_render_mode,
-        particles_max=600,
-        particle_batch_size=150,
+        particles_max=2000,
+        particle_batch_size=350,
         # available_particle_types = ['points','lines','line_strip','line_loop','lines_adjacency','line_strip_adjacency','triangles','triangle_strip','triangle_fan','triangles_adjacency','triangle_strip_adjacency','patches']
         particle_type="points",
         particle_shader_override=False,
@@ -95,12 +95,12 @@ def run_benchmark(
         fluid_force_multiplier=1.0,  # Force multiplier for the fluid simulation
         particle_spawn_time_jitter=True,  # Jitter for spawn time
         particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
-        min_width=-0.35,  # Adjusted for a realistic spread along X and Z-axes
-        min_height=-0.27,  # Adjusted for a realistic spread along Y-axis
-        min_depth=-0.1,  # Adjusted for a realistic spread along X and Z-axes
-        max_width=0.27,  # Adjusted for a realistic spread along X and Z-axes
-        max_height=0.31,  # Adjusted for a realistic spread along Y-axis
-        max_depth=0.1,  # Adjusted for a realistic spread along X and Z-axes
+        min_width=-0.0,  # Adjusted for a realistic spread along X and Z-axes
+        min_height=-0.0,  # Adjusted for a realistic spread along Y-axis
+        min_depth=-0.0,  # Adjusted for a realistic spread along X and Z-axes
+        max_width=0.0,  # Adjusted for a realistic spread along X and Z-axes
+        max_height=0.0,  # Adjusted for a realistic spread along Y-axis
+        max_depth=0.0,  # Adjusted for a realistic spread along X and Z-axes
     )
 
     # Define the configuration for the skybox
