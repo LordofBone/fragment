@@ -111,8 +111,6 @@ class AbstractRenderer(ABC):
         texture_paths=None,
         cubemap_folder=None,
         camera_positions=None,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
         fov=45,
         near_plane=0.1,
         far_plane=100,
@@ -181,7 +179,6 @@ class AbstractRenderer(ABC):
         self.texture_paths = texture_paths or {}
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions or [(0, 0, 0, 0, 0)]
-        self.up_vector = glm.vec3(*up_vector)
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
