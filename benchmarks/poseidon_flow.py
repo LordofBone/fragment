@@ -25,7 +25,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "glacier/"),
-        camera_positions=[(4.2, 4.2, 4.2, 55.0, -60.0)],
+        camera_positions=[(4.2, 150, 4.2, 30.0, -10.0)],
         fov=40,
         near_plane=0.1,
         far_plane=5000,
@@ -55,10 +55,20 @@ def run_benchmark(
         randomness=400.0,
         tex_coord_frequency=400.0,
         tex_coord_amplitude=0.085,
-        width=50.0,
-        height=50.0,
+        width=5000.0,
+        height=5000.0,
         env_map_strength=1.0,
     )
+
+    # Define the configuration for the skybox
+    skybox_config = base_config.add_skybox(
+        shader_names={
+            "vertex": "skybox",
+            "fragment": "skybox",
+        },
+    )
+
+    instance.add_renderer("skybox", "skybox", **skybox_config)
 
     # Add the water surface renderer to the instance with a specific name
     instance.add_renderer("water_surface", "surface", **water_config)
