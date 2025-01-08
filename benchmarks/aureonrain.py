@@ -236,7 +236,7 @@ def run_benchmark(
     instance.scene_construct.translate_renderer("model_rotating", (0, 1.5, -3))  # Translate first model
     instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
-    instance.scene_construct.set_auto_rotation("model_rotating", True)  # Disable auto-rotation for second model
+    instance.scene_construct.set_auto_rotation("model_rotating", True)  # Enable auto-rotation for second model
 
     instance.scene_construct.translate_renderer("model_stretched", (2, 1.5, 0))  # Translate second model
     instance.scene_construct.scale_renderer("model_stretched", (1.2, 1.2, 1.2))  # Scale second model
