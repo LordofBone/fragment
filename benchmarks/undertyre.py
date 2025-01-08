@@ -31,9 +31,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "garage_2/"),
-        camera_positions=[
-            (6.4, 6.4, 6.4, -270.0, 0.0),
-        ],
+        camera_positions=[(6.4, 6.4, 6.4, -270.0, 0.0), ],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=40,
