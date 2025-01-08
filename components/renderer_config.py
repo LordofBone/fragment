@@ -13,8 +13,6 @@ class RendererConfig:
         texture_paths=None,
         cubemap_folder=None,
         camera_positions=None,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
         rotation_axis=(0, 3, 0),
         fov=40,
         near_plane=0.1,
@@ -69,9 +67,7 @@ class RendererConfig:
         self.shaders = shaders
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions
-        self.camera_target = camera_target
         self.rotation_axis = rotation_axis
-        self.up_vector = up_vector
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
