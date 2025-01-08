@@ -32,8 +32,9 @@ def run_benchmark(
         up_vector=(0, 1, 0),
         fov=60,
         lights=[
-            {"position": (3.0, 1.0, 4.0), "color": (0.0, 1.0, 0.0), "strength": 1.0},
-            {"position": (0.0, 1.0, 8.0), "color": (1.0, 0.0, 1.0), "strength": 1.0},
+            # {"position": (3.0, 1.0, 4.0), "color": (0.0, 1.0, 0.0), "strength": 1.0},
+            # {"position": (0.0, 1.0, 8.0), "color": (1.0, 0.0, 1.0), "strength": 1.0},
+            {"position": (0.0, 0.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
         ],
         near_plane=0.1,
         far_plane=5000,
@@ -80,13 +81,13 @@ def run_benchmark(
         particle_max_weight=1.5,  # Set max weight to a realistic value
         particle_min_weight=0.5,  # Set min weight to a realistic value
         particle_smooth_edges=True,
-        particle_color=(1.0, 1.0, 0.4),
+        particle_color=(0.929, 0.929, 0.204),
         particle_fade_to_color=True,
-        particle_fade_color=(0.659, 0.471, 0.8),
-        phong_shading=True,
+        particle_fade_color=(0.941, 0.537, 0.012),
+        phong_shading=False,
         opacity=1.0,
         shininess=0.001,
-        particle_gravity=(0.0, 0.0, -1.81),
+        particle_gravity=(0.0, 0.0, -0.81),
         particle_bounce_factor=0.65,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
         particle_ground_plane_height=-6.0,  # Height of the ground plane (y = 0)
