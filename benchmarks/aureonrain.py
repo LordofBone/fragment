@@ -50,7 +50,7 @@ def run_benchmark(
         lights=[
             {
                 "position": (20.85, 16.0, 22.0),
-                "color": (0.55, 0.55, 0.55),
+                "color": (1.0, 1.0, 0.82),
                 "strength": 0.8,
                 "orth_left": -60.0,
                 "orth_right": 60.0,
