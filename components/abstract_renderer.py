@@ -479,7 +479,7 @@ class AbstractRenderer(ABC):
             adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(main_camera_forward, 0.0))
             planar_target = self.planar_camera_position + adjusted_direction
 
-            up_vector = glm.vec3(0.0, 1.0, 0.0)
+            up_vector = glm.vec3(1.0, 0.0, 0.0)
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
         else:
             lens_rotation = self.planar_camera_lens_rotation
@@ -498,7 +498,7 @@ class AbstractRenderer(ABC):
             adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
             planar_target = self.planar_camera_position + adjusted_direction
 
-            up_vector = glm.vec3(0.0, 1.0, 0.0)
+            up_vector = glm.vec3(1.0, 0.0, 0.0)
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
 
         # Apply lens rotation around the forward axis
