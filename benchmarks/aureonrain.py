@@ -42,8 +42,6 @@ def run_benchmark(
             (10.0, 10.0, 10.0, 15.0, -30.0),  # Back to initial
         ],
         lens_rotations=[0.0],
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.2,
         far_plane=100,

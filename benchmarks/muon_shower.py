@@ -28,8 +28,6 @@ def run_benchmark(
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "space/"),
         camera_positions=[(-1.0, 0.0, -7.2, 187.0, 0.0)],
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
         fov=60,
         lights=[
             {"position": (-0.8, 0.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},

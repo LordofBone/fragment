@@ -26,8 +26,6 @@ def run_benchmark(
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "glacier/"),
         camera_positions=[(4.2, 4.2, 4.2, 55.0, -60.0)],
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.1,
         far_plane=5000,
