@@ -181,7 +181,6 @@ class AbstractRenderer(ABC):
         self.texture_paths = texture_paths or {}
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions or [(0, 0, 0, 0, 0)]
-        self.camera_target = glm.vec3(*camera_target)
         self.up_vector = glm.vec3(*up_vector)
         self.fov = fov
         self.near_plane = near_plane
@@ -435,120 +434,116 @@ class AbstractRenderer(ABC):
         glCullFace(GL_BACK)
 
     def render_planar_view(self, scene_renderers):
+        """
+        Renders the scene from a 'planar camera' perspective, if enabled.
+        """
         if not self.planar_camera:
             return None
 
-        # Calculate the main camera's forward direction
-        main_camera_forward = glm.normalize(self.camera_target - self.camera_position)
+        # For demonstration, let's interpret self.camera_rotation:
+        #   x => yaw
+        #   y => pitch
+        pitch = self.camera_rotation.y
+        yaw = self.camera_rotation.x
+
+        # Build a rotation matrix from (yaw, pitch)
+        rotation_matrix = glm.mat4(1.0)
+        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(pitch), glm.vec3(1.0, 0.0, 0.0))
+        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(yaw), glm.vec3(0.0, 1.0, 0.0))
+
+        main_camera_forward = glm.vec3(rotation_matrix * glm.vec4(0.0, 0.0, -1.0, 0.0))
 
         if self.planar_relative_to_camera:
-            # Ensure the planar camera's lens rotation matches relative to the main camera's lens rotation
             lens_rotation = self.planar_camera_lens_rotation + self.main_camera_lens_rotation
 
-            # Calculate the direction to camera
+            # direction_to_camera is a convenience vector from the object to the main camera
             direction_to_camera = glm.normalize(self.camera_position - self.translation)
 
-            # Planar camera position is relative to the object's position and adjusted direction based on camera distance
             self.planar_camera_position = (
-                self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
-            ) + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
+                self.translation
+                + glm.vec3(*self.planar_camera_position_rotation[:3])
+                + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
+            )
 
-            # Calculate the relative rotation based on the main camera's orientation
+            # Summation of rotations
             self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:]) + glm.vec2(
                 self.camera_rotation
             )
 
+            # Build a rotation matrix from the combined planar_camera_rotation
+            rotation_matrix = glm.mat4(1.0)
             rotation_matrix = glm.rotate(
-                glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x), glm.vec3(1.0, 0.0, 0.0)
+                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(1.0, 0.0, 0.0)
             )
             rotation_matrix = glm.rotate(
-                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(0.0, 1.0, 0.0)
+                rotation_matrix, glm.radians(self.planar_camera_rotation.x), glm.vec3(0.0, 1.0, 0.0)
             )
-            adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(main_camera_forward, 0.0))
 
+            adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(main_camera_forward, 0.0))
             planar_target = self.planar_camera_position + adjusted_direction
 
-            # Flip the up vector to correct any inversion that might occur
-            up_vector = glm.vec3(0.0, -1.0, 0.0)
-
-            # Create the view matrix for the planar camera
+            up_vector = glm.vec3(0.0, 1.0, 0.0)
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
         else:
-            # Ensure the planar camera's lens rotation is set static to the specified value
             lens_rotation = self.planar_camera_lens_rotation
-
-            # Fixed planar camera position relative to the object
             self.planar_camera_position = self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
             self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:])
+
             direction_to_target = glm.vec3(0.0, 0.0, -1.0)
+            rotation_matrix = glm.mat4(1.0)
+            rotation_matrix = glm.rotate(
+                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(1.0, 0.0, 0.0)
+            )
+            rotation_matrix = glm.rotate(
+                rotation_matrix, glm.radians(self.planar_camera_rotation.x), glm.vec3(0.0, 1.0, 0.0)
+            )
 
-            rotation_matrix = glm.rotate(
-                glm.mat4(1.0), glm.radians(self.planar_camera_rotation.x), glm.vec3(1.0, 0.0, 0.0)
-            )
-            rotation_matrix = glm.rotate(
-                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(0.0, 1.0, 0.0)
-            )
             adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
-
             planar_target = self.planar_camera_position + adjusted_direction
 
-            # Flip the up vector to correct the inversion
-            up_vector = glm.vec3(0.0, -1.0, 0.0)
-
-            # Create the view matrix for the planar camera
+            up_vector = glm.vec3(0.0, 1.0, 0.0)
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
 
-        # Apply lens rotation by rotating around the forward axis
-        lens_rotation_matrix = glm.rotate(
-            glm.mat4(1.0), glm.radians(lens_rotation), glm.vec3(0.0, 0.0, 1.0)
-        )  # Rotation around the forward axis
+        # Apply lens rotation around the forward axis
+        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(lens_rotation), glm.vec3(0.0, 0.0, 1.0))
         self.planar_view = lens_rotation_matrix * self.planar_view
 
-        # Calculate the aspect ratio and create the projection matrix
+        # Create planar projection
         aspect_ratio = self.planar_resolution[0] / self.planar_resolution[1]
         self.planar_projection = glm.perspective(
             glm.radians(self.planar_fov), aspect_ratio, self.planar_near_plane, self.planar_far_plane
         )
 
-        # Temporarily remove this object from the list of renderers
-        scene_renderers = [renderer for renderer in scene_renderers if renderer is not self]
+        # Avoid self-drawing
+        scene_renderers = [r for r in scene_renderers if r is not self]
 
+        # Render to the planar framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, self.planar_framebuffer)
-
-        # Set the viewport to match the planar resolution
         glViewport(0, 0, self.planar_resolution[0], self.planar_resolution[1])
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
+        # Draw scene from planar camera
         for renderer in scene_renderers:
             renderer.render_with_custom_camera(self.planar_view, self.planar_projection)
 
-        if self.debug_mode:
-            if not self.screen_facing_planar_screenshotted:
-                # Read the texture data from the framebuffer
-                glBindTexture(GL_TEXTURE_2D, self.screen_texture)
-                data = glReadPixels(
-                    0, 0, self.planar_resolution[0], self.planar_resolution[1], GL_RGB, GL_UNSIGNED_BYTE
-                )
-                image = Image.frombytes("RGB", self.planar_resolution, data)
-                image = image.transpose(Image.FLIP_TOP_BOTTOM)  # Flip the image vertically
+        if self.debug_mode and not self.screen_facing_planar_screenshotted:
+            # Optionally read back the planar framebuffer
+            glBindTexture(GL_TEXTURE_2D, self.screen_texture)
+            data = glReadPixels(0, 0, self.planar_resolution[0], self.planar_resolution[1], GL_RGB, GL_UNSIGNED_BYTE)
+            image = Image.frombytes("RGB", self.planar_resolution, data)
+            image = image.transpose(Image.FLIP_TOP_BOTTOM)
 
-                # Create the screenshots directory if it doesn't exist
-                if not os.path.exists(screenshots_dir):
-                    os.makedirs(screenshots_dir)
+            if not os.path.exists(screenshots_dir):
+                os.makedirs(screenshots_dir)
 
-                # Generate the filename with a timestamp
-                timestamp = time.strftime("%Y%m%d_%H%M%S")
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            filename = f"renderer_{self.renderer_name}_screen_texture_{timestamp}.png"
+            image_saver.save_image(image, filename)
+            self.screen_facing_planar_screenshotted = True
 
-                filename = f"renderer_{self.renderer_name}_screen_texture_{timestamp}.png"
-                image_saver.save_image(image, filename)
-                self.screen_facing_planar_screenshotted = True
-
+        # Unbind and restore
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
-
-        # Reset the viewport back to the window size
         glViewport(0, 0, self.window_size[0], self.window_size[1])
-
         glBindTexture(GL_TEXTURE_2D, 0)
 
     def render_with_custom_camera(self, view_matrix, projection_matrix):
@@ -687,10 +682,11 @@ class AbstractRenderer(ABC):
         glBindTexture(GL_TEXTURE_2D, 0)
 
     def load_cubemap(self, folder_path, texture):
-        faces = ["right.png", "left.png", "bottom.png", "top.png", "front.png", "back.png"]
+        faces = ["right.png", "left.png", "top.png", "bottom.png", "front.png", "back.png"]
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture)
         for i, face in enumerate(faces):
             surface = pygame.image.load(folder_path + face)
+            surface = pygame.transform.flip(surface, False, True)
             img_data = pygame.image.tostring(surface, "RGB", True)
             width, height = surface.get_size()
             glTexImage2D(
@@ -707,35 +703,46 @@ class AbstractRenderer(ABC):
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
 
     def setup_camera(self):
+        """Setup camera position and rotation."""
         if self.auto_camera:
+            self.camera_controller = CameraController(
+                self.camera_positions, lens_rotations=self.lens_rotations, move_speed=self.move_speed, loop=self.loop
+            )
             self.camera_position, self.camera_rotation = self.camera_controller.update(0)
-            self.camera_target = self.camera_controller.get_current_target()
             self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
         else:
+            self.camera_controller = CameraController(self.camera_positions, lens_rotations=self.lens_rotations)
+            # Take the first camera position
             self.camera_position = glm.vec3(*self.camera_positions[0][:3])
+            # Indices 3 and 4 are yaw/pitch
             self.camera_rotation = glm.vec2(*self.camera_positions[0][3:])
             self.main_camera_lens_rotation = self.camera_controller.lens_rotations[0]
+
         self.setup_camera_matrices()
 
     def setup_camera_matrices(self):
+        """
+        Compute view/projection from (x, y, z, yaw, pitch).
+        """
         aspect_ratio = self.window_size[0] / self.window_size[1]
 
-        # Apply rotations to the camera direction
-        direction_to_target = glm.vec3(0, 0, -1.0)  # Assuming default forward direction is along -Z axis
-        rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.camera_rotation.x), glm.vec3(1.0, 0.0, 0.0))
-        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.camera_rotation.y), glm.vec3(0.0, 1.0, 0.0))
-        adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
+        # camera_rotation is (yaw, pitch)
+        yaw = self.camera_rotation[0]
+        pitch = self.camera_rotation[1]
 
-        # Create the view matrix
-        self.view = glm.lookAt(self.camera_position, self.camera_position + adjusted_direction, self.up_vector)
+        rotation_matrix = glm.mat4(1.0)
+        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(pitch), glm.vec3(1.0, 0.0, 0.0))
+        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(yaw), glm.vec3(0.0, 1.0, 0.0))
 
-        # Apply lens rotation by rotating around the forward axis
-        lens_rotation_matrix = glm.rotate(
-            glm.mat4(1.0), glm.radians(self.main_camera_lens_rotation), adjusted_direction
-        )
+        forward_direction = glm.vec3(rotation_matrix * glm.vec4(0.0, 0.0, -1.0, 0.0))
+        up_vector = glm.vec3(0.0, 1.0, 0.0)
+
+        self.view = glm.lookAt(self.camera_position, self.camera_position + forward_direction, up_vector)
+
+        # Lens rotation around forward axis
+        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(self.main_camera_lens_rotation), forward_direction)
         self.view = lens_rotation_matrix * self.view
 
-        # Create the projection matrix
         self.projection = glm.perspective(glm.radians(self.fov), aspect_ratio, self.near_plane, self.far_plane)
 
     def set_light_uniforms(self, shader_program):
@@ -967,7 +974,6 @@ class AbstractRenderer(ABC):
     def update_camera(self, delta_time):
         if self.auto_camera:
             self.camera_position, self.camera_rotation = self.camera_controller.update(delta_time)
-            self.camera_target = self.camera_controller.get_current_target()
             self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
         else:
             self.camera_position = glm.vec3(*self.camera_positions[0][:3])

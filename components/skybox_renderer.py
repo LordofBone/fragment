@@ -175,3 +175,21 @@ class SkyboxRenderer(AbstractRenderer):
             GL_FALSE,
             glm.value_ptr(projection_matrix),
         )
+
+        # Additional uniforms for the skybox shader up-scaling
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "uOffset"),
+            self.dynamic_attrs.get("upscale_offset", 0.005),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "uLobes"),
+            self.dynamic_attrs.get("upscale_lobes", 3.0),
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "uSampleRadius"),
+            self.dynamic_attrs.get("upscale_sample_radius", 2),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "uStepSize"),
+            self.dynamic_attrs.get("upscale_step_size", 0.5),
+        )

@@ -33,24 +33,22 @@ def run_benchmark(
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
         camera_positions=[
-            (10.0, 10.0, 10.0, -30.0, 0.0),  # Initial position
-            (6.0, 6.0, 6.0, -30.0, 0.0),  # Zoom in
-            (4.0, 4.0, 10.0, -20.0, 15.0),  # Rotate around
-            (0.0, 6.0, 6.0, -15.0, 15.0),  # Rotate around
-            (4.0, 10.0, 4.0, -15.0, 15.0),  # Rotate around
-            (6.0, 6.0, 6.0, -15.0, 15.0),  # Zoom out to origin
-            (10.0, 10.0, 10.0, -30.0, 15.0),  # Back to initial
+            (10.0, 10.0, 10.0, 0.0, -30.0),  # Initial position
+            (6.0, 6.0, 6.0, 0.0, -30.0),  # Zoom in
+            (4.0, 4.0, 10.0, 15.0, -20.0),  # Rotate around
+            (0.0, 6.0, 6.0, 15.0, -15.0),  # Rotate around
+            (4.0, 10.0, 4.0, 15.0, -15.0),  # Rotate around
+            (6.0, 6.0, 6.0, 15.0, -15.0),  # Zoom out to origin
+            (10.0, 10.0, 10.0, 15.0, -30.0),  # Back to initial
         ],
         lens_rotations=[0.0],
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
         fov=40,
         near_plane=0.2,
         far_plane=100,
         lights=[
             {
                 "position": (20.85, 16.0, 22.0),
-                "color": (0.55, 0.55, 0.55),
+                "color": (1.0, 1.0, 0.82),
                 "strength": 0.8,
                 "orth_left": -60.0,
                 "orth_right": 60.0,
@@ -65,8 +63,6 @@ def run_benchmark(
         loop=True,
         msaa_level=msaa_level,
         culling=True,
-        texture_lod_bias=0.8,
-        env_map_lod_bias=1.5,
         phong_shading=True,
         sound_enabled=sound_enabled,
         background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
@@ -100,6 +96,8 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=1.5,
     )
 
     # Define the configuration for the opaque pyramid model
@@ -125,6 +123,8 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=1.5,
     )
 
     # Define the configuration for the rotating pyramid model
@@ -140,6 +140,8 @@ def run_benchmark(
             "fragment": "embm",
         },
         rotation_speed=2000.0,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=1.5,
     )
 
     # Define the configuration for the particle renderer
@@ -196,15 +198,17 @@ def run_benchmark(
         },
         wave_speed=6.0,
         wave_amplitude=0.8,
-        randomness=600.0,
-        tex_coord_frequency=400.0,
+        randomness=7200.0,
+        tex_coord_frequency=2000.0,
         tex_coord_amplitude=0.010,
-        width=50.0,
-        height=50.0,
+        width=1000.0,
+        height=1000.0,
         surface_depth=10.0,
         shadow_strength=0.85,
         env_map_strength=1.0,
         phong_shading=False,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=1.5,
     )
 
     # Add a skybox renderer

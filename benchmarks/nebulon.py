@@ -32,27 +32,25 @@ def run_benchmark(
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "mountain_lake/"),
         camera_positions=[
-            (60.4, 60.4, 60.4, -50.0, 35.0),  # Starting position
-            (50.0, 70.0, 50.0, -45.0, 36.0),  # Move up and to the side
-            (40.0, 60.0, 70.0, -45.0, 36.0),  # Move further around, maintaining view
-            (30.0, 50.0, 80.0, -45.0, 36.0),  # Continue to rotate around, higher
-            (20.0, 40.0, 70.0, -45.0, 36.0),  # Move down, still rotating
-            (10.0, 30.0, 60.0, -60.0, 45.0),  # Rotate towards the back
-            (0.0, 20.0, 50.0, -45.0, -30.0),  # Directly behind, looking at the object
-            (-10.0, 30.0, 40.0, -40.0, -30.0),  # Rotate back around
-            (-20.0, 40.0, 30.0, -38.0, -23.0),  # Continue moving down
-            (-30.0, 50.0, 20.0, -45.0, -29.0),  # Directly opposite the starting point
-            (-40.0, 60.0, 30.0, -47.0, -23.0),  # Rotate around to the side
-            (-50.0, 70.0, 40.0, -48.0, -25.0),  # Move back around towards the front
-            (-60.4, 60.4, 60.4, -48.0, -25.0),  # Return to a symmetrical position opposite the start
-            (60.4, 60.4, 60.4, -45.0, 36.0),  # Return to the starting position
+            (60.4, 60.4, 60.4, 35.0, -50.0),  # Starting position
+            (50.0, 70.0, 50.0, 36.0, -45.0),  # Move up and to the side
+            (40.0, 60.0, 70.0, 36.0, -45.0),  # Move further around, maintaining view
+            (30.0, 50.0, 80.0, 36.0, -45.0),  # Continue to rotate around, higher
+            (20.0, 40.0, 70.0, 36.0, -45.0),  # Move down, still rotating
+            (10.0, 30.0, 60.0, 45.0, -60.0),  # Rotate towards the back
+            (0.0, 20.0, 50.0, -30.0, -45.0),  # Directly behind, looking at the object
+            (-10.0, 30.0, 40.0, -30.0, -40.0),  # Rotate back around
+            (-20.0, 40.0, 30.0, -23.0, -38.0),  # Continue moving down
+            (-30.0, 50.0, 20.0, -29.0, -45.0),  # Directly opposite the starting point
+            (-40.0, 60.0, 30.0, -23.0, -47.0),  # Rotate around to the side
+            (-50.0, 70.0, 40.0, -25.0, -48.0),  # Move back around towards the front
+            (-60.4, 60.4, 60.4, -25.0, -48.0),  # Return to a symmetrical position opposite the start
+            (60.4, 60.4, 60.4, 36.0, -45.0),  # Return to the starting position
         ],
         lens_rotations=[
             0.0,  # No rotation at the start
         ],
         auto_camera=True,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
         fov=90,
         near_plane=0.1,
         far_plane=1000,
@@ -72,8 +70,6 @@ def run_benchmark(
         move_speed=0.2,
         msaa_level=msaa_level,
         culling=True,
-        texture_lod_bias=1.0,
-        env_map_lod_bias=2.0,
         phong_shading=True,
     )
 
@@ -106,6 +102,8 @@ def run_benchmark(
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=30.0,
         screen_facing_planar_texture=True,
+        texture_lod_bias=1.0,
+        env_map_lod_bias=2.0,
     )
 
     # Define the configuration for the skybox

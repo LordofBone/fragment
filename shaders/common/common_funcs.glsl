@@ -120,6 +120,211 @@ float fluidForceMultiplier
     return totalFluidForce;
 }
 
+// ----------------------------------------------------------------------
+// A simple "tent" (pyramid) filter for cubemaps
+// Samples 4 nearby directions and does a weighted average
+// 'dir' is your 3D direction for the cubemap
+// 'offset' is how big of an angular offset you want
+// ----------------------------------------------------------------------
+vec4 sampleCubemapTent(samplerCube cubemap, vec3 dir, float offset)
+{
+    // The base color at the exact direction
+    vec4 center = texture(cubemap, dir);
+
+    // We'll pick 3 offsets in a triangular pattern around 'dir'.
+    // In practice, you might pick 8 offsets for a more thorough filter.
+    // Or do a small random distribution if you want a "soft" look.
+    vec3 right    = normalize(cross(dir, vec3(0.0, 1.0, 0.0)));
+    vec3 up       = normalize(cross(right, dir));
+
+    // Sample directions
+    vec3 dir1 = normalize(dir + offset * right);
+    vec3 dir2 = normalize(dir - offset * right);
+    vec3 dir3 = normalize(dir + offset * up);
+
+    // Grab the colors
+    vec4 col1 = texture(cubemap, dir1);
+    vec4 col2 = texture(cubemap, dir2);
+    vec4 col3 = texture(cubemap, dir3);
+
+    // Weighted average: center has a higher weight
+    // so that we don't blur too heavily
+    return (center * 0.4 + col1 * 0.2 + col2 * 0.2 + col3 * 0.2);
+}
+
+//////////////////////////////////////////////////////
+// Bicubic helpers
+//////////////////////////////////////////////////////
+
+// One-dimensional Catmull-Rom spline basis
+float catmullRom1D(float x)
+{
+    x = abs(x);
+    float x2 = x*x;
+    float x3 = x*x2;
+
+    if (x <= 1.0) {
+        // 1.5x^3 - 2.5x^2 + 1.0
+        return 1.5*x3 - 2.5*x2 + 1.0;
+    }
+    else if (x < 2.0) {
+        // -0.5x^3 + 2.5x^2 - 4x + 2
+        return -0.5*x3 + 2.5*x2 - 4.0*x + 2.0;
+    }
+    // else 0
+    return 0.0;
+}
+
+// A small helper to do 2D bicubic weight
+// We'll treat (u, v) in [-2..2], then multiply catmullRom1D(u)*catmullRom1D(v).
+float bicubicWeight2D(float u, float v)
+{
+    return catmullRom1D(u) * catmullRom1D(v);
+}
+
+// ----------------------------------------------------------------------
+// sampleCubemapBicubic
+//   - cubemap : the samplerCube
+//   - dir : the main direction in 3D
+//   - baseOffset : how big each sample step is (like 0.01..0.02 radians)
+// ----------------------------------------------------------------------
+vec4 sampleCubemapBicubic(samplerCube cubemap, vec3 dir, float baseOffset)
+{
+    // We'll do a 4x4 sampling in a local tangent frame around 'dir'
+    // and accumulate with bicubic weights.
+
+    // Build a local frame: 'dir' is forward
+    vec3 fwd = normalize(dir);
+    // pick an arbitrary up
+    vec3 tempUp = abs(fwd.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 side = normalize(cross(fwd, tempUp));
+    vec3 up   = normalize(cross(side, fwd));
+
+    // We'll sum color and total weight
+    vec4 accumColor = vec4(0.0);
+    float accumWeight = 0.0;
+
+    // We'll sample offsets i in {0,1,2,3} => centered around 1.5
+    // so that i-1.5 in [-1.5..+1.5], similar to a typical 4x4 bicubic approach
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            // offU, offV in [-1.5..1.5]
+            float offU = float(i) - 1.5;
+            float offV = float(j) - 1.5;
+
+            // distance in "samples" for the Catmull-Rom function
+            float w = bicubicWeight2D(offU, offV);
+
+            // Convert (offU, offV) to angular offsets
+            // scale them by baseOffset (like 0.02)
+            vec3 sampleDir = fwd
+            + (offU * baseOffset) * side
+            + (offV * baseOffset) * up;
+
+            sampleDir = normalize(sampleDir);
+
+            vec4 c = texture(cubemap, sampleDir);
+
+            accumColor  += c * w;
+            accumWeight += w;
+        }
+    }
+
+    // Normalize
+    if (accumWeight > 0.0)
+    return accumColor / accumWeight;
+    else
+    return texture(cubemap, dir);
+}
+
+//////////////////////////////////////////////////////
+// Lanczos helpers
+//////////////////////////////////////////////////////
+
+// 1D Lanczos function
+// x is distance in "samples", lobes is typically 2 or 3
+float lanczos1D(float x, float lobes)
+{
+    x = abs(x);
+    if (x < 1e-5) {
+        return 1.0;// avoid 0/0
+    }
+    if (x > lobes) {
+        return 0.0;
+    }
+    // sin(pi*x)/(pi*x) * sin(pi*x/lobes)/(pi*x/lobes)
+    float pi_x   = 3.14159265359 * x;
+    float pi_xL  = pi_x / lobes;
+    return (sin(pi_x)/(pi_x)) * (sin(pi_xL)/(pi_xL));
+}
+
+// 2D version for convenience
+float lanczos2D(float u, float v, float lobes)
+{
+    return lanczos1D(u, lobes) * lanczos1D(v, lobes);
+}
+
+// ----------------------------------------------------------------------
+// sampleCubemapLanczos
+//   - cubemap      : the samplerCube
+//   - dir          : the main direction in 3D
+//   - baseOffset   : how big each sample step is (e.g. 0.005 radians)
+//   - lobes        : e.g. 2.0 or 3.0
+//   - sampleRadius : integer radius in "step" units, e.g. 2 => i,j in [-2..2]
+//   - stepSize     : fractional increment, e.g. 0.5 => [-2, -1.5, -1, ... , +2]
+// ----------------------------------------------------------------------
+vec4 sampleCubemapLanczos(
+samplerCube cubemap,
+vec3 dir,
+float baseOffset,
+float lobes,
+int   sampleRadius,
+float stepSize)
+{
+    vec3 fwd = normalize(dir);
+
+    // Build local tangent frame
+    vec3 tempUp = (abs(fwd.y) < 0.99) ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 side   = normalize(cross(fwd, tempUp));
+    vec3 up     = normalize(cross(side, fwd));
+
+    vec4 accumColor  = vec4(0.0);
+    float accumWeight = 0.0;
+
+    // We loop over i, j from -sampleRadius..sampleRadius in increments of stepSize.
+    float minRange = -float(sampleRadius);
+    float maxRange =  float(sampleRadius) + 0.001;// small epsilon to include last step
+
+    for (float i = minRange; i <= maxRange; i += stepSize)
+    {
+        for (float j = minRange; j <= maxRange; j += stepSize)
+        {
+            float w = lanczos2D(i, j, lobes);
+
+            // Build the sample direction
+            vec3 sampleDir = fwd
+            + (i * baseOffset) * side
+            + (j * baseOffset) * up;
+            sampleDir = normalize(sampleDir);
+
+            // Sample the cubemap
+            vec4 c = texture(cubemap, sampleDir);
+
+            // Accumulate
+            accumColor  += c * w;
+            accumWeight += w;
+        }
+    }
+
+    // Normalize if we got any non-zero weights
+    if (accumWeight > 0.0)
+    return accumColor / accumWeight;
+    else
+    return texture(cubemap, dir);
+}
+
 // ---------------------------------------------------
 // Tone Mapping (Uncharted2)
 // ---------------------------------------------------

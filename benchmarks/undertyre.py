@@ -30,25 +30,19 @@ def run_benchmark(
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
         duration=60,
-        cubemap_folder=os.path.join(cubemaps_dir, "garage/"),
-        camera_positions=[
-            (6.4, 6.4, 6.4, 0.0, 90.0),
-        ],
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
+        cubemap_folder=os.path.join(cubemaps_dir, "garage_2/"),
+        camera_positions=[(6.4, 6.4, 6.4, -270.0, 0.0)],
         fov=40,
         near_plane=0.1,
         far_plane=50.0,
         lights=[
-            {"position": (3.85, 5.5, 2.85), "color": (0.50, 0.50, 0.50), "strength": 0.75},
+            {"position": (3.85, 3.0, 3.85), "color": (1.0, 1.0, 1.0), "strength": 1.0},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        texture_lod_bias=0.4,
-        env_map_lod_bias=0.0,
         phong_shading=True,
         invert_displacement_map=True,
         pom_height_scale=0.016,
@@ -77,6 +71,8 @@ def run_benchmark(
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        texture_lod_bias=0.4,
+        env_map_lod_bias=0.0,
     )
 
     # Define the configuration for the skybox
@@ -91,11 +87,10 @@ def run_benchmark(
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("tyre", "model", **tyre_config)
 
-    # Move tyre near the center of the scene
-    instance.scene_construct.translate_renderer("tyre", (0.0, 0.0, 0.0))
+    instance.scene_construct.translate_renderer("tyre", (-6.85, 6.25, 6.5))
 
     # Slightly rotate it so it's angled in view
-    instance.scene_construct.rotate_renderer("tyre", 45, (0, 1, 0))
+    instance.scene_construct.rotate_renderer("tyre", 0, (0, 1, 0))
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
