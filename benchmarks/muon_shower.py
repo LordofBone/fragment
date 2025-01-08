@@ -27,7 +27,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "space/"),
-        camera_positions=[(0.0, 0.0, -7.2, 187.0, 0.0)],
+        camera_positions=[(-1.0, 0.0, -7.2, 187.0, 0.0)],
         camera_target=(0, 0, 0),
         up_vector=(0, 1, 0),
         fov=60,
@@ -85,7 +85,7 @@ def run_benchmark(
         phong_shading=True,
         opacity=1.0,
         shininess=0.001,
-        particle_gravity=(0.0, 0.0, -0.81),
+        particle_gravity=(0.0, 0.0, -0.61),
         particle_bounce_factor=0.65,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
         particle_ground_plane_height=-7.15,  # Height of the ground plane (y = 0)
