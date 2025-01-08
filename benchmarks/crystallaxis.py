@@ -31,7 +31,9 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "magick_dome/"),
-        camera_positions=[(4.5, 2.85, -1.4, 120.0, 55.0), ],
+        camera_positions=[
+            (4.5, 2.85, -1.4, 120.0, 55.0),
+        ],
         fov=40,
         near_plane=0.1,
         far_plane=100,
