@@ -31,7 +31,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "garage_2/"),
-        camera_positions=[(6.4, 6.4, 6.4, -270.0, 0.0)],
+        camera_positions=[(6.4, 10.4, 6.4, -270.0, -17.5)],
         fov=40,
         near_plane=0.1,
         far_plane=50.0,
@@ -92,6 +92,8 @@ def run_benchmark(
 
     # Slightly rotate it so it's angled in view
     instance.scene_construct.rotate_renderer("tyre", 0, (0, 1, 0))
+
+    instance.scene_construct.set_auto_rotation("tyre", True)  # Disable autorotation for second model
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
