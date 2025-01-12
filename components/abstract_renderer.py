@@ -728,8 +728,9 @@ class AbstractRenderer(ABC):
         pitch = self.camera_rotation[1]
 
         rotation_matrix = glm.mat4(1.0)
-        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(pitch), glm.vec3(1.0, 0.0, 0.0))
+
         rotation_matrix = glm.rotate(rotation_matrix, glm.radians(yaw), glm.vec3(0.0, 1.0, 0.0))
+        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(pitch), glm.vec3(1.0, 0.0, 0.0))
 
         forward_direction = glm.vec3(rotation_matrix * glm.vec4(0.0, 0.0, -1.0, 0.0))
         up_vector = glm.vec3(0.0, 1.0, 0.0)
