@@ -44,7 +44,7 @@ class SceneConstructor:
         """Scale a renderer in the scene."""
         self._apply_to_renderer(name, lambda r: r.scale(scale))
 
-    def set_auto_rotation(self, name, enabled, axis=None, speed=None):
+    def set_auto_rotation(self, name, enabled=False, axis=None, speed=None):
         """
         Enable or disable auto-rotation for a renderer.
         Optionally set a new rotation axis and speed.
