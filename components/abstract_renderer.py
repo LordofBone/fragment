@@ -190,6 +190,7 @@ class AbstractRenderer(ABC):
         self.rotation = glm.vec3(0.0)
         self.scaling = glm.vec3(1.0)
         self.auto_rotation_enabled = False
+        self.rotation_speed = 0.0
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
         self.alpha_blending = alpha_blending
