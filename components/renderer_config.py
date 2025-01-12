@@ -154,7 +154,6 @@ class RendererConfig:
         obj_path,
         texture_paths,
         shader_names=("standard", "default"),
-        rotation_speed=0.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
@@ -198,7 +197,6 @@ class RendererConfig:
             "obj_path": obj_path,
             "texture_paths": texture_paths,
             "shader_names": shader_names,
-            "rotation_speed": rotation_speed,
             "rotation_axis": rotation_axis,
             "apply_tone_mapping": apply_tone_mapping,
             "apply_gamma_correction": apply_gamma_correction,
@@ -245,7 +243,6 @@ class RendererConfig:
     def add_surface(
         self,
         shader_names=("standard", "default"),
-        rotation_speed=0.0,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         width=500.0,
@@ -283,7 +280,6 @@ class RendererConfig:
 
         surface_specifics = {
             "shader_names": shader_names,
-            "rotation_speed": rotation_speed,
             "apply_tone_mapping": apply_tone_mapping,
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
