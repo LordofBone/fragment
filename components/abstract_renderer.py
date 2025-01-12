@@ -116,7 +116,6 @@ class AbstractRenderer(ABC):
         far_plane=100,
         ambient_lighting_strength=(0.0, 0.0, 0.0),
         lights=None,
-        rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         texture_lod_bias=0.0,
@@ -181,7 +180,7 @@ class AbstractRenderer(ABC):
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.rotation_axis = glm.vec3(*rotation_axis)
+        self.rotation_axis = glm.vec3(0, 0, 0)
         self.apply_tone_mapping = apply_tone_mapping
         self.apply_gamma_correction = apply_gamma_correction
         self.model_matrix = glm.mat4(1)
