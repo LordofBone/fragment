@@ -39,8 +39,9 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=100,
         lights=[
-            {"position": (6.85, 5.0, 4.0), "color": (0.671, 0.902, 0.98), "strength": 0.85},
-            {"position": (2.2, 6.0, -4.0), "color": (0.969, 0.863, 0.431), "strength": 0.45},
+            {"position": (6.85, 5.0, 4.0), "color": (0.671, 0.902, 0.98), "strength": 0.65},
+            {"position": (0.0, -5.0, -10.0), "color": (0.671, 0.902, 0.98), "strength": 0.6},
+            {"position": (2.2, 6.0, -4.0), "color": (0.969, 0.863, 0.431), "strength": 0.5},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -68,8 +69,8 @@ def run_benchmark(
         },
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        env_map_strength=0.35,
-        texture_lod_bias=1.2,
+        env_map_strength=0.45,
+        texture_lod_bias=1.1,
         env_map_lod_bias=0.0,
     )
 
