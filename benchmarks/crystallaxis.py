@@ -64,7 +64,6 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "embm",
         },
-        rotation_speed=5000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
@@ -85,8 +84,8 @@ def run_benchmark(
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("pyramid", "model", **pyramid_config)
 
-    # Optionally enable auto-rotation for the pyramid
-    instance.scene_construct.set_auto_rotation("pyramid", True)
+    # Optionally enable autorotation for the pyramid
+    instance.scene_construct.set_auto_rotation("pyramid", True, axis=(0, 1, 0), speed=5000.0)
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
