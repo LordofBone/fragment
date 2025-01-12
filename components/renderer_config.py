@@ -38,7 +38,7 @@ class RendererConfig:
         phong_shading=False,
         opacity=1.0,
         shininess=1.0,
-        ambient_lighting_strength=(0.0, 0.0, 0.0),
+            ambient_lighting_color=(0.0, 0.0, 0.0),
         planar_camera=False,
         planar_fov=45,
         planar_near_plane=0.1,
@@ -90,7 +90,7 @@ class RendererConfig:
         self.phong_shading = phong_shading
         self.opacity = opacity
         self.shininess = shininess
-        self.ambient_lighting_strength = ambient_lighting_strength
+        self.ambient_lighting_color = ambient_lighting_color
         self.shaders = {}
 
         # Planar camera settings combined
