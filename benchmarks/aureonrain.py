@@ -139,7 +139,6 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "embm",
         },
-        rotation_speed=2000.0,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
     )
@@ -230,20 +229,18 @@ def run_benchmark(
 
     instance.add_renderer("rain", "particle", **particle_config)
     instance.scene_construct.translate_renderer("rain", (0, 0, 0))  # Translate first model
-    instance.scene_construct.set_auto_rotation("rain", False)
 
     # Example transformations
     instance.scene_construct.translate_renderer("model_rotating", (0, 1.5, -3))  # Translate first model
     instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
-    instance.scene_construct.set_auto_rotation("model_rotating", True)  # Enable auto-rotation for second model
+    instance.scene_construct.set_auto_rotation("model_rotating", True, axis=(0, 1, 0), speed=2000.0)
 
     instance.scene_construct.translate_renderer("model_stretched", (2, 1.5, 0))  # Translate second model
     instance.scene_construct.scale_renderer("model_stretched", (1.2, 1.2, 1.2))  # Scale second model
 
     instance.scene_construct.translate_renderer("model_opaque", (6, 1.5, -6))  # Translate second model
     instance.scene_construct.scale_renderer("model_opaque", (1.3, 1.3, 1.3))  # Scale second model
-    instance.scene_construct.set_auto_rotation("model_opaque", False)  # Disable auto-rotation for second model
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
