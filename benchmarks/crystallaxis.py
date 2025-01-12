@@ -32,7 +32,7 @@ def run_benchmark(
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "magick_dome/"),
         camera_positions=[
-            (4.5, 2.85, -1.4, 120.0, 55.0),
+            (4.5, 2.85, -1.4, 108.0, -24.0),
         ],
         fov=40,
         near_plane=0.1,
