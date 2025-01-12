@@ -13,7 +13,6 @@ class RendererConfig:
         texture_paths=None,
         cubemap_folder=None,
         camera_positions=None,
-        rotation_axis=(0, 3, 0),
         fov=40,
         near_plane=0.1,
         far_plane=1000,
@@ -67,7 +66,6 @@ class RendererConfig:
         self.shaders = shaders
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions
-        self.rotation_axis = rotation_axis
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
@@ -154,7 +152,6 @@ class RendererConfig:
         obj_path,
         texture_paths,
         shader_names=("standard", "default"),
-        rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         width=10.0,
@@ -197,7 +194,6 @@ class RendererConfig:
             "obj_path": obj_path,
             "texture_paths": texture_paths,
             "shader_names": shader_names,
-            "rotation_axis": rotation_axis,
             "apply_tone_mapping": apply_tone_mapping,
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
