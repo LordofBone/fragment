@@ -52,7 +52,7 @@ def run_benchmark(
     particle_config = base_config.add_particle_renderer(
         particle_render_mode=particle_render_mode,
         particles_max=2000,
-        particle_batch_size=350,
+        particle_batch_size=2000,
         # available_particle_types = ['points','lines','line_strip','line_loop','lines_adjacency','line_strip_adjacency','triangles','triangle_strip','triangle_fan','triangles_adjacency','triangle_strip_adjacency','patches']
         particle_type="points",
         particle_shader_override=False,
@@ -65,15 +65,15 @@ def run_benchmark(
         # },
         particle_generator=True,
         generator_delay=0.0,
-        particle_size=18.0,
-        min_initial_velocity_x=-6.5,
-        max_initial_velocity_x=6.5,
-        min_initial_velocity_y=-2.5,
-        max_initial_velocity_y=2.5,
-        min_initial_velocity_z=-7.5,
+        particle_size=22.0,
+        min_initial_velocity_x=-0.85,
+        max_initial_velocity_x=0.85,
+        min_initial_velocity_y=-0.85,
+        max_initial_velocity_y=0.85,
+        min_initial_velocity_z=-9.5,
         max_initial_velocity_z=0.0,
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
-        particle_max_lifetime=15.0,  # Set max lifetime to a realistic value
+        particle_max_lifetime=25.0,  # Set max lifetime to a realistic value
         particle_max_weight=1.5,  # Set max weight to a realistic value
         particle_min_weight=0.5,  # Set min weight to a realistic value
         particle_smooth_edges=True,
@@ -114,6 +114,8 @@ def run_benchmark(
 
     # Add the particle renderer to the instance with a specific name
     instance.add_renderer("sparks", "particle", **particle_config)
+
+    instance.scene_construct.set_auto_rotation("sparks", True, axis=(0, 0, 9), speed=1000.0)
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
