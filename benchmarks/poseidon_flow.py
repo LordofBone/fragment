@@ -31,7 +31,7 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=5000,
         lights=[
-            {"position": (5.0, 10.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
+            {"position": (5.0, 10.0, 0.0), "color": (0.773, 0.973, 1.0), "strength": 0.7},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
