@@ -31,7 +31,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "garage_2/"),
-        camera_positions=[(6.4, 10.4, 6.4, -270.0, -17.5)],
+        camera_positions=[(6.4, 0.0, 6.4, -270.0, 0.0)],
         fov=40,
         near_plane=0.1,
         far_plane=50.0,
@@ -67,7 +67,7 @@ def run_benchmark(
             "vertex": "parallax_mapping",
             "fragment": "parallax_mapping",
         },
-        rotation_speed=4000.0,
+        # rotation_speed=4000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
@@ -88,12 +88,13 @@ def run_benchmark(
     instance.add_renderer("tyre", "model", **tyre_config)
 
     # Translate the tyre model to a specific position, to get best view of skybox
-    instance.scene_construct.translate_renderer("tyre", (-6.85, 6.25, 6.5))
+    instance.scene_construct.translate_renderer("tyre", (-6.85, 0.0, 6.5))
 
-    # Slightly rotate it so it's angled in view
-    instance.scene_construct.rotate_renderer("tyre", 0, (0, 1, 0))
+    # Slightly tilt the model forward by 45° about X:
+    instance.scene_construct.rotate_renderer_euler("tyre", (0.0, 0.0, 0.0))
 
-    instance.scene_construct.set_auto_rotation("tyre", True)  # Disable autorotation for second model
+    # Then enable autorotation around X at speed 4000:
+    instance.scene_construct.set_auto_rotation("tyre", True, axis=(1, 0, 1), speed=4000.0)
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
