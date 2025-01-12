@@ -76,14 +76,14 @@ void main()
     if (phongShading)
     {
         // If set, do Phong lighting
-        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, vec3(0.2, 0.5, 1.0));
+        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, ambientColor);
         phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color += phongColor;
     }
     else
     {
         // If not, do Diffuse-only
-        vec3 diffuseColor = computeDiffuseLighting(finalNormal, FragPos, vec3(0.2, 0.5, 1.0));
+        vec3 diffuseColor = computeDiffuseLighting(finalNormal, FragPos, ambientColor);
         diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
         color += diffuseColor;
     }

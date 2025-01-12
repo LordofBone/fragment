@@ -118,14 +118,20 @@ void main()
     // ---------------------------------------------------------
     vec3 color = vec3(0.0);
 
-    // Optionally compute some local Phong lighting for the water
+    // Optionally compute Phong or Diffuse-only lighting
     if (phongShading)
     {
-        // Base “water color” or ambientColor as desired
-        vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, vec3(0.2, 0.5, 1.0));
-        // Apply shadow
+        // If set, do Phong lighting
+        vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, ambientColor);
         phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color += phongColor;
+    }
+    else
+    {
+        // If not, do Diffuse-only
+        vec3 diffuseColor = computeDiffuseLighting(normalMap, FragPos, ambientColor);
+        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
+        color += diffuseColor;
     }
 
     // Also apply environment reflection/refraction, attenuated by shadow
