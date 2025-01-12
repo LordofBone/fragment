@@ -45,7 +45,7 @@ def run_benchmark(
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=False,
+        phong_shading=True,
     )
 
     # Create the rendering instance with the base configuration
