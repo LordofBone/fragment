@@ -67,8 +67,8 @@ def run_benchmark(
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        env_map_strength=0.3,
-        texture_lod_bias=0.7,
+        env_map_strength=0.35,
+        texture_lod_bias=1.0,
         env_map_lod_bias=1.0,
     )
 
