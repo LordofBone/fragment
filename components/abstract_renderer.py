@@ -761,7 +761,23 @@ class AbstractRenderer(ABC):
         self.translation = glm.vec3(*position)
         self.update_model_matrix()
 
+    def rotate_euler(self, angles_deg):
+        """
+        angles_deg is a tuple (xDeg, yDeg, zDeg).
+        Sets self.rotation to these Euler angles (in degrees).
+        """
+        xDeg, yDeg, zDeg = angles_deg
+        # Convert each to radians
+        self.rotation.x = glm.radians(xDeg)
+        self.rotation.y = glm.radians(yDeg)
+        self.rotation.z = glm.radians(zDeg)
+        self.update_model_matrix()
+
     def rotate(self, angle, axis):
+        """
+        Existing single-axis rotation method:
+        Rotate the object by 'angle' degrees around axis (x,y,z).
+        """
         self.rotation = glm.vec3(*axis) * glm.radians(angle)
         self.update_model_matrix()
 
@@ -789,8 +805,16 @@ class AbstractRenderer(ABC):
         else:
             self.model_matrix = self.manual_transformations
 
-    def enable_auto_rotation(self, enabled):
+    def enable_auto_rotation(self, enabled, axis=None, speed=None):
+        """
+        Enable/disable auto rotation. If 'axis' or 'speed' is provided,
+        update self.rotation_axis and self.rotation_speed.
+        """
         self.auto_rotation_enabled = enabled
+        if axis is not None:
+            self.rotation_axis = glm.vec3(*axis)
+        if speed is not None:
+            self.rotation_speed = speed
 
     def set_constant_uniforms(self):
         self.shader_engine.use_shader_program()
