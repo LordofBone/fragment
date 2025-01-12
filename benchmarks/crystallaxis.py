@@ -34,6 +34,7 @@ def run_benchmark(
         camera_positions=[
             (4.5, 2.85, -1.4, 108.0, -24.0),
         ],
+        lens_rotations=[0.0],
         fov=40,
         near_plane=0.1,
         far_plane=100,
@@ -64,7 +65,6 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "embm",
         },
-        rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         env_map_strength=0.35,
