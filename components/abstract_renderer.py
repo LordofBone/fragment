@@ -116,7 +116,6 @@ class AbstractRenderer(ABC):
         far_plane=100,
         ambient_lighting_strength=(0.0, 0.0, 0.0),
         lights=None,
-        rotation_speed=2000.0,
         rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
@@ -182,7 +181,6 @@ class AbstractRenderer(ABC):
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
-        self.rotation_speed = rotation_speed
         self.rotation_axis = glm.vec3(*rotation_axis)
         self.apply_tone_mapping = apply_tone_mapping
         self.apply_gamma_correction = apply_gamma_correction
@@ -191,7 +189,7 @@ class AbstractRenderer(ABC):
         self.translation = glm.vec3(0.0)
         self.rotation = glm.vec3(0.0)
         self.scaling = glm.vec3(1.0)
-        self.auto_rotation_enabled = rotation_speed != 0.0
+        self.auto_rotation_enabled = False
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
         self.alpha_blending = alpha_blending
@@ -805,7 +803,7 @@ class AbstractRenderer(ABC):
         else:
             self.model_matrix = self.manual_transformations
 
-    def enable_auto_rotation(self, enabled, axis=None, speed=None):
+    def enable_auto_rotation(self, enabled=False, axis=None, speed=None):
         """
         Enable/disable auto rotation. If 'axis' or 'speed' is provided,
         update self.rotation_axis and self.rotation_speed.
