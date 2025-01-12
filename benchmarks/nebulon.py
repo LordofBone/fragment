@@ -47,9 +47,7 @@ def run_benchmark(
             (-60.4, 60.4, 60.4, -25.0, -48.0),  # Return to a symmetrical position opposite the start
             (60.4, 60.4, 60.4, 36.0, -45.0),  # Return to the starting position
         ],
-        lens_rotations=[
-            0.0,  # No rotation at the start
-        ],
+        lens_rotations=[0.0],
         auto_camera=True,
         fov=90,
         near_plane=0.1,
@@ -92,7 +90,6 @@ def run_benchmark(
         opacity=0.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
-        rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         cubemap_folder=False,
