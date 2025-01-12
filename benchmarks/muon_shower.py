@@ -115,7 +115,5 @@ def run_benchmark(
     # Add the particle renderer to the instance with a specific name
     instance.add_renderer("sparks", "particle", **particle_config)
 
-    instance.scene_construct.set_auto_rotation("sparks", False)
-
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
