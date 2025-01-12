@@ -44,10 +44,25 @@ def run_benchmark(
             (-30.0, 50.0, 20.0, -29.0, -45.0),  # Directly opposite the starting point
             (-40.0, 60.0, 30.0, -23.0, -47.0),  # Rotate around to the side
             (-50.0, 70.0, 40.0, -25.0, -48.0),  # Move back around towards the front
-            (-60.4, 60.4, 60.4, -25.0, -48.0),  # Return to a symmetrical position opposite the start
-            (60.4, 60.4, 60.4, 36.0, -45.0),  # Return to the starting position
+            (-60.4, 60.4, 60.4, -25.0, -48.0),  # Return to symmetrical position opposite start
+            (60.4, 60.4, 60.4, 36.0, -45.0),  # Return to starting position
         ],
-        lens_rotations=[0.0],
+        lens_rotations=[
+            0.0,  # Start with no roll
+            3.0,
+            7.0,
+            10.0,
+            12.0,
+            8.0,
+            3.0,
+            -2.0,
+            -5.0,
+            -10.0,
+            -5.0,
+            -2.0,
+            0.0,
+            0.0  # End with no roll, back at start
+        ],
         auto_camera=True,
         fov=90,
         near_plane=0.1,
