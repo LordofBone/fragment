@@ -250,7 +250,7 @@ class AbstractRenderer(ABC):
 
         self.phong_shading = phong_shading
 
-        self.ambient_lighting_color = glm.vec3(ambient_lighting_color)
+        self.ambient_lighting_color = ambient_lighting_color
 
         self.lights_enabled = lights is not None
         if self.lights_enabled:
@@ -858,7 +858,7 @@ class AbstractRenderer(ABC):
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),
             1,
-            glm.value_ptr(self.ambient_lighting_color),
+            glm.value_ptr(glm.vec3(self.ambient_lighting_color)),
         )
 
         glUniformMatrix4fv(
