@@ -45,15 +45,17 @@ def run_benchmark(
         fov=40,
         near_plane=0.2,
         far_plane=100,
+        ambient_lighting_strength=0.35,
+        ambient_lighting_color=(0.78, 0.541, 0.0),
         lights=[
             {
                 "position": (20.85, 16.0, 22.0),
-                "color": (1.0, 1.0, 0.82),
-                "strength": 0.8,
-                "orth_left": -60.0,
-                "orth_right": 60.0,
-                "orth_bottom": -60.0,
-                "orth_top": 60,
+                "color": (0.757, 0.902, 1),
+                "strength": 1.0,
+                "orth_left": -120.0,
+                "orth_right": 120.0,
+                "orth_bottom": -120.0,
+                "orth_top": 120,
             }
         ],
         shadow_map_resolution=shadow_map_resolution,
@@ -154,7 +156,7 @@ def run_benchmark(
         particle_shader_override=False,
         particle_generator=True,
         generator_delay=0.0,
-        particle_size=36.0,
+        particle_size=10.0,
         min_initial_velocity_x=-6.0,
         max_initial_velocity_x=0.0,
         min_initial_velocity_y=-0.0,
@@ -165,11 +167,10 @@ def run_benchmark(
         particle_max_lifetime=2.0,  # Set max lifetime to a realistic value
         particle_max_weight=1.5,  # Set max weight to a realistic value
         particle_min_weight=0.5,  # Set min weight to a realistic value
-        particle_smooth_edges=False,
-        particle_color=(1.02, 3.456, 5.98),
+        particle_smooth_edges=True,
+        particle_color=(0.18, 0.698, 1.0),
         particle_fade_to_color=True,
         particle_fade_color=(0.0, 0.0, 0.0),
-        phong_shading=True,
         opacity=0.85,
         shininess=5.0,
         particle_gravity=(-8.5, -9.81, 5),
@@ -205,7 +206,6 @@ def run_benchmark(
         surface_depth=10.0,
         shadow_strength=0.85,
         env_map_strength=1.0,
-        phong_shading=False,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
     )
