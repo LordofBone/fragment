@@ -26,7 +26,6 @@ uniform bool phongShading;
 uniform float distortionStrength;
 uniform float reflectionStrength;
 uniform float environmentMapStrength;
-uniform vec3 ambientColor;
 uniform bool screenFacingPlanarTexture;
 uniform bool warped;
 uniform bool shadowingEnabled;
