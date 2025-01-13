@@ -9,7 +9,6 @@ in vec4 FragPosLightSpace;
 out vec4 FragColor;
 
 uniform sampler2D diffuseMap;
-uniform vec3 ambientColor;
 
 void main()
 {
