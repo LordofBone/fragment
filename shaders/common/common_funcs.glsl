@@ -441,9 +441,9 @@ float surfaceDepth
     return shadow;
 }
 
-/*******************************************************
- *  Basic Ambient Only
- *******************************************************/
+// ---------------------------------------------------
+// Basic Ambient Only
+// ---------------------------------------------------
 vec3 computeAmbientColor(vec3 baseColor)
 {
     // Multiply the base color by the global ambientColor uniform
