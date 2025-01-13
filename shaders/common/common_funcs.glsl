@@ -29,6 +29,7 @@ uniform float texCoordAmplitude;
 // ---------------------------------------------------
 // Global uniform arrays for lights
 // ---------------------------------------------------
+uniform vec3 ambientColor;
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
