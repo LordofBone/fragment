@@ -441,6 +441,17 @@ float surfaceDepth
     return shadow;
 }
 
+/*******************************************************
+ *  Basic Ambient Only
+ *******************************************************/
+vec3 computeAmbientColor(vec3 baseColor)
+{
+    // Multiply the base color by the global ambientColor uniform
+    // e.g. if ambientColor = (0.2, 0.2, 0.2),
+    // then result = baseColor * (0.2,0.2,0.2)
+    return baseColor * ambientColor;
+}
+
 // ---------------------------------------------------
 // Compute Phong Lighting (standard version)
 // ---------------------------------------------------
