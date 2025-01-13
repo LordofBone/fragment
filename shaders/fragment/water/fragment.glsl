@@ -11,7 +11,6 @@ out vec4 FragColor;
 
 uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
-uniform vec3 ambientColor;
 uniform sampler2D shadowMap;
 
 uniform bool applyToneMapping;
@@ -76,14 +75,14 @@ void main()
     if (phongShading)
     {
         // If set, do Phong lighting
-        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, ambientColor);
+        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, envColor);
         phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color += phongColor;
     }
     else
     {
         // If not, do Diffuse-only
-        vec3 diffuseColor = computeDiffuseLighting(finalNormal, FragPos, ambientColor);
+        vec3 diffuseColor = computeDiffuseLighting(finalNormal, FragPos, envColor);
         diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
         color += diffuseColor;
     }
