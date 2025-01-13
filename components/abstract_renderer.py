@@ -858,7 +858,7 @@ class AbstractRenderer(ABC):
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),
             1,
-            glm.value_ptr(glm.vec3(self.ambient_lighting_color)),
+            glm.value_ptr(glm.vec3(*self.ambient_lighting_color)),
         )
 
         glUniformMatrix4fv(
