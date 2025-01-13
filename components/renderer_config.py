@@ -38,6 +38,7 @@ class RendererConfig:
         phong_shading=False,
         opacity=1.0,
         shininess=1.0,
+            ambient_lighting_strength=0.0,
             ambient_lighting_color=(0.0, 0.0, 0.0),
         planar_camera=False,
         planar_fov=45,
@@ -90,6 +91,7 @@ class RendererConfig:
         self.phong_shading = phong_shading
         self.opacity = opacity
         self.shininess = shininess
+        self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = ambient_lighting_color
         self.shaders = {}
 
@@ -162,6 +164,7 @@ class RendererConfig:
         cubemap_folder=None,
         phong_shading=None,
             opacity=None,
+            ambient_lighting_strength=None,
             ambient_lighting_color=None,
             shininess=None,
             texture_lod_bias=None,
@@ -207,6 +210,7 @@ class RendererConfig:
             "opacity": opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
+            "ambient_lighting_strength": ambient_lighting_strength,
             "ambient_lighting_color": ambient_lighting_color,
             "shininess": shininess,
             "env_map_strength": env_map_strength,
@@ -251,6 +255,7 @@ class RendererConfig:
         cubemap_folder=None,
         phong_shading=None,
             opacity=None,
+            ambient_lighting_strength=None,
             ambient_lighting_color=None,
             shininess=None,
             texture_lod_bias=None,
@@ -291,6 +296,7 @@ class RendererConfig:
             "opacity": opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
+            "ambient_lighting_strength": ambient_lighting_strength,
             "ambient_lighting_color": ambient_lighting_color,
             "shininess": shininess,
             "env_map_strength": env_map_strength,
@@ -350,6 +356,7 @@ class RendererConfig:
             opacity=None,
             texture_lod_bias=None,
             env_map_lod_bias=None,
+            ambient_lighting_strength=None,
             ambient_lighting_color=None,
             shininess=None,
         depth_testing=None,
@@ -404,6 +411,7 @@ class RendererConfig:
             "opacity": opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
+            "ambient_lighting_strength": ambient_lighting_strength,
             "ambient_lighting_color": ambient_lighting_color,
             "shininess": shininess,
             "depth_testing": depth_testing,
