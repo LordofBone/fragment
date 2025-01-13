@@ -6,6 +6,9 @@
 // ---------------------------------------------------
 uniform float textureLodLevel;
 
+// Now we have a float controlling the ambient brightness.
+uniform float ambientStrength;// 0.0 => no ambient, 1.0 => full ambient intensity
+
 // ---------------------------------------------------
 // Parallax Occlusion Mapping (POM) uniforms
 // ---------------------------------------------------
@@ -195,12 +198,9 @@ vec4 sampleCubemapBicubic(samplerCube cubemap, vec3 dir, float baseOffset)
         {
             float offU = float(i) - 1.5;
             float offV = float(j) - 1.5;
-
             float w = bicubicWeight2D(offU, offV);
 
-            vec3 sampleDir = fwd
-            + (offU * baseOffset)*side
-            + (offV * baseOffset)*up;
+            vec3 sampleDir = fwd + (offU * baseOffset)*side + (offV * baseOffset)*up;
             sampleDir = normalize(sampleDir);
 
             vec4 c = texture(cubemap, sampleDir);
@@ -223,12 +223,10 @@ vec4 sampleCubemapBicubic(samplerCube cubemap, vec3 dir, float baseOffset)
 float lanczos1D(float x, float lobes)
 {
     x = abs(x);
-    if (x < 1e-5) {
+    if (x < 1e-5)
         return 1.0;
-    }
-    if (x > lobes) {
+    if (x > lobes)
         return 0.0;
-    }
     float pi_x = 3.14159265359 * x;
     float pi_xL= pi_x / lobes;
     return (sin(pi_x)/(pi_x)) * (sin(pi_xL)/(pi_xL));
@@ -245,14 +243,15 @@ vec3 dir,
 float baseOffset,
 float lobes,
 int sampleRadius,
-float stepSize)
+float stepSize
+)
 {
     vec3 fwd = normalize(dir);
     vec3 tempUp = (abs(fwd.y)<0.99)? vec3(0, 1, 0): vec3(1, 0, 0);
     vec3 side   = normalize(cross(fwd, tempUp));
     vec3 up     = normalize(cross(side, fwd));
 
-    vec4 accumColor = vec4(0.0);
+    vec4 accumColor= vec4(0.0);
     float accumWeight=0.0;
 
     float minRange= -float(sampleRadius);
@@ -262,22 +261,19 @@ float stepSize)
     {
         for (float j=minRange; j<=maxRange; j+= stepSize)
         {
-            float w = lanczos2D(i, j, lobes);
-
-            vec3 sampleDir = fwd
-            + (i*baseOffset)*side
-            + (j*baseOffset)*up;
-            sampleDir=normalize(sampleDir);
+            float w= lanczos2D(i, j, lobes);
+            vec3 sampleDir= fwd+ (i*baseOffset)*side+ (j*baseOffset)*up;
+            sampleDir= normalize(sampleDir);
 
             vec4 c= texture(cubemap, sampleDir);
 
-            accumColor  += c*w;
-            accumWeight += w;
+            accumColor+= c*w;
+            accumWeight+= w;
         }
     }
 
     if (accumWeight>0.0)
-    return accumColor/accumWeight;
+    return accumColor/ accumWeight;
     else
     return texture(cubemap, dir);
 }
@@ -301,7 +297,7 @@ vec3 toneMapping(vec3 color)
 {
     vec3 curr = Uncharted2Tonemap(color*2.0);
     vec3 whiteScale = 1.0/Uncharted2Tonemap(vec3(11.2));
-    return curr*whiteScale;
+    return curr* whiteScale;
 }
 
 // ---------------------------------------------------
@@ -309,8 +305,8 @@ vec3 toneMapping(vec3 color)
 // ---------------------------------------------------
 float ShadowCalculationStandard(vec4 fragPosLightSpace, sampler2D shadowMap)
 {
-    vec3 projCoords=fragPosLightSpace.xyz/fragPosLightSpace.w;
-    projCoords= projCoords*0.5+0.5;
+    vec3 projCoords= fragPosLightSpace.xyz/ fragPosLightSpace.w;
+    projCoords= projCoords*0.5+ 0.5;
 
     if (projCoords.x<0.0|| projCoords.x>1.0||
     projCoords.y<0.0|| projCoords.y>1.0)
@@ -320,21 +316,20 @@ float ShadowCalculationStandard(vec4 fragPosLightSpace, sampler2D shadowMap)
 
     float closestDepth= texture(shadowMap, projCoords.xy).r;
     float currentDepth= projCoords.z;
-    float bias=0.005;
+    float bias= 0.005;
 
     float shadow=0.0;
-    vec2 texelSize=1.0/textureSize(shadowMap, 0);
+    vec2 texelSize= 1.0/ textureSize(shadowMap, 0);
 
     for (int x=-1;x<=1;x++)
     {
         for (int y=-1;y<=1;y++)
         {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y)*texelSize).r;
-            shadow += (currentDepth-bias>pcfDepth)?1.0:0.0;
+            float pcfDepth= texture(shadowMap, projCoords.xy+ vec2(x, y)*texelSize).r;
+            shadow += (currentDepth- bias> pcfDepth)? 1.0:0.0;
         }
     }
-    shadow /= 9.0;
-
+    shadow /=9.0;
     return shadow;
 }
 
@@ -356,10 +351,10 @@ float surfaceDepth
 )
 {
     vec3 displacedPos= fragPosWorld;
-    displacedPos.y+=waveHeight;
+    displacedPos.y+= waveHeight;
 
-    vec4 fragPosLightSpace= lightSpaceMatrix * model * vec4(displacedPos, 1.0);
-    vec3 projCoords= fragPosLightSpace.xyz/fragPosLightSpace.w;
+    vec4 fragPosLightSpace= lightSpaceMatrix* model* vec4(displacedPos, 1.0);
+    vec3 projCoords= fragPosLightSpace.xyz/ fragPosLightSpace.w;
     projCoords= projCoords*0.5+0.5;
 
     if (projCoords.x<0.0|| projCoords.x>1.0||
@@ -371,11 +366,10 @@ float surfaceDepth
 
     float closestDepth= texture(shadowMap, projCoords.xy).r;
     float currentDepth= projCoords.z;
-
-    float bias= max(biasFactor*(1.0- dot(normal, normalize(lightPos-displacedPos))), minBias);
+    float bias= max(biasFactor* (1.0- dot(normal, normalize(lightPos- displacedPos))), minBias);
 
     float shadow=0.0;
-    vec2 texelSize=1.0/textureSize(shadowMap, 0);
+    vec2 texelSize=1.0/ textureSize(shadowMap, 0);
     int samples=3;
     for (int x=-samples;x<=samples;x++)
     {
@@ -395,12 +389,13 @@ float surfaceDepth
 }
 
 // ---------------------------------------------------
-// Basic Ambient Only
+// Basic Ambient + Strength
 // ---------------------------------------------------
 vec3 computeAmbientColor(vec3 baseColor)
 {
     // Multiply the base color by the global ambientColor uniform
-    return baseColor * ambientColor;
+    // and scale by ambientStrength
+    return baseColor * ambientColor * ambientStrength;
 }
 
 // ---------------------------------------------------
@@ -408,7 +403,7 @@ vec3 computeAmbientColor(vec3 baseColor)
 // ---------------------------------------------------
 vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
 {
-    // Ambient from user-defined "ambientColor"
+    // Ambient from user-defined "ambientColor" * ambientStrength
     vec3 ambient = computeAmbientColor(baseColor);
 
     vec3 diffuse = vec3(0.0);
@@ -427,7 +422,7 @@ vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
 // ---------------------------------------------------
 vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 {
-    // Ambient from user-defined "ambientColor"
+    // Ambient from user-defined "ambientColor" * ambientStrength
     vec3 ambient  = computeAmbientColor(baseColor);
     vec3 diffuse  = vec3(0.0);
     vec3 specular = vec3(0.0);
@@ -454,7 +449,7 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColo
 // ---------------------------------------------------
 vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor, float shininess)
 {
-    // Ambient from user-defined "ambientColor"
+    // Ambient from user-defined "ambientColor" * ambientStrength
     vec3 ambient = computeAmbientColor(baseColor);
 
     vec3 diffuse = vec3(0.0);
@@ -464,20 +459,20 @@ vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 
     {
         // Distance-based attenuation
         vec3 lightVec = lightPositions[i] - fragPos;
-        float distance = length(lightVec);
-        vec3 lightDir  = normalize(lightVec);
+        float distance= length(lightVec);
+        vec3 lightDir = normalize(lightVec);
 
-        float attenuation = 1.0 / (1.0 + 0.09*distance + 0.032*(distance*distance));
+        float attenuation= 1.0/(1.0+ 0.09*distance + 0.032*(distance*distance));
 
-        // Diffuse
-        float diff= max(dot(normal, lightDir), 0.0);
-        diffuse+= attenuation* lightColors[i]* diff* baseColor* lightStrengths[i];
+        // Diffuse shading
+        float diff = max(dot(normal, lightDir), 0.0);
+        diffuse += attenuation * lightColors[i] * diff * baseColor * lightStrengths[i];
 
         // Blinn-Phong spec
-        vec3 halfwayDir= normalize(lightDir+ viewDir);
+        vec3 halfwayDir= normalize(lightDir + viewDir);
         float specAngle= max(dot(normal, halfwayDir), 0.0);
         float spec= pow(specAngle, max(shininess, 0.0));
-        specular+= attenuation* spec* lightColors[i]* lightStrengths[i];
+        specular += attenuation * spec * lightColors[i] * lightStrengths[i];
     }
 
     return ambient + diffuse + specular;
@@ -485,18 +480,17 @@ vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 
 
 vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
 {
-    // Ambient from user-defined "ambientColor"
+    // Ambient from user-defined "ambientColor" * ambientStrength
     vec3 ambient = computeAmbientColor(baseColor);
 
     vec3 diffuse= vec3(0.0);
-
     for (int i=0;i<10;i++)
     {
         vec3 lightVec= lightPositions[i] - fragPos;
         float distance= length(lightVec);
         vec3 lightDir= normalize(lightVec);
 
-        float attenuation= 1.0/(1.0+ 0.09*distance + 0.032*(distance*distance));
+        float attenuation= 1.0 / (1.0 + 0.09*distance + 0.032*(distance*distance));
 
         float diff= max(dot(normal, lightDir), 0.0);
         diffuse += attenuation* lightColors[i]* diff* baseColor* lightStrengths[i];
@@ -506,16 +500,20 @@ vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
 }
 
 //---------------- Procedural Displacement for POM -----------------
-float proceduralDisplacement(vec2 coords) {
-    if (useCheckerPattern) {
+float proceduralDisplacement(vec2 coords)
+{
+    if (useCheckerPattern)
+    {
         float cellCount=5.0;
-        vec2 cellCoords=fract(coords*cellCount);
-        float cellVal=(step(0.5, cellCoords.x)==step(0.5, cellCoords.y))?1.0:-1.0;
-        return 0.5+0.5*cellVal*waveAmplitude;
-    } else {
-        float nf= smoothNoise(coords*randomness);
-        float waveX= sin(coords.y*10.0+ time*waveSpeed+ nf*texCoordFrequency);
-        float waveY= cos(coords.x*10.0+ time*waveSpeed+ nf*texCoordFrequency);
+        vec2 cellCoords= fract(coords* cellCount);
+        float cellVal= (step(0.5, cellCoords.x)== step(0.5, cellCoords.y))?1.0:-1.0;
+        return 0.5+ 0.5* cellVal* waveAmplitude;
+    }
+    else
+    {
+        float nf= smoothNoise(coords* randomness);
+        float waveX= sin(coords.y*10.0+ time*waveSpeed+ nf* texCoordFrequency);
+        float waveY= cos(coords.x*10.0+ time*waveSpeed+ nf* texCoordFrequency);
         float h= (waveX+ waveY)*0.5;
         // Increase contrast
         h= sign(h)* pow(abs(h), 2.0);
@@ -567,7 +565,7 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
     ((depthFromTexture- currentLayerDepth)- (prevDepthFromTexture- prevLayerDepth));
     vec2 finalTexCoords= mix(currentTexCoords, prevTexCoords, weight);
 
-    depthOffset= pomHeightScale* (1.0- mix(currentLayerDepth, prevLayerDepth, weight))* 0.0001;
+    depthOffset= pomHeightScale*(1.0- mix(currentLayerDepth, prevLayerDepth, weight))* 0.0001;
     return finalTexCoords;
 }
 
@@ -603,7 +601,7 @@ vec2 ProceduralParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float 
     if (invertDisplacementMap) prevDepth= 1.0- prevDepth;
 
     float weight= (depthFromTexture- currentLayerDepth)/
-    ((depthFromTexture- currentLayerDepth)- (prevDepth- prevLayerDepth));
+    ((depthFromTexture- currentLayerDepth)-(prevDepth- prevLayerDepth));
     vec2 finalTexCoords= mix(currentTexCoords, prevTexCoords, weight);
 
     depthOffset= pomHeightScale*(1.0- mix(currentLayerDepth, prevLayerDepth, weight))* 0.0001;
