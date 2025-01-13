@@ -1,4 +1,5 @@
 #version 330 core
+#include "common_funcs.glsl"
 
 in vec2 TexCoords;
 in vec3 FragPos;
@@ -12,12 +13,12 @@ uniform vec3 ambientColor;
 
 void main()
 {
-    // Sample the diffuse texture to get the base color
-    vec3 diffuseColor = texture(diffuseMap, TexCoords).rgb;
+    // 1) Sample the diffuse texture to get the base color
+    vec3 baseColor = texture(diffuseMap, TexCoords).rgb;
 
-    // Apply the ambient color as flat lighting
-    vec3 resultColor = diffuseColor * ambientColor;
+    // 2) Multiply by ambientColor using our new function
+    vec3 resultColor = computeAmbientColor(baseColor);
 
-    // Output the color with full opacity
+    // 3) Output with full opacity
     FragColor = vec4(resultColor, 1.0);
 }
