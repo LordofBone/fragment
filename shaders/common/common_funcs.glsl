@@ -453,6 +453,24 @@ vec3 computeAmbientColor(vec3 baseColor)
 }
 
 // ---------------------------------------------------
+// Compute Diffuse Lighting (standard version)
+// ---------------------------------------------------
+vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
+{
+    vec3 ambient = 0.1 * baseColor;
+    vec3 diffuse = vec3(0.0);
+
+    for (int i = 0; i < 10; ++i)
+    {
+        vec3 lightDir = normalize(lightPositions[i] - fragPos);
+        float diff = max(dot(normal, lightDir), 0.0);
+        diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
+    }
+
+    return ambient + diffuse;
+}
+
+// ---------------------------------------------------
 // Compute Phong Lighting (standard version)
 // ---------------------------------------------------
 vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
@@ -476,24 +494,6 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColo
     }
 
     return ambient + diffuse + specular;
-}
-
-// ---------------------------------------------------
-// Compute Diffuse Lighting (standard version)
-// ---------------------------------------------------
-vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
-{
-    vec3 ambient = 0.1 * baseColor;
-    vec3 diffuse = vec3(0.0);
-
-    for (int i = 0; i < 10; ++i)
-    {
-        vec3 lightDir = normalize(lightPositions[i] - fragPos);
-        float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
-    }
-
-    return ambient + diffuse;
 }
 
 // ---------------------------------------------------
