@@ -20,7 +20,6 @@ uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool phongShading;
 uniform bool shadowingEnabled;
-uniform vec3 ambientColor;// if you want a custom ambient
 
 void main()
 {
