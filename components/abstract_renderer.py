@@ -114,6 +114,7 @@ class AbstractRenderer(ABC):
         fov=45,
         near_plane=0.1,
         far_plane=100,
+            ambient_lighting_strength=0.0,
             ambient_lighting_color=(0.0, 0.0, 0.0),
         lights=None,
         apply_tone_mapping=False,
@@ -248,9 +249,10 @@ class AbstractRenderer(ABC):
             self.shadowing_enabled = False
             self.shadow_map_manager = None  # Shadows are disabled
 
-        self.phong_shading = phong_shading
-
+        self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = glm.vec3(*ambient_lighting_color)
+
+        self.phong_shading = phong_shading
 
         self.lights_enabled = lights is not None
         if self.lights_enabled:
@@ -854,6 +856,10 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "pomHeightScale"), self.pom_height_scale)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMinSteps"), self.pom_min_steps)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMaxSteps"), self.pom_max_steps)
+
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "ambientStrength"), self.ambient_lighting_strength
+        )
 
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),
