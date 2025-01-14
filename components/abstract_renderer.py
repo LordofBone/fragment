@@ -433,85 +433,110 @@ class AbstractRenderer(ABC):
     def render_planar_view(self, scene_renderers):
         """
         Renders the scene from a 'planar camera' perspective, if enabled.
+
+        If `planar_relative_to_camera` is True:
+          - The camera is offset from self.translation by planar_camera_position_rotation[:3].
+          - Its pitch/yaw track the main camera's pitch/yaw.
+          - We also add any local yaw/pitch from planar_camera_position_rotation[3:].
         """
         if not self.planar_camera:
             return None
 
-        # For demonstration, let's interpret self.camera_rotation:
-        #   x => yaw
-        #   y => pitch
-        pitch = self.camera_rotation.y
-        yaw = self.camera_rotation.x
+        # 1) Build the main camera’s forward from its yaw/pitch
+        main_cam_yaw = self.camera_rotation.x
+        main_cam_pitch = self.camera_rotation.y
 
-        # Build a rotation matrix from (yaw, pitch)
-        rotation_matrix = glm.mat4(1.0)
-        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(pitch), glm.vec3(1.0, 0.0, 0.0))
-        rotation_matrix = glm.rotate(rotation_matrix, glm.radians(yaw), glm.vec3(0.0, 1.0, 0.0))
+        # For lens rotation
+        main_lens_rotation = self.main_camera_lens_rotation
+        lens_rotation = self.planar_camera_lens_rotation + main_lens_rotation
 
-        main_camera_forward = glm.vec3(rotation_matrix * glm.vec4(0.0, 0.0, -1.0, 0.0))
+        # We'll parse the planar_camera_position_rotation:
+        #   (posX, posY, posZ, localYaw, localPitch)
+        offset_x, offset_y, offset_z, local_yaw_offset, local_pitch_offset = self.planar_camera_position_rotation
 
         if self.planar_relative_to_camera:
-            lens_rotation = self.planar_camera_lens_rotation + self.main_camera_lens_rotation
+            # -----------------------------------------------------------
+            # Attach the planar camera to the object but still match main
+            # camera's orientation (plus local yaw/pitch).
+            # -----------------------------------------------------------
 
-            # direction_to_camera is a convenience vector from the object to the main camera
-            direction_to_camera = glm.normalize(self.camera_position - self.translation)
+            # A) The base translation is object position + local offset
+            #    for the planar camera (before we rotate it).
+            local_offset = glm.vec3(offset_x, offset_y, offset_z)
 
-            self.planar_camera_position = (
-                self.translation
-                + glm.vec3(*self.planar_camera_position_rotation[:3])
-                + direction_to_camera * self.dynamic_attrs.get("camera_distance", 2.0)
-            )
+            # B) Build a matrix from the main camera yaw/pitch
+            #    We'll rotate the local offset by the main camera's orientation,
+            #    so if the main camera spins around, the offset spins as well.
+            main_rot = glm.mat4(1.0)
+            main_rot = glm.rotate(main_rot, glm.radians(main_cam_yaw), glm.vec3(0.0, 1.0, 0.0))
+            main_rot = glm.rotate(main_rot, glm.radians(main_cam_pitch), glm.vec3(1.0, 0.0, 0.0))
 
-            # Summation of rotations
-            self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:]) + glm.vec2(
-                self.camera_rotation
-            )
+            # Rotate local_offset by that main camera orientation
+            rotated_offset = glm.vec3(main_rot * glm.vec4(local_offset, 1.0))
 
-            # Build a rotation matrix from the combined planar_camera_rotation
+            # Now the planar camera position is the object’s position + rotated offset
+            self.planar_camera_position = self.translation + rotated_offset
+
+            # C) Planar camera's yaw/pitch = main camera's yaw/pitch + local offsets
+            #    so we can add a small local yaw or pitch if desired.
+            final_yaw = main_cam_yaw + local_yaw_offset
+            final_pitch = main_cam_pitch + local_pitch_offset
+            self.planar_camera_rotation = glm.vec2(final_yaw, final_pitch)
+
+            # D) Build forward direction from that final yaw/pitch
             rotation_matrix = glm.mat4(1.0)
-            rotation_matrix = glm.rotate(
-                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(1.0, 0.0, 0.0)
-            )
-            rotation_matrix = glm.rotate(
-                rotation_matrix, glm.radians(self.planar_camera_rotation.x), glm.vec3(0.0, 1.0, 0.0)
-            )
+            rotation_matrix = glm.rotate(rotation_matrix, glm.radians(final_yaw), glm.vec3(0.0, 1.0, 0.0))
+            rotation_matrix = glm.rotate(rotation_matrix, glm.radians(final_pitch), glm.vec3(1.0, 0.0, 0.0))
 
-            adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(main_camera_forward, 0.0))
-            planar_target = self.planar_camera_position + adjusted_direction
+            planar_forward = glm.vec3(rotation_matrix * glm.vec4(0.0, 0.0, -1.0, 0.0))
 
-            up_vector = glm.vec3(1.0, 0.0, 0.0)
+            # E) Build the view
+            planar_target = self.planar_camera_position + planar_forward
+            up_vector = glm.vec3(0.0, 1.0, 0.0)
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
+
+            # F) Combine lens rotation
+            lens_rotation_matrix = glm.rotate(
+                glm.mat4(1.0),
+                glm.radians(lens_rotation),
+                planar_forward
+            )
+            self.planar_view = lens_rotation_matrix * self.planar_view
+
         else:
+            # -----------------------------------------------------------
+            # fallback to original logic if not relative to the camera
+            # -----------------------------------------------------------
             lens_rotation = self.planar_camera_lens_rotation
-            self.planar_camera_position = self.translation + glm.vec3(*self.planar_camera_position_rotation[:3])
-            self.planar_camera_rotation = glm.vec2(self.planar_camera_position_rotation[3:])
+            self.planar_camera_position = self.translation + glm.vec3(offset_x, offset_y, offset_z)
+            self.planar_camera_rotation = glm.vec2(local_yaw_offset, local_pitch_offset)
 
             direction_to_target = glm.vec3(0.0, 0.0, -1.0)
             rotation_matrix = glm.mat4(1.0)
-            rotation_matrix = glm.rotate(
-                rotation_matrix, glm.radians(self.planar_camera_rotation.y), glm.vec3(1.0, 0.0, 0.0)
-            )
-            rotation_matrix = glm.rotate(
-                rotation_matrix, glm.radians(self.planar_camera_rotation.x), glm.vec3(0.0, 1.0, 0.0)
-            )
+            rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.planar_camera_rotation.y),
+                                         glm.vec3(1.0, 0.0, 0.0))
+            rotation_matrix = glm.rotate(rotation_matrix, glm.radians(self.planar_camera_rotation.x),
+                                         glm.vec3(0.0, 1.0, 0.0))
 
             adjusted_direction = glm.vec3(rotation_matrix * glm.vec4(direction_to_target, 0.0))
             planar_target = self.planar_camera_position + adjusted_direction
 
-            up_vector = glm.vec3(1.0, 0.0, 0.0)
+            up_vector = glm.vec3(0.0, 1.0, 0.0)
             self.planar_view = glm.lookAt(self.planar_camera_position, planar_target, up_vector)
 
-        # Apply lens rotation around the forward axis
-        lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(lens_rotation), glm.vec3(0.0, 0.0, 1.0))
-        self.planar_view = lens_rotation_matrix * self.planar_view
+            lens_rotation_matrix = glm.rotate(glm.mat4(1.0), glm.radians(lens_rotation), glm.vec3(0.0, 0.0, 1.0))
+            self.planar_view = lens_rotation_matrix * self.planar_view
 
-        # Create planar projection
+        # Create the planar projection matrix
         aspect_ratio = self.planar_resolution[0] / self.planar_resolution[1]
         self.planar_projection = glm.perspective(
-            glm.radians(self.planar_fov), aspect_ratio, self.planar_near_plane, self.planar_far_plane
+            glm.radians(self.planar_fov),
+            aspect_ratio,
+            self.planar_near_plane,
+            self.planar_far_plane
         )
 
-        # Avoid self-drawing
+        # Filter out self
         scene_renderers = [r for r in scene_renderers if r is not self]
 
         # Render to the planar framebuffer
@@ -519,12 +544,11 @@ class AbstractRenderer(ABC):
         glViewport(0, 0, self.planar_resolution[0], self.planar_resolution[1])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        # Draw scene from planar camera
         for renderer in scene_renderers:
             renderer.render_with_custom_camera(self.planar_view, self.planar_projection)
 
+        # Optional debug readback
         if self.debug_mode and not self.screen_facing_planar_screenshotted:
-            # Optionally read back the planar framebuffer
             glBindTexture(GL_TEXTURE_2D, self.screen_texture)
             data = glReadPixels(0, 0, self.planar_resolution[0], self.planar_resolution[1], GL_RGB, GL_UNSIGNED_BYTE)
             image = Image.frombytes("RGB", self.planar_resolution, data)
@@ -538,7 +562,7 @@ class AbstractRenderer(ABC):
             image_saver.save_image(image, filename)
             self.screen_facing_planar_screenshotted = True
 
-        # Unbind and restore
+        # Unbind
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         glViewport(0, 0, self.window_size[0], self.window_size[1])
         glBindTexture(GL_TEXTURE_2D, 0)
