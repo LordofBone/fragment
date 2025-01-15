@@ -48,6 +48,8 @@ class RendererConfig:
         planar_camera_position_rotation=(0, 0, 0, 0, 0),
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
+            flip_planar_horizontally=False,
+            flip_planar_vertically=False,
         screen_facing_planar_texture=False,
         lens_rotations=None,
         background_audio=None,
@@ -104,6 +106,8 @@ class RendererConfig:
         self.planar_camera_position_rotation = planar_camera_position_rotation
         self.planar_relative_to_camera = planar_relative_to_camera
         self.planar_camera_lens_rotation = planar_camera_lens_rotation
+        self.flip_planar_horizontally = flip_planar_horizontally
+        self.flip_planar_vertically = flip_planar_vertically
         self.screen_facing_planar_texture = screen_facing_planar_texture
 
         # Lens rotations for the camera
@@ -184,6 +188,8 @@ class RendererConfig:
         planar_relative_to_camera=None,
         planar_camera_lens_rotation=None,
         screen_facing_planar_texture=None,
+            flip_planar_horizontally=None,
+            flip_planar_vertically=None,
         lens_rotations=None,
         debug_mode=None,
         **kwargs,
@@ -228,6 +234,8 @@ class RendererConfig:
             "planar_relative_to_camera": planar_relative_to_camera,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
             "screen_facing_planar_texture": screen_facing_planar_texture,
+            "flip_planar_horizontally": flip_planar_horizontally,
+            "flip_planar_vertically": flip_planar_vertically,
             "lens_rotations": lens_rotations,
             "debug_mode": debug_mode,
         }
@@ -275,6 +283,8 @@ class RendererConfig:
         planar_relative_to_camera=None,
         planar_camera_lens_rotation=None,
         screen_facing_planar_texture=None,
+            flip_planar_horizontally=None,
+            flip_planar_vertically=None,
         lens_rotations=None,
         debug_mode=None,
         **kwargs,
@@ -314,6 +324,8 @@ class RendererConfig:
             "planar_relative_to_camera": planar_relative_to_camera,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
             "screen_facing_planar_texture": screen_facing_planar_texture,
+            "flip_planar_horizontally": flip_planar_horizontally,
+            "flip_planar_vertically": flip_planar_vertically,
             "lens_rotations": lens_rotations,
             "debug_mode": debug_mode,
         }
