@@ -32,10 +32,10 @@ uniform bool shadowingEnabled;
 
 void main()
 {
-    vec2 flippedTexCoords = vec2(TexCoords.x, 1.0 - TexCoords.y);
+    vec2 baseTexCoords = TexCoords;
 
     // Normal
-    vec3 normalFromMap = texture(normalMap, flippedTexCoords, textureLodLevel).rgb * 2.0 - 1.0;
+    vec3 normalFromMap = texture(normalMap, baseTexCoords, textureLodLevel).rgb * 2.0 - 1.0;
     vec3 normal = normalize(TBN * normalFromMap);
 
     vec3 viewDir = normalize(viewPosition - FragPos);
@@ -59,14 +59,14 @@ void main()
 
     envColor *= environmentMapStrength * reflectionStrength;
 
-    vec3 diffuseColor = texture(diffuseMap, flippedTexCoords, textureLodLevel).rgb;
+    vec3 diffuseColor = texture(diffuseMap, baseTexCoords, textureLodLevel).rgb;
 
     // Screen-distorted background
     vec2 reflectionTexCoords = (reflectDir.xy + vec2(1.0)) * 0.5;
-    vec2 normalDistortion = (texture(normalMap, flippedTexCoords).rg * 2.0 - 1.0) * distortionStrength;
+    vec2 normalDistortion = (texture(normalMap, baseTexCoords).rg * 2.0 - 1.0) * distortionStrength;
     vec2 distortedCoords = screenFacingPlanarTexture ?
     reflectionTexCoords + normalDistortion :
-    flippedTexCoords + normalDistortion;
+    baseTexCoords + normalDistortion;
 
     vec3 backgroundColor = texture(screenTexture, clamp(distortedCoords, 0.0, 1.0)).rgb;
     if (length(backgroundColor) < 0.05)
