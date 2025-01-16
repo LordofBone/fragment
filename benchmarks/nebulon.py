@@ -102,7 +102,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "stealth",
         },
-        planar_fragment_view_threshold=-0.5,
+        planar_fragment_view_threshold=-1.0,
         opacity=0.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
@@ -118,7 +118,7 @@ def run_benchmark(
         flip_planar_vertically=True,
         use_planar_normal_distortion=True,
         screen_facing_planar_texture=True,
-        texture_lod_bias=1.0,
+        texture_lod_bias=1.2,
         env_map_lod_bias=2.0,
     )
 
