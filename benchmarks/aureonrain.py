@@ -38,11 +38,11 @@ def run_benchmark(
             (6.0, 6.0, 6.0, 10.0, -15.0),  # 3) Zoom closer, pitch up
             (4.0, 4.0, 10.0, 15.0, -5.0),  # 4) Swing around
             (2.0, 6.0, 8.0, 20.0, -20.0),  # 5) Left & tilt
-            (0.0, 6.0, 6.0, 35.0, -45.0),  # 6) Deeper rotation
-            (4.0, 10.0, 4.0, 35.0, -45.0),  # 7) Overhead
-            (6.0, 6.0, 6.0, 40.0, -45.0),  # 8) Re-center
-            (8.0, 8.0, 10.0, 40.0, -30.0),  # 9) Swing behind & up
-            (10.0, 10.0, 10.0, 45.0, -20.0),  # 10) Pull out
+            (0.0, 6.0, 6.0, 0.0, -45.0),  # 6) Deeper rotation
+            (4.0, 10.0, 4.0, 0.0, -45.0),  # 7) Overhead
+            (6.0, 6.0, 6.0, 2.0, -45.0),  # 8) Re-center
+            (8.0, 8.0, 10.0, 2.0, -30.0),  # 9) Swing behind & up
+            (10.0, 10.0, 10.0, 10.0, -20.0),  # 10) Pull out
             (10.0, 10.0, 10.0, 0.0, -10.0),  # 11) Return near start
         ],
         # Matching lens rotations, same length.
@@ -255,7 +255,7 @@ def run_benchmark(
     instance.scene_construct.translate_renderer("rain", (0, 0, 0))  # Translate first model
 
     # Example transformations
-    instance.scene_construct.translate_renderer("model_rotating", (0, 1.5, -3))  # Translate first model
+    instance.scene_construct.translate_renderer("model_rotating", (0, 1.5, -5))  # Translate first model
     instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
     instance.scene_construct.set_auto_rotation("model_rotating", True, axis=(0, 1, 0), speed=2000.0)
