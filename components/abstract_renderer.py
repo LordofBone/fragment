@@ -145,6 +145,7 @@ class AbstractRenderer(ABC):
         distortion_warped=False,
             flip_planar_horizontally=False,
             flip_planar_vertically=False,
+            use_planar_normal_distortion=False,
         screen_texture=None,
         planar_camera=False,
         planar_resolution=(1024, 1024),
@@ -163,6 +164,7 @@ class AbstractRenderer(ABC):
 
         self.flip_planar_horizontally = flip_planar_horizontally
         self.flip_planar_vertically = flip_planar_vertically
+        self.use_planar_normal_distortion = use_planar_normal_distortion
         self.planar_texture = None
         self.planar_framebuffer = None
         self.planar_camera_position = None
@@ -905,6 +907,11 @@ class AbstractRenderer(ABC):
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "flipPlanarVertical"),
             int(self.flip_planar_vertically)
+        )
+
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "usePlanarNormalDistortion"),
+            int(self.use_planar_normal_distortion)
         )
 
         if self.screen_texture:
