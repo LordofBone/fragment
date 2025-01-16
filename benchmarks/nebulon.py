@@ -102,6 +102,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "stealth",
         },
+        planar_fragment_view_threshold=-0.5,
         opacity=0.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
