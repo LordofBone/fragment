@@ -30,22 +30,22 @@ uniform sampler2D shadowMap;
 uniform vec3 viewPosition;
 
 uniform float envMapLodLevel;
-uniform bool  applyToneMapping;
-uniform bool  applyGammaCorrection;
+uniform bool applyToneMapping;
+uniform bool applyGammaCorrection;
 uniform float opacity;
-uniform bool  phongShading;
+uniform bool phongShading;
 uniform float distortionStrength;
 uniform float reflectionStrength;
 uniform float environmentMapStrength;
-uniform bool  screenFacingPlanarTexture;
-uniform bool  warped;
-uniform bool  shadowingEnabled;
+uniform bool screenFacingPlanarTexture;
+uniform bool warped;
+uniform bool shadowingEnabled;
 
 // ------------------------------------------------------
 // NEW: Flip toggles
 // ------------------------------------------------------
-uniform bool flipHorizontal;// If true, flip in X
-uniform bool flipVertical;// If true, flip in Y
+uniform bool flipPlanarHorizontal;// If true, flip in X
+uniform bool flipPlanarVertical;// If true, flip in Y
 
 // ------------------------------------------------------
 // NEW: Normal-distortion toggle
@@ -58,10 +58,11 @@ void main()
     vec2 baseTexCoords = TexCoords;
 
     // 2) Optionally flip horizontally or vertically
-    if (flipHorizontal) {
+    //    (If you want to comment/uncomment, treat them as #ifdef or pass in booleans from host)
+    if (flipPlanarHorizontal) {
         baseTexCoords.x = 1.0 - baseTexCoords.x;
     }
-    if (flipVertical) {
+    if (flipPlanarVertical) {
         baseTexCoords.y = 1.0 - baseTexCoords.y;
     }
 
@@ -104,25 +105,14 @@ void main()
     //   3) If screenFacingPlanarTexture is true => use reflectionTexCoords, else use baseTexCoords
     // ------------------------------------------------------
     vec2 reflectionTexCoords = (reflectDir.xy + vec2(1.0)) * 0.5;
-    vec2 normalDist = (texture(normalMap, baseTexCoords).rg * 2.0 - 1.0) * distortionStrength;
+    vec2 normalDistortion = (texture(normalMap, baseTexCoords).rg * 2.0 - 1.0) * distortionStrength;
+    vec2 distortedCoords = screenFacingPlanarTexture ?
+    reflectionTexCoords + normalDistortion :
+    baseTexCoords + normalDistortion;
 
-    vec2 coordsForScreen;
-    if (screenFacingPlanarTexture) {
-        coordsForScreen = reflectionTexCoords;
-    } else {
-        coordsForScreen = baseTexCoords;
-    }
-
-    // If usePlanarNormalDistortion is false, skip adding normalDist
-    vec2 finalScreenCoords = usePlanarNormalDistortion
-    ? coordsForScreen + normalDist
-    : coordsForScreen;
-
-    // Make sure coords remain in [0..1]
-    finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
-
-    vec3 backgroundColor = texture(screenTexture, finalScreenCoords).rgb;
-    if (length(backgroundColor) < 0.05) {
+    vec3 backgroundColor = texture(screenTexture, clamp(distortedCoords, 0.0, 1.0)).rgb;
+    if (length(backgroundColor) < 0.05)
+    {
         backgroundColor = fallbackColor;
     }
 
@@ -152,7 +142,7 @@ void main()
     vec3 result = mix(backgroundColor, lighting, opacity) + envColor;
 
     // ------------------------------------------------------
-    // Tone & Gamma
+    // Tone & gamma
     // ------------------------------------------------------
     if (applyToneMapping) {
         result = toneMapping(result);
