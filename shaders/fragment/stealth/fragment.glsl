@@ -28,23 +28,29 @@ uniform sampler2D shadowMap;
 // Uniforms for toggles / settings
 // ------------------------------------------------------
 uniform vec3 viewPosition;
+
 uniform float envMapLodLevel;
-uniform bool applyToneMapping;
-uniform bool applyGammaCorrection;
+uniform bool  applyToneMapping;
+uniform bool  applyGammaCorrection;
 uniform float opacity;
-uniform bool phongShading;
+uniform bool  phongShading;
 uniform float distortionStrength;
 uniform float reflectionStrength;
 uniform float environmentMapStrength;
-uniform bool screenFacingPlanarTexture;
-uniform bool warped;
-uniform bool shadowingEnabled;
+uniform bool  screenFacingPlanarTexture;
+uniform bool  warped;
+uniform bool  shadowingEnabled;
 
 // ------------------------------------------------------
 // NEW: Flip toggles
 // ------------------------------------------------------
-uniform bool flipPlanarHorizontal;// If true, flip in X
-uniform bool flipPlanarVertical;// If true, flip in Y
+uniform bool flipHorizontal;// If true, flip in X
+uniform bool flipVertical;// If true, flip in Y
+
+// ------------------------------------------------------
+// NEW: Normal-distortion toggle
+// ------------------------------------------------------
+uniform bool usePlanarNormalDistortion;// true => use "distortedCoords", false => use base coords
 
 void main()
 {
@@ -52,11 +58,10 @@ void main()
     vec2 baseTexCoords = TexCoords;
 
     // 2) Optionally flip horizontally or vertically
-    //    (If you want to comment/uncomment, treat them as #ifdef or pass in booleans from host)
-    if (flipPlanarHorizontal) {
+    if (flipHorizontal) {
         baseTexCoords.x = 1.0 - baseTexCoords.x;
     }
-    if (flipPlanarVertical) {
+    if (flipVertical) {
         baseTexCoords.y = 1.0 - baseTexCoords.y;
     }
 
@@ -67,7 +72,7 @@ void main()
     vec3 normal = normalize(TBN * normalFromMap);
 
     // ------------------------------------------------------
-    // Basic reflection environment
+    // Reflection environment
     // ------------------------------------------------------
     vec3 viewDir = normalize(viewPosition - FragPos);
     vec3 reflectDir = reflect(viewDir, warped ? FragPos : normal);
@@ -79,7 +84,6 @@ void main()
 
     if (ndotv > 0.0) {
         envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-        // If envColor is near zero, we fallback
         envColor = mix(fallbackColor, envColor, step(0.05, length(envColor)));
     }
     else {
@@ -94,35 +98,36 @@ void main()
     vec3 diffuseColor = texture(diffuseMap, baseTexCoords, textureLodLevel).rgb;
 
     // ------------------------------------------------------
-    // "Screen-distorted" background: how we fetch the screenTexture
+    // Screen-distorted background:
+    //   1) Reflection-based coords for a "fake" reflection => reflectionTexCoords
+    //   2) Distortion from normalMap's RG => normalDistortion
+    //   3) If screenFacingPlanarTexture is true => use reflectionTexCoords, else use baseTexCoords
     // ------------------------------------------------------
-    // Reflection-based coords for a "fake" reflection
     vec2 reflectionTexCoords = (reflectDir.xy + vec2(1.0)) * 0.5;
+    vec2 normalDist = (texture(normalMap, baseTexCoords).rg * 2.0 - 1.0) * distortionStrength;
 
-    // Distortion from normalMap's red/green
-    vec2 normalDistortion = (texture(normalMap, baseTexCoords).rg * 2.0 - 1.0) * distortionStrength;
-
-    vec2 distortedCoords;
+    vec2 coordsForScreen;
     if (screenFacingPlanarTexture) {
-        // If we want to map reflection direction onto the planar texture
-        distortedCoords = reflectionTexCoords + normalDistortion;
+        coordsForScreen = reflectionTexCoords;
+    } else {
+        coordsForScreen = baseTexCoords;
     }
-    else {
-        // Otherwise, just distort the base uv
-        distortedCoords = baseTexCoords + normalDistortion;
-    }
+
+    // If usePlanarNormalDistortion is false, skip adding normalDist
+    vec2 finalScreenCoords = usePlanarNormalDistortion
+    ? coordsForScreen + normalDist
+    : coordsForScreen;
 
     // Make sure coords remain in [0..1]
-    distortedCoords = clamp(distortedCoords, 0.0, 1.0);
+    finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
 
-    // Sample screenTexture
-    vec3 backgroundColor = texture(screenTexture, distortedCoords).rgb;
+    vec3 backgroundColor = texture(screenTexture, finalScreenCoords).rgb;
     if (length(backgroundColor) < 0.05) {
         backgroundColor = fallbackColor;
     }
 
     // ------------------------------------------------------
-    // Optional shadow calculation
+    // Shadow calculation
     // ------------------------------------------------------
     float shadow = 0.0;
     if (shadowingEnabled) {
@@ -135,8 +140,7 @@ void main()
     vec3 lighting;
     if (phongShading) {
         lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
-    }
-    else {
+    } else {
         lighting = computeDiffuseLighting(normal, FragPos, diffuseColor);
     }
 
@@ -148,7 +152,7 @@ void main()
     vec3 result = mix(backgroundColor, lighting, opacity) + envColor;
 
     // ------------------------------------------------------
-    // Tone & gamma
+    // Tone & Gamma
     // ------------------------------------------------------
     if (applyToneMapping) {
         result = toneMapping(result);
