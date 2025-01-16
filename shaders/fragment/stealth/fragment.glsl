@@ -38,7 +38,6 @@ uniform float distortionStrength;
 uniform float reflectionStrength;
 uniform float environmentMapStrength;
 uniform bool screenFacingPlanarTexture;
-uniform bool warped;
 uniform bool shadowingEnabled;
 
 // ------------------------------------------------------
@@ -49,8 +48,12 @@ uniform bool flipPlanarVertical;// If true, flip vertically
 
 // ------------------------------------------------------
 // Normal-distortion toggle
+//   Also doubles as the "warped" reflection toggle.
+//   - If true => reflection about FragPos + normal-based distortion
+//   - If false => reflection about surface normal + no normal-based distortion
 // ------------------------------------------------------
-uniform bool usePlanarNormalDistortion;// if true => add normal-based distortion
+uniform bool usePlanarNormalDistortion;
+
 
 void main()
 {
@@ -60,7 +63,7 @@ void main()
     // ------------------------------------------------------
     vec2 baseTexCoords = TexCoords;
 
-    // (Optional) If you want the normal map to be flipped as well:
+    // If you want the normal map to also flip, uncomment:
     // if (flipPlanarHorizontal) {
     //     baseTexCoords.x = 1.0 - baseTexCoords.x;
     // }
@@ -69,16 +72,18 @@ void main()
     // }
 
     // ------------------------------------------------------
-    // 2) Calculate the normal from normalMap (in tangent space => world space)
+    // 2) Calculate the normal from normalMap (tangent space => world space)
     // ------------------------------------------------------
     vec3 normalFromMap = texture(normalMap, baseTexCoords, textureLodLevel).rgb * 2.0 - 1.0;
     vec3 normal = normalize(TBN * normalFromMap);
 
     // ------------------------------------------------------
     // 3) Reflection environment
+    //    - If usePlanarNormalDistortion=true => "warped" reflection about FragPos
+    //    - Else => standard reflection about the normal
     // ------------------------------------------------------
     vec3 viewDir = normalize(viewPosition - FragPos);
-    vec3 reflectDir = reflect(viewDir, (warped ? FragPos : normal));
+    vec3 reflectDir = reflect(viewDir, (usePlanarNormalDistortion ? FragPos : normal));
     reflectDir = normalize(reflectDir);
 
     // A fallback color if the environment map has no coverage
@@ -107,8 +112,8 @@ void main()
 
     // ------------------------------------------------------
     // 5) Decide final coords to sample from screenTexture
-    //    - If screenFacingPlanarTexture==true => reflection-based coords
-    //      else => planar base coords
+    //    - If screenFacingPlanarTexture == true => reflection-based coords
+    //    - Else => planar base coords
     // ------------------------------------------------------
     vec2 reflectionTexCoords = (reflectDir.xy + vec2(1.0)) * 0.5;
     vec2 baseOrReflectionCoords = (screenFacingPlanarTexture
@@ -117,14 +122,14 @@ void main()
 
     // ------------------------------------------------------
     // 6) Distortion (optionally) from the normal map
-    //    - If usePlanarNormalDistortion == false => no distortion
-    //    - If true => read normal map again *or* reuse normalFromMap RG
-    //      (below we re-sample for clarity, but you could optimize)
+    //    - If usePlanarNormalDistortion == false => no normal-based distortion
+    //    - If true => derive offset from normalMap RG channels
     // ------------------------------------------------------
     vec2 distortion = vec2(0.0);
     if (usePlanarNormalDistortion)
     {
-        // Distortion is typically from the normalMap RG channel
+        // Distortion is typically from normalMap.rg
+        // For clarity we re-sample, but you could reuse 'normalFromMap'
         vec2 normalRG = texture(normalMap, baseTexCoords).rg * 2.0 - 1.0;
         distortion = normalRG * distortionStrength;
     }
@@ -134,7 +139,6 @@ void main()
 
     // ------------------------------------------------------
     // 7) Flip finalScreenCoords if requested
-    //    (so flipping affects the final background sample)
     // ------------------------------------------------------
     if (flipPlanarHorizontal)
     {
@@ -145,7 +149,7 @@ void main()
         finalScreenCoords.y = 1.0 - finalScreenCoords.y;
     }
 
-    // Clamp so we don’t sample outside 0..1
+    // Clamp so we don’t sample outside [0..1]
     finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
 
     // ------------------------------------------------------
