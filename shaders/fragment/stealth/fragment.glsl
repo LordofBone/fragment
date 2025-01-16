@@ -38,6 +38,7 @@ uniform float distortionStrength;
 uniform float reflectionStrength;
 uniform float environmentMapStrength;
 uniform bool screenFacingPlanarTexture;
+uniform float planarFragmentViewThreshold;
 uniform bool shadowingEnabled;
 
 // ------------------------------------------------------
@@ -149,7 +150,7 @@ void main()
 
     if (screenFacingPlanarTexture)
     {
-        if (facing > 0.0)// fragment faces camera
+        if (facing > planarFragmentViewThreshold)// fragment faces camera
         {
             // clamp coords before sampling
             finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
