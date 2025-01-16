@@ -115,6 +115,7 @@ def run_benchmark(
         planar_camera_lens_rotation=0.0,
         flip_planar_horizontally=True,
         flip_planar_vertically=True,
+        use_planar_normal_distortion=True,
         screen_facing_planar_texture=True,
         texture_lod_bias=1.0,
         env_map_lod_bias=2.0,
