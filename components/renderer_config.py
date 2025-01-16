@@ -52,6 +52,7 @@ class RendererConfig:
             flip_planar_vertically=False,
             use_planar_normal_distortion=False,
         screen_facing_planar_texture=False,
+            planar_fragment_view_threshold=0.0,
         lens_rotations=None,
         background_audio=None,
         sound_enabled=True,
@@ -111,6 +112,7 @@ class RendererConfig:
         self.flip_planar_vertically = flip_planar_vertically
         self.use_planar_normal_distortion = use_planar_normal_distortion
         self.screen_facing_planar_texture = screen_facing_planar_texture
+        self.planar_fragment_view_threshold = planar_fragment_view_threshold
 
         # Lens rotations for the camera
         self.lens_rotations = lens_rotations or [0.0] * len(self.camera_positions)
@@ -190,6 +192,7 @@ class RendererConfig:
         planar_relative_to_camera=None,
         planar_camera_lens_rotation=None,
         screen_facing_planar_texture=None,
+            planar_fragment_view_threshold=None,
             flip_planar_horizontally=None,
             flip_planar_vertically=None,
             use_planar_normal_distortion=None,
@@ -237,6 +240,7 @@ class RendererConfig:
             "planar_relative_to_camera": planar_relative_to_camera,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
             "screen_facing_planar_texture": screen_facing_planar_texture,
+            "planar_fragment_view_threshold": planar_fragment_view_threshold,
             "flip_planar_horizontally": flip_planar_horizontally,
             "flip_planar_vertically": flip_planar_vertically,
             "use_planar_normal_distortion": use_planar_normal_distortion,
@@ -290,6 +294,7 @@ class RendererConfig:
             flip_planar_horizontally=None,
             flip_planar_vertically=None,
             use_planar_normal_distortion=None,
+            planar_fragment_view_threshold=None,
         lens_rotations=None,
         debug_mode=None,
         **kwargs,
@@ -332,6 +337,7 @@ class RendererConfig:
             "flip_planar_horizontally": flip_planar_horizontally,
             "flip_planar_vertically": flip_planar_vertically,
             "use_planar_normal_distortion": use_planar_normal_distortion,
+            "planar_fragment_view_threshold": planar_fragment_view_threshold,
             "lens_rotations": lens_rotations,
             "debug_mode": debug_mode,
         }
