@@ -30,18 +30,36 @@ def run_benchmark(
         window_size=resolution,
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
-        duration=60,
+        duration=120,
         cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
         camera_positions=[
-            (10.0, 10.0, 10.0, 0.0, -30.0),  # Initial position
-            (6.0, 6.0, 6.0, 0.0, -30.0),  # Zoom in
-            (4.0, 4.0, 10.0, 15.0, -20.0),  # Rotate around
-            (0.0, 6.0, 6.0, 15.0, -15.0),  # Rotate around
-            (4.0, 10.0, 4.0, 15.0, -15.0),  # Rotate around
-            (6.0, 6.0, 6.0, 15.0, -15.0),  # Zoom out to origin
-            (10.0, 10.0, 10.0, 15.0, -30.0),  # Back to initial
+            (10.0, 10.0, 10.0, 0.0, -10.0),  # 1) Start
+            (8.0, 8.0, 8.0, 5.0, -10.0),  # 2) Move in, mild yaw
+            (6.0, 6.0, 6.0, 10.0, -15.0),  # 3) Zoom closer, pitch up
+            (4.0, 4.0, 10.0, 15.0, -5.0),  # 4) Swing around
+            (2.0, 6.0, 8.0, 20.0, -20.0),  # 5) Left & tilt
+            (0.0, 6.0, 6.0, 35.0, -45.0),  # 6) Deeper rotation
+            (4.0, 10.0, 4.0, 35.0, -45.0),  # 7) Overhead
+            (6.0, 6.0, 6.0, 40.0, -45.0),  # 8) Re-center
+            (8.0, 8.0, 10.0, 40.0, -30.0),  # 9) Swing behind & up
+            (10.0, 10.0, 10.0, 45.0, -20.0),  # 10) Pull out
+            (10.0, 10.0, 10.0, 0.0, -10.0),  # 11) Return near start
         ],
-        lens_rotations=[0.0],
+        # Matching lens rotations, same length.
+        # This will cause the camera to “roll” at different keyframes.
+        lens_rotations=[
+            0.0,
+            2.0,
+            5.0,
+            8.0,
+            10.0,
+            6.0,
+            3.0,
+            1.0,
+            -2.0,
+            -4.0,
+            0.0,
+        ],
         fov=40,
         near_plane=0.2,
         far_plane=100,
@@ -58,6 +76,7 @@ def run_benchmark(
                 "orth_top": 120,
             }
         ],
+        planar_fragment_view_threshold=-1.0,
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
@@ -93,10 +112,13 @@ def run_benchmark(
         reflection_strength=0.0,
         planar_camera=True,
         planar_resolution=(1024, 1024),
-        planar_fov=30,
-        planar_camera_position_rotation=(3.0, 6.0, 0.0, 0.0, 0.0),
+        planar_fov=90,
+        planar_camera_position_rotation=(0.0, 3.0, 0.0, 0.0, 0.0),
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
+        flip_planar_horizontally=True,
+        flip_planar_vertically=False,
+        use_planar_normal_distortion=True,
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
@@ -120,8 +142,10 @@ def run_benchmark(
         reflection_strength=0.4,
         planar_camera=True,
         planar_resolution=(1024, 1024),
-        planar_fov=30,
-        planar_camera_position_rotation=(3.0, 6.0, 0.0, 0.0, 0.0),
+        planar_fov=90,
+        planar_camera_position_rotation=(3.0, 6.0, 0.0, 90.0, 0.0),
+        flip_planar_horizontally=True,
+        flip_planar_vertically=False,
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         screen_facing_planar_texture=True,
@@ -219,9 +243,9 @@ def run_benchmark(
     )
 
     # Add the renderers to the instance
-    instance.add_renderer("water_surface", "surface", **water_config)
-
     instance.add_renderer("skybox", "skybox", **skybox_config)
+
+    instance.add_renderer("water_surface", "surface", **water_config)
 
     instance.add_renderer("model_stretched", "model", **stretched_pyramid_config)
     instance.add_renderer("model_rotating", "model", **rotating_pyramid_config)
