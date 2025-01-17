@@ -38,12 +38,12 @@ def run_benchmark(
             (6.0, 6.0, 6.0, 10.0, -15.0),  # 3) Zoom closer, pitch up
             (4.0, 4.0, 10.0, 10.0, -5.0),  # 4) Swing around
             (2.0, 6.0, 8.0, 5.0, -20.0),  # 5) Left & tilt
-            (0.0, 0.0, 12.0, 0.0, 15.0),  # 6) Deeper rotation
-            (-14.0, 1.0, 10.0, -50.0, 0.0),  # 7) Overhead
-            (0.0, 2.0, 5.0, -30.0, 0.0),  # 8) Re-center
-            (8.0, 3.0, 7.0, 25.0, 0.0),  # 9) Swing behind & up
-            (10.0, 10.0, 10.0, 10.0, -20.0),  # 10) Pull out
-            (10.0, 10.0, 10.0, 0.0, -10.0),  # 11) Return near start
+            (0.0, 1.0, 12.0, 0.0, 15.0),  # 6) Deeper rotation
+            (-14.0, 1.0, 10.0, -50.0, 15.0),  # 7) Overhead
+            (0.0, 2.0, 5.0, -30.0, 15.0),  # 8) Re-center
+            (8.0, 3.0, 7.0, 25.0, 10.0),  # 9) Swing behind & up
+            (10.0, 10.0, 10.0, 10.0, 5.0),  # 10) Pull out
+            (10.0, 10.0, 10.0, 0.0, 7.0),  # 11) Return near start
         ],
         # Matching lens rotations, same length.
         # This will cause the camera to “roll” at different keyframes.
