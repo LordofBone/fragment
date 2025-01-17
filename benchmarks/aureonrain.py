@@ -33,15 +33,15 @@ def run_benchmark(
         duration=120,
         cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
         camera_positions=[
-            (10.0, 10.0, 10.0, 0.0, -10.0),  # 1) Start
-            (8.0, 8.0, 8.0, 5.0, -10.0),  # 2) Move in, mild yaw
+            (10.0, 10.0, 10.0, 5.0, -10.0),  # 1) Start
+            (8.0, 8.0, 8.0, 10.0, -10.0),  # 2) Move in, mild yaw
             (6.0, 6.0, 6.0, 10.0, -15.0),  # 3) Zoom closer, pitch up
-            (4.0, 4.0, 10.0, 15.0, -5.0),  # 4) Swing around
-            (2.0, 6.0, 8.0, 20.0, -20.0),  # 5) Left & tilt
-            (0.0, 6.0, 6.0, 0.0, -45.0),  # 6) Deeper rotation
-            (4.0, 10.0, 4.0, 0.0, -45.0),  # 7) Overhead
-            (6.0, 6.0, 6.0, 2.0, -45.0),  # 8) Re-center
-            (8.0, 8.0, 10.0, 2.0, -30.0),  # 9) Swing behind & up
+            (4.0, 4.0, 10.0, 10.0, -5.0),  # 4) Swing around
+            (2.0, 6.0, 8.0, 5.0, -20.0),  # 5) Left & tilt
+            (0.0, 0.0, 12.0, 0.0, 15.0),  # 6) Deeper rotation
+            (-14.0, 1.0, 10.0, -50.0, 0.0),  # 7) Overhead
+            (0.0, 2.0, 5.0, -30.0, 0.0),  # 8) Re-center
+            (8.0, 3.0, 7.0, 25.0, 0.0),  # 9) Swing behind & up
             (10.0, 10.0, 10.0, 10.0, -20.0),  # 10) Pull out
             (10.0, 10.0, 10.0, 0.0, -10.0),  # 11) Return near start
         ],
@@ -67,7 +67,7 @@ def run_benchmark(
         ambient_lighting_color=(0.78, 0.541, 0.0),
         lights=[
             {
-                "position": (20.85, 16.0, 22.0),
+                "position": (20.85, 10.0, 22.0),
                 "color": (0.757, 0.902, 1),
                 "strength": 1.0,
                 "orth_left": -120.0,
