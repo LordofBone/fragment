@@ -96,25 +96,25 @@ def run_benchmark(
         particle_generator=True,
         generator_delay=0.0,
         particle_size=9.0,
-        min_initial_velocity_x=-0.35,
-        max_initial_velocity_x=0.35,
-        min_initial_velocity_y=-0.35,
-        max_initial_velocity_y=0.35,
-        min_initial_velocity_z=-9.5,
+        min_initial_velocity_x=-0.80,
+        max_initial_velocity_x=0.16,
+        min_initial_velocity_y=-0.25,
+        max_initial_velocity_y=0.25,
+        min_initial_velocity_z=-5.0,
         max_initial_velocity_z=0.0,
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
-        particle_max_lifetime=25.0,  # Set max lifetime to a realistic value
-        particle_max_weight=1.5,  # Set max weight to a realistic value
-        particle_min_weight=0.5,  # Set min weight to a realistic value
+        particle_max_lifetime=7.0,  # Set max lifetime to a realistic value
+        particle_max_weight=55.5,  # Set max weight to a realistic value
+        particle_min_weight=45.5,  # Set min weight to a realistic value
         particle_smooth_edges=True,
-        particle_color=(0.745, 0.859, 1),
+        particle_color=(0.973, 1.0, 0.541),
         particle_fade_to_color=True,
-        particle_fade_color=(0.925, 0.976, 1.0),
+        particle_fade_color=(0.984, 0.988, 0.898),
         phong_shading=True,
         opacity=1.0,
-        shininess=0.001,
-        particle_gravity=(0.178, 0.0233, 0.3),
-        particle_bounce_factor=0.65,  # Standard bounce factor
+        shininess=0.75,
+        particle_gravity=(0.0, 0.0, 0.0),
+        particle_bounce_factor=0.05,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
         particle_ground_plane_height=-7.15,  # Height of the ground plane (y = 0)
         fluid_simulation=False,  # Enable fluid simulation
@@ -122,7 +122,7 @@ def run_benchmark(
         fluid_viscosity=5.1,  # Viscosity factor for the particles
         fluid_force_multiplier=1.0,  # Force multiplier for the fluid simulation
         particle_spawn_time_jitter=True,  # Jitter for spawn time
-        particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
+        particle_max_spawn_time_jitter=7.5,  # Max jitter for spawn time
         min_width=-0.0,  # Adjusted for a realistic spread along X and Z-axes
         min_height=-0.0,  # Adjusted for a realistic spread along Y-axis
         min_depth=-0.0,  # Adjusted for a realistic spread along X and Z-axes
@@ -143,9 +143,10 @@ def run_benchmark(
     instance.add_renderer("skybox", "skybox", **skybox_config)
 
     # Add the particle renderer to the instance with a specific name
-    instance.add_renderer("sparks", "particle", **particle_config)
+    instance.add_renderer("warp_particles", "particle", **particle_config)
 
-    instance.scene_construct.set_auto_rotation("sparks", True, axis=(0, 0, 9), speed=1000.0)
+    instance.scene_construct.translate_renderer("warp_particles", (0.7, 0, 0))  # Translate first model
+    instance.scene_construct.set_auto_rotation("warp_particles", False, axis=(0, 0, 1), speed=5000.0)
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
