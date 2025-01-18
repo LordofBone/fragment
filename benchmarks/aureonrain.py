@@ -33,17 +33,17 @@ def run_benchmark(
         duration=120,
         cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
         camera_positions=[
-            (10.0, 10.0, 10.0, 5.0, -10.0),  # 1) Start
-            (8.0, 8.0, 8.0, 10.0, -10.0),  # 2) Move in, mild yaw
-            (6.0, 6.0, 6.0, 10.0, -15.0),  # 3) Zoom closer, pitch up
-            (4.0, 4.0, 10.0, 10.0, -5.0),  # 4) Swing around
-            (2.0, 6.0, 8.0, 5.0, -20.0),  # 5) Left & tilt
-            (0.0, 1.0, 12.0, 0.0, 15.0),  # 6) Deeper rotation
-            (-14.0, 1.0, 10.0, -50.0, 15.0),  # 7) Overhead
-            (0.0, 2.0, 5.0, -30.0, 15.0),  # 8) Re-center
-            (8.0, 3.0, 7.0, 25.0, 4.0),  # 9) Swing behind & up
-            (10.0, 10.0, 10.0, 28.0, 6.0),  # 10) Pull out
-            (15.0, 5.0, 8.0, 48.0, 6.0),  # 11) Return near start
+            (10.0, 10.0, 10.0, 5.0, -10.0),
+            (8.0, 8.0, 8.0, 10.0, -10.0),
+            (6.0, 6.0, 6.0, 10.0, -15.0),
+            (4.0, 4.0, 10.0, 10.0, -5.0),
+            (2.0, 6.0, 8.0, 5.0, -20.0),
+            (0.0, 1.0, 12.0, 0.0, 15.0),
+            (-14.0, 1.0, 10.0, -50.0, 15.0),
+            (0.0, 2.0, 5.0, -30.0, 15.0),
+            (8.0, 3.0, 7.0, 27.0, 4.0),
+            (10.0, 10.0, 10.0, 30.0, 6.0),
+            (15.0, 5.0, 8.0, 50.0, 6.0),
         ],
         # Matching lens rotations, same length.
         # This will cause the camera to “roll” at different keyframes.
@@ -167,7 +167,7 @@ def run_benchmark(
             "fragment": "parallax_mapping",
         },
         invert_displacement_map=True,
-        pom_height_scale=0.016,
+        pom_height_scale=0.216,
         pom_min_steps=128,
         pom_max_steps=512,
         texture_lod_bias=0.0,
