@@ -27,17 +27,46 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "space/"),
-        camera_positions=[(0.0, 0.0, -7.2, 187.0, 0.0)],
+        # Camera path simulating a spaceship gliding through space.
+        # Each tuple is (x, y, z, yaw, pitch).
+        camera_positions=[
+            (0.0, 0.0, -7.2, 187.0, 0.0),  # 1) Start exactly at (0,0,-7.2,187,0)
+            (1.5, 0.2, -6.8, 185.0, -2.0),  # 2) Slight forward, mild yaw decrease
+            (3.0, 0.6, -6.0, 182.0, -3.0),  # 3) More forward, gently pitch down
+            (4.5, 1.2, -4.8, 178.0, -5.0),  # 4) Arcing left, pitch ~-5
+            (6.0, 1.5, -3.5, 175.0, -4.0),  # 5) Slight right pan
+            (7.5, 1.5, -2.0, 170.0, -2.0),  # 6) Yaw ~170, pitch easing up
+            (9.0, 1.8, 0.0, 165.0, -2.0),  # 7) Passing behind objects, mild rise
+            (11.0, 2.0, 2.5, 160.0, -1.0),  # 8) Further forward
+            (13.0, 2.0, 5.0, 155.0, 0.0),  # 9) Pitch to level
+            (15.0, 2.3, 8.0, 150.0, 1.0),  # 10) End vantage, gentle final yaw
+        ],
+        # Matching lens (roll) rotations for each keyframe
+        # A subtle roll from 0 up to ~3°, then back down.
+        lens_rotations=[
+            0.0,  # 1) no roll
+            1.0,  # 2) slight roll
+            2.0,  # 3) roll a bit more
+            3.0,  # 4) peak ~3°
+            2.0,  # 5) easing back
+            1.0,  # 6) smaller tilt
+            0.0,  # 7) level
+            -1.0,  # 8) negative roll
+            -2.0,  # 9) bit more negative
+            -1.0,  # 10) near-flat
+        ],
         fov=60,
+        ambient_lighting_strength=0.55,
+        ambient_lighting_color=(0.4, 1.0, 0.651),
         lights=[
             {"position": (-0.10, 0.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
         ],
-        lens_rotations=[0.0],
         near_plane=0.1,
         far_plane=5000,
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
+        move_speed=0.1,
         msaa_level=msaa_level,
         alpha_blending=True,
         culling=True,
@@ -66,11 +95,11 @@ def run_benchmark(
         # },
         particle_generator=True,
         generator_delay=0.0,
-        particle_size=22.0,
-        min_initial_velocity_x=-0.75,
-        max_initial_velocity_x=0.75,
-        min_initial_velocity_y=-0.75,
-        max_initial_velocity_y=0.75,
+        particle_size=9.0,
+        min_initial_velocity_x=-0.35,
+        max_initial_velocity_x=0.35,
+        min_initial_velocity_y=-0.35,
+        max_initial_velocity_y=0.35,
         min_initial_velocity_z=-9.5,
         max_initial_velocity_z=0.0,
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
@@ -78,9 +107,9 @@ def run_benchmark(
         particle_max_weight=1.5,  # Set max weight to a realistic value
         particle_min_weight=0.5,  # Set min weight to a realistic value
         particle_smooth_edges=True,
-        particle_color=(0.929, 0.929, 0.204),
-        particle_fade_to_color=False,
-        particle_fade_color=(0.941, 0.537, 0.012),
+        particle_color=(0.745, 0.859, 1),
+        particle_fade_to_color=True,
+        particle_fade_color=(0.925, 0.976, 1.0),
         phong_shading=True,
         opacity=1.0,
         shininess=0.001,
