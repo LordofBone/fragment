@@ -98,14 +98,14 @@ def run_benchmark(
         particle_size=9.0,
         min_initial_velocity_x=-0.80,
         max_initial_velocity_x=0.16,
-        min_initial_velocity_y=-0.25,
-        max_initial_velocity_y=0.25,
+        min_initial_velocity_y=-0.2,
+        max_initial_velocity_y=0.2,
         min_initial_velocity_z=-5.0,
         max_initial_velocity_z=0.0,
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
-        particle_max_lifetime=7.0,  # Set max lifetime to a realistic value
-        particle_max_weight=55.5,  # Set max weight to a realistic value
-        particle_min_weight=45.5,  # Set min weight to a realistic value
+        particle_max_lifetime=0.4,  # Set max lifetime to a realistic value
+        particle_max_weight=125.5,  # Set max weight to a realistic value
+        particle_min_weight=100.5,  # Set min weight to a realistic value
         particle_smooth_edges=True,
         particle_color=(0.973, 1.0, 0.541),
         particle_fade_to_color=True,
@@ -114,9 +114,10 @@ def run_benchmark(
         opacity=1.0,
         shininess=0.75,
         particle_gravity=(0.0, 0.0, 0.0),
-        particle_bounce_factor=0.05,  # Standard bounce factor
+        particle_bounce_factor=0.025,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
-        particle_ground_plane_height=-7.15,  # Height of the ground plane (y = 0)
+        particle_ground_plane_height=-7.14,
+        # Height of the ground plane on the axis as set by particle_ground_plane_normal
         fluid_simulation=False,  # Enable fluid simulation
         fluid_pressure=6.5,  # Pressure factor for the particles
         fluid_viscosity=5.1,  # Viscosity factor for the particles
@@ -146,7 +147,7 @@ def run_benchmark(
     instance.add_renderer("warp_particles", "particle", **particle_config)
 
     instance.scene_construct.translate_renderer("warp_particles", (0.7, 0, 0))  # Translate first model
-    instance.scene_construct.set_auto_rotation("warp_particles", False, axis=(0, 0, 1), speed=5000.0)
+    instance.scene_construct.set_auto_rotation("warp_particles", False, axis=(0, 0, 0), speed=5000.0)
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
