@@ -28,7 +28,7 @@ class RendererConfig:
         env_map_lod_bias=0.0,
         env_map_strength=0.5,
         invert_displacement_map=False,
-        pom_height_scale=0.04,
+            pom_height_scale=0.016,
         pom_min_steps=8,
         pom_max_steps=32,
         move_speed=1.0,
