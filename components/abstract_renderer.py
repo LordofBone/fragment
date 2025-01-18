@@ -132,7 +132,7 @@ class AbstractRenderer(ABC):
         front_face_winding="CCW",
         window_size=(800, 600),
         invert_displacement_map=False,
-        pom_height_scale=0.04,
+            pom_height_scale=0.016,
         pom_min_steps=8,
         pom_max_steps=32,
         shadow_map_resolution=2048,
