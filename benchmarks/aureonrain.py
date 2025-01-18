@@ -67,7 +67,7 @@ def run_benchmark(
         ambient_lighting_color=(0.78, 0.541, 0.0),
         lights=[
             {
-                "position": (20.85, 10.0, 22.0),
+                "position": (8.85, 7.0, 22.0),
                 "color": (0.757, 0.902, 1),
                 "strength": 1.0,
                 "orth_left": -120.0,
@@ -143,11 +143,12 @@ def run_benchmark(
         planar_camera=True,
         planar_resolution=(1024, 1024),
         planar_fov=90,
-        planar_camera_position_rotation=(3.0, 6.0, 0.0, 90.0, 0.0),
-        flip_planar_horizontally=True,
+        planar_camera_position_rotation=(0.0, 1.0, 0.0, 120.0, 25.0),
+        flip_planar_horizontally=False,
         flip_planar_vertically=False,
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
+        use_planar_normal_distortion=True,
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
@@ -162,10 +163,14 @@ def run_benchmark(
             "displacement": os.path.join(displacement_textures_dir, "crystal.png"),
         },
         shader_names={
-            "vertex": "standard",
-            "fragment": "embm",
+            "vertex": "parallax_mapping",
+            "fragment": "parallax_mapping",
         },
-        texture_lod_bias=0.8,
+        invert_displacement_map=True,
+        pom_height_scale=0.016,
+        pom_min_steps=128,
+        pom_max_steps=512,
+        texture_lod_bias=0.0,
         env_map_lod_bias=1.5,
     )
 
@@ -255,15 +260,15 @@ def run_benchmark(
     instance.scene_construct.translate_renderer("rain", (0, 0, 0))  # Translate first model
 
     # Example transformations
-    instance.scene_construct.translate_renderer("model_rotating", (0, 1.5, -5))  # Translate first model
+    instance.scene_construct.translate_renderer("model_rotating", (0, 2.5, -5))  # Translate first model
     instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
     instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
     instance.scene_construct.set_auto_rotation("model_rotating", True, axis=(0, 1, 0), speed=2000.0)
 
-    instance.scene_construct.translate_renderer("model_stretched", (2, 1.5, 0))  # Translate second model
+    instance.scene_construct.translate_renderer("model_stretched", (2, 2.5, 0))  # Translate second model
     instance.scene_construct.scale_renderer("model_stretched", (1.2, 1.2, 1.2))  # Scale second model
 
-    instance.scene_construct.translate_renderer("model_opaque", (6, 1.5, -6))  # Translate second model
+    instance.scene_construct.translate_renderer("model_opaque", (6, 2.5, -6))  # Translate second model
     instance.scene_construct.scale_renderer("model_opaque", (1.3, 1.3, 1.3))  # Scale second model
 
     # Run the rendering instance
