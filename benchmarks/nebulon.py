@@ -67,7 +67,7 @@ def run_benchmark(
         fov=90,
         near_plane=0.1,
         far_plane=1000,
-        ambient_lighting_strength=0.35,
+        ambient_lighting_strength=0.60,
         ambient_lighting_color=(0.216, 0.871, 0.165),
         lights=[
             {
