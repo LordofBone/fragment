@@ -36,8 +36,10 @@ def run_benchmark(
         fov=40,
         near_plane=0.1,
         far_plane=50.0,
+        ambient_lighting_strength=0.25,
+        ambient_lighting_color=(1.0, 0.996, 0.753),
         lights=[
-            {"position": (3.85, 3.0, 3.85), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {"position": (12.5, 8.0, -7.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
