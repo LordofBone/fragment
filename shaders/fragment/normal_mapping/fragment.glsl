@@ -18,7 +18,8 @@ uniform sampler2D shadowMap;
 uniform vec3 viewPosition;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 uniform bool shadowingEnabled;
 
 void main()
@@ -33,16 +34,18 @@ void main()
     vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
     vec3 color;
 
-    if (phongShading)
+    if (lightingMode == 0)
     {
-        // Use shared function
-        color = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
-        // Optionally add your custom ambient
-        // color += ambientColor * diffuseColor; // if desired
+        color = computeDiffuseLighting(normal, viewDir, FragPos, diffuseColor);
     }
-    else
+    else if (lightingMode == 1)
     {
-        color = computeDiffuseLighting(normal, FragPos, diffuseColor);
+        color = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+    }
+    else if (lightingMode == 2)
+    {
+        // PBR (includes environment reflection inside)
+        color = computePBRLighting(normal, viewDir, FragPos, diffuseColor);
     }
 
     // Shadow
