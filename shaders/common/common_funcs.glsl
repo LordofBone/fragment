@@ -43,6 +43,7 @@ uniform vec3 ambientColor;
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
+uniform float shininess;
 
 ///////////////////////////////////////////////////////////
 // Example: Extended PBR material struct for .mtl data
@@ -652,7 +653,7 @@ vec3 computePBRLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 // ---------------------------------------------------
 // Particle-specific lighting with distance attenuation
 // ---------------------------------------------------
-vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor, float shininess)
+vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 {
     // Ambient from user-defined "ambientColor" * ambientStrength
     vec3 ambient = computeAmbientColor(baseColor);
