@@ -17,7 +17,6 @@ uniform bool smoothEdges;
 // Lighting and shading uniforms
 uniform vec3 viewPosition;
 uniform float opacity;
-uniform float shininess;
 // Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
 uniform int lightingMode;
 
@@ -66,7 +65,7 @@ void main()
     }
     else if (lightingMode >= 1)
     {
-        finalColorRGB = computeParticlePhongLighting(normal, viewDir, fragPos, baseColor, shininess);
+        finalColorRGB = computeParticlePhongLighting(normal, viewDir, fragPos, baseColor);
     }
 
     // 5) Compute alpha (fade over time + optional smooth edges)
