@@ -35,7 +35,7 @@ class RendererConfig:
         loop=True,
         front_face_winding="CCW",
         shaders=None,
-        phong_shading=False,
+            lighting_mode=0,
         opacity=1.0,
         shininess=1.0,
             ambient_lighting_strength=0.0,
@@ -92,7 +92,7 @@ class RendererConfig:
         self.move_speed = move_speed
         self.loop = loop
         self.front_face_winding = front_face_winding
-        self.phong_shading = phong_shading
+        self.lighting_mode = lighting_mode
         self.opacity = opacity
         self.shininess = shininess
         self.ambient_lighting_strength = ambient_lighting_strength
@@ -170,7 +170,7 @@ class RendererConfig:
         depth_testing=None,
         culling=None,
         cubemap_folder=None,
-        phong_shading=None,
+            lighting_mode=None,
             opacity=None,
             ambient_lighting_strength=None,
             ambient_lighting_color=None,
@@ -218,7 +218,7 @@ class RendererConfig:
             "depth_testing": depth_testing,
             "culling": culling,
             "cubemap_folder": cubemap_folder,
-            "phong_shading": phong_shading,
+            "lighting_mode": lighting_mode,
             "opacity": opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
@@ -269,7 +269,7 @@ class RendererConfig:
         depth_testing=None,
         culling=None,
         cubemap_folder=None,
-        phong_shading=None,
+            lighting_mode=None,
             opacity=None,
             ambient_lighting_strength=None,
             ambient_lighting_color=None,
@@ -312,7 +312,7 @@ class RendererConfig:
             "depth_testing": depth_testing,
             "culling": culling,
             "cubemap_folder": cubemap_folder,
-            "phong_shading": phong_shading,
+            "lighting_mode": lighting_mode,
             "opacity": opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
@@ -376,7 +376,7 @@ class RendererConfig:
         particle_shader_override=False,
         compute_shader_program=None,
         alpha_blending=None,
-        phong_shading=None,
+            lighting_mode=None,
             opacity=None,
             texture_lod_bias=None,
             env_map_lod_bias=None,
@@ -431,7 +431,7 @@ class RendererConfig:
             "particle_render_mode": particle_render_mode,
             "particle_shader_override": particle_shader_override,
             "alpha_blending": alpha_blending,
-            "phong_shading": phong_shading,
+            "lighting_mode": lighting_mode,
             "opacity": opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
