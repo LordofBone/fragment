@@ -23,7 +23,6 @@ uniform bool applyGammaCorrection;
 // Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
 uniform int lightingMode;
 uniform bool shadowingEnabled;
-uniform float envSpecularStrength;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -74,13 +73,6 @@ void main()
     }
 
     finalColor *= (1.0 - shadow);
-
-    //    // Fresnel
-    //    float fresnel = pow(1.0 - dot(worldViewDir, normal), 3.0);
-    //    vec3 reflection = mix(envColor, vec3(1.0), fresnel);
-    //
-    //    // Combine
-    //    vec3 result = finalColor + reflection * envSpecularStrength;
 
     vec3 result = finalColor;
 
