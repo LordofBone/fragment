@@ -15,14 +15,13 @@ out vec4 FragColor;
 // Textures
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
-uniform samplerCube environmentMap;
 uniform sampler2D shadowMap;
 
 // Additional toggles
-uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 uniform bool shadowingEnabled;
 uniform float envSpecularStrength;
 
@@ -40,13 +39,13 @@ void main()
     vec2 newTexCoords = ParallaxOcclusionMapping(TexCoords, viewDir, depthOffset);
 
     // Recompute normal
-    vec3 norm = texture(normalMap, newTexCoords, textureLodLevel).rgb;
-    norm = normalize(norm * 2.0 - 1.0);
+    vec3 normal = texture(normalMap, newTexCoords, textureLodLevel).rgb;
+    normal = normalize(normal * 2.0 - 1.0);
 
     vec3 worldViewDir = normalize(viewPosition - FragPos);
 
     // Reflection from environment
-    vec3 reflectDir = reflect(-worldViewDir, norm);
+    vec3 reflectDir = reflect(-worldViewDir, normal);
     vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
 
     // Shadow
@@ -60,19 +59,24 @@ void main()
     vec3 finalColor;
     vec3 baseColor = texture(diffuseMap, newTexCoords, textureLodLevel).rgb;
 
-    if (phongShading)
+    if (lightingMode == 0)
     {
-        finalColor = computePhongLighting(norm, worldViewDir, FragPos, baseColor);
+        finalColor = computeDiffuseLighting(normal, viewDir, FragPos, baseColor);
     }
-    else
+    else if (lightingMode == 1)
     {
-        finalColor = computeDiffuseLighting(norm, FragPos, baseColor);
+        finalColor = computePhongLighting(normal, viewDir, FragPos, baseColor);
+    }
+    else if (lightingMode == 2)
+    {
+        // PBR (includes environment reflection inside)
+        finalColor = computePBRLighting(normal, viewDir, FragPos, baseColor);
     }
 
     finalColor *= (1.0 - shadow);
 
     // Fresnel
-    float fresnel = pow(1.0 - dot(worldViewDir, norm), 3.0);
+    float fresnel = pow(1.0 - dot(worldViewDir, normal), 3.0);
     vec3 reflection = mix(envColor, vec3(1.0), fresnel);
 
     // Combine
