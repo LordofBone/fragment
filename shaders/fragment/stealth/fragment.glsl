@@ -21,7 +21,6 @@ out vec4 FragColor;
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
 uniform sampler2D screenTexture;
-uniform samplerCube environmentMap;
 uniform sampler2D shadowMap;
 
 // ------------------------------------------------------
@@ -29,14 +28,13 @@ uniform sampler2D shadowMap;
 // ------------------------------------------------------
 uniform vec3 viewPosition;
 
-uniform float envMapLodLevel;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform float opacity;
-uniform bool phongShading;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 uniform float distortionStrength;
 uniform float reflectionStrength;
-uniform float environmentMapStrength;
 uniform bool screenFacingPlanarTexture;
 uniform float planarFragmentViewThreshold;
 uniform bool shadowingEnabled;
@@ -183,13 +181,18 @@ void main()
     // 9) Local lighting (Phong or Diffuse)
     // ------------------------------------------------------
     vec3 lighting;
-    if (phongShading)
+    if (lightingMode == 0)
+    {
+        lighting = computeDiffuseLighting(normal, viewDir, FragPos, diffuseColor);
+    }
+    else if (lightingMode == 1)
     {
         lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
     }
-    else
+    else if (lightingMode == 2)
     {
-        lighting = computeDiffuseLighting(normal, FragPos, diffuseColor);
+        // PBR (includes environment reflection inside)
+        lighting = computePBRLighting(normal, viewDir, FragPos, diffuseColor);
     }
 
     lighting *= (1.0 - shadow);
