@@ -85,7 +85,7 @@ def run_benchmark(
         move_speed=0.2,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        lighting_mode=2,
     )
 
     # Create the rendering instance with the base configuration
@@ -105,7 +105,7 @@ def run_benchmark(
             "fragment": "stealth",
         },
         planar_fragment_view_threshold=-1.0,
-        opacity=0.0,
+        opacity=1.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
         apply_tone_mapping=False,
