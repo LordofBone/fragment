@@ -349,19 +349,9 @@ class ModelRenderer(AbstractRenderer):
                 vertices = material.vertices
                 if not vertices:
                     continue
-                self.apply_material(material)
                 count = len(vertices) // self.get_vertex_stride(material.vertex_format)
                 self.bind_and_draw_vao(vao_counter, count)
                 vao_counter += 1
-
-    def apply_material(self, material):
-        """
-        Old material method; to be removed.
-        """
-        glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, material.diffuse)
-        glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
-        glMaterialf(GL_FRONT, GL_SHININESS, min(128, material.shininess))
 
     def bind_and_draw_vao(self, vao_index, count):
         """
