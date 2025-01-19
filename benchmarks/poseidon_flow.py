@@ -59,7 +59,7 @@ def run_benchmark(
         anisotropy=anisotropy,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        lighting_mode=1,
     )
 
     # Create the rendering instance with the base configuration
@@ -79,7 +79,7 @@ def run_benchmark(
         tex_coord_amplitude=0.01,
         width=5000.0,
         height=5000.0,
-        env_map_strength=1.0,
+        env_map_strength=0.65,
     )
 
     # Define the configuration for the skybox
