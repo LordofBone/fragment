@@ -75,12 +75,14 @@ void main()
 
     finalColor *= (1.0 - shadow);
 
-    // Fresnel
-    float fresnel = pow(1.0 - dot(worldViewDir, normal), 3.0);
-    vec3 reflection = mix(envColor, vec3(1.0), fresnel);
+    //    // Fresnel
+    //    float fresnel = pow(1.0 - dot(worldViewDir, normal), 3.0);
+    //    vec3 reflection = mix(envColor, vec3(1.0), fresnel);
+    //
+    //    // Combine
+    //    vec3 result = finalColor + reflection * envSpecularStrength;
 
-    // Combine
-    vec3 result = finalColor + reflection * envSpecularStrength;
+    vec3 result = finalColor;
 
     if (applyToneMapping)
     {

@@ -9,18 +9,17 @@ in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
-uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
 uniform sampler2D shadowMap;
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 uniform bool shadowingEnabled;
 
 uniform float surfaceDepth;
 uniform float shadowStrength;
-uniform float environmentMapStrength;
 
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
@@ -72,19 +71,20 @@ void main()
     }
 
     vec3 color = vec3(0.0);
-    if (phongShading)
+    // Lighting
+    if (lightingMode == 0)
+    {
+        // If not, do Diffuse-only
+        vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, envColor);
+        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
+        color += diffuseColor;
+    }
+    else if (lightingMode >= 1)
     {
         // If set, do Phong lighting
         vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, envColor);
         phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color += phongColor;
-    }
-    else
-    {
-        // If not, do Diffuse-only
-        vec3 diffuseColor = computeDiffuseLighting(finalNormal, FragPos, envColor);
-        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
-        color += diffuseColor;
     }
 
     envColor = mix(envColor, envColor * (1.0 - shadow), shadowStrength);
