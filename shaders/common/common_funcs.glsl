@@ -443,68 +443,81 @@ vec3 computeAmbientColor(vec3 baseColor)
 }
 
 // ---------------------------------------------------
-// Compute Diffuse Lighting (standard version)
+// Compute Diffuse Lighting (with a small spec highlight)
 // ---------------------------------------------------
-vec3 computeDiffuseLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
-{
+vec3 computeDiffuseLighting(
+vec3 normal,
+vec3 viewDir,
+vec3 fragPos,
+vec3 baseColor
+) {
+    // Simple ambient
     vec3 ambient = 0.1 * baseColor;
-    vec3 diffuse = vec3(0.0);
+
+    // Accumulate diffuse + optional spec
+    vec3 diffuse  = vec3(0.0);
 
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
+
+        // Lambertian diffuse
         float diff = max(dot(normal, lightDir), 0.0);
         diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
     }
 
-    // Old approach: reflect direction + separate environment pass
-    vec3 reflectDir = reflect(-viewDir, normal);
-
-    vec3 envColor = sampleEnvironmentMapLod(reflectDir).rgb;
-
+    // Combine the local lighting
     vec3 result = ambient + diffuse;
 
+    // Environment reflection as before
+    vec3 reflectDir = reflect(-viewDir, normal);
+    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// user-defined sampler call
+
+    // Blend environment in your old style
     result = mix(result, result + envColor, environmentMapStrength);
 
     return result;
 }
 
 // ---------------------------------------------------
-// Compute Phong Lighting (standard version)
+// Compute Phong Lighting (with user-defined shininess)
 // ---------------------------------------------------
-vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
-{
-    // Ambient from user-defined "ambientColor" * ambientStrength
+vec3 computePhongLighting(
+vec3 normal,
+vec3 viewDir,
+vec3 fragPos,
+vec3 baseColor
+) {
+    // Ambient (using your global ambientColor * ambientStrength)
     vec3 ambient  = computeAmbientColor(baseColor);
     vec3 diffuse  = vec3(0.0);
     vec3 specular = vec3(0.0);
+
+    // Simple white spec color
     vec3 specularColor = vec3(1.0);
 
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
 
+        // Diffuse term
         float diff = max(dot(normal, lightDir), 0.0);
         diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
 
-        // Blinn-Phong
+        // Blinn–Phong spec with user shininess
         vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+        float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
         specular += spec * specularColor * lightColors[i] * lightStrengths[i];
     }
 
-    // Old approach: reflect direction + separate environment pass
-    vec3 reflectDir = reflect(-viewDir, normal);
-    // We might use envMapLodLevel as a uniform for the old approach:
-    //        vec3 envColor   = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-    vec3 envColor = sampleEnvironmentMapLod(reflectDir).rgb;
-
+    // Combine local lighting
     vec3 result = ambient + diffuse + specular;
 
-    // Then blend in that environment color additively
-    // "mix(lighting, lighting + envColor, environmentMapStrength)"
-    result = mix(result, result + envColor, environmentMapStrength);
+    // Environment reflection
+    vec3 reflectDir = reflect(-viewDir, normal);
+    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;
 
+    result = mix(result, result + envColor, environmentMapStrength);
     return result;
 }
 
