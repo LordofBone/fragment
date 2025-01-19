@@ -444,7 +444,7 @@ vec3 computeAmbientColor(vec3 baseColor)
 // ---------------------------------------------------
 // Compute Diffuse Lighting (standard version)
 // ---------------------------------------------------
-vec3 computeDiffuseLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
+vec3 computeDiffuseLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 {
     vec3 ambient = 0.1 * baseColor;
     vec3 diffuse = vec3(0.0);
@@ -452,12 +452,12 @@ vec3 computeDiffuseLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
-        float diff = max(dot(N, lightDir), 0.0);
+        float diff = max(dot(normal, lightDir), 0.0);
         diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
     }
 
     // Old approach: reflect direction + separate environment pass
-    vec3 reflectDir = reflect(-V, N);
+    vec3 reflectDir = reflect(-viewDir, normal);
 
     vec3 envColor = sampleEnvironmentMapLod(reflectDir).rgb;
 
@@ -564,7 +564,7 @@ vec3 computeF0(vec3 baseColor, float metallic)
 const float PI = 3.14159265359;
 const float MAX_MIPS = 5.0;// e.g. if your cubemap has 5 MIP levels
 
-vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
+vec3 computePBRLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 {
     //--------------------------------------------------------
     // 1) Local Lighting (point lights)
@@ -579,14 +579,14 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     {
         // 1.1) Light direction
         vec3 L     = normalize(lightPositions[i] - fragPos);
-        vec3 H     = normalize(V + L);
-        float NdotL= max(dot(N, L), 0.0);
+        vec3 H     = normalize(viewDir + L);
+        float NdotL= max(dot(normal, L), 0.0);
 
         // 1.2) Cook–Torrance microfacet spec
-        float D = DistributionGGX(N, H, material.roughness);
-        float G = GeometrySmith(N, V, L, material.roughness);
-        float NdotV = max(dot(N, V), 0.0);
-        float HdotV = max(dot(H, V), 0.0);
+        float D = DistributionGGX(normal, H, material.roughness);
+        float G = GeometrySmith(normal, viewDir, L, material.roughness);
+        float NdotV = max(dot(normal, viewDir), 0.0);
+        float HdotV = max(dot(H, viewDir), 0.0);
         vec3  F     = fresnelSchlick(HdotV, F0);
 
         // 1.3) Combine spec
@@ -613,14 +613,14 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     // 2) Environment Reflection (specular IBL)
     //--------------------------------------------------------
     // We'll do a very simplified approach: reflect(N, V) with roughness-based MIP
-    vec3 R = reflect(-V, N);
+    vec3 R = reflect(-viewDir, normal);
     // approximate MIP level for roughness
     float mipLevel = material.roughness * MAX_MIPS;
     // sample the environment map
     vec3 envSample = textureLod(environmentMap, R, mipLevel).rgb;
 
     // Fresnel for environment
-    float NdotV = max(dot(N, V), 0.0);
+    float NdotV = max(dot(normal, viewDir), 0.0);
     vec3 F_env  = fresnelSchlick(NdotV, F0);
 
     // If fully metallic => reflection is mostly baseColor
