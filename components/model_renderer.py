@@ -349,9 +349,54 @@ class ModelRenderer(AbstractRenderer):
                 vertices = material.vertices
                 if not vertices:
                     continue
+
+                # 1) Set the material uniforms before drawing
+                self.apply_material(material)
+
+                # 2) Figure out how many vertices this material uses
                 count = len(vertices) // self.get_vertex_stride(material.vertex_format)
+
+                # 3) Bind and draw
                 self.bind_and_draw_vao(vao_counter, count)
                 vao_counter += 1
+
+    def apply_material(self, material):
+        """
+        Sets material uniforms for our modern shader pipeline.
+        """
+        glUseProgram(self.shader_engine.shader_program)  # Make sure our shader is active
+
+        # Each Wavefront material typically has attributes like:
+        #   material.ambient      => (r, g, b)
+        #   material.diffuse      => (r, g, b)
+        #   material.specular     => (r, g, b)
+        #   material.shininess    => float
+        # depending on how pywavefront interprets the .mtl file.
+
+        # We will pass them as uniforms. You can name them "matAmbient",
+        # "matDiffuse", etc., or use a struct.
+        ambient_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.ambient")
+        diffuse_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.diffuse")
+        specular_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.specular")
+        shininess_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.shininess")
+
+        # Because Wavefront MTLs can have up to 4 components (RGBA) or sometimes 3,
+        # you might want to ensure you’re only passing 3. Or just pass the 3 anyway.
+        # Also clamp or ensure you handle “None” gracefully if a field isn’t set.
+        ambient = material.ambient if material.ambient else (0.0, 0.0, 0.0)
+        diffuse = material.diffuse if material.diffuse else (1.0, 1.0, 1.0)
+        specular = material.specular if material.specular else (0.0, 0.0, 0.0)
+        shininess = material.shininess if material.shininess else 32.0
+
+        # Upload them to the GPU:
+        if ambient_loc >= 0:
+            glUniform3f(ambient_loc, *ambient[:3])
+        if diffuse_loc >= 0:
+            glUniform3f(diffuse_loc, *diffuse[:3])
+        if specular_loc >= 0:
+            glUniform3f(specular_loc, *specular[:3])
+        if shininess_loc >= 0:
+            glUniform1f(shininess_loc, min(128.0, shininess))  # typical clamp
 
     def bind_and_draw_vao(self, vao_index, count):
         """
