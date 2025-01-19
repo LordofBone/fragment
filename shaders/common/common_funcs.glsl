@@ -9,9 +9,12 @@ uniform float textureLodLevel;
 // Now we have a float controlling the ambient brightness.
 uniform float ambientStrength;// 0.0 => no ambient, 1.0 => full ambient intensity
 
+// ---------------------------------------------------
+// Environment mapping uniforms
+// ---------------------------------------------------
 uniform samplerCube environmentMap;// A cubemap with MIP levels
 uniform float environmentMapStrength;
-uniform float envMapLodLevel;// Might be used in old method
+uniform float envMapLodLevel;
 
 // ---------------------------------------------------
 // Parallax Occlusion Mapping (POM) uniforms
@@ -443,41 +446,26 @@ vec3 computeAmbientColor(vec3 baseColor)
 // ---------------------------------------------------
 vec3 computeDiffuseLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
 {
-    // Ambient from user-defined "ambientColor" * ambientStrength
-    vec3 ambient = computeAmbientColor(baseColor);
-
+    vec3 ambient = 0.1 * baseColor;
     vec3 diffuse = vec3(0.0);
-    //    for (int i = 0; i < 10; ++i)
-    //    {
-    //        vec3 lightDir = normalize(lightPositions[i] - fragPos);
-    //        float diff = max(dot(N, lightDir), 0.0);
-    //        diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
-    //    }
 
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
-
         float diff = max(dot(N, lightDir), 0.0);
         diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
-
-        // Blinn-Phong
-        vec3 halfwayDir = normalize(lightDir + V);
-        float spec = pow(max(dot(N, halfwayDir), 0.0), 32.0);
-        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
     }
-    vec3 reflectDir = reflect(-V, N);
-    vec3 envColor   = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-    //    vec3 envColor = sampleEnvironmentMap(reflectDir).rgb;
-    vec3 result;
-    result = ambient + diffuse;;
 
-    // Then blend in that environment color additively
-    // "mix(lighting, lighting + envColor, environmentMapStrength)"
+    // Old approach: reflect direction + separate environment pass
+    vec3 reflectDir = reflect(-V, N);
+
+    vec3 envColor = sampleEnvironmentMapLod(reflectDir).rgb;
+
+    vec3 result = ambient + diffuse;
+
     result = mix(result, result + envColor, environmentMapStrength);
 
-
-    return ambient + diffuse;
+    return result;
 }
 
 // ---------------------------------------------------
@@ -509,8 +497,8 @@ vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColo
     // We might use envMapLodLevel as a uniform for the old approach:
     //        vec3 envColor   = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
     vec3 envColor = sampleEnvironmentMapLod(reflectDir).rgb;
-    vec3 result;
-    result = ambient + diffuse + specular;;
+
+    vec3 result = ambient + diffuse + specular;
 
     // Then blend in that environment color additively
     // "mix(lighting, lighting + envColor, environmentMapStrength)"
@@ -573,16 +561,6 @@ vec3 computeF0(vec3 baseColor, float metallic)
 // a simple specular environment reflection (cubemap).
 // If you want diffuse IBL, you'd also sample an "irradiance map."
 ////////////////////////////////////////////////////////////////////////
-
-// We'll assume you have these uniforms somewhere:
-//   uniform vec3  lightPositions[10];
-//   uniform vec3  lightColors[10];
-//   uniform float lightStrengths[10];
-//   uniform samplerCube environmentMap; // A cubemap with MIP levels
-//   uniform float environmentMapStrength;
-//   uniform Material material; // with .roughness, .metallic, etc.
-//   uniform mat4  (model/view/projection)...
-
 const float PI = 3.14159265359;
 const float MAX_MIPS = 5.0;// e.g. if your cubemap has 5 MIP levels
 
@@ -670,7 +648,6 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     //--------------------------------------------------------
     return localLighting + environmentContribution;
 }
-
 
 // ---------------------------------------------------
 // Particle-specific lighting with distance attenuation
