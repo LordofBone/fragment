@@ -136,7 +136,7 @@ class AbstractRenderer(ABC):
         pom_min_steps=8,
         pom_max_steps=32,
         shadow_map_resolution=2048,
-        phong_shading=False,
+            lighting_mode=0,
         opacity=1.0,
         shininess=1.0,
         env_map_strength=0.5,
@@ -261,7 +261,7 @@ class AbstractRenderer(ABC):
         self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = glm.vec3(*ambient_lighting_color)
 
-        self.phong_shading = phong_shading
+        self.lighting_mode = lighting_mode
 
         self.lights_enabled = lights is not None
         if self.lights_enabled:
@@ -749,7 +749,7 @@ class AbstractRenderer(ABC):
             glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(light["color"]))
             glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), light["strength"])
 
-        glUniform1i(glGetUniformLocation(shader_program, "phongShading"), int(self.phong_shading))
+        glUniform1i(glGetUniformLocation(shader_program, "lightingMode"), self.lighting_mode)
 
     def set_model_matrix(self, matrix):
         self.model_matrix = matrix
