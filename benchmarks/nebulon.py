@@ -105,7 +105,7 @@ def run_benchmark(
             "fragment": "stealth",
         },
         planar_fragment_view_threshold=-1.0,
-        opacity=1.0,
+        opacity=0.0,
         distortion_strength=0.2,
         reflection_strength=0.0,
         apply_tone_mapping=False,
