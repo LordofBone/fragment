@@ -18,7 +18,8 @@ uniform bool smoothEdges;
 uniform vec3 viewPosition;
 uniform float opacity;
 uniform float shininess;
-uniform bool phongShading;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 
 void main()
 {
@@ -59,13 +60,13 @@ void main()
     // Select between Phong lighting and diffuse-only lighting
     vec3 finalColorRGB;
 
-    if (phongShading)
-    {
-        finalColorRGB = computeParticlePhongLighting(normal, viewDir, fragPos, baseColor, shininess);
-    }
-    else
+    if (lightingMode == 0)
     {
         finalColorRGB = computeParticleDiffuseLighting(normal, fragPos, baseColor);
+    }
+    else if (lightingMode >= 1)
+    {
+        finalColorRGB = computeParticlePhongLighting(normal, viewDir, fragPos, baseColor, shininess);
     }
 
     // 5) Compute alpha (fade over time + optional smooth edges)
