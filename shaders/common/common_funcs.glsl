@@ -38,6 +38,18 @@ uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
 
 // ---------------------------------------------------
+// Struct for material properties
+// ---------------------------------------------------
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
+
+uniform Material material;
+
+// ---------------------------------------------------
 // Improved integer-based hash & rand
 // ---------------------------------------------------
 uint hash(uint x)
@@ -422,23 +434,42 @@ vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
 // ---------------------------------------------------
 vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 {
-    // Ambient from user-defined "ambientColor" * ambientStrength
-    vec3 ambient  = computeAmbientColor(baseColor);
+    // 1) Ambient
+    //    Combine material.ambient with `baseColor` if you want. For example:
+    //    vec3 combinedAmbient = baseColor * material.ambient;
+    //    Then feed that into computeAmbientColor to remain consistent with old code.
+    //    This effectively applies both the .mtl ambient *and* your global ambient color.
+    vec3 combinedAmbient = baseColor * material.ambient;
+    vec3 ambient = computeAmbientColor(combinedAmbient);
+
+    // 2) Diffuse
+    //    Old approach: "diffuse += diff * baseColor * lightColor * lightStrength"
+    //    Now also multiply by material.diffuse to incorporate the .mtl
     vec3 diffuse  = vec3(0.0);
+    // 3) Specular
     vec3 specular = vec3(0.0);
-    vec3 specularColor = vec3(1.0);
+
+    // Optionally keep a separate “specularColor” if you want an extra global tint
+    // or just rely on material.specular.
+    // e.g. "vec3 specularColor = vec3(1.0);" (old code)
+    // We'll skip that now and use material.specular directly.
+    // float fixedExponent = 32.0; (old code)
+    // We now replace that with material.shininess from the MTL.
 
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
 
         float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
+        // combine baseColor and .mtl diffuse
+        diffuse += diff * baseColor * material.diffuse * lightColors[i] * lightStrengths[i];
 
-        // Blinn-Phong
+        // Blinn-Phong specular
         vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        float specAngle = max(dot(normal, halfwayDir), 0.0);
+        // Use material.shininess instead of a hard-coded 32.0
+        float spec = pow(specAngle, material.shininess);
+        specular += spec * material.specular * lightColors[i] * lightStrengths[i];
     }
 
     return ambient + diffuse + specular;
