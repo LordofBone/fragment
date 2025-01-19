@@ -38,13 +38,17 @@ uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
 
 // ---------------------------------------------------
-// Struct for material properties
+// Struct for extended material properties
 // ---------------------------------------------------
 struct Material {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
     float shininess;
+
+// Blender PBR extensions for .mtl
+    float roughness;// 'Pr'
+    float metallic;// 'Pm'
 };
 
 uniform Material material;
@@ -430,46 +434,49 @@ vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
 }
 
 // ---------------------------------------------------
-// Compute Phong Lighting (standard version)
+// Example extended Phong function with roughness & metallic
 // ---------------------------------------------------
 vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 {
     // 1) Ambient
-    //    Combine material.ambient with `baseColor` if you want. For example:
-    //    vec3 combinedAmbient = baseColor * material.ambient;
-    //    Then feed that into computeAmbientColor to remain consistent with old code.
-    //    This effectively applies both the .mtl ambient *and* your global ambient color.
     vec3 combinedAmbient = baseColor * material.ambient;
     vec3 ambient = computeAmbientColor(combinedAmbient);
+    // (still uses your global "ambientColor * ambientStrength" inside computeAmbientColor)
 
-    // 2) Diffuse
-    //    Old approach: "diffuse += diff * baseColor * lightColor * lightStrength"
-    //    Now also multiply by material.diffuse to incorporate the .mtl
+    // 2) Diffuse + Specular
     vec3 diffuse  = vec3(0.0);
-    // 3) Specular
     vec3 specular = vec3(0.0);
 
-    // Optionally keep a separate “specularColor” if you want an extra global tint
-    // or just rely on material.specular.
-    // e.g. "vec3 specularColor = vec3(1.0);" (old code)
-    // We'll skip that now and use material.specular directly.
-    // float fixedExponent = 32.0; (old code)
-    // We now replace that with material.shininess from the MTL.
+    // Example: derive an exponent from roughness in [0..1].
+    // If roughness=0, exponent=128 (sharp highlight).
+    // If roughness=1, exponent ~1 (very broad/dull).
+    // You can tweak this mapping as you like:
+    float specularExponent = mix(128.0, 1.0, clamp(material.roughness, 0.0, 1.0));
+
+    // Additionally, we can reduce the specular intensity if roughness is large:
+    float specularStrength = 1.0 - clamp(material.roughness, 0.0, 1.0);
+
+    // If metallic is >0, you might do a typical "metalness" approach:
+    // metals get color from diffuse base as their specular color,
+    // whereas non-metals keep material.specular as spec color.
+    // Very simplistic approach:
+    vec3 finalSpecularColor = mix(material.specular, baseColor * material.diffuse, material.metallic);
 
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
 
+        // Diffuse
         float diff = max(dot(normal, lightDir), 0.0);
-        // combine baseColor and .mtl diffuse
+        // Combine baseColor, mtl diffuse
         diffuse += diff * baseColor * material.diffuse * lightColors[i] * lightStrengths[i];
 
-        // Blinn-Phong specular
+        // Blinn-Phong spec
         vec3 halfwayDir = normalize(lightDir + viewDir);
         float specAngle = max(dot(normal, halfwayDir), 0.0);
-        // Use material.shininess instead of a hard-coded 32.0
-        float spec = pow(specAngle, material.shininess);
-        specular += spec * material.specular * lightColors[i] * lightStrengths[i];
+        float spec = pow(specAngle, specularExponent) * specularStrength;
+
+        specular += spec * finalSpecularColor * lightColors[i] * lightStrengths[i];
     }
 
     return ambient + diffuse + specular;
