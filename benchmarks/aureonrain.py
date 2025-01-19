@@ -167,7 +167,7 @@ def run_benchmark(
             "fragment": "parallax_mapping",
         },
         invert_displacement_map=False,
-        pom_height_scale=0.016,
+        pom_height_scale=0.032,
         pom_min_steps=128,
         pom_max_steps=512,
         texture_lod_bias=0.0,

@@ -9,6 +9,10 @@ uniform float textureLodLevel;
 // Now we have a float controlling the ambient brightness.
 uniform float ambientStrength;// 0.0 => no ambient, 1.0 => full ambient intensity
 
+uniform samplerCube environmentMap;// A cubemap with MIP levels
+uniform float environmentMapStrength;
+uniform float envMapLodLevel;// Might be used in old method
+
 // ---------------------------------------------------
 // Parallax Occlusion Mapping (POM) uniforms
 // ---------------------------------------------------
@@ -37,18 +41,28 @@ uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
 
-// ---------------------------------------------------
-// Struct for extended material properties
-// ---------------------------------------------------
+///////////////////////////////////////////////////////////
+// Example: Extended PBR material struct for .mtl data
+///////////////////////////////////////////////////////////
 struct Material {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float shininess;
+// Basic old-school fields
+    vec3 ambient;// e.g., from old Ka
+    vec3 diffuse;// Kd
+    vec3 specular;// Ks
+    float shininess;// Ns
 
-// Blender PBR extensions for .mtl
-    float roughness;// 'Pr'
-    float metallic;// 'Pm'
+// "Core" PBR fields
+    float roughness;// 'Pr' in Blender MTL (0.0–1.0 range typically)
+    float metallic;// 'Pm' in Blender MTL (0.0–1.0 range typically)
+
+// Additional MTL data (not fully used here but stored)
+    float ior;// Ni (index of refraction), e.g. 1.45
+    float transparency;// d (a typical alpha / dissolve)
+    float clearcoat;// Pc
+    float clearcoatRoughness;// Pcr
+    float sheen;// Ps
+    float anisotropy;// aniso
+    float anisotropyRot;// anisor
 };
 
 uniform Material material;
@@ -294,6 +308,16 @@ float stepSize
     return texture(cubemap, dir);
 }
 
+vec4 sampleEnvironmentMap(vec3 envMapTexCoords)
+{
+    return texture(environmentMap, envMapTexCoords);
+}
+
+vec4 sampleEnvironmentMapLod(vec3 envMapTexCoords)
+{
+    return textureLod(environmentMap, envMapTexCoords, envMapLodLevel);
+}
+
 // ---------------------------------------------------
 // Tone Mapping (Uncharted2)
 // ---------------------------------------------------
@@ -417,70 +441,236 @@ vec3 computeAmbientColor(vec3 baseColor)
 // ---------------------------------------------------
 // Compute Diffuse Lighting (standard version)
 // ---------------------------------------------------
-vec3 computeDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
+vec3 computeDiffuseLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
 {
     // Ambient from user-defined "ambientColor" * ambientStrength
     vec3 ambient = computeAmbientColor(baseColor);
 
     vec3 diffuse = vec3(0.0);
+    //    for (int i = 0; i < 10; ++i)
+    //    {
+    //        vec3 lightDir = normalize(lightPositions[i] - fragPos);
+    //        float diff = max(dot(N, lightDir), 0.0);
+    //        diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
+    //    }
+
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
-        float diff = max(dot(normal, lightDir), 0.0);
+
+        float diff = max(dot(N, lightDir), 0.0);
         diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
+
+        // Blinn-Phong
+        vec3 halfwayDir = normalize(lightDir + V);
+        float spec = pow(max(dot(N, halfwayDir), 0.0), 32.0);
+        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
     }
+    vec3 reflectDir = reflect(-V, N);
+    vec3 envColor   = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+    //    vec3 envColor = sampleEnvironmentMap(reflectDir).rgb;
+    vec3 result;
+    result = ambient + diffuse;;
+
+    // Then blend in that environment color additively
+    // "mix(lighting, lighting + envColor, environmentMapStrength)"
+    result = mix(result, result + envColor, environmentMapStrength);
+
 
     return ambient + diffuse;
 }
 
 // ---------------------------------------------------
-// Example extended Phong function with roughness & metallic
+// Compute Phong Lighting (standard version)
 // ---------------------------------------------------
 vec3 computePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 {
-    // 1) Ambient
-    vec3 combinedAmbient = baseColor * material.ambient;
-    vec3 ambient = computeAmbientColor(combinedAmbient);
-    // (still uses your global "ambientColor * ambientStrength" inside computeAmbientColor)
-
-    // 2) Diffuse + Specular
+    // Ambient from user-defined "ambientColor" * ambientStrength
+    vec3 ambient  = computeAmbientColor(baseColor);
     vec3 diffuse  = vec3(0.0);
     vec3 specular = vec3(0.0);
-
-    // Example: derive an exponent from roughness in [0..1].
-    // If roughness=0, exponent=128 (sharp highlight).
-    // If roughness=1, exponent ~1 (very broad/dull).
-    // You can tweak this mapping as you like:
-    float specularExponent = mix(128.0, 1.0, clamp(material.roughness, 0.0, 1.0));
-
-    // Additionally, we can reduce the specular intensity if roughness is large:
-    float specularStrength = 1.0 - clamp(material.roughness, 0.0, 1.0);
-
-    // If metallic is >0, you might do a typical "metalness" approach:
-    // metals get color from diffuse base as their specular color,
-    // whereas non-metals keep material.specular as spec color.
-    // Very simplistic approach:
-    vec3 finalSpecularColor = mix(material.specular, baseColor * material.diffuse, material.metallic);
+    vec3 specularColor = vec3(1.0);
 
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
 
-        // Diffuse
         float diff = max(dot(normal, lightDir), 0.0);
-        // Combine baseColor, mtl diffuse
-        diffuse += diff * baseColor * material.diffuse * lightColors[i] * lightStrengths[i];
+        diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
 
-        // Blinn-Phong spec
+        // Blinn-Phong
         vec3 halfwayDir = normalize(lightDir + viewDir);
-        float specAngle = max(dot(normal, halfwayDir), 0.0);
-        float spec = pow(specAngle, specularExponent) * specularStrength;
-
-        specular += spec * finalSpecularColor * lightColors[i] * lightStrengths[i];
+        float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
     }
 
-    return ambient + diffuse + specular;
+    // Old approach: reflect direction + separate environment pass
+    vec3 reflectDir = reflect(-viewDir, normal);
+    // We might use envMapLodLevel as a uniform for the old approach:
+    //        vec3 envColor   = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+    vec3 envColor = sampleEnvironmentMapLod(reflectDir).rgb;
+    vec3 result;
+    result = ambient + diffuse + specular;;
+
+    // Then blend in that environment color additively
+    // "mix(lighting, lighting + envColor, environmentMapStrength)"
+    result = mix(result, result + envColor, environmentMapStrength);
+
+    return result;
 }
+
+////////////////////////////////////////////////////////////////////////
+// 1) PBR Helpers (GGX, Smith, Schlick)
+////////////////////////////////////////////////////////////////////////
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a      = roughness * roughness;
+    float a2     = a * a;
+    float NdotH  = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float denom  = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom        = 3.14159265359 * denom * denom;
+    return a2 / denom;
+}
+
+float GeometrySchlickGGX(float NdotV, float k)
+{
+    // k = (roughness + 1)^2 / 8 in many references
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float r   = (roughness + 1.0);
+    float k   = (r*r) / 8.0;// e.g. UE4 approach
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+
+    float ggx1  = GeometrySchlickGGX(NdotV, k);
+    float ggx2  = GeometrySchlickGGX(NdotL, k);
+    return ggx1 * ggx2;
+}
+
+// Fresnel by Schlick's approximation
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+// If you have a "metalness" approach, typically F0 is 0.04 for dielectrics,
+// but for metals it's baseColor. This mixes the two:
+vec3 computeF0(vec3 baseColor, float metallic)
+{
+    vec3 dielectricF0 = vec3(0.04);
+    return mix(dielectricF0, baseColor, metallic);
+}
+
+////////////////////////////////////////////////////////////////////////
+// 2) "computePBRLighting"
+//
+// This function merges local light contributions (point lights) with
+// a simple specular environment reflection (cubemap).
+// If you want diffuse IBL, you'd also sample an "irradiance map."
+////////////////////////////////////////////////////////////////////////
+
+// We'll assume you have these uniforms somewhere:
+//   uniform vec3  lightPositions[10];
+//   uniform vec3  lightColors[10];
+//   uniform float lightStrengths[10];
+//   uniform samplerCube environmentMap; // A cubemap with MIP levels
+//   uniform float environmentMapStrength;
+//   uniform Material material; // with .roughness, .metallic, etc.
+//   uniform mat4  (model/view/projection)...
+
+const float PI = 3.14159265359;
+const float MAX_MIPS = 5.0;// e.g. if your cubemap has 5 MIP levels
+
+vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
+{
+    //--------------------------------------------------------
+    // 1) Local Lighting (point lights)
+    //--------------------------------------------------------
+    // We'll accumulate combined color from all local lights
+    vec3 localLighting = vec3(0.0);
+
+    // Derive base F0 from metallic workflow
+    vec3 F0 = computeF0(baseColor, material.metallic);
+
+    for (int i = 0; i < 10; i++)
+    {
+        // 1.1) Light direction
+        vec3 L     = normalize(lightPositions[i] - fragPos);
+        vec3 H     = normalize(V + L);
+        float NdotL= max(dot(N, L), 0.0);
+
+        // 1.2) Cook–Torrance microfacet spec
+        float D = DistributionGGX(N, H, material.roughness);
+        float G = GeometrySmith(N, V, L, material.roughness);
+        float NdotV = max(dot(N, V), 0.0);
+        float HdotV = max(dot(H, V), 0.0);
+        vec3  F     = fresnelSchlick(HdotV, F0);
+
+        // 1.3) Combine spec
+        float denom = 4.0 * NdotV * NdotL + 0.0001;
+        vec3 specular  = (D * G * F) / denom;
+
+        // 1.4) kS/kD split
+        // kS is the fraction of specular reflection (F)
+        vec3 kS = F;
+        // kD is diffuse portion, scaled by (1 - metallic) so metals lose diffuse
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - material.metallic);
+
+        // Lambertian diffuse (assuming baseColor is "albedo")
+        vec3 diffuse = kD * baseColor / PI;
+
+        // Final shading from this light
+        // Multiply by the light color/strength
+        vec3 lightContribution = (diffuse + specular) * lightColors[i]
+        * lightStrengths[i] * NdotL;
+        localLighting += lightContribution;
+    }
+
+    //--------------------------------------------------------
+    // 2) Environment Reflection (specular IBL)
+    //--------------------------------------------------------
+    // We'll do a very simplified approach: reflect(N, V) with roughness-based MIP
+    vec3 R = reflect(-V, N);
+    // approximate MIP level for roughness
+    float mipLevel = material.roughness * MAX_MIPS;
+    // sample the environment map
+    vec3 envSample = textureLod(environmentMap, R, mipLevel).rgb;
+
+    // Fresnel for environment
+    float NdotV = max(dot(N, V), 0.0);
+    vec3 F_env  = fresnelSchlick(NdotV, F0);
+
+    // If fully metallic => reflection is mostly baseColor
+    vec3 kS_env = F_env;
+    vec3 kD_env = (vec3(1.0) - kS_env) * (1.0 - material.metallic);
+
+    // This example doesn't include a "diffuse irradiance map," so
+    // we won't add a separate diffuse environment term.
+    // If you had an "irradianceMap," you'd do something like:
+    //   vec3 diffuseIbl = baseColor * irradianceColor;
+    //   diffuseIbl *= (1.0 - metallic)...
+
+    // We'll just do spec IBL for the example:
+    vec3 envSpec  = envSample * kS_env;// approximate
+
+    // Combine environment reflection with local lighting
+    vec3 environmentContribution = envSpec * environmentMapStrength;
+
+    // If you want some minimal ambient from your old pipeline,
+    // you might do:
+    //   vec3 combinedAmbient = computeAmbientColor(baseColor * material.ambient);
+
+    //--------------------------------------------------------
+    // 3) Return final color
+    //--------------------------------------------------------
+    return localLighting + environmentContribution;
+}
+
 
 // ---------------------------------------------------
 // Particle-specific lighting with distance attenuation

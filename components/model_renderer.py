@@ -362,33 +362,23 @@ class ModelRenderer(AbstractRenderer):
 
     def apply_material(self, material):
         """
-        Sets material uniforms for our modern shader pipeline.
+        Sets material uniforms for our modern PBR pipeline.
+        Attempts to read typical .mtl fields, including Blender extensions:
+        Pr, Pm, Ni, d, Pc, Pcr, Ps, aniso, anisor, etc.
         """
-        glUseProgram(self.shader_engine.shader_program)  # Make sure our shader is active
+        glUseProgram(self.shader_engine.shader_program)
 
-        # Each Wavefront material typically has attributes like:
-        #   material.ambient      => (r, g, b)
-        #   material.diffuse      => (r, g, b)
-        #   material.specular     => (r, g, b)
-        #   material.shininess    => float
-        # depending on how pywavefront interprets the .mtl file.
-
-        # We will pass them as uniforms. You can name them "matAmbient",
-        # "matDiffuse", etc., or use a struct.
+        # -- Old fields:
         ambient_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.ambient")
         diffuse_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.diffuse")
         specular_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.specular")
         shininess_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.shininess")
 
-        # Because Wavefront MTLs can have up to 4 components (RGBA) or sometimes 3,
-        # you might want to ensure you’re only passing 3. Or just pass the 3 anyway.
-        # Also clamp or ensure you handle “None” gracefully if a field isn’t set.
         ambient = material.ambient if material.ambient else (0.0, 0.0, 0.0)
         diffuse = material.diffuse if material.diffuse else (1.0, 1.0, 1.0)
         specular = material.specular if material.specular else (0.0, 0.0, 0.0)
         shininess = material.shininess if material.shininess else 32.0
 
-        # Upload them to the GPU:
         if ambient_loc >= 0:
             glUniform3f(ambient_loc, *ambient[:3])
         if diffuse_loc >= 0:
@@ -396,7 +386,60 @@ class ModelRenderer(AbstractRenderer):
         if specular_loc >= 0:
             glUniform3f(specular_loc, *specular[:3])
         if shininess_loc >= 0:
-            glUniform1f(shininess_loc, min(128.0, shininess))  # typical clamp
+            glUniform1f(shininess_loc, min(128.0, shininess))
+
+        # -- PBR fields:
+        roughness_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.roughness")
+        metallic_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.metallic")
+        ior_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.ior")
+        transparency_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.transparency")
+        clearcoat_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoat")
+        clearcoatR_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoatRoughness")
+        sheen_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.sheen")
+        aniso_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropy")
+        anisor_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropyRot")
+
+        # If some attributes don't exist, set defaults
+        # The user might want them in 0..1 range or any typical defaults
+        roughness = getattr(material, 'Pr', 0.5)
+        metallic = getattr(material, 'Pm', 0.0)
+        ior = getattr(material, 'Ni', 1.0)
+        transparency = getattr(material, 'd', 1.0)
+        clearcoat = getattr(material, 'Pc', 0.0)
+        clearcoatR = getattr(material, 'Pcr', 0.03)  # 0.03 is typical for many engines
+        sheen = getattr(material, 'Ps', 0.0)
+        aniso = getattr(material, 'aniso', 0.0)
+        anisor = getattr(material, 'anisor', 0.0)
+
+        # Some MTL exporters might place them in material.properties['Pr'] etc.
+        # Adapt accordingly if needed.
+
+        # Convert extremes if your code expects 0..1:
+        # E.g. some Blender MTL might store roughness or metallic above 1.0
+        # We'll clamp for safety:
+        roughness = max(0.0, min(1.0, roughness))
+        metallic = max(0.0, min(1.0, metallic))
+        transparency = max(0.0, min(1.0, transparency))
+        # clearcoat, clearcoatR, etc.can also be clamped if desired
+
+        if roughness_loc >= 0:
+            glUniform1f(roughness_loc, roughness)
+        if metallic_loc >= 0:
+            glUniform1f(metallic_loc, metallic)
+        if ior_loc >= 0:
+            glUniform1f(ior_loc, float(ior))
+        if transparency_loc >= 0:
+            glUniform1f(transparency_loc, float(transparency))
+        if clearcoat_loc >= 0:
+            glUniform1f(clearcoat_loc, clearcoat)
+        if clearcoatR_loc >= 0:
+            glUniform1f(clearcoatR_loc, clearcoatR)
+        if sheen_loc >= 0:
+            glUniform1f(sheen_loc, sheen)
+        if aniso_loc >= 0:
+            glUniform1f(aniso_loc, aniso)
+        if anisor_loc >= 0:
+            glUniform1f(anisor_loc, anisor)
 
     def bind_and_draw_vao(self, vao_index, count):
         """
