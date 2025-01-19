@@ -21,19 +21,18 @@ uniform vec3 viewPosition;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 uniform bool shadowingEnabled;
-
-// Instead of bool `phongShading`, we have an int:
-uniform int lightingMode;// 0 => diffuse, 1 => Phong, 2 => PBR
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 
 void main()
 {
     // 1) Build the normal from the tangent-space normal map
     //    (assuming a normalMap is present, otherwise skip)
     vec3 normalTangent = texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0;
-    vec3 N = normalize(TBN * normalTangent);
+    vec3 normal = normalize(TBN * normalTangent);
 
     // 2) View direction
-    vec3 V = normalize(viewPosition - FragPos);
+    vec3 viewDir = normalize(viewPosition - FragPos);
 
     // 3) Base diffuse color from texture
     vec3 baseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
@@ -50,17 +49,17 @@ void main()
     if (lightingMode == 0)
     {
         // Pure diffuse
-        lighting = computeDiffuseLighting(N, V, FragPos, baseColor);
+        lighting = computeDiffuseLighting(normal, viewDir, FragPos, baseColor);
     }
     else if (lightingMode == 1)
     {
         // Legacy Phong
-        lighting = computePhongLighting(N, V, FragPos, baseColor);
+        lighting = computePhongLighting(normal, viewDir, FragPos, baseColor);
     }
     else if (lightingMode == 2)
     {
         // PBR (includes environment reflection inside)
-        lighting = computePBRLighting(N, V, FragPos, baseColor);
+        lighting = computePBRLighting(normal, viewDir, FragPos, baseColor);
     }
 
     // 6) Apply shadow: (1.0 - shadow)
