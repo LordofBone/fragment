@@ -70,6 +70,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "embm",
         },
+        shininess=32.0,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         env_map_strength=0.45,
