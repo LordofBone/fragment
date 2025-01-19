@@ -17,9 +17,6 @@ uniform sampler2D shadowMap;
 // Light/camera uniforms
 uniform vec3 viewPosition;
 
-// Another uniform controlling how many MIPs your env map might have
-//uniform float envMapLodLevel;       // Might be used in old method
-
 // Feature toggles
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
@@ -69,29 +66,7 @@ void main()
     // 6) Apply shadow: (1.0 - shadow)
     lighting *= (1.0 - shadow);
 
-    // 7) For modes 0 or 1, add environment map *outside* the lighting function
-    //    (like your old method). For mode 2, the environment reflection
-    //    is already integrated in computePBRLighting.
-    vec3 result;
-    if (lightingMode == 2)
-    {
-        // PBR already includes environment reflection
-        result = lighting;
-    }
-    else
-    {
-        // Old approach: reflect direction + separate environment pass
-        //        vec3 reflectDir = reflect(-V, N);
-        //        // We might use envMapLodLevel as a uniform for the old approach:
-        ////        vec3 envColor   = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-        //        vec3 envColor = sampleEnvironmentMapLod(reflectDir).rgb;
-        //
-        //        // Then blend in that environment color additively
-        //        // "mix(lighting, lighting + envColor, environmentMapStrength)"
-        //        result = mix(lighting, lighting + envColor, environmentMapStrength);
-
-        result = lighting;
-    }
+    vec3 result = lighting;
 
     // 8) Tone mapping
     if (applyToneMapping)
