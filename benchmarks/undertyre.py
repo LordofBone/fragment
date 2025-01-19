@@ -46,7 +46,7 @@ def run_benchmark(
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        lighting_mode=2,
     )
 
     # Create the rendering instance with the base configuration
@@ -74,6 +74,7 @@ def run_benchmark(
         pom_max_steps=512,
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
+        env_map_strength=0.025,
     )
 
     # Define the configuration for the skybox
