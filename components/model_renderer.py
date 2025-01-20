@@ -36,8 +36,6 @@ class ModelRenderer(AbstractRenderer):
         # e.g. self.pbr_extensions["roughness"] -> 0.5 by default
         # or user-specified if present
 
-        print(self.pbr_extensions)
-
     def supports_shadow_mapping(self):
         return True
 
