@@ -68,6 +68,7 @@ def run_benchmark(
         },
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        shininess=0.5,
         invert_displacement_map=True,
         pom_height_scale=0.016,
         pom_min_steps=128,
