@@ -38,6 +38,7 @@ class RendererConfig:
             lighting_mode=0,
         opacity=1.0,
         shininess=1.0,
+            pbr_extensions=None,
             ambient_lighting_strength=0.0,
             ambient_lighting_color=(0.0, 0.0, 0.0),
         planar_camera=False,
@@ -60,6 +61,16 @@ class RendererConfig:
         audio_loop=False,
         debug_mode=None,
     ):
+        if pbr_extensions is None:
+            self.pbr_extensions = {
+                "roughness": 0.2,
+                "metallic": 0.1,
+                "clearcoat": 0.5,
+                "clearcoat_roughness": 0.05,
+                "sheen": 0.1,
+                "aniso": 0.0,
+                "anisor": 0.0
+            }
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2, 0.0, 0.0)]
         self.window_title = window_title
@@ -175,6 +186,7 @@ class RendererConfig:
             ambient_lighting_strength=None,
             ambient_lighting_color=None,
             shininess=None,
+            pbr_extensions=None,
             texture_lod_bias=None,
             env_map_lod_bias=None,
         env_map_strength=None,
@@ -225,6 +237,7 @@ class RendererConfig:
             "ambient_lighting_strength": ambient_lighting_strength,
             "ambient_lighting_color": ambient_lighting_color,
             "shininess": shininess,
+            "pbr_extensions": pbr_extensions,
             "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
             "invert_displacement_map": invert_displacement_map,
