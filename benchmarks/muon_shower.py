@@ -110,7 +110,7 @@ def run_benchmark(
         particle_color=(0.973, 1.0, 0.541),
         particle_fade_to_color=True,
         particle_fade_color=(0.984, 0.988, 0.898),
-        phong_shading=True,
+        lighting_mode=1,
         opacity=1.0,
         shininess=0.75,
         particle_gravity=(0.0, 0.0, 0.0),
