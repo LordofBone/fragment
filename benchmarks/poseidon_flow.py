@@ -72,6 +72,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "water",
         },
+        shininess=0.5,
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=550.0,
