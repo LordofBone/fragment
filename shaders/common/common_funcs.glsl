@@ -54,6 +54,8 @@ struct Material {
     vec3 diffuse;// from Kd
     vec3 specular;// from Ks
     float shininess;// from Ns
+    vec3 emissive;// from Ke
+    int illuminationModel;// from illum
 
 // "Core" PBR fields
     float roughness;// 'Pr' in Blender MTL (0.0–1.0 range typically)
