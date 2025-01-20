@@ -15,6 +15,29 @@ class ModelRenderer(AbstractRenderer):
         # create_materials=True and collect_faces=True ensure we have materials and faces data
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
+        # 1) Create a default dict of fallback PBR params
+        default_pbr = {
+            "roughness": 0.5,
+            "metallic": 0.0,
+            "clearcoat": 0.0,
+            "clearcoat_roughness": 0.03,
+            "sheen": 0.0,
+            "aniso": 0.0,
+            "anisor": 0.0,
+        }
+
+        # 2) If user passed `pbr_extensions` in the constructor kwargs,
+        #    override our defaults:
+        user_pbr = kwargs.get("pbr_extensions", {})
+        default_pbr.update(user_pbr)
+
+        # 3) Store them in an instance attribute (a dict) so we can use them later
+        self.pbr_extensions = default_pbr
+        # e.g. self.pbr_extensions["roughness"] -> 0.5 by default
+        # or user-specified if present
+
+        print(self.pbr_extensions)
+
     def supports_shadow_mapping(self):
         return True
 
@@ -368,6 +391,92 @@ class ModelRenderer(AbstractRenderer):
         """
         glUseProgram(self.shader_engine.shader_program)
 
+        """
+        # Material Parameter Legend and Descriptions
+
+        ## Basic Fields (handled by pywavefront)
+        1. `ambient` (`Ka` in .mtl)
+           - Description: The ambient reflectivity of the material. Defines the color under ambient light.
+           - Typical Range: RGB values (0.0–1.0).
+
+        2. `diffuse` (`Kd` in .mtl)
+           - Description: The diffuse reflectivity of the material. Defines how the material reflects light diffusely.
+           - Typical Range: RGB values (0.0–1.0).
+
+        3. `specular` (`Ks` in .mtl)
+           - Description: The specular reflectivity of the material. Defines the color of the specular highlights.
+           - Typical Range: RGB values (0.0–1.0).
+
+        4. `shininess` (`Ns` in .mtl)
+           - Description: The specular exponent, controlling the size and sharpness of specular highlights.
+           - Typical Range: Float (0–1000; clamped in shaders).
+
+        5. `transparency` (`d` in .mtl)
+           - Description: The transparency (or alpha) of the material. `1.0` is opaque, `0.0` is fully transparent.
+           - Typical Range: Float (0.0–1.0).
+           - Note: Pywavefront provides `transparency` directly, which is equivalent to `d` in .mtl.
+
+        6. `ior` (`Ni` in .mtl)
+           - Description: The index of refraction for transparent materials, like glass.
+           - Typical Range: Float (>1.0; e.g., 1.45 for glass).
+
+        7. `emissive` (`Ke` in .mtl)
+           - Description: The emissive color of the material. Acts as if the material emits light.
+           - Typical Range: RGB values (0.0–1.0).
+
+        8. `illumination_model` (`illum` in .mtl)
+           - Description: Specifies the lighting model:
+             - `0`: Color only, no shading.
+             - `1`: Diffuse shading only.
+             - `2`: Diffuse + specular highlights.
+           - Typical Range: Integer.
+
+        ---
+
+        ## PBR Extensions (NOT handled by pywavefront; must be added manually)
+        9. `roughness` (`Pr` in Blender .mtl)
+           - Description: Controls surface roughness. Low values result in smooth, shiny surfaces; high values create rough, diffuse surfaces.
+           - Typical Range: Float (0.0–1.0).
+           - Default: 0.5 (fallback).
+
+        10. `metallic` (`Pm` in Blender .mtl)
+            - Description: Defines whether the material behaves like a metal (1.0) or a dielectric (0.0).
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.0 (fallback).
+
+        11. `clearcoat` (`Pc` in Blender .mtl)
+            - Description: Adds a reflective clearcoat layer to the material.
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.0 (fallback).
+
+        12. `clearcoatRoughness` (`Pcr` in Blender .mtl)
+            - Description: Controls the roughness of the clearcoat layer.
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.03 (fallback).
+
+        13. `sheen` (`Ps` in Blender .mtl)
+            - Description: Simulates soft, fuzzy reflections for materials like velvet.
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.0 (fallback).
+
+        14. `anisotropy` (`aniso` in Blender .mtl)
+            - Description: Simulates directional reflections, such as brushed metal.
+            - Typical Range: Float (-1.0 to 1.0).
+            - Default: 0.0 (fallback).
+
+        15. `anisotropyRot` (`anisor` in Blender .mtl)
+            - Description: Rotates the anisotropic reflection pattern.
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.0 (fallback).
+
+        ---
+
+        ## Notes
+        - Pywavefront handles basic fields (`ambient`, `diffuse`, `specular`, `shininess`, `transparency`, `ior`, `emissive`, `illumination_model`).
+        - PBR extensions (`roughness`, `metallic`, `clearcoat`, etc.) are NOT parsed by pywavefront and must be added manually via custom configuration.
+        - Defaults are provided for PBR extensions if they are not explicitly set.
+        """
+
         ############################################
         # 1) Retrieve uniform locations for each field
         ############################################
@@ -377,51 +486,38 @@ class ModelRenderer(AbstractRenderer):
         loc_specular = glGetUniformLocation(self.shader_engine.shader_program, "material.specular")
         loc_shininess = glGetUniformLocation(self.shader_engine.shader_program, "material.shininess")
 
+        # Get the uniform locations for your material struct fields
         loc_roughness = glGetUniformLocation(self.shader_engine.shader_program, "material.roughness")
         loc_metallic = glGetUniformLocation(self.shader_engine.shader_program, "material.metallic")
 
         loc_ior = glGetUniformLocation(self.shader_engine.shader_program, "material.ior")
+        loc_emissive = glGetUniformLocation(self.shader_engine.shader_program, "material.emissive")
+        loc_illumination_model = glGetUniformLocation(self.shader_engine.shader_program, "material.illuminationModel")
         loc_transparency = glGetUniformLocation(self.shader_engine.shader_program, "material.transparency")
         loc_clearcoat = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoat")
-        loc_clearcoatRoughness = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoatRoughness")
+        loc_clearcoat_roughness = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoatRoughness")
         loc_sheen = glGetUniformLocation(self.shader_engine.shader_program, "material.sheen")
         loc_anisotropy = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropy")
-        loc_anisotropyRot = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropyRot")
+        loc_anisotropy_rot = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropyRot")
 
-        ############################################
-        # 2) Read from pywavefront's material
-        ############################################
-        # pywavefront fields we typically have:
-        #   material.ambient     => [r, g, b, a]
-        #   material.diffuse     => [r, g, b, a]
-        #   material.specular    => [r, g, b, a]
-        #   material.shininess   => float (Ns)
-        #   material.transparency=> float (if 'd' < 1.0 in .mtl, it's 1.0 - alpha)
-        #   material.optical_density => float (Ni)
-        # etc.
+        # The standard fields from pywavefront
+        ambient = getattr(material, "ambient", [0.2, 0.2, 0.2, 1.0])[:3]
+        diffuse = getattr(material, "diffuse", [0.8, 0.8, 0.8, 1.0])[:3]
+        specular = getattr(material, "specular", [0.5, 0.5, 0.5, 1.0])[:3]
+        shininess = getattr(material, "shininess", 32.0)
+        ior = getattr(material, "optical_density", 1.0)
+        emissive = getattr(material, "emissive", [0.0, 0.0, 0.0, 1.0])[:3]
+        illumination_model = getattr(material, "illumination_model", 2)
+        transparency = getattr(material, "transparency", 1.0)
 
-        # a) Basic old-school fields
-        ambient = getattr(material, 'ambient', [0.2, 0.2, 0.2, 1.0])[:3]
-        diffuse = getattr(material, 'diffuse', [0.8, 0.8, 0.8, 1.0])[:3]
-        specular = getattr(material, 'specular', [0.5, 0.5, 0.5, 1.0])[:3]
-        shininess = getattr(material, 'shininess', 32.0)
-
-        # b) PBR fields (since pywavefront doesn't parse Pr/Pm by default, fallback)
-        roughness = 0.5
-        metallic = 0.0
-
-        # c) Additional MTL data
-        ior = getattr(material, 'optical_density', 1.0)  # Ni
-        # material.transparency is 1 if fully opaque (assuming MTL d=1 => opaque).
-        # if d=0 => fully transparent.
-        # You might invert it if you prefer alpha=1-d.
-        # But let's keep it direct for demonstration:
-        transparency = getattr(material, 'transparency', 1.0)
-        clearcoat = 0.0
-        clearcoatR = 0.03
-        sheen = 0.0
-        aniso = 0.0
-        anisor = 0.0
+        # Now for the pbr_extensions. If no user override was given, we use your default.
+        roughness = self.pbr_extensions["roughness"]
+        metallic = self.pbr_extensions["metallic"]
+        clearcoat = self.pbr_extensions["clearcoat"]
+        clearcoat_roughness = self.pbr_extensions["clearcoat_roughness"]
+        sheen = self.pbr_extensions["sheen"]
+        aniso = self.pbr_extensions["aniso"]
+        anisor = self.pbr_extensions["anisor"]
 
         ############################################
         # 3) Upload each to GPU
@@ -442,18 +538,22 @@ class ModelRenderer(AbstractRenderer):
 
         if loc_ior >= 0:
             glUniform1f(loc_ior, float(ior))
+        if loc_emissive >= 0:
+            glUniform3f(loc_emissive, *emissive)
+        if loc_illumination_model >= 0:
+            glUniform1i(loc_illumination_model, illumination_model)
         if loc_transparency >= 0:
             glUniform1f(loc_transparency, float(transparency))
         if loc_clearcoat >= 0:
             glUniform1f(loc_clearcoat, clearcoat)
-        if loc_clearcoatRoughness >= 0:
-            glUniform1f(loc_clearcoatRoughness, clearcoatR)
+        if loc_clearcoat_roughness >= 0:
+            glUniform1f(loc_clearcoat_roughness, clearcoat_roughness)
         if loc_sheen >= 0:
             glUniform1f(loc_sheen, sheen)
         if loc_anisotropy >= 0:
             glUniform1f(loc_anisotropy, aniso)
-        if loc_anisotropyRot >= 0:
-            glUniform1f(loc_anisotropyRot, anisor)
+        if loc_anisotropy_rot >= 0:
+            glUniform1f(loc_anisotropy_rot, anisor)
 
     def bind_and_draw_vao(self, vao_index, count):
         """

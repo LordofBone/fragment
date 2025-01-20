@@ -76,6 +76,15 @@ def run_benchmark(
         env_map_strength=0.45,
         texture_lod_bias=1.1,
         env_map_lod_bias=0.0,
+        pbr_extensions={
+            "roughness": 0.5,
+            "metallic": 0.0,
+            "clearcoat": 0.0,
+            "clearcoat_roughness": 0.03,
+            "sheen": 0.0,
+            "aniso": 0.0,
+            "anisor": 0.0,
+        },
     )
 
     # Define the configuration for the skybox
