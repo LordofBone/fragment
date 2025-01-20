@@ -362,91 +362,98 @@ class ModelRenderer(AbstractRenderer):
 
     def apply_material(self, material):
         """
-        Sets material uniforms for our modern PBR pipeline.
-        Adapted so we read pywavefront properties
-        rather than raw MTL field names.
+        Sets all the fields of our extended 'Material' struct in GLSL,
+        based on what pywavefront loads. If any fields are missing, we
+        provide a default fallback.
         """
         glUseProgram(self.shader_engine.shader_program)
 
-        # 1) Basic fields (pywavefront naming)
-        #    'ambient', 'diffuse', 'specular', 'shininess', 'transparency', 'optical_density'
-        ambient_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.ambient")
-        diffuse_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.diffuse")
-        specular_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.specular")
-        shininess_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.shininess")
+        ############################################
+        # 1) Retrieve uniform locations for each field
+        ############################################
+        # We'll prefix them with "material." since the GLSL struct is named `Material material;`
+        loc_ambient = glGetUniformLocation(self.shader_engine.shader_program, "material.ambient")
+        loc_diffuse = glGetUniformLocation(self.shader_engine.shader_program, "material.diffuse")
+        loc_specular = glGetUniformLocation(self.shader_engine.shader_program, "material.specular")
+        loc_shininess = glGetUniformLocation(self.shader_engine.shader_program, "material.shininess")
 
-        # Note: pywavefront stores them as lists of length 4 (RGBA).
-        # We'll just take the first 3 for (r, g, b).
-        ambient = material.ambient[:3] if hasattr(material, 'ambient') else (0.0, 0.0, 0.0)
-        diffuse = material.diffuse[:3] if hasattr(material, 'diffuse') else (1.0, 1.0, 1.0)
-        specular = material.specular[:3] if hasattr(material, 'specular') else (0.0, 0.0, 0.0)
-        shininess = material.shininess if hasattr(material, 'shininess') else 32.0
+        loc_roughness = glGetUniformLocation(self.shader_engine.shader_program, "material.roughness")
+        loc_metallic = glGetUniformLocation(self.shader_engine.shader_program, "material.metallic")
 
-        # Upload to GPU (only if the uniform location is valid)
-        if ambient_loc >= 0:
-            glUniform3f(ambient_loc, *ambient)
-        if diffuse_loc >= 0:
-            glUniform3f(diffuse_loc, *diffuse)
-        if specular_loc >= 0:
-            glUniform3f(specular_loc, *specular)
-        if shininess_loc >= 0:
-            glUniform1f(shininess_loc, shininess)
+        loc_ior = glGetUniformLocation(self.shader_engine.shader_program, "material.ior")
+        loc_transparency = glGetUniformLocation(self.shader_engine.shader_program, "material.transparency")
+        loc_clearcoat = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoat")
+        loc_clearcoatRoughness = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoatRoughness")
+        loc_sheen = glGetUniformLocation(self.shader_engine.shader_program, "material.sheen")
+        loc_anisotropy = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropy")
+        loc_anisotropyRot = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropyRot")
 
-        # 2) PBR fields
-        #    In the MTL file, they might be 'Pr', 'Pm', etc.
-        #    But pywavefront doesn't store them directly as 'Pr' & 'Pm'.
-        #    We either store them in custom attributes or omit them if pywavefront doesn't parse them.
-        #    For now, let's treat them as your fallback 0.5, 0.0, etc.
+        ############################################
+        # 2) Read from pywavefront's material
+        ############################################
+        # pywavefront fields we typically have:
+        #   material.ambient     => [r, g, b, a]
+        #   material.diffuse     => [r, g, b, a]
+        #   material.specular    => [r, g, b, a]
+        #   material.shininess   => float (Ns)
+        #   material.transparency=> float (if 'd' < 1.0 in .mtl, it's 1.0 - alpha)
+        #   material.optical_density => float (Ni)
+        # etc.
 
-        roughness_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.roughness")
-        metallic_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.metallic")
-        ior_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.ior")
-        transparency_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.transparency")
-        clearcoat_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoat")
-        clearcoatR_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoatRoughness")
-        sheen_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.sheen")
-        aniso_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropy")
-        anisor_loc = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropyRot")
+        # a) Basic old-school fields
+        ambient = getattr(material, 'ambient', [0.2, 0.2, 0.2, 1.0])[:3]
+        diffuse = getattr(material, 'diffuse', [0.8, 0.8, 0.8, 1.0])[:3]
+        specular = getattr(material, 'specular', [0.5, 0.5, 0.5, 1.0])[:3]
+        shininess = getattr(material, 'shininess', 32.0)
 
-        # 3) Adapt actual pywavefront fields
-        #
-        # pywavefront might not parse 'Pr', 'Pm', etc. by default, so let's fallback:
+        # b) PBR fields (since pywavefront doesn't parse Pr/Pm by default, fallback)
         roughness = 0.5
         metallic = 0.0
-        # For 'Ni' in MTL, pywavefront calls it 'optical_density'
-        ior = getattr(material, 'optical_density', 1.0)
-        # For 'd' in MTL, pywavefront calls it 'transparency'
-        # (But note that 'd' in MTL is the *inverse* of transparency in some specs—
-        #  i.e. 'd' means "dissolve" (alpha). If d=0, fully transparent.
-        #  So if pywavefront says "transparency=1.0," it might actually be fully opaque.)
-        alpha = 1.0 - getattr(material, 'transparency', 0.0)
 
-        # The rest might not exist in pywavefront. We'll default:
+        # c) Additional MTL data
+        ior = getattr(material, 'optical_density', 1.0)  # Ni
+        # material.transparency is 1 if fully opaque (assuming MTL d=1 => opaque).
+        # if d=0 => fully transparent.
+        # You might invert it if you prefer alpha=1-d.
+        # But let's keep it direct for demonstration:
+        transparency = getattr(material, 'transparency', 1.0)
         clearcoat = 0.0
         clearcoatR = 0.03
         sheen = 0.0
         aniso = 0.0
         anisor = 0.0
 
-        # 4) Upload them
-        if roughness_loc >= 0:
-            glUniform1f(roughness_loc, roughness)
-        if metallic_loc >= 0:
-            glUniform1f(metallic_loc, metallic)
-        if ior_loc >= 0:
-            glUniform1f(ior_loc, float(ior))
-        if transparency_loc >= 0:
-            glUniform1f(transparency_loc, float(alpha))
-        if clearcoat_loc >= 0:
-            glUniform1f(clearcoat_loc, clearcoat)
-        if clearcoatR_loc >= 0:
-            glUniform1f(clearcoatR_loc, clearcoatR)
-        if sheen_loc >= 0:
-            glUniform1f(sheen_loc, sheen)
-        if aniso_loc >= 0:
-            glUniform1f(aniso_loc, aniso)
-        if anisor_loc >= 0:
-            glUniform1f(anisor_loc, anisor)
+        ############################################
+        # 3) Upload each to GPU
+        ############################################
+        if loc_ambient >= 0:
+            glUniform3f(loc_ambient, *ambient)
+        if loc_diffuse >= 0:
+            glUniform3f(loc_diffuse, *diffuse)
+        if loc_specular >= 0:
+            glUniform3f(loc_specular, *specular)
+        if loc_shininess >= 0:
+            glUniform1f(loc_shininess, shininess)
+
+        if loc_roughness >= 0:
+            glUniform1f(loc_roughness, roughness)
+        if loc_metallic >= 0:
+            glUniform1f(loc_metallic, metallic)
+
+        if loc_ior >= 0:
+            glUniform1f(loc_ior, float(ior))
+        if loc_transparency >= 0:
+            glUniform1f(loc_transparency, float(transparency))
+        if loc_clearcoat >= 0:
+            glUniform1f(loc_clearcoat, clearcoat)
+        if loc_clearcoatRoughness >= 0:
+            glUniform1f(loc_clearcoatRoughness, clearcoatR)
+        if loc_sheen >= 0:
+            glUniform1f(loc_sheen, sheen)
+        if loc_anisotropy >= 0:
+            glUniform1f(loc_anisotropy, aniso)
+        if loc_anisotropyRot >= 0:
+            glUniform1f(loc_anisotropyRot, anisor)
 
     def bind_and_draw_vao(self, vao_index, count):
         """
