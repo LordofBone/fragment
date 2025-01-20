@@ -451,8 +451,8 @@ vec3 viewDir,
 vec3 fragPos,
 vec3 baseColor
 ) {
-    // Simple ambient
-    vec3 ambient = 0.1 * baseColor;
+    // Ambient (using your global ambientColor * ambientStrength)
+    vec3 ambient  = computeAmbientColor(baseColor);
 
     // Accumulate diffuse + optional spec
     vec3 diffuse  = vec3(0.0);
