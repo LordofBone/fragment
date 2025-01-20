@@ -538,14 +538,13 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 
 float GeometrySchlickGGX(float NdotV, float k)
 {
-    // k = (roughness + 1)^2 / 8 in many references
     return NdotV / (NdotV * (1.0 - k) + k);
 }
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
     float r   = (roughness + 1.0);
-    float k   = (r*r) / 8.0;// e.g. UE4 approach
+    float k   = (r*r) / 8.0;
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
 
@@ -560,107 +559,178 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-// If you have a "metalness" approach, typically F0 is 0.04 for dielectrics,
-// but for metals it's baseColor. This mixes the two:
-vec3 computeF0(vec3 baseColor, float metallic)
+////////////////////////////////////////////////////////////////////////
+// 2) Extra Helpers
+////////////////////////////////////////////////////////////////////////
+float combineRoughnessAndShininess(float baseRoughness, float shininess)
 {
-    vec3 dielectricF0 = vec3(0.04);
-    return mix(dielectricF0, baseColor, metallic);
+    float shininessFactor = clamp(shininess / 128.0, 0.0, 1.0);
+    float result = baseRoughness * (1.0 - 0.8 * shininessFactor);
+    return clamp(result, 0.0, 1.0);
+}
+
+vec3 computeF0FromIOR(float ior)
+{
+    float r0 = (ior - 1.0) / (ior + 1.0);
+    r0 *= r0;
+    return vec3(r0);
+}
+
+vec3 computeF0Combined(vec3 baseColor, float metallic, vec3 specular, float ior)
+{
+    // 1) Non-metal F0 from ior if metallic ~0
+    //    Then mix with baseColor if metallic ~1
+    vec3 dielectricF0 = computeF0FromIOR(ior);
+    vec3 baseF0       = mix(dielectricF0, baseColor, metallic);
+
+    // 2) Optionally incorporate the 'specular' field from MTL
+    //    if it isn't near zero. E.g. we do a max blend:
+    baseF0 = max(baseF0, specular);
+
+    return baseF0;
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 2) "computePBRLighting"
-//
-// This function merges local light contributions (point lights) with
-// a simple specular environment reflection (cubemap).
-// If you want diffuse IBL, you'd also sample an "irradiance map."
+// 3) Full "computePBRLighting" with all material fields
 ////////////////////////////////////////////////////////////////////////
 const float PI = 3.14159265359;
-const float MAX_MIPS = 5.0;// e.g. if your cubemap has 5 MIP levels
+const float MAX_MIPS = 5.0;// if your cubemap has 5 MIP levels
 
-vec3 computePBRLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
+vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
 {
-    //--------------------------------------------------------
-    // 1) Local Lighting (point lights)
-    //--------------------------------------------------------
-    // We'll accumulate combined color from all local lights
-    vec3 localLighting = vec3(0.0);
+    //-----------------------------------------------
+    // 0) Combine roughness + shininess
+    //-----------------------------------------------
+    float effectiveRoughness = combineRoughnessAndShininess(
+    material.roughness,
+    material.shininess
+    );
 
-    // Derive base F0 from metallic workflow
-    vec3 F0 = computeF0(baseColor, material.metallic);
+    //-----------------------------------------------
+    // 1) Local (point) lighting via Cook–Torrance
+    //-----------------------------------------------
+    vec3 localLighting = vec3(0.0);
+    vec3 F0 = computeF0Combined(
+    baseColor, // from diffuse or albedo
+    material.metallic,
+    material.specular, // MTL Ks
+    material.ior
+    );
 
     for (int i = 0; i < 10; i++)
     {
-        // 1.1) Light direction
         vec3 L     = normalize(lightPositions[i] - fragPos);
-        vec3 H     = normalize(viewDir + L);
-        float NdotL= max(dot(normal, L), 0.0);
+        vec3 H     = normalize(V + L);
+        float NdotL= max(dot(N, L), 0.0);
 
-        // 1.2) Cook–Torrance microfacet spec
-        float D = DistributionGGX(normal, H, material.roughness);
-        float G = GeometrySmith(normal, viewDir, L, material.roughness);
-        float NdotV = max(dot(normal, viewDir), 0.0);
-        float HdotV = max(dot(H, viewDir), 0.0);
+        // Cook–Torrance microfacet
+        float D     = DistributionGGX(N, H, effectiveRoughness);
+        float G     = GeometrySmith(N, V, L, effectiveRoughness);
+        float NdotV = max(dot(N, V), 0.0);
+        float HdotV = max(dot(H, V), 0.0);
         vec3  F     = fresnelSchlick(HdotV, F0);
 
-        // 1.3) Combine spec
-        float denom = 4.0 * NdotV * NdotL + 0.0001;
+        float denom    = 4.0 * NdotV * NdotL + 0.0001;
         vec3 specular  = (D * G * F) / denom;
 
-        // 1.4) kS/kD split
-        // kS is the fraction of specular reflection (F)
+        // kS = F, kD = (1 - F)* (1-metallic)
         vec3 kS = F;
-        // kD is diffuse portion, scaled by (1 - metallic) so metals lose diffuse
         vec3 kD = (vec3(1.0) - kS) * (1.0 - material.metallic);
 
-        // Lambertian diffuse (assuming baseColor is "albedo")
+        // Lambertian diffuse
         vec3 diffuse = kD * baseColor / PI;
 
-        // Final shading from this light
-        // Multiply by the light color/strength
-        vec3 lightContribution = (diffuse + specular) * lightColors[i]
-        * lightStrengths[i] * NdotL;
+        vec3 lightContribution = (diffuse + specular)
+        * lightColors[i] * lightStrengths[i]
+        * NdotL;
         localLighting += lightContribution;
     }
 
-    //--------------------------------------------------------
-    // 2) Environment Reflection (specular IBL)
-    //--------------------------------------------------------
-    // We'll do a very simplified approach: reflect(N, V) with roughness-based MIP
-    vec3 R = reflect(-viewDir, normal);
-    // approximate MIP level for roughness
-    float mipLevel = material.roughness * MAX_MIPS;
-    // sample the environment map
+    //-----------------------------------------------
+    // 2) Environment reflection (simple spec IBL)
+    //-----------------------------------------------
+    vec3 R = reflect(-V, N);
+    float mipLevel = effectiveRoughness * MAX_MIPS;
     vec3 envSample = textureLod(environmentMap, R, mipLevel).rgb;
 
-    // Fresnel for environment
-    float NdotV = max(dot(normal, viewDir), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
     vec3 F_env  = fresnelSchlick(NdotV, F0);
 
-    // If fully metallic => reflection is mostly baseColor
     vec3 kS_env = F_env;
     vec3 kD_env = (vec3(1.0) - kS_env) * (1.0 - material.metallic);
+    // We'll skip a diffuseIrradiance pass here, so just spec for environment
+    vec3 envSpec = envSample * kS_env;
 
-    // This example doesn't include a "diffuse irradiance map," so
-    // we won't add a separate diffuse environment term.
-    // If you had an "irradianceMap," you'd do something like:
-    //   vec3 diffuseIbl = baseColor * irradianceColor;
-    //   diffuseIbl *= (1.0 - metallic)...
-
-    // We'll just do spec IBL for the example:
-    vec3 envSpec  = envSample * kS_env;// approximate
-
-    // Combine environment reflection with local lighting
     vec3 environmentContribution = envSpec * environmentMapStrength;
 
-    // If you want some minimal ambient from your old pipeline,
-    // you might do:
-    //   vec3 combinedAmbient = computeAmbientColor(baseColor * material.ambient);
+    //-----------------------------------------------
+    // 3) Clearcoat (toy approach)
+    //-----------------------------------------------
+    // If material.clearcoat > 0, we add an extra specular lobe
+    // with its own microfacet. Usually you'd do a second pass, but here's a hack:
+    if (material.clearcoat > 0.001)
+    {
+        // second reflection with a super low roughness (like material.clearcoatRoughness)
+        // and typically a separate Fresnel or just a white F0, etc.
+        float ccRough = clamp(material.clearcoatRoughness, 0.0, 1.0);
+        vec3  H_cc    = normalize(V + (V * -1.0));
+        // ^ for a real pass you'd do per-light again, or a reflection approach
+        //   We'll do an approximate overhead half-vector for simplicity
 
-    //--------------------------------------------------------
-    // 3) Return final color
-    //--------------------------------------------------------
-    return localLighting + environmentContribution;
+        float NdotV_cc   = max(dot(N, V), 0.0);
+        float cosH_cc     = max(dot(N, H_cc), 0.0);
+        float D_cc        = DistributionGGX(N, H_cc, ccRough);
+        float G_cc        = GeometrySmith(N, V, -V, ccRough);// toy
+        vec3  F0_cc       = vec3(0.25);// a typical clearcoat base
+        vec3  F_cc        = fresnelSchlick(NdotV_cc, F0_cc);
+
+        // Combine
+        float denom_cc    = 4.0 * NdotV_cc * NdotV_cc + 0.0001;
+        vec3 spec_cc      = (D_cc * G_cc * F_cc) / denom_cc;
+        spec_cc          *= material.clearcoat;// scale by strength
+
+        // Add this to environment reflection or localLighting
+        // We'll just tack it onto environment for demonstration:
+        environmentContribution += spec_cc * environmentMapStrength;
+    }
+
+    //-----------------------------------------------
+    // 4) Sheen (toy approach)
+    //-----------------------------------------------
+    // We'll do a trivial "sheen" that adds a tinted diffuse around edges
+    // Typically you'd do a specialized formula. We'll just do something naive:
+    if (material.sheen > 0.001)
+    {
+        float edgeFactor = pow(1.0 - NdotV, 5.0);
+        // a cheap trick
+        vec3 sheenColor = mix(baseColor, vec3(1.0), 0.5);// just a guess
+        vec3 sheenTerm  = sheenColor * edgeFactor * material.sheen;
+        localLighting   += sheenTerm;
+    }
+
+    //-----------------------------------------------
+    // 5) Anisotropy (ignored)
+    //-----------------------------------------------
+    // For real anisotropy, you’d need a different distribution that depends
+    // on the tangent/bitangent directions.
+    // We'll just note that if (material.anisotropy > 0),
+    // we’d pick e.g. an anisotropic GGX approach, rotated by anisotropyRot.
+    // For now, we do nothing.
+
+    //-----------------------------------------------
+    // 6) Combine final
+    //-----------------------------------------------
+    vec3 finalColor = localLighting + environmentContribution;
+
+    // if you want "ambient," you might do:
+    // finalColor += computeAmbientColor(material.ambient);
+
+    // If you do alpha blending, you might store alpha = 1.0 - material.transparency
+    // or material.transparency directly
+    // e.g. in your main:
+    //   FragColor = vec4(finalColor, 1.0 - material.transparency);
+
+    return finalColor;
 }
 
 // ---------------------------------------------------
