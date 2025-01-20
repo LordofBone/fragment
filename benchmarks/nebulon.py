@@ -106,6 +106,7 @@ def run_benchmark(
         },
         planar_fragment_view_threshold=-1.0,
         opacity=0.0,
+        shininess=0.5,
         distortion_strength=0.2,
         reflection_strength=0.0,
         apply_tone_mapping=False,
