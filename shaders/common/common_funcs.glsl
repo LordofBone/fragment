@@ -46,14 +46,14 @@ uniform float lightStrengths[10];
 uniform float shininess;
 
 ///////////////////////////////////////////////////////////
-// Example: Extended PBR material struct for .mtl data
+// Extended PBR Material Struct for .mtl Data
 ///////////////////////////////////////////////////////////
 struct Material {
 // Basic old-school fields
-    vec3 ambient;// e.g., from old Ka
-    vec3 diffuse;// Kd
-    vec3 specular;// Ks
-    float shininess;// Ns
+    vec3 ambient;// from Ka
+    vec3 diffuse;// from Kd
+    vec3 specular;// from Ks
+    float shininess;// from Ns
 
 // "Core" PBR fields
     float roughness;// 'Pr' in Blender MTL (0.0–1.0 range typically)
@@ -61,7 +61,7 @@ struct Material {
 
 // Additional MTL data (not fully used here but stored)
     float ior;// Ni (index of refraction), e.g. 1.45
-    float transparency;// d (a typical alpha / dissolve)
+    float transparency;// d (a typical alpha/dissolve in MTL)
     float clearcoat;// Pc
     float clearcoatRoughness;// Pcr
     float sheen;// Ps
