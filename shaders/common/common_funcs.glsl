@@ -32,6 +32,7 @@ uniform bool useCheckerPattern;
 uniform float time;
 uniform float waveSpeed;
 uniform float waveAmplitude;
+uniform float waveDetail;
 uniform float randomness;
 uniform float texCoordFrequency;
 uniform float texCoordAmplitude;
@@ -841,8 +842,8 @@ float proceduralDisplacement(vec2 coords)
     waveTexCoords.y += cos(time * waveSpeed + coords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
     // 4) Sample wave shapes
-    float waveHeightX = sin(waveTexCoords.y * 10.0);
-    float waveHeightY = cos(waveTexCoords.x * 10.0);
+    float waveHeightX = sin(waveTexCoords.y * waveDetail);
+    float waveHeightY = cos(waveTexCoords.x * waveDetail);
 
     // Combine them into a single "wave value"
     float waveVal = 0.5 * (waveHeightX + waveHeightY);
