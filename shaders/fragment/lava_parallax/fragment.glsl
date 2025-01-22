@@ -23,14 +23,14 @@ out vec4 FragColor;
 // --------------------------------------------
 // Uniforms
 // --------------------------------------------
-uniform samplerCube environmentMap;
 uniform sampler2D shadowMap;
 uniform vec3 cameraPos;
 
 // Toggling
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 uniform bool shadowingEnabled;
 
 // Shadow parameters
@@ -38,9 +38,6 @@ uniform float surfaceDepth;
 uniform float shadowStrength;
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
-
-// Reflection intensity
-uniform float environmentMapStrength;
 
 // --------------------------------------------
 // Main
@@ -118,17 +115,14 @@ void main()
     }
 
     // 7) Local lighting (Phong or diffuse)
-    if (phongShading)
+    if (lightingMode == 0)
     {
-        // Use lava color as base color
-        vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, color);
-        // Mix in partial darkness from shadow
-        color = mix(color, color * (1.0 - shadow * 0.5), 0.5) + phongColor * 0.5;
-    }
-    else
-    {
-        // Basic darkening by shadow
         color = mix(color, color * (1.0 - shadow * 0.5), 1.0);
+    }
+    else if (lightingMode >= 1)
+    {
+        vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, color);
+        color = mix(color, color * (1.0 - shadow * 0.5), 0.5) + phongColor * 0.5;
     }
 
     // 8) Bubbles
