@@ -261,6 +261,12 @@ class AbstractRenderer(ABC):
         self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = glm.vec3(*ambient_lighting_color)
 
+        self.water_base_color = glm.vec3(self.dynamic_attrs.get("water_base_color", (0.0, 0.0, 0.0)))
+        self.lava_base_color = glm.vec3(self.dynamic_attrs.get("lava_base_color", (0.0, 0.0, 0.0)))
+        self.lava_bright_color = glm.vec3(self.dynamic_attrs.get("lava_bright_color", (0.0, 0.0, 0.0)))
+
+        self.dynamic_attrs.get("randomness", 0.8)
+
         self.lighting_mode = lighting_mode
 
         self.lights_enabled = lights is not None
@@ -933,6 +939,24 @@ class AbstractRenderer(ABC):
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "useCheckerPattern"),
             int(self.dynamic_attrs.get("use_checker_pattern", 1)),
+        )
+
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "waterBaseColor"),
+            1,
+            glm.value_ptr(self.water_base_color),
+        )
+
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "lavaBaseColor"),
+            1,
+            glm.value_ptr(self.lava_base_color),
+        )
+
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "lavaBrightColor"),
+            1,
+            glm.value_ptr(self.lava_bright_color),
         )
 
         glUniform1f(
