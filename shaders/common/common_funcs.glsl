@@ -825,26 +825,36 @@ vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
     return ambient+ diffuse;
 }
 
-//---------------- Procedural Displacement for POM -----------------
+// ---------------- Procedural Displacement for POM ---------------- //
 float proceduralDisplacement(vec2 coords)
 {
-    if (useCheckerPattern)
-    {
-        float cellCount=5.0;
-        vec2 cellCoords= fract(coords* cellCount);
-        float cellVal= (step(0.5, cellCoords.x)== step(0.5, cellCoords.y))?1.0:-1.0;
-        return 0.5+ 0.5* cellVal* waveAmplitude;
-    }
-    else
-    {
-        float nf= smoothNoise(coords* randomness);
-        float waveX= sin(coords.y*10.0+ time*waveSpeed+ nf* texCoordFrequency);
-        float waveY= cos(coords.x*10.0+ time*waveSpeed+ nf* texCoordFrequency);
-        float h= (waveX+ waveY)*0.5;
-        // Increase contrast
-        h= sign(h)* pow(abs(h), 2.0);
-        return 0.5+ 0.5*h* waveAmplitude;
-    }
+    // 1) Start with coords (these are your "workingTexCoords" in the fragment shader)
+    vec2 waveTexCoords = coords;
+
+    // 2) Compute noise factor, same as main
+    float noiseFactor = smoothNoise(waveTexCoords * randomness);
+
+    // 3) Offset waveTexCoords similarly to your main wave logic:
+    waveTexCoords.x += sin(time * waveSpeed + coords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+    waveTexCoords.y += cos(time * waveSpeed + coords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+
+    // 4) Sample wave shapes
+    float waveHeightX = sin(waveTexCoords.y * 10.0);
+    float waveHeightY = cos(waveTexCoords.x * 10.0);
+
+    // Combine them into a single "wave value"
+    float waveVal = 0.5 * (waveHeightX + waveHeightY);
+
+    // 5) Scale by waveAmplitude to match your main code
+    waveVal *= waveAmplitude;
+
+    // 6) Map waveVal into [0..1] for POM:
+    //    waveVal is ~[-waveAmplitude..waveAmplitude].
+    //    We'll do a simple 0.5 + 0.5*waveVal, then clamp
+    float finalH = 0.5 + 0.5 * waveVal;
+    finalH = clamp(finalH, 0.0, 1.0);
+
+    return finalH;
 }
 
 // ---------------------------------------------------
