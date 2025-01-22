@@ -946,6 +946,11 @@ class AbstractRenderer(ABC):
         )
 
         glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "waveDetail"),
+            self.dynamic_attrs.get("wave_detail", 10.0),
+        )
+
+        glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "randomness"),
             self.dynamic_attrs.get("randomness", 0.8),
         )
