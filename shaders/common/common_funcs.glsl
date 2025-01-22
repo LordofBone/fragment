@@ -825,7 +825,9 @@ vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
     return ambient+ diffuse;
 }
 
-// ---------------- Procedural Displacement for POM ---------------- //
+// ---------------------------------------------------
+// Procedural Displacement for POM
+// ---------------------------------------------------
 float proceduralDisplacement(vec2 coords)
 {
     // 1) Start with coords (these are your "workingTexCoords" in the fragment shader)
