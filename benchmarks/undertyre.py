@@ -39,7 +39,7 @@ def run_benchmark(
         ambient_lighting_strength=0.25,
         ambient_lighting_color=(1.0, 0.996, 0.753),
         lights=[
-            {"position": (12.5, 8.0, -7.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {"position": (-2.85, 0.0, 4.5), "color": (1.0, 1.0, 1.0), "strength": 1.0},
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -68,7 +68,7 @@ def run_benchmark(
         },
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        shininess=0.5,
+        shininess=32,
         invert_displacement_map=True,
         pom_height_scale=0.016,
         pom_min_steps=128,
@@ -91,7 +91,7 @@ def run_benchmark(
     instance.add_renderer("tyre", "model", **tyre_config)
 
     # Translate the tyre model to a specific position, to get best view of skybox
-    instance.scene_construct.translate_renderer("tyre", (-6.85, 0.0, 6.5))
+    instance.scene_construct.translate_renderer("tyre", (-5.0, 0.0, 6.5))
 
     # Slightly tilt the model forward by 45° about X:
     instance.scene_construct.rotate_renderer("tyre", 45, (0.0, 1.0, 0.0))
