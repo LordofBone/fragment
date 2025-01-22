@@ -10,20 +10,19 @@ in vec4 FragPosLightSpace;
 out vec4 FragColor;
 
 // Textures / uniforms
-uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
 
 // Toggling
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 uniform bool shadowingEnabled;
 
 // Shadow stuff
 uniform sampler2D shadowMap;
 uniform float surfaceDepth;
 uniform float shadowStrength;
-uniform float environmentMapStrength;
 
 // Transforms
 uniform mat4 model;
@@ -82,14 +81,14 @@ void main()
     }
 
     // Lighting
-    if (phongShading)
+    if (lightingMode == 0)
+    {
+        color = mix(color, color * (1.0 - shadow * 0.5), 1.0);
+    }
+    else if (lightingMode >= 1)
     {
         vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, color);
         color = mix(color, color * (1.0 - shadow * 0.5), 0.5) + phongColor * 0.5;
-    }
-    else
-    {
-        color = mix(color, color * (1.0 - shadow * 0.5), 1.0);
     }
 
     // Bubbles
