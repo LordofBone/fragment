@@ -44,18 +44,17 @@ uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
 uniform vec3 viewPosition;
 
-// ---------------------------------------------------------------------
-// More advanced Parallax Depth Correction scaling
-// (Tweak them if you find offsets are too large/small.)
-// ---------------------------------------------------------------------
+// More advanced Parallax Depth Correction
 uniform float parallaxEyeOffsetScale = 1.0;
 uniform float parallaxMaxDepthClamp  = 0.99;
 
+// ---------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------
 void main()
 {
     // --------------------------------------------------------------
-    // 1) Reconstruct TBN
-    //    TBN transforms from tangent space --> world space
+    // 1) Reconstruct TBN (tangent->world)
     // --------------------------------------------------------------
     mat3 TBN = mat3(TBNrow0, TBNrow1, TBNrow2);
 
@@ -64,7 +63,7 @@ void main()
     // --------------------------------------------------------------
     vec3 viewDirTangent = normalize(TangentViewPos - TangentFragPos);
 
-    float depthOffset = 0.0;// This will be updated by POM
+    float depthOffset = 0.0;
     vec2 parallaxCoords = TexCoords;
 
     if (pomHeightScale > 0.0)
@@ -78,29 +77,19 @@ void main()
     }
 
     // --------------------------------------------------------------
-    // 3) Sample normal map in tangent space -> transform to world space
+    // 3) Sample normal map in tangent space -> convert to world space
     // --------------------------------------------------------------
     vec3 normalTex = texture(normalMap, parallaxCoords, textureLodLevel).rgb;
     normalTex = normalTex * 2.0 - 1.0;// tangent-space normal in [-1..1]
-    vec3 finalNormal = normalize(TBN * normalTex);// -> world space
+    vec3 finalNormal = normalize(TBN * normalTex);
 
     // --------------------------------------------------------------
-    // 4) World-space view direction (for reflection, lighting)
+    // 4) World-space view direction
     // --------------------------------------------------------------
     vec3 worldViewDir = normalize(viewPosition - FragPos);
 
     // --------------------------------------------------------------
-    // 5) Environment reflection (if desired)
-    //    (We'll remove "double-add" by not passing env color to lighting.)
-    // --------------------------------------------------------------
-    vec3 reflectDir = reflect(-worldViewDir, finalNormal);
-    reflectDir = normalize(reflectDir);
-
-    vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-    envColor *= environmentMapStrength;// scale if you want
-
-    // --------------------------------------------------------------
-    // 6) Shadows
+    // 5) Shadows
     // --------------------------------------------------------------
     float shadow = 0.0;
     if (shadowingEnabled)
@@ -109,42 +98,41 @@ void main()
     }
 
     // --------------------------------------------------------------
-    // 7) Compute base color & local lighting
-    //    (No double-add: We pass only "baseColor" to the lighting function.)
+    // 6) Local lighting
+    //    (We let compute*Lighting handle environment reflection, if an environment map is present.)
     // --------------------------------------------------------------
     vec3 baseColor = texture(diffuseMap, parallaxCoords, textureLodLevel).rgb;
     vec3 lightingColor = vec3(0.0);
 
-    // a) If using "Diffuse" lighting
     if (lightingMode == 0)
     {
+        // Diffuse lighting (which internally might do reflection)
         lightingColor = computeDiffuseLighting(finalNormal, worldViewDir, FragPos, baseColor);
     }
-    // b) If using "Phong" lighting
     else if (lightingMode == 1)
     {
+        // Phong lighting (which internally might do reflection)
         lightingColor = computePhongLighting(finalNormal, worldViewDir, FragPos, baseColor);
     }
-    // c) If using "PBR"
     else if (lightingMode == 2)
     {
-        // We'll assume "computePBRLighting" doesn't add env reflection inside,
-        // or if it does, you'll skip adding envColor below. Up to you.
+        // PBR lighting
         lightingColor = computePBRLighting(finalNormal, worldViewDir, FragPos, baseColor);
     }
 
-    // Apply shadow attenuation
+    // Apply shadow
     lightingColor *= (1.0 - shadow);
 
-    // Add the environment reflection (only once)
-    // If your PBR or Phong function already includes reflection, skip this
-    lightingColor += envColor * (1.0 - shadow);
+    // --------------------------------------------------------------
+    // NOTE: We do NOT add environment reflection here again
+    // (we removed the "lightingColor += envColor" line).
+    // This prevents double-counting reflection.
+    // --------------------------------------------------------------
 
-    // Combine final color
     vec3 finalColor = lightingColor;
 
     // --------------------------------------------------------------
-    // 8) ToneMapping & Gamma
+    // 7) ToneMapping & Gamma
     // --------------------------------------------------------------
     if (applyToneMapping)
     {
@@ -156,55 +144,38 @@ void main()
     }
 
     finalColor = clamp(finalColor, 0.0, 1.0);
-
-    // Write out color
     FragColor = vec4(finalColor, 1.0);
 
     // --------------------------------------------------------------
-    // 9) Depth Correction (more accurate approach)
-    //    We approximate the parallax offset in eye space, then reproject
-    //    to find the new depth for gl_FragDepth.
+    // 8) Depth Correction (Approx. Eye-Space Reprojection)
     // --------------------------------------------------------------
     if (pomHeightScale > 0.0 && depthOffset != 0.0)
     {
-        // (A) Build approximate eye-space position of this fragment
-        //     (before POM offset)
-        vec4 eyePos = view * vec4(FragPos, 1.0);// old eye-space
+        // (A) The old eye-space position
+        vec4 eyePos = view * vec4(FragPos, 1.0);
 
-        // (B) Convert the parallax offset from tangent space -> world -> eye space
-
-        // The offset in tangent space is "depthOffset * normalize(viewDirTangent)"
-        // but that's not exactly correct since POM can shift coords in the X/Y of tangent space too.
-        // We'll do a simplified approach:
-        //   "offsetTangent" = depthOffset * (0, 0, -1)  (the parallax is mostly along negative Z in tangent space)
-        //   Then transform to world, then to eye space.
-
+        // (B) Offset in tangent space
+        // A simplified approach: offset along negative Z in tangent space
         vec3 offsetTangent = vec3(0.0, 0.0, -depthOffset);
-        // scale the offset if needed
         offsetTangent *= parallaxEyeOffsetScale;
 
-        // Convert tangent->world
+        // Convert tangent->world->eye
         vec3 offsetWorld = TBN * offsetTangent;
-        // Convert world->eye
-        vec4 offsetEye = view * vec4(offsetWorld, 0.0);
+        vec4 offsetEye   = view * vec4(offsetWorld, 0.0);
 
-        // (C) Adjust the eyePos by that offset
+        // (C) Adjust the eye-space position
         vec4 newEyePos = eyePos + offsetEye;
 
         // (D) Reproject to clip space
         vec4 clipPos = projection * newEyePos;
-        // Don't forget perspective divide
         float ndcDepth = clipPos.z / clipPos.w;
 
-        // (E) Store in gl_FragDepth
-        // clamp to [0..1]
+        // (E) Store new depth
         ndcDepth = clamp(ndcDepth, 0.0, parallaxMaxDepthClamp);
         gl_FragDepth = ndcDepth;
     }
     else
     {
-        // If no POM or no offset, we can just leave gl_FragDepth as is,
-        // or write the original
         gl_FragDepth = gl_FragCoord.z;
     }
 }
