@@ -826,35 +826,55 @@ vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
     return ambient+ diffuse;
 }
 
+struct WaveOutput {
+    vec2  waveTexCoords;// The offset coords
+    float waveHeightX;
+    float waveHeightY;
+    float waveVal;// final waveVal or any combined value
+};
+
+// Or just return waveNormalTangent + waveVal if that’s all you need
+// But a struct is more general
+WaveOutput computeWave(vec2 baseTexCoords)
+{
+    WaveOutput wo;
+
+    // 1) Start with coords
+    vec2 waveTexCoords = baseTexCoords;
+
+    // 2) Noise factor
+    float noiseFactor = smoothNoise(waveTexCoords * randomness);
+
+    // 3) Offsets
+    waveTexCoords.x += sin(time * waveSpeed + baseTexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+    waveTexCoords.y += cos(time * waveSpeed + baseTexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+
+    wo.waveTexCoords = waveTexCoords;
+
+    // 4) waveHeightX/Y
+    float waveHeightX = sin(waveTexCoords.y * waveDetail);
+    float waveHeightY = cos(waveTexCoords.x * waveDetail);
+    wo.waveHeightX    = waveHeightX;
+    wo.waveHeightY    = waveHeightY;
+
+    // 5) Combined waveVal
+    float waveVal = 0.5 * (waveHeightX + waveHeightY);
+    waveVal *= waveAmplitude;
+    wo.waveVal = waveVal;
+
+    return wo;
+}
+
 // ---------------------------------------------------
 // Procedural Displacement for POM
 // ---------------------------------------------------
 float proceduralDisplacement(vec2 coords)
 {
-    // 1) Start with coords (these are your "workingTexCoords" in the fragment shader)
-    vec2 waveTexCoords = coords;
+    WaveOutput wo = computeWave(coords);
 
-    // 2) Compute noise factor, same as main
-    float noiseFactor = smoothNoise(waveTexCoords * randomness);
-
-    // 3) Offset waveTexCoords similarly to your main wave logic:
-    waveTexCoords.x += sin(time * waveSpeed + coords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
-    waveTexCoords.y += cos(time * waveSpeed + coords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
-
-    // 4) Sample wave shapes
-    float waveHeightX = sin(waveTexCoords.y * waveDetail);
-    float waveHeightY = cos(waveTexCoords.x * waveDetail);
-
-    // Combine them into a single "wave value"
-    float waveVal = 0.5 * (waveHeightX + waveHeightY);
-
-    // 5) Scale by waveAmplitude to match your main code
-    waveVal *= waveAmplitude;
-
-    // 6) Map waveVal into [0..1] for POM:
-    //    waveVal is ~[-waveAmplitude..waveAmplitude].
-    //    We'll do a simple 0.5 + 0.5*waveVal, then clamp
-    float finalH = 0.5 + 0.5 * waveVal;
+    // waveVal in wo.waveVal is ~[-waveAmplitude..+waveAmplitude]
+    // map it into [0..1]
+    float finalH = 0.5 + 0.5 * wo.waveVal;
     finalH = clamp(finalH, 0.0, 1.0);
 
     return finalH;
