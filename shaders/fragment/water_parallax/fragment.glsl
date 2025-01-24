@@ -79,18 +79,14 @@ void main()
     // ---------------------------------------------------------
     // 3) Build wave normal in TANGENT space
     // ---------------------------------------------------------
-    vec2 waveTexCoords = workingTexCoords;
-    float noiseFactor = smoothNoise(waveTexCoords * randomness);
+    WaveOutput wo = computeWave(workingTexCoords);
 
-    waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
-    waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+    // waveHeightX, waveHeightY
+    float waveHeightX = wo.waveHeightX;
+    float waveHeightY = wo.waveHeightY;
 
-    // Start with "up" in tangent space
+    // Build waveNormalTangent
     vec3 waveNormalTangent = vec3(0.0, 0.0, 1.0);
-
-    float waveHeightX = sin(waveTexCoords.y * 10.0);
-    float waveHeightY = cos(waveTexCoords.x * 10.0);
-
     waveNormalTangent.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     waveNormalTangent = normalize(waveNormalTangent);
 
