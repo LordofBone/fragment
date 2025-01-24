@@ -826,6 +826,9 @@ vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
     return ambient+ diffuse;
 }
 
+// ---------------------------------------------------
+// Wave output helper function
+// ---------------------------------------------------
 struct WaveOutput {
     vec2  waveTexCoords;// The offset coords
     float waveHeightX;
@@ -833,8 +836,9 @@ struct WaveOutput {
     float waveVal;// final waveVal or any combined value
 };
 
-// Or just return waveNormalTangent + waveVal if that’s all you need
-// But a struct is more general
+// ---------------------------------------------------
+// Compute Wave for Procedural Displacement
+// ---------------------------------------------------
 WaveOutput computeWave(vec2 baseTexCoords)
 {
     WaveOutput wo;
