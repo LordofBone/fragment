@@ -169,12 +169,21 @@ def run_benchmark(
             "fragment": "parallax_mapping",
         },
         shininess=32,
-        invert_displacement_map=False,
-        pom_height_scale=0.016,
+        invert_displacement_map=True,
+        pom_height_scale=0.024,
         pom_min_steps=128,
         pom_max_steps=512,
         texture_lod_bias=0.0,
         env_map_lod_bias=1.5,
+        pbr_extensions={
+            "roughness": 0.399083,  # Pr
+            "metallic": 0.064220,  # Pm
+            "clearcoat": 0.110092,  # Pc
+            "clearcoat_roughness": 0.039174,  # Pcr
+            "sheen": 0.036697,  # Ps
+            "aniso": 0.036697,  # aniso
+            "anisor": 0.036697,  # anisor
+        },
     )
 
     # Define the configuration for the particle renderer
