@@ -446,7 +446,7 @@ vec3 computeAmbientColor(vec3 baseColor)
 }
 
 // ---------------------------------------------------
-// Compute Diffuse Lighting (with a small spec highlight)
+// Compute Diffuse Lighting
 // ---------------------------------------------------
 vec3 computeDiffuseLighting(
 vec3 normal,
@@ -680,7 +680,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
         vec3 kD = (vec3(1.0) - kS) * (1.0 - material.metallic);
 
         // Lambertian diffuse
-        vec3 diffuse = kD * baseColor / PI;
+        vec3 diffuse = kD * baseColor;
 
         localLighting += (diffuse + specular)
         * lightColors[i] * lightStrengths[i]
