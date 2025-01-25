@@ -42,7 +42,7 @@ uniform float parallaxEyeOffsetScale = 1.0;
 uniform float parallaxMaxDepthClamp  = 0.99;
 
 // Depth clamp settings
-uniform float maxForwardOffset = 1.1;// How far forward we allow the surface to move (in NDC)
+uniform float maxForwardOffset = 1.0;// How far forward we allow the surface to move (in NDC)
 
 // Camera transforms
 uniform mat4 model;
@@ -159,12 +159,10 @@ void main()
         float oldZ = gl_FragCoord.z;
 
         #ifdef CLAMP_POM_DEPTH
-        // This keeps us from pushing the fragment too far forward
-        // e.g. by more than 'maxForwardOffset' in normalized device coords
+        // only allow a small forward shift
         float allowedMinZ = oldZ - maxForwardOffset;
-        // we only clamp forward shift, not the backward shift.
-        // so if ndcDepth is bigger (further), we leave it alone:
-        if (ndcDepth < allowedMinZ) {
+        if (ndcDepth < allowedMinZ)
+        {
             ndcDepth = allowedMinZ;
         }
         #endif
