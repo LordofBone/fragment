@@ -74,22 +74,19 @@ void main()
     // Lighting
     if (lightingMode == 0)
     {
-        // If not, do Diffuse-only
-        vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, envColor);
-        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
-        color += diffuseColor;
+        // Diffuse-only
+        color = computeDiffuseLighting(finalNormal, viewDir, FragPos, envColor);
     }
     else if (lightingMode >= 1)
     {
-        // If set, do Phong lighting
-        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, envColor);
-        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
-        color += phongColor;
+        // Phong lighting
+        color = computePhongLighting(finalNormal, viewDir, FragPos, envColor);
     }
 
-    envColor = mix(envColor, envColor * (1.0 - shadow), shadowStrength);
-    color += envColor * environmentMapStrength;
+    // Apply shadow
+    color = mix(color, color * (1.0 - shadow), shadowStrength);
 
+    // Tone Mapping and Gamma Correction
     if (applyToneMapping)
     {
         color = toneMapping(color);
