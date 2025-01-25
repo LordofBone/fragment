@@ -138,39 +138,44 @@ void main()
     // 8) Depth Correction (Approx. Eye-Space Reprojection)
     //    w/ optional clamping
     // --------------------------------------------------------------
-    if (pomHeightScale > 0.0 && depthOffset != 0.0)
-    {
-        vec4 eyePos = view * vec4(FragPos, 1.0);
 
-        // offset in tangent space
-        vec3 offsetTangent = vec3(0.0, 0.0, -depthOffset) * parallaxEyeOffsetScale;
-        // tangent->world->eye
-        vec3 offsetWorld = TBN * offsetTangent;
-        vec4 offsetEye   = view * vec4(offsetWorld, 0.0);
+    // depth adjustment with Approx. Eye-Space Reprojection currently diabled for models as it can cause artifacts
+    //    if (pomHeightScale > 0.0 && depthOffset != 0.0)
+    //    {
+    //        vec4 eyePos = view * vec4(FragPos, 1.0);
+    //
+    //        // offset in tangent space
+    //        vec3 offsetTangent = vec3(0.0, 0.0, -depthOffset) * parallaxEyeOffsetScale;
+    //        // tangent->world->eye
+    //        vec3 offsetWorld = TBN * offsetTangent;
+    //        vec4 offsetEye   = view * vec4(offsetWorld, 0.0);
+    //
+    //        // new eye position
+    //        vec4 newEyePos = eyePos + offsetEye;
+    //
+    //        // reproject
+    //        vec4 clipPos = projection * newEyePos;
+    //        float ndcDepth = clipPos.z / clipPos.w;
+    //        ndcDepth = clamp(ndcDepth, 0.0, parallaxMaxDepthClamp);
+    //
+    //        float oldZ = gl_FragCoord.z;
+    //
+    //        #ifdef CLAMP_POM_DEPTH
+    //        // only allow a small forward shift
+    //        float allowedMinZ = oldZ - maxForwardOffset;
+    //        if (ndcDepth < allowedMinZ)
+    //        {
+    //            ndcDepth = allowedMinZ;
+    //        }
+    //        #endif
+    //
+    //        gl_FragDepth = ndcDepth;
+    //    }
+    //    else
+    //    {
+    //        gl_FragDepth = gl_FragCoord.z;
+    //    }
 
-        // new eye position
-        vec4 newEyePos = eyePos + offsetEye;
-
-        // reproject
-        vec4 clipPos = projection * newEyePos;
-        float ndcDepth = clipPos.z / clipPos.w;
-        ndcDepth = clamp(ndcDepth, 0.0, parallaxMaxDepthClamp);
-
-        float oldZ = gl_FragCoord.z;
-
-        #ifdef CLAMP_POM_DEPTH
-        // only allow a small forward shift
-        float allowedMinZ = oldZ - maxForwardOffset;
-        if (ndcDepth < allowedMinZ)
-        {
-            ndcDepth = allowedMinZ;
-        }
-        #endif
-
-        gl_FragDepth = ndcDepth;
-    }
-    else
-    {
-        gl_FragDepth = gl_FragCoord.z;
-    }
+    // so we currently just directly write the depth value without any correction
+    gl_FragDepth = gl_FragCoord.z;
 }
