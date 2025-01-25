@@ -123,7 +123,6 @@ def run_benchmark(
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
-        debug_mode=True,
     )
 
     # Define the configuration for the opaque pyramid model
