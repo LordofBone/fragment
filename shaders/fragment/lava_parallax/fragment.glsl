@@ -39,11 +39,23 @@ uniform bool shadowingEnabled;
 uniform float surfaceDepth;
 uniform float shadowStrength;
 uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
 
 // Additional color style
 uniform vec3 lavaBaseColor;// e.g. (1.0, 0.3, 0.0)
 uniform vec3 lavaBrightColor;// e.g. (1.0, 0.7, 0.0)
+
+// ----------------------------------------------------------
+// POM and Depth rewriting settings
+// ----------------------------------------------------------
+uniform float parallaxEyeOffsetScale = 1.0;
+uniform float parallaxMaxDepthClamp  = 0.99;
+uniform float maxForwardOffset       = 0.01;// clamp for forward shift in NDC
+
+// If you want to enable/disable the clamp, define or comment out:
+// #define CLAMP_POM_DEPTH
 
 void main()
 {
@@ -59,6 +71,7 @@ void main()
 
     if (pomHeightScale > 0.0)
     {
+        // tangent-space view direction
         vec3 tangentViewDir = normalize(TangentViewPos - TangentFragPos);
 
         workingTexCoords = ProceduralParallaxOcclusionMapping(
@@ -124,32 +137,21 @@ void main()
     }
 
     // 9) Local lighting
-    //    "No Double-Add": pass combinedColor or lavaColor to the lighting function,
-    //    then optionally add reflection afterwards. We'll keep it simpler below:
     vec3 color;
-
     if (lightingMode == 0)
     {
         // Diffuse-only
-        // We'll pass combinedColor as the "base"
         vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, combinedColor);
-        diffuseColor = mix(diffuseColor, diffuseColor*(1.0 - shadow), shadowStrength);
+        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
         color = diffuseColor;
     }
     else
     {
         // Phong
         vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, combinedColor);
-        phongColor = mix(phongColor, phongColor*(1.0 - shadow), shadowStrength);
+        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color = phongColor;
     }
-
-    // If you want to separate reflection from lava base color even more,
-    // you could do:
-    //   vec3 baseLavaLight = computePhongLighting(finalNormal, viewDir, FragPos, lavaColor);
-    //   color = mix(baseLavaLight, reflection, fresnel * 0.2);
-    //   // plus shadow
-    // (Up to you.)
 
     // 10) Additional procedural stuff: bubbles, rocks, etc.
     float bubbleNoise = smoothNoise(TexCoords * 10.0 + time * 2.0);
@@ -174,5 +176,40 @@ void main()
         color = pow(color, vec3(1.0/2.2));
     }
 
-    FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    color = clamp(color, 0.0, 1.0);
+    FragColor = vec4(color, 1.0);
+
+    // 12) Optional Depth Correction w/ clamp
+    if (pomHeightScale > 0.0 && depthOffset != 0.0)
+    {
+        vec4 eyePos = view * vec4(FragPos, 1.0);
+
+        // offset in tangent space
+        vec3 offsetTangent = vec3(0.0, 0.0, -depthOffset) * parallaxEyeOffsetScale;
+        vec3 offsetWorld = TBN * offsetTangent;
+        vec4 offsetEye = view * vec4(offsetWorld, 0.0);
+
+        vec4 newEyePos = eyePos + offsetEye;
+
+        vec4 clipPos = projection * newEyePos;
+        float ndcDepth = clipPos.z / clipPos.w;
+        ndcDepth = clamp(ndcDepth, 0.0, parallaxMaxDepthClamp);
+
+        float oldZ = gl_FragCoord.z;
+
+        #ifdef CLAMP_POM_DEPTH
+        // only allow a small forward shift
+        float allowedMinZ = oldZ - maxForwardOffset;
+        if (ndcDepth < allowedMinZ)
+        {
+            ndcDepth = allowedMinZ;
+        }
+        #endif
+
+        gl_FragDepth = ndcDepth;
+    }
+    else
+    {
+        gl_FragDepth = gl_FragCoord.z;
+    }
 }
