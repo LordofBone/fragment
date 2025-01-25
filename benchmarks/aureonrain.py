@@ -170,7 +170,7 @@ def run_benchmark(
         },
         shininess=32,
         invert_displacement_map=True,
-        pom_height_scale=0.024,
+        pom_height_scale=0.016,
         pom_min_steps=128,
         pom_max_steps=512,
         texture_lod_bias=0.0,
