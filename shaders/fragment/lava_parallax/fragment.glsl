@@ -47,16 +47,6 @@ uniform mat4 lightSpaceMatrix;
 uniform vec3 lavaBaseColor;// e.g. (1.0, 0.3, 0.0)
 uniform vec3 lavaBrightColor;// e.g. (1.0, 0.7, 0.0)
 
-// ----------------------------------------------------------
-// POM and Depth rewriting settings
-// ----------------------------------------------------------
-uniform float parallaxEyeOffsetScale = 1.0;
-uniform float parallaxMaxDepthClamp  = 0.99;
-uniform float maxForwardOffset       = 0.01;// clamp for forward shift in NDC
-
-// If you want to enable/disable the clamp, define or comment out:
-// #define CLAMP_POM_DEPTH
-
 void main()
 {
     // 1) Reconstruct TBN
@@ -179,37 +169,22 @@ void main()
     color = clamp(color, 0.0, 1.0);
     FragColor = vec4(color, 1.0);
 
+    // ---------------------------------------------------
     // 12) Optional Depth Correction w/ clamp
-    if (pomHeightScale > 0.0 && depthOffset != 0.0)
-    {
+    // ---------------------------------------------------
+    if (pomHeightScale > 0.0 && depthOffset != 0.0) {
         vec4 eyePos = view * vec4(FragPos, 1.0);
 
-        // offset in tangent space
-        vec3 offsetTangent = vec3(0.0, 0.0, -depthOffset) * parallaxEyeOffsetScale;
-        vec3 offsetWorld = TBN * offsetTangent;
-        vec4 offsetEye = view * vec4(offsetWorld, 0.0);
-
-        vec4 newEyePos = eyePos + offsetEye;
-
-        vec4 clipPos = projection * newEyePos;
-        float ndcDepth = clipPos.z / clipPos.w;
-        ndcDepth = clamp(ndcDepth, 0.0, parallaxMaxDepthClamp);
-
-        float oldZ = gl_FragCoord.z;
-
-        #ifdef CLAMP_POM_DEPTH
-        // only allow a small forward shift
-        float allowedMinZ = oldZ - maxForwardOffset;
-        if (ndcDepth < allowedMinZ)
-        {
-            ndcDepth = allowedMinZ;
-        }
-        #endif
-
-        gl_FragDepth = ndcDepth;
-    }
-    else
-    {
+        // Call the centralized function
+        adjustFragDepth(
+        eyePos,
+        projection,
+        vec4(FragPos, 1.0),
+        vec3[](TBNrow0, TBNrow1, TBNrow2),
+        depthOffset,
+        gl_FragDepth
+        );
+    } else {
         gl_FragDepth = gl_FragCoord.z;
     }
 }

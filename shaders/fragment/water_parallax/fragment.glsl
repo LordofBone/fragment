@@ -43,14 +43,6 @@ uniform mat4 projection;
 // Water base color
 uniform vec3 waterBaseColor;
 
-// Parallax
-uniform float parallaxEyeOffsetScale = 1.0;
-uniform float parallaxMaxDepthClamp  = 0.99;
-uniform float maxForwardOffset       = 0.01;// clamp for forward shift
-
-// comment out if you want to skip clamping
-//#define CLAMP_POM_DEPTH
-
 void main()
 {
     mat3 TBN = mat3(TBNrow0, TBNrow1, TBNrow2);
@@ -139,35 +131,22 @@ void main()
 
     FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 
-    // (3) Depth rewriting with clamp
-    if (pomHeightScale > 0.0 && depthOffset != 0.0)
-    {
+    // ---------------------------------------------------
+    // 12) Optional Depth Correction w/ clamp
+    // ---------------------------------------------------
+    if (pomHeightScale > 0.0 && depthOffset != 0.0) {
         vec4 eyePos = view * vec4(FragPos, 1.0);
 
-        vec3 offsetTangent = vec3(0.0, 0.0, -depthOffset) * parallaxEyeOffsetScale;
-        vec3 offsetWorld = TBN * offsetTangent;
-        vec4 offsetEye = view * vec4(offsetWorld, 0.0);
-        vec4 newEyePos = eyePos + offsetEye;
-
-        vec4 clipPos = projection * newEyePos;
-        float ndcDepth = clipPos.z / clipPos.w;
-        ndcDepth = clamp(ndcDepth, 0.0, parallaxMaxDepthClamp);
-
-        float oldZ = gl_FragCoord.z;
-
-        #ifdef CLAMP_POM_DEPTH
-        // only allow a small forward shift
-        float allowedMinZ = oldZ - maxForwardOffset;
-        if (ndcDepth < allowedMinZ)
-        {
-            ndcDepth = allowedMinZ;
-        }
-        #endif
-
-        gl_FragDepth = ndcDepth;
-    }
-    else
-    {
+        // Call the centralized function
+        adjustFragDepth(
+        eyePos,
+        projection,
+        vec4(FragPos, 1.0),
+        vec3[](TBNrow0, TBNrow1, TBNrow2),
+        depthOffset,
+        gl_FragDepth
+        );
+    } else {
         gl_FragDepth = gl_FragCoord.z;
     }
 }
