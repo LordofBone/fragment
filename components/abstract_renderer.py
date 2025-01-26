@@ -138,7 +138,7 @@ class AbstractRenderer(ABC):
         shadow_map_resolution=2048,
             lighting_mode="diffuse",
         opacity=1.0,
-        shininess=1.0,
+            legacy_roughness=32,
         env_map_strength=0.5,
         distortion_strength=0.3,
         reflection_strength=0.0,
@@ -220,7 +220,7 @@ class AbstractRenderer(ABC):
         self.pom_max_steps = pom_max_steps
 
         self.opacity = opacity
-        self.shininess = shininess
+        self.legacy_roughness = legacy_roughness
         self.env_map_strength = env_map_strength
         self.distortion_strength = distortion_strength
         self.reflection_strength = reflection_strength
@@ -885,7 +885,7 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "farPlane"), self.far_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "opacity"), self.opacity)
 
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shininess"), self.shininess)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacy_roughness"), self.legacy_roughness)
 
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "environmentMapStrength"), self.env_map_strength
