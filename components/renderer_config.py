@@ -37,7 +37,7 @@ class RendererConfig:
             shaders=None,
             lighting_mode="diffuse",
             opacity=1.0,
-            shininess=32,
+            legacy_roughness=32,
             pbr_extensions=None,
             ambient_lighting_strength=0.0,
             ambient_lighting_color=(0.0, 0.0, 0.0),
@@ -105,7 +105,7 @@ class RendererConfig:
         self.front_face_winding = front_face_winding
         self.lighting_mode = lighting_mode
         self.opacity = opacity
-        self.shininess = shininess
+        self.legacy_roughness = legacy_roughness
         self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = ambient_lighting_color
 
@@ -149,6 +149,13 @@ class RendererConfig:
         lighting = config.get("lighting_mode", self.lighting_mode)
         if lighting not in ("diffuse", "phong", "pbr"):
             raise ValueError("Invalid lighting mode option. Use 'diffuse', 'phong', or 'pbr'.")
+
+        # Validate shininess if lighting_mode is 'diffuse' or 'phong'
+        if lighting in ("diffuse", "phong"):
+            legacy_roughness = config.get("legacy_roughness", self.legacy_roughness)
+            print(legacy_roughness)
+            if not (0.0 <= legacy_roughness <= 100.0):
+                raise ValueError("Invalid legacy_roughness value. Must be between 0 and 100.")
 
         # Validate particle_render_mode if present
         if "particle_render_mode" in config:
@@ -207,7 +214,7 @@ class RendererConfig:
             opacity=None,
             ambient_lighting_strength=None,
             ambient_lighting_color=None,
-            shininess=None,
+            legacy_roughness=None,
             pbr_extensions=None,
             texture_lod_bias=None,
             env_map_lod_bias=None,
@@ -259,7 +266,7 @@ class RendererConfig:
             "env_map_lod_bias": env_map_lod_bias,
             "ambient_lighting_strength": ambient_lighting_strength,
             "ambient_lighting_color": ambient_lighting_color,
-            "shininess": shininess,
+            "legacy_roughness": legacy_roughness,
             "pbr_extensions": pbr_extensions,
             "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
@@ -312,7 +319,7 @@ class RendererConfig:
             opacity=None,
             ambient_lighting_strength=None,
             ambient_lighting_color=None,
-            shininess=None,
+            legacy_roughness=None,
             texture_lod_bias=None,
             env_map_lod_bias=None,
             env_map_strength=None,
@@ -357,7 +364,7 @@ class RendererConfig:
             "env_map_lod_bias": env_map_lod_bias,
             "ambient_lighting_strength": ambient_lighting_strength,
             "ambient_lighting_color": ambient_lighting_color,
-            "shininess": shininess,
+            "legacy_roughness": legacy_roughness,
             "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
             "invert_displacement_map": invert_displacement_map,
@@ -427,7 +434,7 @@ class RendererConfig:
             env_map_lod_bias=None,
             ambient_lighting_strength=None,
             ambient_lighting_color=None,
-            shininess=None,
+            legacy_roughness=None,
             depth_testing=None,
             culling=None,
             particle_generator=False,
@@ -483,7 +490,7 @@ class RendererConfig:
             "env_map_lod_bias": env_map_lod_bias,
             "ambient_lighting_strength": ambient_lighting_strength,
             "ambient_lighting_color": ambient_lighting_color,
-            "shininess": shininess,
+            "legacy_roughness": legacy_roughness,
             "depth_testing": depth_testing,
             "culling": culling,
             "particle_generator": particle_generator,
