@@ -59,7 +59,7 @@ def run_benchmark(
         anisotropy=anisotropy,
         msaa_level=msaa_level,
         culling=True,
-        lighting_mode=1,
+        lighting_mode="phong",
     )
 
     # Create the rendering instance with the base configuration
@@ -72,7 +72,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "water",
         },
-        shininess=0.5,
+        legacy_roughness=32,
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=550.0,
