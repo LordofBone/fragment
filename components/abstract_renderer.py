@@ -757,11 +757,14 @@ class AbstractRenderer(ABC):
     def set_light_uniforms(self, shader_program):
         self.shader_engine.use_shader_program()
         for i, light in enumerate(self.lights):
-            glUniform3fv(
-                glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(light["position"])
-            )
+            glUniform3fv(glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1,
+                         glm.value_ptr(light["position"]))
             glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(light["color"]))
             glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), light["strength"])
+            glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoLeft[{i}]"), light["orth_left"])
+            glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoRight[{i}]"), light["orth_right"])
+            glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoBottom[{i}]"), light["orth_bottom"])
+            glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoTop[{i}]"), light["orth_top"])
 
         glUniform1i(glGetUniformLocation(shader_program, "lightingMode"), self.lighting_mode)
 
