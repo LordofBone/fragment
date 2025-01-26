@@ -40,7 +40,7 @@ class RendererConfig:
             front_face_winding="CCW",
             shaders=None,
             lighting_mode="diffuse",
-            opacity=1.0,
+            legacy_opacity=1.0,
             legacy_roughness=32,
             pbr_extensions=None,
             ambient_lighting_strength=0.0,
@@ -113,7 +113,7 @@ class RendererConfig:
         self.loop = loop
         self.front_face_winding = front_face_winding
         self.lighting_mode = lighting_mode
-        self.opacity = opacity
+        self.legacy_opacity = legacy_opacity
         self.legacy_roughness = legacy_roughness
         self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = ambient_lighting_color
@@ -220,7 +220,7 @@ class RendererConfig:
             front_face_winding=None,
             cubemap_folder=None,
             lighting_mode=None,
-            opacity=None,
+            legacy_opacity=None,
             ambient_lighting_strength=None,
             ambient_lighting_color=None,
             legacy_roughness=None,
@@ -274,7 +274,7 @@ class RendererConfig:
             "front_face_winding": front_face_winding,
             "cubemap_folder": cubemap_folder,
             "lighting_mode": lighting_mode,
-            "opacity": opacity,
+            "legacy_opacity": legacy_opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
             "ambient_lighting_strength": ambient_lighting_strength,
@@ -333,7 +333,7 @@ class RendererConfig:
             culling=None,
             cubemap_folder=None,
             lighting_mode=None,
-            opacity=None,
+            legacy_opacity=None,
             ambient_lighting_strength=None,
             ambient_lighting_color=None,
             legacy_roughness=None,
@@ -380,7 +380,7 @@ class RendererConfig:
             "culling": culling,
             "cubemap_folder": cubemap_folder,
             "lighting_mode": lighting_mode,
-            "opacity": opacity,
+            "legacy_opacity": legacy_opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
             "ambient_lighting_strength": ambient_lighting_strength,
@@ -454,7 +454,7 @@ class RendererConfig:
             compute_shader_program=None,
             alpha_blending=None,
             lighting_mode=None,
-            opacity=None,
+            legacy_opacity=None,
             texture_lod_bias=None,
             env_map_lod_bias=None,
             ambient_lighting_strength=None,
@@ -510,7 +510,7 @@ class RendererConfig:
             "particle_shader_override": particle_shader_override,
             "alpha_blending": alpha_blending,
             "lighting_mode": lighting_mode,
-            "opacity": opacity,
+            "legacy_opacity": legacy_opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
             "ambient_lighting_strength": ambient_lighting_strength,
