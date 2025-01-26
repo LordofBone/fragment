@@ -39,7 +39,15 @@ def run_benchmark(
         ambient_lighting_strength=0.25,
         ambient_lighting_color=(1.0, 0.996, 0.753),
         lights=[
-            {"position": (-2.85, 0.0, 4.5), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {
+                "position": (6.0, 0.0, 0.0),
+                "color": (1.0, 1.0, 1.0),
+                "strength": 1.0,
+                "orth_left": -25.0,
+                "orth_right": 25.0,
+                "orth_bottom": -25.0,
+                "orth_top": 25,
+            }
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
@@ -80,6 +88,15 @@ def run_benchmark(
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         env_map_strength=0.025,
+        pbr_extensions={
+            "roughness": 0.830355,  # Pr
+            "metallic": 0.000000,  # Pm
+            "clearcoat": 2.275229,  # Pc
+            "clearcoat_roughness": 0.841927,  # Pcr
+            "sheen": 0.077798,  # Ps
+            "aniso": 0.504587,  # aniso
+            "anisor": 0.770642,  # anisor
+        },
     )
 
     # Define the configuration for the skybox
