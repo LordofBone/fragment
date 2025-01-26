@@ -31,6 +31,10 @@ class RendererConfig:
             pom_height_scale=0.016,
             pom_min_steps=8,
             pom_max_steps=32,
+            pom_eye_offset_scale=1.0,
+            pom_max_depth_clamp=0.99,
+            pom_max_forward_offset=1.0,
+            pom_enable_frag_depth_adjustment=False,
             move_speed=1.0,
             loop=True,
             front_face_winding="CCW",
@@ -100,6 +104,10 @@ class RendererConfig:
         self.pom_height_scale = pom_height_scale
         self.pom_min_steps = pom_min_steps
         self.pom_max_steps = pom_max_steps
+        self.pom_eye_offset_scale = pom_eye_offset_scale
+        self.pom_max_depth_clamp = pom_max_depth_clamp
+        self.pom_max_forward_offset = pom_max_forward_offset
+        self.pom_enable_frag_depth_adjustment = pom_enable_frag_depth_adjustment
         self.move_speed = move_speed
         self.loop = loop
         self.front_face_winding = front_face_winding
@@ -224,6 +232,10 @@ class RendererConfig:
             pom_height_scale=None,
             pom_min_steps=None,
             pom_max_steps=None,
+            pom_eye_offset_scale=None,
+            pom_max_depth_clamp=None,
+            pom_max_forward_offset=None,
+            pom_enable_frag_depth_adjustment=None,
             planar_camera=None,
             planar_fov=None,
             planar_near_plane=None,
@@ -274,6 +286,10 @@ class RendererConfig:
             "pom_height_scale": pom_height_scale,
             "pom_min_steps": pom_min_steps,
             "pom_max_steps": pom_max_steps,
+            "pom_eye_offset_scale": pom_eye_offset_scale,
+            "pom_max_depth_clamp": pom_max_depth_clamp,
+            "pom_max_forward_offset": pom_max_forward_offset,
+            "pom_enable_frag_depth_adjustment": pom_enable_frag_depth_adjustment,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
@@ -328,6 +344,10 @@ class RendererConfig:
             pom_height_scale=None,
             pom_min_steps=None,
             pom_max_steps=None,
+            pom_eye_offset_scale=None,
+            pom_max_depth_clamp=None,
+            pom_max_forward_offset=None,
+            pom_enable_frag_depth_adjustment=None,
             planar_camera=None,
             planar_fov=None,
             planar_near_plane=None,
@@ -371,6 +391,10 @@ class RendererConfig:
             "pom_height_scale": pom_height_scale,
             "pom_min_steps": pom_min_steps,
             "pom_max_steps": pom_max_steps,
+            "pom_eye_offset_scale": pom_eye_offset_scale,
+            "pom_max_depth_clamp": pom_max_depth_clamp,
+            "pom_max_forward_offset": pom_max_forward_offset,
+            "pom_enable_frag_depth_adjustment": pom_enable_frag_depth_adjustment,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
