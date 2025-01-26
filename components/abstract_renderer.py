@@ -135,6 +135,10 @@ class AbstractRenderer(ABC):
             pom_height_scale=0.016,
         pom_min_steps=8,
         pom_max_steps=32,
+            pom_eye_offset_scale=1.0,
+            pom_max_depth_clamp=0.99,
+            pom_max_forward_offset=1.0,
+            pom_enable_frag_depth_adjustment=False,
         shadow_map_resolution=2048,
             lighting_mode="diffuse",
         opacity=1.0,
@@ -218,6 +222,10 @@ class AbstractRenderer(ABC):
         self.pom_height_scale = pom_height_scale
         self.pom_min_steps = pom_min_steps
         self.pom_max_steps = pom_max_steps
+        self.pom_eye_offset_scale = pom_eye_offset_scale
+        self.pom_max_depth_clamp = pom_max_depth_clamp
+        self.pom_max_forward_offset = pom_max_forward_offset
+        self.pom_enable_frag_depth_adjustment = pom_enable_frag_depth_adjustment
 
         self.opacity = opacity
         self.legacy_roughness = legacy_roughness
@@ -859,6 +867,16 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "pomHeightScale"), self.pom_height_scale)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMinSteps"), self.pom_min_steps)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMaxSteps"), self.pom_max_steps)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "parallaxEyeOffsetScale"),
+                    self.pom_eye_offset_scale)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "parallaxMaxDepthClamp"),
+                    self.pom_max_depth_clamp)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "maxForwardOffset"),
+                    self.pom_max_forward_offset)
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "enableFragDepthAdjustment"),
+            int(self.pom_enable_frag_depth_adjustment),
+        )
 
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientStrength"), self.ambient_lighting_strength
