@@ -30,7 +30,7 @@ uniform vec3 viewPosition;
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform float opacity;
+uniform float legacy_opacity;
 // Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
 uniform int lightingMode;
 uniform float distortionStrength;
@@ -200,7 +200,7 @@ void main()
     // ------------------------------------------------------
     // 10) Combine background vs. local lighting + environment
     // ------------------------------------------------------
-    vec3 result = mix(backgroundColor, lighting, opacity) + envColor;
+    vec3 result = mix(backgroundColor, lighting, legacy_opacity) + envColor;
 
     // ------------------------------------------------------
     // 11) Tone mapping & gamma (if enabled)
@@ -217,5 +217,5 @@ void main()
     // ------------------------------------------------------
     // Final
     // ------------------------------------------------------
-    FragColor = vec4(clamp(result, 0.0, 1.0), opacity);
+    FragColor = vec4(clamp(result, 0.0, 1.0), legacy_opacity);
 }
