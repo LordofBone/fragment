@@ -35,7 +35,7 @@ class RendererConfig:
         loop=True,
         front_face_winding="CCW",
         shaders=None,
-            lighting_mode=0,
+            lighting_mode="diffuse",
         opacity=1.0,
             shininess=32,
             pbr_extensions=None,
@@ -79,7 +79,7 @@ class RendererConfig:
         self.fullscreen = fullscreen
         self.duration = duration
         self.texture_paths = texture_paths
-        self.shaders = shaders
+        self.shaders = shaders or {}
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions
         self.fov = fov
@@ -108,7 +108,6 @@ class RendererConfig:
         self.shininess = shininess
         self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = ambient_lighting_color
-        self.shaders = {}
 
         # Planar camera settings combined
         self.planar_camera = planar_camera
@@ -138,12 +137,43 @@ class RendererConfig:
         self.debug_mode = debug_mode
 
         self.validate_winding()
+        self.validate_lighting_mode()
         self.discover_shaders()
+
+    def _validate_config(self, config):
+        """Private method to validate specific configuration options."""
+        # Validate front_face_winding
+        winding = config.get("front_face_winding", self.front_face_winding)
+        if winding not in ("CW", "CCW"):
+            raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
+
+        # Validate lighting_mode
+        lighting = config.get("lighting_mode", self.lighting_mode)
+        if lighting not in ("diffuse", "phong", "pbr"):
+            raise ValueError("Invalid lighting mode option. Use 'diffuse', 'phong', or 'pbr'.")
+
+        # Validate particle_render_mode if present
+        if "particle_render_mode" in config:
+            particle_mode = config["particle_render_mode"]
+            if particle_mode not in ("cpu", "transform_feedback", "compute_shader"):
+                raise ValueError(
+                    "Invalid particle render mode option. Use 'cpu', 'transform_feedback', or 'compute_shader'.")
 
     def validate_winding(self):
         """Validate the front face winding option."""
         if self.front_face_winding not in ("CW", "CCW"):
             raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
+
+    def validate_lighting_mode(self):
+        """Validate the lighting mode option."""
+        if self.lighting_mode not in ("diffuse", "phong", "pbr"):
+            raise ValueError("Invalid lighting mode option. Use 'diffuse', 'phong', or 'pbr'.")
+
+    def validate_particle_mode(self):
+        """Validate the particle render mode option."""
+        if self.particle_render_mode not in ("cpu", "transform_feedback", "compute_shader"):
+            raise ValueError(
+                "Invalid particle render mode option. Use 'cpu', 'transform_feedback', or 'compute_shader'.")
 
     def discover_shaders(self):
         """Discover shaders in the shaders directory."""
@@ -180,6 +210,7 @@ class RendererConfig:
         alpha_blending=None,
         depth_testing=None,
         culling=None,
+            front_face_winding=None,
         cubemap_folder=None,
             lighting_mode=None,
             opacity=None,
@@ -229,6 +260,7 @@ class RendererConfig:
             "alpha_blending": alpha_blending,
             "depth_testing": depth_testing,
             "culling": culling,
+            "front_face_winding": front_face_winding,
             "cubemap_folder": cubemap_folder,
             "lighting_mode": lighting_mode,
             "opacity": opacity,
@@ -268,6 +300,9 @@ class RendererConfig:
         for key, value in kwargs.items():
             if key not in model_config:
                 model_config[key] = value
+
+        # Validate the updated configuration
+        self._validate_config(model_config)
 
         return model_config
 
@@ -337,8 +372,8 @@ class RendererConfig:
             "invert_displacement_map": invert_displacement_map,
             "pom_height_scale": pom_height_scale,
             "pom_min_steps": pom_min_steps,
-            "max_steps": pom_max_steps,
-            "pom_planar_camera": planar_camera,
+            "pom_max_steps": pom_max_steps,
+            "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
             "planar_far_plane": planar_far_plane,
@@ -362,6 +397,9 @@ class RendererConfig:
             if key not in surface_config:
                 surface_config[key] = value
 
+        # Validate the updated configuration
+        self._validate_config(surface_config)
+
         return surface_config
 
     def add_skybox(self, cubemap_folder=None, shader_names=("skybox_vertex", "skybox_fragment"), **kwargs):
@@ -379,6 +417,9 @@ class RendererConfig:
         for key, value in kwargs.items():
             if key not in skybox_config:
                 skybox_config[key] = value
+
+        # Validate the updated configuration
+        self._validate_config(skybox_config)
 
         return skybox_config
 
@@ -435,6 +476,7 @@ class RendererConfig:
         fluid_pressure=0.0,
         fluid_viscosity=0.0,
         fluid_force_multiplier=1.0,
+            debug_mode=None,
         **kwargs,
     ):
         """Add a particle renderer to the configuration."""
@@ -492,14 +534,17 @@ class RendererConfig:
             "fluid_pressure": fluid_pressure,
             "fluid_viscosity": fluid_viscosity,
             "fluid_force_multiplier": fluid_force_multiplier,
+            "debug_mode": debug_mode,
         }
 
-        # Update the configuration with particle renderer specifics, preserving non-None values
         particle_config.update({k: v for k, v in particle_specifics.items() if v is not None})
 
         # Apply any additional keyword arguments passed in kwargs
         for key, value in kwargs.items():
             if key not in particle_config:
                 particle_config[key] = value
+
+        # Validate the updated configuration
+        self._validate_config(particle_config)
 
         return particle_config
