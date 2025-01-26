@@ -141,7 +141,7 @@ class AbstractRenderer(ABC):
             pom_enable_frag_depth_adjustment=False,
         shadow_map_resolution=2048,
             lighting_mode="diffuse",
-        opacity=1.0,
+            legacy_opacity=1.0,
             legacy_roughness=32,
         env_map_strength=0.5,
         distortion_strength=0.3,
@@ -227,7 +227,7 @@ class AbstractRenderer(ABC):
         self.pom_max_forward_offset = pom_max_forward_offset
         self.pom_enable_frag_depth_adjustment = pom_enable_frag_depth_adjustment
 
-        self.opacity = opacity
+        self.legacy_opacity = legacy_opacity
         self.legacy_roughness = legacy_roughness
         self.env_map_strength = env_map_strength
         self.distortion_strength = distortion_strength
@@ -904,7 +904,7 @@ class AbstractRenderer(ABC):
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "nearPlane"), self.near_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "farPlane"), self.far_plane)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "opacity"), self.opacity)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacy_opacity"), self.legacy_opacity)
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacy_roughness"), self.legacy_roughness)
 
