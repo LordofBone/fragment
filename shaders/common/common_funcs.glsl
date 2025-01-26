@@ -48,6 +48,10 @@ uniform vec3 ambientColor;
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
+uniform float lightOrthoLeft[10];
+uniform float lightOrthoRight[10];
+uniform float lightOrthoBottom[10];
+uniform float lightOrthoTop[10];
 uniform float legacy_roughness;
 
 ///////////////////////////////////////////////////////////
@@ -354,33 +358,55 @@ vec3 toneMapping(vec3 color)
 // ---------------------------------------------------
 // Standard PCF Shadow Calculation (no displacement)
 // ---------------------------------------------------
-float ShadowCalculationStandard(vec4 fragPosLightSpace, sampler2D shadowMap)
-{
-    vec3 projCoords= fragPosLightSpace.xyz/ fragPosLightSpace.w;
-    projCoords= projCoords*0.5+ 0.5;
+float ShadowCalculationStandard(
+vec4 fragPosLightSpace,
+sampler2D shadowMap
+) {
+    float shadow = 0.0;
 
-    if (projCoords.x<0.0|| projCoords.x>1.0||
-    projCoords.y<0.0|| projCoords.y>1.0)
-    {
-        return 0.0;
-    }
+    for (int i = 0; i < 10; ++i) {
+        // Transform the fragment position into light space
+        vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+        projCoords = projCoords * 0.5 + 0.5;
 
-    float closestDepth= texture(shadowMap, projCoords.xy).r;
-    float currentDepth= projCoords.z;
-    float bias= 0.005;
+        // Check if the fragment is within the orthogonal bounds of the current light
+        float withinBounds =
+        step(lightOrthoLeft[i], projCoords.x) *
+        step(projCoords.x, lightOrthoRight[i]) *
+        step(lightOrthoBottom[i], projCoords.y) *
+        step(projCoords.y, lightOrthoTop[i]) *
+        step(0.0, projCoords.z) *
+        step(projCoords.z, 1.0);
 
-    float shadow=0.0;
-    vec2 texelSize= 1.0/ textureSize(shadowMap, 0);
+        if (withinBounds > 0.0) {
+            // Retrieve the closest depth from the shadow map
+            float closestDepth = texture(shadowMap, projCoords.xy).r;
+            float currentDepth = projCoords.z;
 
-    for (int x=-1;x<=1;x++)
-    {
-        for (int y=-1;y<=1;y++)
-        {
-            float pcfDepth= texture(shadowMap, projCoords.xy+ vec2(x, y)*texelSize).r;
-            shadow += (currentDepth- bias> pcfDepth)? 1.0:0.0;
+            // Bias to reduce shadow acne
+            float bias = 0.005;
+
+            // Perform Percentage Closer Filtering (PCF)
+            vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+            float lightShadow = 0.0;
+
+            for (int x = -1; x <= 1; ++x) {
+                for (int y = -1; y <= 1; ++y) {
+                    float pcfDepth = texture(
+                    shadowMap, projCoords.xy + vec2(x, y) * texelSize
+                    ).r;
+                    lightShadow += (currentDepth - bias > pcfDepth) ? 1.0 : 0.0;
+                }
+            }
+            lightShadow /= 9.0;
+
+            // Accumulate shadow influence for the current light
+            shadow += lightShadow * lightStrengths[i];
         }
     }
-    shadow /=9.0;
+
+    // Normalize the shadow by the number of active lights
+    shadow = clamp(shadow / 10.0, 0.0, 1.0);
     return shadow;
 }
 
@@ -450,7 +476,7 @@ vec3 computeAmbientColor(vec3 baseColor)
 }
 
 // ---------------------------------------------------
-// Compute Diffuse Lighting with Inverted Shininess Influence
+// Compute Diffuse Lighting with Roughness
 // ---------------------------------------------------
 vec3 computeDiffuseLighting(
 vec3 normal,
@@ -468,9 +494,19 @@ vec3 baseColor
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
 
-        // Lambertian diffuse
-        float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
+        // Determine if the fragment is within the light's ortho bounds
+        float withinBounds =
+        step(lightOrthoLeft[i], fragPos.x) *
+        step(fragPos.x, lightOrthoRight[i]) *
+        step(lightOrthoBottom[i], fragPos.y) *
+        step(fragPos.y, lightOrthoTop[i]);
+
+        if (withinBounds > 0.0)
+        {
+            // Lambertian diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
+        }
     }
 
     // Combine the local lighting
@@ -511,14 +547,24 @@ vec3 baseColor
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
 
-        // Diffuse term
-        float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
+        // Determine if the fragment is within the light's ortho bounds
+        float withinBounds =
+        step(lightOrthoLeft[i], fragPos.x) *
+        step(fragPos.x, lightOrthoRight[i]) *
+        step(lightOrthoBottom[i], fragPos.y) *
+        step(fragPos.y, lightOrthoTop[i]);
 
-        // Blinn–Phong spec with user roughness
-        vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), legacy_roughness);
-        specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        if (withinBounds > 0.0)
+        {
+            // Diffuse term
+            float diff = max(dot(normal, lightDir), 0.0);
+            diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
+
+            // Blinn–Phong spec with user roughness
+            vec3 halfwayDir = normalize(lightDir + viewDir);
+            float spec = pow(max(dot(normal, halfwayDir), 0.0), legacy_roughness);
+            specular += spec * specularColor * lightColors[i] * lightStrengths[i];
+        }
     }
 
     // Combine local lighting
@@ -670,29 +716,39 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
 
     for (int i = 0; i < 10; i++)
     {
-        vec3 L = normalize(lightPositions[i] - fragPos);
-        vec3 H = normalize(V + L);
-        float NdotL = max(dot(N, L), 0.0);
+        // Determine if the fragment is within the light's ortho bounds
+        float withinBounds =
+        step(lightOrthoLeft[i], fragPos.x) *
+        step(fragPos.x, lightOrthoRight[i]) *
+        step(lightOrthoBottom[i], fragPos.y) *
+        step(fragPos.y, lightOrthoTop[i]);
 
-        float D = DistributionGGX(N, H, effectiveRoughness);
-        float G = GeometrySmith(N, V, L, effectiveRoughness);
-        float NdotV = max(dot(N, V), 0.0);
-        float HdotV = max(dot(H, V), 0.0);
-        vec3 F = fresnelSchlick(HdotV, F0);
+        if (withinBounds > 0.0)
+        {
+            vec3 L = normalize(lightPositions[i] - fragPos);
+            vec3 H = normalize(V + L);
+            float NdotL = max(dot(N, L), 0.0);
 
-        float denom = 4.0 * NdotV * NdotL + 0.0001;
-        vec3 specular = (D * G * F) / denom;
+            float D = DistributionGGX(N, H, effectiveRoughness);
+            float G = GeometrySmith(N, V, L, effectiveRoughness);
+            float NdotV = max(dot(N, V), 0.0);
+            float HdotV = max(dot(H, V), 0.0);
+            vec3 F = fresnelSchlick(HdotV, F0);
 
-        // kS = F, kD = (1 - F)*(1 - metallic)
-        vec3 kS = F;
-        vec3 kD = (vec3(1.0) - kS) * (1.0 - material.metallic);
+            float denom = 4.0 * NdotV * NdotL + 0.0001;
+            vec3 specular = (D * G * F) / denom;
 
-        // Lambertian diffuse
-        vec3 diffuse = kD * baseColor;
+            // kS = F, kD = (1 - F)*(1 - metallic)
+            vec3 kS = F;
+            vec3 kD = (vec3(1.0) - kS) * (1.0 - material.metallic);
 
-        localLighting += (diffuse + specular)
-        * lightColors[i] * lightStrengths[i]
-        * NdotL;
+            // Lambertian diffuse
+            vec3 diffuse = kD * baseColor;
+
+            localLighting += (diffuse + specular)
+            * lightColors[i] * lightStrengths[i]
+            * NdotL;
+        }
     }
 
     //----------------------------------------------
@@ -780,7 +836,41 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
 }
 
 // ---------------------------------------------------
-// Particle-specific lighting with distance attenuation
+// Particle-specific diffuse with distance attenuation
+// ---------------------------------------------------
+vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
+{
+    // Ambient from user-defined "ambientColor" * ambientStrength
+    vec3 ambient = computeAmbientColor(baseColor);
+
+    vec3 diffuse= vec3(0.0);
+    for (int i=0;i<10;i++)
+    {
+        // Determine if the fragment is within the light's ortho bounds
+        float withinBounds =
+        step(lightOrthoLeft[i], fragPos.x) *
+        step(fragPos.x, lightOrthoRight[i]) *
+        step(lightOrthoBottom[i], fragPos.y) *
+        step(fragPos.y, lightOrthoTop[i]);
+
+        if (withinBounds > 0.0)
+        {
+            vec3 lightVec= lightPositions[i] - fragPos;
+            float distance= length(lightVec);
+            vec3 lightDir= normalize(lightVec);
+
+            float attenuation= 1.0 / (1.0 + 0.09*distance + 0.032*(distance*distance));
+
+            float diff= max(dot(normal, lightDir), 0.0);
+            diffuse += attenuation* lightColors[i]* diff* baseColor* lightStrengths[i];
+        }
+    }
+
+    return ambient+ diffuse;
+}
+
+// ---------------------------------------------------
+// Particle-specific phong with distance attenuation
 // ---------------------------------------------------
 vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 baseColor)
 {
@@ -792,46 +882,35 @@ vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 
 
     for (int i = 0; i < 10; ++i)
     {
-        // Distance-based attenuation
-        vec3 lightVec = lightPositions[i] - fragPos;
-        float distance= length(lightVec);
-        vec3 lightDir = normalize(lightVec);
+        // Determine if the fragment is within the light's ortho bounds
+        float withinBounds =
+        step(lightOrthoLeft[i], fragPos.x) *
+        step(fragPos.x, lightOrthoRight[i]) *
+        step(lightOrthoBottom[i], fragPos.y) *
+        step(fragPos.y, lightOrthoTop[i]);
 
-        float attenuation= 1.0/(1.0+ 0.09*distance + 0.032*(distance*distance));
+        if (withinBounds > 0.0)
+        {
+            // Distance-based attenuation
+            vec3 lightVec = lightPositions[i] - fragPos;
+            float distance= length(lightVec);
+            vec3 lightDir = normalize(lightVec);
 
-        // Diffuse shading
-        float diff = max(dot(normal, lightDir), 0.0);
-        diffuse += attenuation * lightColors[i] * diff * baseColor * lightStrengths[i];
+            float attenuation= 1.0/(1.0+ 0.09*distance + 0.032*(distance*distance));
 
-        // Blinn-Phong spec
-        vec3 halfwayDir= normalize(lightDir + viewDir);
-        float specAngle= max(dot(normal, halfwayDir), 0.0);
-        float spec= pow(specAngle, max(legacy_roughness, 0.0));
-        specular += attenuation * spec * lightColors[i] * lightStrengths[i];
+            // Diffuse shading
+            float diff = max(dot(normal, lightDir), 0.0);
+            diffuse += attenuation * lightColors[i] * diff * baseColor * lightStrengths[i];
+
+            // Blinn-Phong spec
+            vec3 halfwayDir= normalize(lightDir + viewDir);
+            float specAngle= max(dot(normal, halfwayDir), 0.0);
+            float spec= pow(specAngle, max(legacy_roughness, 0.0));
+            specular += attenuation * spec * lightColors[i] * lightStrengths[i];
+        }
     }
 
     return ambient + diffuse + specular;
-}
-
-vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
-{
-    // Ambient from user-defined "ambientColor" * ambientStrength
-    vec3 ambient = computeAmbientColor(baseColor);
-
-    vec3 diffuse= vec3(0.0);
-    for (int i=0;i<10;i++)
-    {
-        vec3 lightVec= lightPositions[i] - fragPos;
-        float distance= length(lightVec);
-        vec3 lightDir= normalize(lightVec);
-
-        float attenuation= 1.0 / (1.0 + 0.09*distance + 0.032*(distance*distance));
-
-        float diff= max(dot(normal, lightDir), 0.0);
-        diffuse += attenuation* lightColors[i]* diff* baseColor* lightStrengths[i];
-    }
-
-    return ambient+ diffuse;
 }
 
 // ---------------------------------------------------
