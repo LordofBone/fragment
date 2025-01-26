@@ -267,14 +267,7 @@ class AbstractRenderer(ABC):
 
         self.dynamic_attrs.get("randomness", 0.8)
 
-        if lighting_mode == "diffuse":
-            self.lighting_mode = 0
-        elif lighting_mode == "phong":
-            self.lighting_mode = 1
-        elif lighting_mode == "pbr":
-            self.lighting_mode = 2
-        else:
-            self.lighting_mode = 0
+        self.lighting_mode = {"diffuse": 0, "phong": 1, "pbr": 2}.get(lighting_mode, 0)
 
         self.lights_enabled = lights is not None
         if self.lights_enabled:
