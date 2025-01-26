@@ -136,7 +136,7 @@ class AbstractRenderer(ABC):
         pom_min_steps=8,
         pom_max_steps=32,
         shadow_map_resolution=2048,
-            lighting_mode=0,
+            lighting_mode="diffuse",
         opacity=1.0,
         shininess=1.0,
         env_map_strength=0.5,
@@ -267,7 +267,14 @@ class AbstractRenderer(ABC):
 
         self.dynamic_attrs.get("randomness", 0.8)
 
-        self.lighting_mode = lighting_mode
+        if lighting_mode == "diffuse":
+            self.lighting_mode = 0
+        elif lighting_mode == "phong":
+            self.lighting_mode = 1
+        elif lighting_mode == "pbr":
+            self.lighting_mode = 2
+        else:
+            self.lighting_mode = 0
 
         self.lights_enabled = lights is not None
         if self.lights_enabled:
