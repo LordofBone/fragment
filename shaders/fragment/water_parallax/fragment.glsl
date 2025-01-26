@@ -134,7 +134,7 @@ void main()
     // ---------------------------------------------------
     // 12) Optional Depth Correction w/ clamp
     // ---------------------------------------------------
-    if (pomHeightScale > 0.0 && depthOffset != 0.0) {
+    if (pomHeightScale > 0.0 && depthOffset != 0.0 && enableFragDepthAdjustment) {
         vec4 eyePos = view * vec4(FragPos, 1.0);
 
         // Call the centralized function
