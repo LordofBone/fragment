@@ -119,7 +119,7 @@ def run_benchmark(
         particle_fade_to_color=True,
         particle_fade_color=(0.984, 0.988, 0.898),
         lighting_mode="phong",
-        opacity=1.0,
+        legacy_opacity=1.0,
         legacy_roughness=32,
         particle_gravity=(0.0, 0.0, 0.0),
         particle_bounce_factor=0.025,  # Standard bounce factor
