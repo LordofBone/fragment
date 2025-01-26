@@ -51,7 +51,7 @@ def run_benchmark(
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        lighting_mode=2,
+        lighting_mode="pbr",
     )
 
     # Create the rendering instance with the base configuration
@@ -70,7 +70,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "embm",
         },
-        shininess=32.0,
+        legacy_roughness=32,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         env_map_strength=0.45,
