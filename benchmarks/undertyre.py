@@ -96,6 +96,7 @@ def run_benchmark(
             "sheen": 0.077798,  # Ps
             "aniso": 0.504587,  # aniso
             "anisor": 0.770642,  # anisor
+            "transmission": (0.0, 0.0, 0.0),  # Tf
         },
     )
 
