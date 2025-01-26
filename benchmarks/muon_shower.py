@@ -112,7 +112,7 @@ def run_benchmark(
         particle_fade_color=(0.984, 0.988, 0.898),
         lighting_mode="phong",
         opacity=1.0,
-        shininess=0.75,
+        legacy_roughness=32,
         particle_gravity=(0.0, 0.0, 0.0),
         particle_bounce_factor=0.025,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
