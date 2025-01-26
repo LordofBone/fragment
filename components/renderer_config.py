@@ -73,7 +73,8 @@ class RendererConfig:
                 "clearcoat_roughness": 0.05,
                 "sheen": 0.1,
                 "aniso": 0.0,
-                "anisor": 0.0
+                "anisor": 0.0,
+                "transmission": [0.0, 0.0, 0.0],
             }
         if camera_positions is None:
             camera_positions = [(3.2, 3.2, 3.2, 0.0, 0.0)]
