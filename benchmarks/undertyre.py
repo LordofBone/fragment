@@ -46,7 +46,7 @@ def run_benchmark(
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        lighting_mode=2,
+        lighting_mode="pbr",
     )
 
     # Create the rendering instance with the base configuration
@@ -68,11 +68,15 @@ def run_benchmark(
         },
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        shininess=32,
+        legacy_roughness=32,
         invert_displacement_map=True,
         pom_height_scale=0.016,
         pom_min_steps=128,
         pom_max_steps=512,
+        pom_eye_offset_scale=1.0,
+        pom_max_depth_clamp=0.99,
+        pom_max_forward_offset=1.0,
+        pom_enable_frag_depth_adjustment=False,
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
         env_map_strength=0.025,
@@ -94,7 +98,7 @@ def run_benchmark(
     instance.scene_construct.translate_renderer("tyre", (-5.0, 0.0, 6.5))
 
     # Slightly tilt the model forward by 45° about X:
-    instance.scene_construct.rotate_renderer("tyre", 45, (0.0, 1.0, 0.0))
+    instance.scene_construct.rotate_renderer("tyre", 0, (0.0, 1.0, 0.0))
 
     # Then enable autorotation around X at speed 4000:
     instance.scene_construct.set_auto_rotation("tyre", True, axis=(0.0, 0, 1), speed=4000.0)
