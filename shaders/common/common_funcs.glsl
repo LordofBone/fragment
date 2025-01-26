@@ -44,7 +44,7 @@ uniform vec3 ambientColor;
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
-uniform float shininess;
+uniform float legacy_roughness;
 
 ///////////////////////////////////////////////////////////
 // Extended PBR Material Struct for .mtl Data
@@ -446,7 +446,7 @@ vec3 computeAmbientColor(vec3 baseColor)
 }
 
 // ---------------------------------------------------
-// Compute Diffuse Lighting with Shininess Influence
+// Compute Diffuse Lighting with Inverted Shininess Influence
 // ---------------------------------------------------
 vec3 computeDiffuseLighting(
 vec3 normal,
@@ -476,19 +476,18 @@ vec3 baseColor
     vec3 reflectDir = reflect(-viewDir, normal);
     vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// User-defined sampler call
 
-    // Normalize shininess to a factor between 0.0 and 1.0
-    // Assuming shininess ranges from 0 to 100
-    float shininessFactor = clamp(shininess / 100.0, 0.0, 1.0);
+    // Higher legacy_roughness means less reflection
+    float roughnessFactor = clamp(1.0 - (legacy_roughness / 100.0), 0.0, 1.0);
 
-    // Blend environment reflection based on shininess
-    // Higher shininess increases the influence of the environment map
-    result = mix(result, result + envColor, environmentMapStrength * shininessFactor);
+    // Blend environment reflection inversely based on roughness
+    // Higher roughness reduces the influence of the environment map
+    result = mix(result, result + envColor, environmentMapStrength * roughnessFactor);
 
     return result;
 }
 
 // ---------------------------------------------------
-// Compute Phong Lighting (with user-defined shininess)
+// Compute Phong Lighting (with user-defined roughness)
 // ---------------------------------------------------
 vec3 computePhongLighting(
 vec3 normal,
@@ -512,9 +511,9 @@ vec3 baseColor
         float diff = max(dot(normal, lightDir), 0.0);
         diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
 
-        // Blinn–Phong spec with user shininess
+        // Blinn–Phong spec with user roughness
         vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+        float spec = pow(max(dot(normal, halfwayDir), 0.0), legacy_roughness);
         specular += spec * specularColor * lightColors[i] * lightStrengths[i];
     }
 
@@ -803,7 +802,7 @@ vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 
         // Blinn-Phong spec
         vec3 halfwayDir= normalize(lightDir + viewDir);
         float specAngle= max(dot(normal, halfwayDir), 0.0);
-        float spec= pow(specAngle, max(shininess, 0.0));
+        float spec= pow(specAngle, max(legacy_roughness, 0.0));
         specular += attenuation * spec * lightColors[i] * lightStrengths[i];
     }
 
