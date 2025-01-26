@@ -78,6 +78,7 @@ struct Material {
     float sheen;// Ps
     float anisotropy;// aniso
     float anisotropyRot;// anisor
+    vec3 transmission;// Tf
 };
 
 uniform Material material;
@@ -676,35 +677,41 @@ vec3 computeF0Combined(vec3 baseColor, float metallic, vec3 specular, float ior)
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 3) "computePBRLighting" with all 15 Material params
+// 3) "computePBRLighting" with 15 Material params + Transmission (vec3)
 ////////////////////////////////////////////////////////////////////////
 /*
 Steps:
-(1) We combine roughness & shininess into 'effectiveRoughness'.
-(2) We compute local lighting (point lights) using Cook–Torrance.
-(3) We sample environment reflections with that roughness for specular IBL.
-(4) If 'clearcoat' > 0, we do a toy second reflection pass.
-(5) If 'sheen' > 0, we add a small near-edge glow.
-(6) We add 'emissive' directly, since it's a self-lit color.
-(7) We do an optional 'ambient' pass. (We've used a function 'computeAmbientColor' as an example.)
-(8) 'illuminationModel', 'anisotropy', 'anisotropyRot' are not fully utilized here.
-    - 'illuminationModel' could be used to skip spec if it's <2, or skip diffuse if it's <1, etc.
-    - 'anisotropy' & 'anisotropyRot' require specialized code for anisotropic microfacet, not shown here.
-(9) We handle 'transparency' only as alpha (not full refraction).
+(1) Combine roughness & shininess => effectiveRoughness.
+(2) Compute local lighting (point lights) using Cook–Torrance.
+(3) Sample environment reflections (spec IBL).
+(4) If 'clearcoat' > 0, do second reflection pass.
+(5) If 'sheen' > 0, add near-edge glow.
+(6) Add 'emissive' (self-lit).
+(7) Add old-school ambient pass.
+(8) 'illuminationModel', 'anisotropy', etc. not fully used.
+(9) 'transparency' => alpha (in your final output).
+(10) 'transmission' => environment-based refraction filter (vec3).
 */
 
 const float PI = 3.14159265359;
-const float MAX_MIPS = 5.0;// If your cubemap has multiple MIP levels
+const float MAX_MIPS = 5.0;// for environment map MIP
 
+/*
+We return `vec3 finalColor`.
+You can do alpha blending in your main:
+  float alpha = 1.0 - material.transparency;  // from "d" in MTL
+  FragColor = vec4(finalColor, alpha);
+
+Now `material.transmission` is a vec3 (like "Tf r g b" in MTL).
+We treat it as a color filter for refraction.
+*/
 vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
 {
     //----------------------------------------------
     // (1) Combine roughness + shininess
     //----------------------------------------------
-    float effectiveRoughness = combineRoughnessAndShininess(
-    material.roughness,
-    material.shininess
-    );
+    float effectiveRoughness =
+    combineRoughnessAndShininess(material.roughness, material.shininess);
 
     //----------------------------------------------
     // (2) Local Lighting: Cook–Torrance
@@ -716,7 +723,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
 
     for (int i = 0; i < 10; i++)
     {
-        // Determine if the fragment is within the light's ortho bounds
+        // bounding check from your original code
         float withinBounds =
         step(lightOrthoLeft[i], fragPos.x) *
         step(fragPos.x, lightOrthoRight[i]) *
@@ -738,7 +745,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
             float denom = 4.0 * NdotV * NdotL + 0.0001;
             vec3 specular = (D * G * F) / denom;
 
-            // kS = F, kD = (1 - F)*(1 - metallic)
+            // kS = F, kD = (1 - F)*(1.0 - metallic)
             vec3 kS = F;
             vec3 kD = (vec3(1.0) - kS) * (1.0 - material.metallic);
 
@@ -752,20 +759,20 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     }
 
     //----------------------------------------------
-    // (3) Environment Reflection (specular IBL)
+    // (3) Environment Reflection (spec IBL)
     //----------------------------------------------
     vec3 R = reflect(-V, N);
     float mipLevel = effectiveRoughness * MAX_MIPS;
     vec3 envSample = textureLod(environmentMap, R, mipLevel).rgb;
 
     float NdotV = max(dot(N, V), 0.0);
-    vec3 F_env = fresnelSchlick(NdotV, F0);
+    vec3 F_env  = fresnelSchlick(NdotV, F0);
 
     vec3 envSpec = envSample * F_env;
     vec3 environmentContribution = envSpec * environmentMapStrength;
 
     //----------------------------------------------
-    // (4) Clearcoat (simple second reflection pass)
+    // (4) Clearcoat
     //----------------------------------------------
     if (material.clearcoat > 0.001)
     {
@@ -778,13 +785,14 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
 
         float D_cc = DistributionGGX(N, H_cc, ccRough);
         float G_cc = GeometrySmith(N, V, -V, ccRough);
-        vec3 F0_cc = vec3(0.25);// typical clearcoat base
+        vec3 F0_cc = vec3(0.25);
         vec3 F_cc  = fresnelSchlick(NdotV_cc, F0_cc);
 
         float denom_cc = 4.0 * NdotV_cc * NdotV_cc + 0.0001;
         vec3 spec_cc = (D_cc * G_cc * F_cc) / denom_cc;
 
         spec_cc *= material.clearcoat;
+
         environmentContribution += spec_cc * environmentMapStrength;
     }
 
@@ -804,20 +812,20 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     //----------------------------------------------
     vec3 finalColor = localLighting + environmentContribution;
 
-    // (6a) Emissive (self-lit color)
-    // If a material has emissive, we add it directly:
+    // (6a) Emissive
     finalColor += material.emissive;
 
-    //----------------------------------------------
-    // (7) Ambient (old-school approach)
-    //----------------------------------------------
-    // Suppose we have a function computeAmbientColor(...) that multiplies by
-    // 'material.ambient' and a global ambient factor. For example:
+    // (7) Ambient
     vec3 ambientTerm = computeAmbientColor(finalColor);
     finalColor += ambientTerm;
 
     //----------------------------------------------
-    // (8) illuminationModel, anisotropy, anisotropyRot
+    // (8) illuminationModel, anisotropy, etc.
+    //----------------------------------------------
+    // Not fully implemented here.
+
+    //----------------------------------------------
+    // (9) transparency => alpha in main
     //----------------------------------------------
     // - 'illuminationModel': Could skip specular if <2, skip diffuse if <1, etc.
     //   This snippet does not handle that logic, but you could do e.g.:
@@ -826,12 +834,35 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     //   Real anisotropy requires rewriting DistributionGGX
     //   to handle separate exponents in tangent & bitangent directions. Not done here.
 
-    // (9) transparency:
     //   For a physically-based approach, you'd do alpha = 1.0 - material.transparency,
     //   or handle full refraction. This snippet just demonstrates you can do:
-    //   float alpha = 1.0 - material.transparency;
-    //   FragColor = vec4(finalColor, alpha);
+    //    float alpha = 1.0 - material.transparency;
 
+    //----------------------------------------------
+    // (10) transmission => environment-based refraction w/ color filter
+    //----------------------------------------------
+    // If user wants color-based transmission filter 'Tf' as a vec3
+    // we interpret it as "the fraction of each channel that is transmitted."
+    // We'll also do a naive environment-based refraction:
+    float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
+    if (averageTf > 0.001)
+    {
+        // For "air -> object," ratio ~ 1.0 / ior
+        float refractionRatio = 1.0 / material.ior;
+        vec3 refractDir = refract(-V, N, refractionRatio);
+
+        // For rough glass, we might do a separate MIP level or distortion
+        vec3 refrEnv = textureLod(environmentMap, refractDir, mipLevel).rgb;
+
+        // Multiply the refrEnv by the transmission color to "tint" it
+        refrEnv *= material.transmission;
+
+        // Combine refraction with final color
+        // For physically accurate approach, do a Fresnel-based blend. We'll do naive:
+        finalColor = mix(finalColor, refrEnv, averageTf);
+    }
+
+    // Return just the color; user does alpha in main code
     return finalColor;
 }
 
