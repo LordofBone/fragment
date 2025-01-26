@@ -446,7 +446,7 @@ vec3 computeAmbientColor(vec3 baseColor)
 }
 
 // ---------------------------------------------------
-// Compute Diffuse Lighting
+// Compute Diffuse Lighting with Shininess Influence
 // ---------------------------------------------------
 vec3 computeDiffuseLighting(
 vec3 normal,
@@ -457,7 +457,7 @@ vec3 baseColor
     // Ambient (using your global ambientColor * ambientStrength)
     vec3 ambient  = computeAmbientColor(baseColor);
 
-    // Accumulate diffuse + optional spec
+    // Accumulate diffuse
     vec3 diffuse  = vec3(0.0);
 
     for (int i = 0; i < 10; ++i)
@@ -472,12 +472,17 @@ vec3 baseColor
     // Combine the local lighting
     vec3 result = ambient + diffuse;
 
-    // Environment reflection as before
+    // Environment reflection
     vec3 reflectDir = reflect(-viewDir, normal);
-    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// user-defined sampler call
+    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// User-defined sampler call
 
-    // Blend environment in your old style
-    result = mix(result, result + envColor, environmentMapStrength);
+    // Normalize shininess to a factor between 0.0 and 1.0
+    // Assuming shininess ranges from 0 to 100
+    float shininessFactor = clamp(shininess / 100.0, 0.0, 1.0);
+
+    // Blend environment reflection based on shininess
+    // Higher shininess increases the influence of the environment map
+    result = mix(result, result + envColor, environmentMapStrength * shininessFactor);
 
     return result;
 }
