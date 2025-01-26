@@ -37,7 +37,7 @@ class RendererConfig:
         shaders=None,
             lighting_mode=0,
         opacity=1.0,
-        shininess=1.0,
+            shininess=32,
             pbr_extensions=None,
             ambient_lighting_strength=0.0,
             ambient_lighting_color=(0.0, 0.0, 0.0),
