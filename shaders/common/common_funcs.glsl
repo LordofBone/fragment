@@ -25,6 +25,10 @@ uniform int pomMaxSteps;
 uniform sampler2D displacementMap;
 uniform bool invertDisplacementMap;
 uniform bool useCheckerPattern;
+uniform float parallaxEyeOffsetScale;
+uniform float parallaxMaxDepthClamp;
+uniform float maxForwardOffset;// How far forward we allow the surface to move (in NDC)
+uniform bool enableFragDepthAdjustment;
 
 // ---------------------------------------------------
 // Liquid simulation uniforms
@@ -973,6 +977,45 @@ vec2 ProceduralParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float 
 
     depthOffset= pomHeightScale*(1.0- mix(currentLayerDepth, prevLayerDepth, weight))* 0.0001;
     return finalTexCoords;
+}
+
+// ---------------------------------------------------
+// Adjust FragDepth with Optional Clamping
+// ---------------------------------------------------
+void adjustFragDepth(
+vec4 viewPos,
+mat4 projectionMatrix,
+vec4 fragPosWorld,
+vec3 TBN[3],
+float depthOffset,
+inout float fragDepth
+) {
+    // Reconstruct eye position
+    vec4 eyePos = viewPos;
+
+    // Offset in tangent space
+    vec3 offsetTangent = vec3(0.0, 0.0, -depthOffset);
+    vec3 offsetWorld = mat3(TBN[0], TBN[1], TBN[2]) * offsetTangent;
+    vec4 offsetEye = vec4(offsetWorld, 0.0);
+
+    // New eye position with offset
+    vec4 newEyePos = eyePos + offsetEye;
+
+    // Reproject to clip space
+    vec4 clipPos = projectionMatrix * newEyePos;
+    float ndcDepth = clipPos.z / clipPos.w;
+
+    // Clamp the depth to avoid excessive forward shifts
+    ndcDepth = clamp(ndcDepth, 0.0, parallaxMaxDepthClamp);
+
+    // Optional forward clamping
+    float oldZ = fragDepth;
+    float allowedMinZ = oldZ - maxForwardOffset;
+    if (ndcDepth < allowedMinZ) {
+        ndcDepth = allowedMinZ;
+    }
+
+    fragDepth = fragDepth;
 }
 
 #endif// COMMON_FUNCS_GLSL
