@@ -497,6 +497,7 @@ class ModelRenderer(AbstractRenderer):
         loc_sheen = glGetUniformLocation(self.shader_engine.shader_program, "material.sheen")
         loc_anisotropy = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropy")
         loc_anisotropy_rot = glGetUniformLocation(self.shader_engine.shader_program, "material.anisotropyRot")
+        loc_transmission = glGetUniformLocation(self.shader_engine.shader_program, "material.transmission")
 
         # The standard fields from pywavefront
         ambient = getattr(material, "ambient", [0.2, 0.2, 0.2, 1.0])[:3]
@@ -516,6 +517,7 @@ class ModelRenderer(AbstractRenderer):
         sheen = self.pbr_extensions["sheen"]
         aniso = self.pbr_extensions["aniso"]
         anisor = self.pbr_extensions["anisor"]
+        transmission = self.pbr_extensions["transmission"]
 
         ############################################
         # 3) Upload each to GPU
@@ -552,6 +554,8 @@ class ModelRenderer(AbstractRenderer):
             glUniform1f(loc_anisotropy, aniso)
         if loc_anisotropy_rot >= 0:
             glUniform1f(loc_anisotropy_rot, anisor)
+        if loc_transmission >= 0:
+            glUniform3f(loc_transmission, *transmission)
 
     def bind_and_draw_vao(self, vao_index, count):
         """
