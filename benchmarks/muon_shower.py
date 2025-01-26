@@ -59,7 +59,15 @@ def run_benchmark(
         ambient_lighting_strength=0.55,
         ambient_lighting_color=(0.4, 1.0, 0.651),
         lights=[
-            {"position": (-0.10, 0.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {
+                "position": (-0.10, 0.0, 0.0),
+                "color": (1.0, 1.0, 1.0),
+                "strength": 1.0,
+                "orth_left": -25.0,
+                "orth_right": 25.0,
+                "orth_bottom": -25.0,
+                "orth_top": 25,
+            },
         ],
         near_plane=0.1,
         far_plane=5000,
