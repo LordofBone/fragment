@@ -103,13 +103,13 @@ void main()
     vec3 color = vec3(0.0);
     if (lightingMode == 0)
     {
-        vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, waterBaseColor);
+        vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
         diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
         color = diffuseColor;
     }
     else
     {
-        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, waterBaseColor);
+        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
         phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color = phongColor;
     }
