@@ -26,7 +26,6 @@ out vec4 FragColor;
 // Uniforms
 // ---------------------------------------------------------------------
 uniform sampler2D diffuseMap;
-uniform sampler2D normalMap;
 uniform sampler2D shadowMap;
 
 // Toggles
@@ -93,11 +92,11 @@ void main()
 
     if (lightingMode == 0)
     {
-        lightingColor = computeDiffuseLighting(finalNormal, worldViewDir, FragPos, baseColor);
+        lightingColor = computeDiffuseLighting(finalNormal, worldViewDir, FragPos, baseColor, TexCoords);
     }
     else if (lightingMode == 1)
     {
-        lightingColor = computePhongLighting(finalNormal, worldViewDir, FragPos, baseColor);
+        lightingColor = computePhongLighting(finalNormal, worldViewDir, FragPos, baseColor, TexCoords);
     }
     else
     {
