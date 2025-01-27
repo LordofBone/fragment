@@ -71,6 +71,7 @@ uniform float lightOrthoRight[10];
 uniform float lightOrthoBottom[10];
 uniform float lightOrthoTop[10];
 uniform float legacy_roughness;
+uniform float legacy_opacity;
 
 ///////////////////////////////////////////////////////////
 // Extended PBR Material Struct for .mtl Data
