@@ -162,7 +162,6 @@ class RendererConfig:
         # Validate shininess if lighting_mode is 'diffuse' or 'phong'
         if lighting in ("diffuse", "phong"):
             legacy_roughness = config.get("legacy_roughness", self.legacy_roughness)
-            print(legacy_roughness)
             if not (0.0 <= legacy_roughness <= 100.0):
                 raise ValueError("Invalid legacy_roughness value. Must be between 0 and 100.")
 
