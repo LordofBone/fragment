@@ -85,12 +85,12 @@ void main()
     if (lightingMode == 0)
     {
         // Diffuse lighting
-        color = computeDiffuseLighting(normalMap, viewDir, FragPos, envColor);
+        color = computeDiffuseLighting(normalMap, viewDir, FragPos, envColor, TexCoords);
     }
     else if (lightingMode >= 1)
     {
         // Phong lighting
-        color = computePhongLighting(normalMap, viewDir, FragPos, envColor);
+        color = computePhongLighting(normalMap, viewDir, FragPos, envColor, TexCoords);
     }
 
     // Apply shadow
