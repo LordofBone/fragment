@@ -11,7 +11,6 @@ out vec4 FragColor;
 
 // Textures
 uniform sampler2D diffuseMap;
-uniform sampler2D normalMap;
 uniform sampler2D shadowMap;
 
 // Light/camera uniforms
@@ -49,12 +48,12 @@ void main()
     if (lightingMode == 0)
     {
         // Pure diffuse
-        lighting = computeDiffuseLighting(normal, viewDir, FragPos, baseColor);
+        lighting = computeDiffuseLighting(normal, viewDir, FragPos, baseColor, TexCoords);
     }
     else if (lightingMode == 1)
     {
         // Legacy Phong
-        lighting = computePhongLighting(normal, viewDir, FragPos, baseColor);
+        lighting = computePhongLighting(normal, viewDir, FragPos, baseColor, TexCoords);
     }
     else if (lightingMode == 2)
     {
