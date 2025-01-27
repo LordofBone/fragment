@@ -131,14 +131,14 @@ void main()
     if (lightingMode == 0)
     {
         // Diffuse-only
-        vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, combinedColor);
+        vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, combinedColor, TexCoords);
         diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
         color = diffuseColor;
     }
     else
     {
         // Phong
-        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, combinedColor);
+        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, combinedColor, TexCoords);
         phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color = phongColor;
     }
