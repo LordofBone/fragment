@@ -17,6 +17,11 @@ uniform float environmentMapStrength;
 uniform float envMapLodLevel;
 
 // ---------------------------------------------------
+// Screen-space texture mapping uniforms
+// ---------------------------------------------------
+uniform sampler2D screenTexture;
+
+// ---------------------------------------------------
 // Parallax Occlusion Mapping (POM) uniforms
 // ---------------------------------------------------
 uniform float pomHeightScale;
@@ -690,19 +695,17 @@ Steps:
 (7) Add old-school ambient pass.
 (8) 'illuminationModel', 'anisotropy', etc. not fully used.
 (9) 'transparency' => alpha (in your final output).
-(10) 'transmission' => environment-based refraction filter (vec3).
+(10) 'transmission' => 2D-based "refraction" using normalMap or some 2D texture.
 */
 
 const float PI = 3.14159265359;
 const float MAX_MIPS = 5.0;// for environment map MIP
 
-/*
-We return `vec3 finalColor`.
-You can do alpha blending in your main:
-  float alpha = 1.0 - material.transparency;  // from "d" in MTL
-  FragColor = vec4(finalColor, alpha);
+// Instead of samplerCube environmentMap, we assume a uniform "sampler2D refractionMap"
+// that we do the "refraction" from.
+uniform sampler2D refractionMap;// Our 2D background or normalMap for "fake" refraction
 
-Now `material.transmission` is a vec3 (like "Tf r g b" in MTL).
+/* Now `material.transmission` is a vec3 (like "Tf r g b" in MTL).
 We treat it as a color filter for refraction.
 */
 vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
@@ -740,7 +743,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
             float G = GeometrySmith(N, V, L, effectiveRoughness);
             float NdotV = max(dot(N, V), 0.0);
             float HdotV = max(dot(H, V), 0.0);
-            vec3 F = fresnelSchlick(HdotV, F0);
+            vec3  F     = fresnelSchlick(HdotV, F0);
 
             float denom = 4.0 * NdotV * NdotL + 0.0001;
             vec3 specular = (D * G * F) / denom;
@@ -761,44 +764,32 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     //----------------------------------------------
     // (3) Environment Reflection (spec IBL)
     //----------------------------------------------
-    vec3 R = reflect(-V, N);
-    float mipLevel = effectiveRoughness * MAX_MIPS;
-    vec3 envSample = textureLod(environmentMap, R, mipLevel).rgb;
-
-    float NdotV = max(dot(N, V), 0.0);
-    vec3 F_env  = fresnelSchlick(NdotV, F0);
-
-    vec3 envSpec = envSample * F_env;
-    vec3 environmentContribution = envSpec * environmentMapStrength;
+    // If you STILL have an environmentMap samplerCube, you could do:
+    //   vec3 R = reflect(-V, N);
+    //   float mipLevel = effectiveRoughness * MAX_MIPS;
+    //   vec3 envSample = textureLod(environmentMap, R, mipLevel).rgb;
+    //
+    // For now, let's assume you do not do reflection from a cubemap.
+    // We'll skip or comment it out:
+    vec3 environmentContribution = vec3(0.0);
+    // If you want reflection from 2D as well, you'd do something else.
 
     //----------------------------------------------
     // (4) Clearcoat
     //----------------------------------------------
     if (material.clearcoat > 0.001)
     {
-        float ccRough = clamp(material.clearcoatRoughness, 0.0, 1.0);
-        // Quick hack: second half-vector
-        vec3 H_cc = normalize(V + reflect(-V, N));
-
-        float NdotV_cc = max(dot(N, V), 0.0);
-        float cosH_cc  = max(dot(N, H_cc), 0.0);
-
-        float D_cc = DistributionGGX(N, H_cc, ccRough);
-        float G_cc = GeometrySmith(N, V, -V, ccRough);
-        vec3 F0_cc = vec3(0.25);
-        vec3 F_cc  = fresnelSchlick(NdotV_cc, F0_cc);
-
-        float denom_cc = 4.0 * NdotV_cc * NdotV_cc + 0.0001;
-        vec3 spec_cc = (D_cc * G_cc * F_cc) / denom_cc;
-
-        spec_cc *= material.clearcoat;
-
-        environmentContribution += spec_cc * environmentMapStrength;
+        // We'll skip the code for clearcoat reflection from a cubemap as well.
+        // or you can keep it if you want a 2D approach.
+        // We'll just leave a placeholder:
+        environmentContribution += vec3(0.0);
     }
 
     //----------------------------------------------
-    // (5) Sheen (basic near-edge factor)
+    // (5) Sheen (edge factor)
     //----------------------------------------------
+    vec3 Vn = normalize(V);
+    float NdotV = max(dot(N, Vn), 0.0);
     if (material.sheen > 0.001)
     {
         float edgeFactor = pow(1.0 - NdotV, 5.0);
@@ -808,11 +799,10 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     }
 
     //----------------------------------------------
-    // (6) Combine local + env => finalColor
+    // (6) Combine local => finalColor
     //----------------------------------------------
     vec3 finalColor = localLighting + environmentContribution;
-
-    // (6a) Emissive
+    // Emissive
     finalColor += material.emissive;
 
     // (7) Ambient
@@ -822,11 +812,6 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     //----------------------------------------------
     // (8) illuminationModel, anisotropy, etc.
     //----------------------------------------------
-    // Not fully implemented here.
-
-    //----------------------------------------------
-    // (9) transparency => alpha in main
-    //----------------------------------------------
     // - 'illuminationModel': Could skip specular if <2, skip diffuse if <1, etc.
     //   This snippet does not handle that logic, but you could do e.g.:
     //   if (material.illuminationModel < 2) { specular = vec3(0.0); }
@@ -834,35 +819,53 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     //   Real anisotropy requires rewriting DistributionGGX
     //   to handle separate exponents in tangent & bitangent directions. Not done here.
 
+    //----------------------------------------------
+    // (9) transparency => alpha in main
+    //----------------------------------------------
     //   For a physically-based approach, you'd do alpha = 1.0 - material.transparency,
     //   or handle full refraction. This snippet just demonstrates you can do:
     //    float alpha = 1.0 - material.transparency;
 
     //----------------------------------------------
-    // (10) transmission => environment-based refraction w/ color filter
+    // (10) transmission => 2D-based "refraction"
     //----------------------------------------------
-    // If user wants color-based transmission filter 'Tf' as a vec3
-    // we interpret it as "the fraction of each channel that is transmitted."
-    // We'll also do a naive environment-based refraction:
+    // We'll do a naive approach:
+    // 1) Refract the view direction
+    // 2) Convert that direction to 2D coords
+    // 3) Sample the 'refractionMap' at those coords
+    // 4) Multiply by material.transmission, then blend
+
     float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
     if (averageTf > 0.001)
     {
         // For "air -> object," ratio ~ 1.0 / ior
         float refractionRatio = 1.0 / material.ior;
-        vec3 refractDir = refract(-V, N, refractionRatio);
+        vec3 refractDir = refract(-Vn, N, refractionRatio);
 
-        // For rough glass, we might do a separate MIP level or distortion
-        vec3 refrEnv = textureLod(environmentMap, refractDir, mipLevel).rgb;
+        // Now we have a 3D direction, but 'refractionMap' is a 2D texture.
+        // We need to map (refractDir.x, refractDir.y, refractDir.z) into UV.
+        // For example, we can do:
+        //           vec2 uv = 0.5 + 0.5 * refractDir.xy;
+        // That simply takes x,y in [-1..1] -> [0..1], ignoring z
+        // or you might do a spherical or cylindrical mapping.
+        // We'll do a basic approach:
+        vec2 uv = refractDir.xy * 0.5 + 0.5;
 
-        // Multiply the refrEnv by the transmission color to "tint" it
-        refrEnv *= material.transmission;
+        uv.x = 1.0 - uv.x;
+        uv.y = 1.0 - uv.y;
+
+        // Optionally, if we want "rough refraction," we might shift uv by (roughness).
+        // We'll keep it simple:
+        vec3 refr2D = texture(screenTexture, uv).rgb;
+
+        // Multiply by the transmission color to "tint"
+        refr2D *= material.transmission;
 
         // Combine refraction with final color
-        // For physically accurate approach, do a Fresnel-based blend. We'll do naive:
-        finalColor = mix(finalColor, refrEnv, averageTf);
+        finalColor = mix(finalColor, refr2D, averageTf);
     }
 
-    // Return just the color; user does alpha in main code
+    // Return final color
     return finalColor;
 }
 
