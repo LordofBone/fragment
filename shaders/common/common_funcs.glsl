@@ -21,6 +21,19 @@ uniform float envMapLodLevel;
 // ---------------------------------------------------
 uniform sampler2D screenTexture;
 
+// ------------------------------------------------------
+// Flip toggles
+// ------------------------------------------------------
+uniform bool flipPlanarHorizontal;// If true, flip horizontally
+uniform bool flipPlanarVertical;// If true, flip vertically
+
+// ------------------------------------------------------
+// Normal-distortion toggle
+//   If true => add normal.xy * distortionStrength
+//   If false => no offset
+// ------------------------------------------------------
+uniform bool usePlanarNormalDistortion;
+
 // ---------------------------------------------------
 // Parallax Occlusion Mapping (POM) uniforms
 // ---------------------------------------------------
@@ -851,8 +864,15 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
         // We'll do a basic approach:
         vec2 uv = refractDir.xy * 0.5 + 0.5;
 
-        uv.x = 1.0 - uv.x;
-        uv.y = 1.0 - uv.y;
+        // Flip if requested
+        if (flipPlanarHorizontal)
+        {
+            uv.x = 1.0 - uv.x;
+        }
+        if (flipPlanarVertical)
+        {
+            uv.y = 1.0 - uv.y;
+        }
 
         // Optionally, if we want "rough refraction," we might shift uv by (roughness).
         // We'll keep it simple:
