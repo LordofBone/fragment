@@ -16,7 +16,6 @@ uniform bool smoothEdges;
 
 // Lighting and shading uniforms
 uniform vec3 viewPosition;
-uniform float opacity;
 // Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
 uniform int lightingMode;
 
@@ -80,8 +79,8 @@ void main()
         alphaBase = 1.0 - lifetimePercentageToFragment;
     }
 
-    // Incorporate `opacity` parameter
-    float alpha = clamp(alphaBase * opacity, 0.0, 1.0);
+    // Incorporate `legacy_opacity` parameter
+    float alpha = clamp(alphaBase * legacy_opacity, 0.0, 1.0);
 
     // 6) Output final
     finalColor = vec4(finalColorRGB, alpha);
