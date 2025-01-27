@@ -510,14 +510,15 @@ class ModelRenderer(AbstractRenderer):
         transparency = getattr(material, "transparency", 1.0)
 
         # Now for the pbr_extensions. If no user override was given, we use your default.
-        roughness = self.pbr_extensions["roughness"]
-        metallic = self.pbr_extensions["metallic"]
-        clearcoat = self.pbr_extensions["clearcoat"]
-        clearcoat_roughness = self.pbr_extensions["clearcoat_roughness"]
-        sheen = self.pbr_extensions["sheen"]
-        aniso = self.pbr_extensions["aniso"]
-        anisor = self.pbr_extensions["anisor"]
-        transmission = self.pbr_extensions["transmission"]
+        roughness = self.pbr_extensions.get("roughness", 0.5)  # Default: 0.5 (moderately rough surface)
+        metallic = self.pbr_extensions.get("metallic", 0.0)  # Default: 0.0 (non-metallic)
+        clearcoat = self.pbr_extensions.get("clearcoat", 0.0)  # Default: 0.0 (no clearcoat)
+        clearcoat_roughness = self.pbr_extensions.get("clearcoat_roughness",
+                                                      0.5)  # Default: 0.5 (average roughness for clearcoat)
+        sheen = self.pbr_extensions.get("sheen", 0.0)  # Default: 0.0 (no sheen)
+        aniso = self.pbr_extensions.get("aniso", 0.0)  # Default: 0.0 (no anisotropy)
+        anisor = self.pbr_extensions.get("anisor", 0.0)  # Default: 0.0 (no anisotropic rotation)
+        transmission = self.pbr_extensions.get("transmission", (0.0, 0.0, 0.0))  # Default: 0.0 (no transparency)
 
         ############################################
         # 3) Upload each to GPU
