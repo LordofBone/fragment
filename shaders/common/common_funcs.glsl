@@ -9,6 +9,9 @@ uniform float textureLodLevel;
 // Now we have a float controlling the ambient brightness.
 uniform float ambientStrength;// 0.0 => no ambient, 1.0 => full ambient intensity
 
+// Normal map
+uniform sampler2D normalMap;
+
 // ---------------------------------------------------
 // Environment mapping uniforms
 // ---------------------------------------------------
@@ -20,6 +23,13 @@ uniform float envMapLodLevel;
 // Screen-space texture mapping uniforms
 // ---------------------------------------------------
 uniform sampler2D screenTexture;
+
+// ---------------------------------------------------
+// Planar texture mapping uniforms
+// ---------------------------------------------------
+uniform float distortionStrength;
+uniform bool screenFacingPlanarTexture;
+uniform float planarFragmentViewThreshold;
 
 // ------------------------------------------------------
 // Flip toggles
@@ -496,18 +506,19 @@ vec3 computeAmbientColor(vec3 baseColor)
 }
 
 // ---------------------------------------------------
-// Compute Diffuse Lighting with Roughness
+// Compute Diffuse Lighting with opacity
 // ---------------------------------------------------
 vec3 computeDiffuseLighting(
 vec3 normal,
 vec3 viewDir,
 vec3 fragPos,
-vec3 baseColor
+vec3 baseColor,
+vec2 texCoords
 ) {
-    // Ambient (using your global ambientColor * ambientStrength)
+    // 1) Ambient (using your global ambientColor * ambientStrength)
     vec3 ambient  = computeAmbientColor(baseColor);
 
-    // Accumulate diffuse
+    // 2) Accumulate diffuse from up to 10 lights, with bounding checks
     vec3 diffuse  = vec3(0.0);
 
     for (int i = 0; i < 10; ++i)
@@ -523,46 +534,102 @@ vec3 baseColor
 
         if (withinBounds > 0.0)
         {
+            vec3 lightDir = normalize(lightPositions[i] - fragPos);
             // Lambertian diffuse
             float diff = max(dot(normal, lightDir), 0.0);
             diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
         }
     }
 
-    // Combine the local lighting
+    // 3) Combine the local lighting
     vec3 result = ambient + diffuse;
 
-    // Environment reflection
+    // 4) Environment reflection (legacy approach)
     vec3 reflectDir = reflect(-viewDir, normal);
-    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// User-defined sampler call
+    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// user-defined sampler
 
-    // Higher legacy_roughness means less reflection
+    // 5) Roughness factor? if we want a "legacy_roughness" uniform
+    //    We'll do a simple "roughnessFactor" => less reflection if high roughness
     float roughnessFactor = clamp(1.0 - (legacy_roughness / 100.0), 0.0, 1.0);
 
-    // Blend environment reflection inversely based on roughness
-    // Higher roughness reduces the influence of the environment map
+    // 6) Blend environment reflection inversely based on roughness
     result = mix(result, result + envColor, environmentMapStrength * roughnessFactor);
 
-    return result;
+    // -----------------------------------------------------------------------
+    // 7) Screen Texture transparency part:  we build a background color
+    // -----------------------------------------------------------------------
+    vec2 finalScreenCoords = texCoords;
+
+    // 7a) Flip if requested
+    if (flipPlanarHorizontal)
+    {
+        finalScreenCoords.x = 1.0 - finalScreenCoords.x;
+    }
+    if (flipPlanarVertical)
+    {
+        finalScreenCoords.y = 1.0 - finalScreenCoords.y;
+    }
+
+    // 7b) Normal-based distortion if usePlanarNormalDistortion
+    if (usePlanarNormalDistortion)
+    {
+        // Re-sample normal map in tangent space to get RG
+        vec2 nrg = texture(normalMap, texCoords, textureLodLevel).rg * 2.0 - 1.0;
+        finalScreenCoords += (nrg * distortionStrength);
+    }
+
+    // 7c) Screen-facing check
+    float facing = dot(normal, viewDir);
+    vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+    vec3 backgroundColor = fallbackColor;
+
+    if (screenFacingPlanarTexture)
+    {
+        if (facing > planarFragmentViewThreshold)
+        {
+            finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+            backgroundColor = texture(screenTexture, finalScreenCoords).rgb;
+        }
+    }
+    else
+    {
+        finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+        backgroundColor = texture(screenTexture, finalScreenCoords).rgb;
+    }
+
+    // If background is near black => fallback
+    if (length(backgroundColor) < 0.05)
+    {
+        backgroundColor = fallbackColor;
+    }
+
+    // 7d) legacy_opacity => how much "lighting" vs. "backgroundColor"
+    // If legacy_opacity==1 => fully the object, 0 => fully background
+    vec3 finalOut = mix(backgroundColor, result, legacy_opacity);
+
+    // Return
+    return finalOut;
 }
 
 // ---------------------------------------------------
-// Compute Phong Lighting (with user-defined roughness)
+// Compute Phong Lighting with opacity
 // ---------------------------------------------------
 vec3 computePhongLighting(
 vec3 normal,
 vec3 viewDir,
 vec3 fragPos,
-vec3 baseColor
+vec3 baseColor,
+vec2 texCoords
 ) {
-    // Ambient (using your global ambientColor * ambientStrength)
+    // 1) Ambient
     vec3 ambient  = computeAmbientColor(baseColor);
     vec3 diffuse  = vec3(0.0);
     vec3 specular = vec3(0.0);
 
-    // Simple white spec color
+    // White spec color
     vec3 specularColor = vec3(1.0);
 
+    // 2) Up to 10 lights with bounding checks
     for (int i = 0; i < 10; ++i)
     {
         vec3 lightDir = normalize(lightPositions[i] - fragPos);
@@ -576,26 +643,79 @@ vec3 baseColor
 
         if (withinBounds > 0.0)
         {
-            // Diffuse term
+            vec3 lightDir = normalize(lightPositions[i] - fragPos);
+
+            // Diffuse
             float diff = max(dot(normal, lightDir), 0.0);
             diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
 
-            // Blinn–Phong spec with user roughness
+            // Blinn–Phong spec with user-defined roughness
             vec3 halfwayDir = normalize(lightDir + viewDir);
             float spec = pow(max(dot(normal, halfwayDir), 0.0), legacy_roughness);
             specular += spec * specularColor * lightColors[i] * lightStrengths[i];
         }
     }
 
-    // Combine local lighting
+    // 3) Combine local lighting
     vec3 result = ambient + diffuse + specular;
 
-    // Environment reflection
+    // 4) Environment reflection
     vec3 reflectDir = reflect(-viewDir, normal);
-    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;
+    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// user-defined call
 
+    // Possibly scale by environmentMapStrength
     result = mix(result, result + envColor, environmentMapStrength);
-    return result;
+
+    // -----------------------------------------------------------------------
+    // 5) Screen Texture transparency part
+    // -----------------------------------------------------------------------
+    vec2 finalScreenCoords = texCoords;
+
+    // a) Flip if needed
+    if (flipPlanarHorizontal)
+    {
+        finalScreenCoords.x = 1.0 - finalScreenCoords.x;
+    }
+    if (flipPlanarVertical)
+    {
+        finalScreenCoords.y = 1.0 - finalScreenCoords.y;
+    }
+
+    // b) Normal-based distortion
+    if (usePlanarNormalDistortion)
+    {
+        vec2 nrg = texture(normalMap, texCoords, textureLodLevel).rg * 2.0 - 1.0;
+        finalScreenCoords += (nrg * distortionStrength);
+    }
+
+    // c) Screen-facing check
+    float facing = dot(normal, viewDir);
+    vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+    vec3 backgroundColor = fallbackColor;
+
+    if (screenFacingPlanarTexture)
+    {
+        if (facing > planarFragmentViewThreshold)
+        {
+            finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+            backgroundColor = texture(screenTexture, finalScreenCoords).rgb;
+        }
+    }
+    else
+    {
+        finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+        backgroundColor = texture(screenTexture, finalScreenCoords).rgb;
+    }
+
+    if (length(backgroundColor) < 0.05)
+    {
+        backgroundColor = fallbackColor;
+    }
+
+    // d) Mix based on legacy_opacity
+    vec3 finalOut = mix(backgroundColor, result, legacy_opacity);
+
+    return finalOut;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -714,10 +834,6 @@ Steps:
 
 const float PI = 3.14159265359;
 const float MAX_MIPS = 5.0;// for environment map MIP
-
-// Instead of samplerCube environmentMap, we assume a uniform "sampler2D refractionMap"
-// that we do the "refraction" from.
-uniform sampler2D refractionMap;// Our 2D background or normalMap for "fake" refraction
 
 /* Now `material.transmission` is a vec3 (like "Tf r g b" in MTL).
 We treat it as a color filter for refraction.
@@ -846,7 +962,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     // We'll do a naive approach:
     // 1) Refract the view direction
     // 2) Convert that direction to 2D coords
-    // 3) Sample the 'refractionMap' at those coords
+    // 3) Sample the 'normalMap' at those coords
     // 4) Multiply by material.transmission, then blend
 
     float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
@@ -856,7 +972,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
         float refractionRatio = 1.0 / material.ior;
         vec3 refractDir = refract(-Vn, N, refractionRatio);
 
-        // Now we have a 3D direction, but 'refractionMap' is a 2D texture.
+        // Now we have a 3D direction, but 'normalMap' is a 2D texture.
         // We need to map (refractDir.x, refractDir.y, refractDir.z) into UV.
         // For example, we can do:
         //           vec2 uv = 0.5 + 0.5 * refractDir.xy;
