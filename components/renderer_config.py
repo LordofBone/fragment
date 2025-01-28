@@ -58,6 +58,8 @@ class RendererConfig:
             use_planar_normal_distortion=False,
             screen_facing_planar_texture=False,
             planar_fragment_view_threshold=0.0,
+            distortion_strength=0.3,
+            refraction_strength=0.3,
             lens_rotations=None,
             background_audio=None,
             sound_enabled=True,
@@ -132,6 +134,8 @@ class RendererConfig:
         self.use_planar_normal_distortion = use_planar_normal_distortion
         self.screen_facing_planar_texture = screen_facing_planar_texture
         self.planar_fragment_view_threshold = planar_fragment_view_threshold
+        self.distortion_strength = distortion_strength
+        self.refraction_strength = refraction_strength
 
         # Lens rotations for the camera
         self.lens_rotations = lens_rotations or [0.0] * len(self.camera_positions)
@@ -249,6 +253,8 @@ class RendererConfig:
             flip_planar_horizontally=None,
             flip_planar_vertically=None,
             use_planar_normal_distortion=None,
+            distortion_strength=None,
+            refraction_strength=None,
             lens_rotations=None,
             debug_mode=None,
             **kwargs,
@@ -303,6 +309,8 @@ class RendererConfig:
             "flip_planar_horizontally": flip_planar_horizontally,
             "flip_planar_vertically": flip_planar_vertically,
             "use_planar_normal_distortion": use_planar_normal_distortion,
+            "distortion_strength": distortion_strength,
+            "refraction_strength": refraction_strength,
             "lens_rotations": lens_rotations,
             "debug_mode": debug_mode,
         }
@@ -361,6 +369,8 @@ class RendererConfig:
             flip_planar_vertically=None,
             use_planar_normal_distortion=None,
             planar_fragment_view_threshold=None,
+            distortion_strength=None,
+            refraction_strength=None,
             lens_rotations=None,
             debug_mode=None,
             **kwargs,
@@ -408,6 +418,8 @@ class RendererConfig:
             "flip_planar_vertically": flip_planar_vertically,
             "use_planar_normal_distortion": use_planar_normal_distortion,
             "planar_fragment_view_threshold": planar_fragment_view_threshold,
+            "distortion_strength": distortion_strength,
+            "refraction_strength": refraction_strength,
             "lens_rotations": lens_rotations,
             "debug_mode": debug_mode,
         }
