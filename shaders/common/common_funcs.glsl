@@ -832,7 +832,7 @@ const float MAX_MIPS = 5.0;// for environment map MIP
 /* Now `material.transmission` is a vec3 (like "Tf r g b" in MTL).
 We treat it as a color filter for refraction.
 */
-vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
+vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCoords)
 {
     //----------------------------------------------
     // (1) Combine roughness + shininess
@@ -954,49 +954,69 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor)
     // (10) transmission => 2D-based "refraction"
     //----------------------------------------------
     // We'll do a naive approach:
-    // 1) Refract the view direction
-    // 2) Convert that direction to 2D coords
-    // 3) Sample the 'normalMap' at those coords
-    // 4) Multiply by material.transmission, then blend
+    // 1) If material.transmission is near 0, skip entirely
+    // 2) If not, do refraction logic
+    //   2a) If usePlanarNormalDistortion == true => do normal-based offset
+    //   2b) Else => just sample screenTexture with unmodified texCoords
+    // 3) Optionally flip the final coords
+    // 4) Multiply by transmission color
+    // 5) Combine refraction with finalColor
 
     float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
     if (averageTf > 0.001)
     {
-        // For "air -> object," ratio ~ 1.0 / ior
-        float refractionRatio = 1.0 / material.ior;
-        vec3 refractDir = refract(-Vn, N, refractionRatio);
+        // We'll declare finalScreenCoords + refr2D here so they're accessible in both branches
+        vec2 finalScreenCoords;
+        vec3 refr2D = vec3(0.0);
 
-        // Now we have a 3D direction, but 'normalMap' is a 2D texture.
-        // We need to map (refractDir.x, refractDir.y, refractDir.z) into UV.
-        // For example, we can do:
-        //           vec2 uv = 0.5 + 0.5 * refractDir.xy;
-        // That simply takes x,y in [-1..1] -> [0..1], ignoring z
-        // or you might do a spherical or cylindrical mapping.
-        // We'll do a basic approach:
-        vec2 uv = refractDir.xy * 0.5 + 0.5;
+        if (usePlanarNormalDistortion)
+        {
+            // For "air -> object," ratio ~ 1.0 / ior
+            float refractionRatio = 1.0 / material.ior;
+            vec3 refractDir = refract(-V, N, refractionRatio);
 
-        // Flip if requested
+            // Map refractDir.xy from [-1,1] to [0,1]
+            finalScreenCoords = refractDir.xy * 0.5 + 0.5;
+
+            // Sample the normal map's RG channels at 'texCoords'
+            vec2 nrg = texture(normalMap, texCoords).rg * 2.0 - 1.0;
+            finalScreenCoords += (nrg * distortionStrength);
+
+            // Clamp coords to [0,1] to avoid sampling outside the texture
+            finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+
+            // Temporary sample
+            refr2D = texture(screenTexture, finalScreenCoords).rgb;
+        }
+        else
+        {
+            // If not using planar normal distortion, just do "no refraction" or "simple pass"
+            // We'll interpret your code as "no refraction offset" => just sample screenTexture at 'texCoords'
+            finalScreenCoords = clamp(texCoords, 0.0, 1.0);
+            refr2D = texture(screenTexture, finalScreenCoords).rgb;
+        }
+
+        // Flip if needed
         if (flipPlanarHorizontal)
         {
-            uv.x = 1.0 - uv.x;
+            finalScreenCoords.x = 1.0 - finalScreenCoords.x;
         }
         if (flipPlanarVertical)
         {
-            uv.y = 1.0 - uv.y;
+            finalScreenCoords.y = 1.0 - finalScreenCoords.y;
         }
 
-        // Optionally, if we want "rough refraction," we might shift uv by (roughness).
-        // We'll keep it simple:
-        vec3 refr2D = texture(screenTexture, uv).rgb;
+        // If you really want to apply flipping BEFORE the sample, do it above
+        // (But this example matches your code structure, flipping after the sample.)
 
-        // Multiply by the transmission color to "tint"
+        // Multiply the final color by the transmission color to "tint"
         refr2D *= material.transmission;
 
         // Combine refraction with final color
         finalColor = mix(finalColor, refr2D, averageTf);
     }
 
-    // Return final color
+    // Return just the color; user does alpha in main code
     return finalColor;
 }
 
