@@ -58,7 +58,7 @@ void main()
     else if (lightingMode == 2)
     {
         // PBR (includes environment reflection inside)
-        lighting = computePBRLighting(normal, viewDir, FragPos, baseColor);
+        lighting = computePBRLighting(normal, viewDir, FragPos, baseColor, TexCoords);
     }
 
     // 6) Apply shadow: (1.0 - shadow)
