@@ -100,7 +100,7 @@ void main()
     }
     else
     {
-        lightingColor = computePBRLighting(finalNormal, worldViewDir, FragPos, baseColor);
+        lightingColor = computePBRLighting(finalNormal, worldViewDir, FragPos, baseColor, TexCoords);
     }
 
     // Shadow
