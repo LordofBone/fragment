@@ -811,47 +811,52 @@ vec3 computeF0Combined(vec3 baseColor, float metallic, vec3 specular, float ior)
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 3) "computePBRLighting" with 15 Material params + Transmission (vec3)
+// 3) "computePBRLighting" with extended MTL, environment reflection (Cook–Torrance IBL),
+//    clearcoat, sheen, and a naive refraction/transmission pass
 ////////////////////////////////////////////////////////////////////////
 /*
 Steps:
 (1) Combine roughness & shininess => effectiveRoughness.
-(2) Compute local lighting (point lights) using Cook–Torrance.
-(3) Sample environment reflections (spec IBL).
-(4) If 'clearcoat' > 0, do second reflection pass.
-(5) If 'sheen' > 0, add near-edge glow.
-(6) Add 'emissive' (self-lit).
-(7) Add old-school ambient pass.
-(8) 'illuminationModel', 'anisotropy', etc. not fully used.
-(9) 'transparency' => alpha (in your final output).
-(10) 'transmission' => 2D-based "refraction" using normalMap or some 2D texture.
+(2) Local Cook–Torrance for point lights.
+(3) Environment Reflection (Cook–Torrance IBL).
+(4) Clearcoat
+(5) Sheen
+(6) Emissive
+(7) Ambient
+(8) (Optional) Extra reflection if you want to unify older approach
+(9) Transmission => partial refraction
 */
 
 const float PI = 3.14159265359;
 const float MAX_MIPS = 5.0;// for environment map MIP
 
-/* Now `material.transmission` is a vec3 (like "Tf r g b" in MTL).
-We treat it as a color filter for refraction.
-*/
-vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCoords)
-{
+vec3 computePBRLighting(
+vec3 N,
+vec3 V,
+vec3 fragPos,
+vec3 baseColor,
+vec2 texCoords// For normal-based distortion if desired
+){
     //----------------------------------------------
     // (1) Combine roughness + shininess
     //----------------------------------------------
-    float effectiveRoughness =
-    combineRoughnessAndShininess(material.roughness, material.shininess);
+    float effectiveRoughness = combineRoughnessAndShininess(material.roughness, material.shininess);
 
     //----------------------------------------------
-    // (2) Local Lighting: Cook–Torrance
+    // (2) Local Cook–Torrance from point lights
     //----------------------------------------------
     vec3 localLighting = vec3(0.0);
 
-    // F0: base reflectance from IOR + metallic + old 'specular'
-    vec3 F0 = computeF0Combined(baseColor, material.metallic, material.specular, material.ior);
+    // F0: base reflectance from IOR + metallic + specular
+    vec3 F0 = computeF0Combined(
+    baseColor,
+    material.metallic,
+    material.specular,
+    material.ior
+    );
 
     for (int i = 0; i < 10; i++)
     {
-        // bounding check from your original code
         float withinBounds =
         step(lightOrthoLeft[i], fragPos.x) *
         step(fragPos.x, lightOrthoRight[i]) *
@@ -868,12 +873,12 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
             float G = GeometrySmith(N, V, L, effectiveRoughness);
             float NdotV = max(dot(N, V), 0.0);
             float HdotV = max(dot(H, V), 0.0);
-            vec3  F     = fresnelSchlick(HdotV, F0);
+            vec3 F  = fresnelSchlick(HdotV, F0);
 
             float denom = 4.0 * NdotV * NdotL + 0.0001;
             vec3 specular = (D * G * F) / denom;
 
-            // kS = F, kD = (1 - F)*(1.0 - metallic)
+            // kS = F; kD = (1 - F)*(1 - metallic)
             vec3 kS = F;
             vec3 kD = (vec3(1.0) - kS) * (1.0 - material.metallic);
 
@@ -887,75 +892,82 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
     }
 
     //----------------------------------------------
-    // (3) Environment Reflection (spec IBL)
+    // (3) Environment Reflection (Cook–Torrance IBL)
     //----------------------------------------------
-    // If you STILL have an environmentMap samplerCube, you could do:
-    //   vec3 R = reflect(-V, N);
-    //   float mipLevel = effectiveRoughness * MAX_MIPS;
-    //   vec3 envSample = textureLod(environmentMap, R, mipLevel).rgb;
-    //
-    // For now, let's assume you do not do reflection from a cubemap.
-    // We'll skip or comment it out:
-    vec3 environmentContribution = vec3(0.0);
-    // If you want reflection from 2D as well, you'd do something else.
+    // We'll do a simplified version: we sample environmentMap using reflectDir,
+    // do a roughness-based MIP, and combine with a Fresnel factor based on NdotV.
+
+    float NdotV = max(dot(N, V), 0.0);
+    // reflectDir
+    vec3 reflectDir = reflect(-V, N);
+    // MIP based on effectiveRoughness
+    float mipLevel = effectiveRoughness * MAX_MIPS;
+    vec3 envSample = textureLod(environmentMap, reflectDir, mipLevel).rgb;
+
+    // Fresnel for environment
+    vec3 F_env = fresnelSchlick(NdotV, F0);
+
+    // Typically for IBL, we also do a Lambertian diffuse from the environment
+    // but let's keep it simpler and do spec only:
+    //   environmentSpec = envSample * F_env
+    // Then scale by a geometry term or so. We'll just do an approx:
+    float G_approx = 1.0;// or something based on roughness
+
+    vec3 environmentSpec = envSample * F_env * G_approx;
+    // We also scale by environmentMapStrength, plus we might want less reflection if very rough
+    float reflectionFactor = environmentMapStrength * clamp(1.0 - effectiveRoughness, 0.0, 1.0);
+
+    // Combine environment reflection with localLighting
+    vec3 environmentContribution = environmentSpec * reflectionFactor;
 
     //----------------------------------------------
     // (4) Clearcoat
     //----------------------------------------------
+    vec3 clearcoatContrib = vec3(0.0);
     if (material.clearcoat > 0.001)
     {
-        // We'll skip the code for clearcoat reflection from a cubemap as well.
-        // or you can keep it if you want a 2D approach.
-        // We'll just leave a placeholder:
-        environmentContribution += vec3(0.0);
+        float ccRough = clamp(material.clearcoatRoughness, 0.0, 1.0);
+        vec3 H_cc = normalize(V + reflect(-V, N));
+
+        float NdotV_cc = max(dot(N, V), 0.0);
+        float D_cc = DistributionGGX(N, H_cc, ccRough);
+        float G_cc = GeometrySmith(N, V, -V, ccRough);
+        vec3 F0_cc = vec3(0.25);
+        vec3 F_cc  = fresnelSchlick(NdotV_cc, F0_cc);
+
+        float denom_cc = 4.0 * NdotV_cc * NdotV_cc + 0.0001;
+        vec3 spec_cc = (D_cc * G_cc * F_cc) / denom_cc;
+        spec_cc *= material.clearcoat;
+
+        clearcoatContrib = spec_cc * environmentMapStrength;
     }
 
     //----------------------------------------------
-    // (5) Sheen (edge factor)
+    // (5) Sheen
     //----------------------------------------------
-    vec3 Vn = normalize(V);
-    float NdotV = max(dot(N, Vn), 0.0);
+    vec3 sheenContrib = vec3(0.0);
     if (material.sheen > 0.001)
     {
         float edgeFactor = pow(1.0 - NdotV, 5.0);
         vec3 sheenColor  = mix(baseColor, vec3(1.0), 0.5);
-        vec3 sheenTerm   = sheenColor * edgeFactor * material.sheen;
-        localLighting    += sheenTerm;
+        sheenContrib = sheenColor * edgeFactor * material.sheen;
     }
 
     //----------------------------------------------
-    // (6) Combine local => finalColor
+    // (6) Combine local + environment => finalColor
     //----------------------------------------------
-    vec3 finalColor = localLighting + environmentContribution;
+    vec3 finalColor = localLighting + environmentContribution + clearcoatContrib + sheenContrib;
+
     // Emissive
     finalColor += material.emissive;
 
-    // (7) Ambient
+    // (7) Ambient (old-school approach)
     vec3 ambientTerm = computeAmbientColor(finalColor);
     finalColor += ambientTerm;
 
     //----------------------------------------------
-    // (8) illuminationModel, anisotropy, etc.
+    // (8) Transmission => 2D-based "refraction"
     //----------------------------------------------
-    // - 'illuminationModel': Could skip specular if <2, skip diffuse if <1, etc.
-    //   This snippet does not handle that logic, but you could do e.g.:
-    //   if (material.illuminationModel < 2) { specular = vec3(0.0); }
-    // - 'anisotropy' & 'anisotropyRot':
-    //   Real anisotropy requires rewriting DistributionGGX
-    //   to handle separate exponents in tangent & bitangent directions. Not done here.
-
-    //----------------------------------------------
-    // (9) transparency => alpha in main
-    //----------------------------------------------
-    //   For a physically-based approach, you'd do alpha = 1.0 - material.transparency,
-    //   or handle full refraction. This snippet just demonstrates you can do:
-    //    float alpha = 1.0 - material.transparency;
-
-    //----------------------------------------------
-    // (10) transmission => 2D-based "refraction"
-    //----------------------------------------------
-    // We'll do a naive approach that merges baseTexCoords with a partial refraction offset
-    // and optionally normal-based distortion. Then we handle the "screen facing" logic.
     float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
     if (averageTf > 0.001)
     {
@@ -978,7 +990,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
             finalScreenCoords += (refOffset * refractionStrength);
         }
 
-        // 2) Flip if requested (before sampling)
+        // 2) Flip if requested
         if (flipPlanarHorizontal)
         {
             finalScreenCoords.x = 1.0 - finalScreenCoords.x;
@@ -988,8 +1000,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
             finalScreenCoords.y = 1.0 - finalScreenCoords.y;
         }
 
-        // 3) Normal-based distortion (offset from normalMap)
-        //    if you want an additional wave effect.
+        // 3) Normal-based distortion
         if (usePlanarNormalDistortion)
         {
             // Sample the normal map's RG channels at 'texCoords'
@@ -997,12 +1008,10 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
             finalScreenCoords += (nrg * distortionStrength);
         }
 
-        // We'll hold our final color sample from the screen
-        vec3 refr2D;
-
-        // 4) 'screenFacingPlanarTexture' logic
+        // 4) "screenFacingPlanarTexture" logic
         float facing = dot(N, V);
         vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+        vec3 refr2D;
 
         if (screenFacingPlanarTexture)
         {
@@ -1026,7 +1035,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
             refr2D = texture(screenTexture, finalScreenCoords).rgb;
         }
 
-        // 5) If the sample is near black, fallback
+        // 5) If near black => fallback
         if (length(refr2D) < 0.05)
         {
             refr2D = fallbackColor;
@@ -1039,7 +1048,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
         finalColor = mix(finalColor, refr2D, averageTf);
     }
 
-    // Return just the color; user does alpha in main code
+    // Return final color (alpha is handled in main if needed)
     return finalColor;
 }
 
