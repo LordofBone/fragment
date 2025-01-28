@@ -102,13 +102,13 @@ def run_benchmark(
         },
         shader_names={
             "vertex": "standard",
-            "fragment": "stealth",
+            "fragment": "embm",
         },
         planar_fragment_view_threshold=-1.0,
         legacy_opacity=0.0,
         legacy_roughness=32,
-        distortion_strength=0.2,
-        reflection_strength=0.0,
+        distortion_strength=0.3,
+        refraction_strength=0.65,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         cubemap_folder=False,
@@ -123,6 +123,16 @@ def run_benchmark(
         screen_facing_planar_texture=True,
         texture_lod_bias=1.2,
         env_map_lod_bias=2.0,
+        pbr_extensions={
+            "roughness": 0.399083,  # Pr
+            "metallic": 0.064220,  # Pm
+            "clearcoat": 0.110092,  # Pc
+            "clearcoat_roughness": 0.039174,  # Pcr
+            "sheen": 0.036697,  # Ps
+            "aniso": 0.036697,  # aniso
+            "anisor": 0.036697,  # anisor
+            "transmission": (1.0, 1.0, 1.0),  # Tf
+        },
     )
 
     # Define the configuration for the skybox
