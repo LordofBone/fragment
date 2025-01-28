@@ -145,7 +145,7 @@ class AbstractRenderer(ABC):
             legacy_roughness=32,
         env_map_strength=0.5,
         distortion_strength=0.3,
-        reflection_strength=0.0,
+            refraction_strength=0.3,
         distortion_warped=False,
             flip_planar_horizontally=False,
             flip_planar_vertically=False,
@@ -231,7 +231,7 @@ class AbstractRenderer(ABC):
         self.legacy_roughness = legacy_roughness
         self.env_map_strength = env_map_strength
         self.distortion_strength = distortion_strength
-        self.reflection_strength = reflection_strength
+        self.refraction_strength = refraction_strength
         self.distortion_warped = distortion_warped
 
         self.screen_texture = screen_texture
@@ -917,10 +917,8 @@ class AbstractRenderer(ABC):
         )
 
         glUniform1f(
-            glGetUniformLocation(self.shader_engine.shader_program, "reflectionStrength"), self.reflection_strength
+            glGetUniformLocation(self.shader_engine.shader_program, "refractionStrength"), self.refraction_strength
         )
-
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "warped"), self.distortion_warped)
 
         glUniform2f(
             glGetUniformLocation(self.shader_engine.shader_program, "screenResolution"),
