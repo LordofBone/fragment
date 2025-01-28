@@ -27,6 +27,7 @@ uniform sampler2D screenTexture;
 // ---------------------------------------------------
 // Planar texture mapping uniforms
 // ---------------------------------------------------
+uniform bool usePlanarNormalDistortion;
 uniform float distortionStrength;
 uniform bool screenFacingPlanarTexture;
 uniform float planarFragmentViewThreshold;
@@ -36,13 +37,6 @@ uniform float planarFragmentViewThreshold;
 // ------------------------------------------------------
 uniform bool flipPlanarHorizontal;// If true, flip horizontally
 uniform bool flipPlanarVertical;// If true, flip vertically
-
-// ------------------------------------------------------
-// Normal-distortion toggle
-//   If true => add normal.xy * distortionStrength
-//   If false => no offset
-// ------------------------------------------------------
-uniform bool usePlanarNormalDistortion;
 
 // ---------------------------------------------------
 // Parallax Occlusion Mapping (POM) uniforms
