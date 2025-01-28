@@ -952,18 +952,17 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
     //    float alpha = 1.0 - material.transparency;
 
     //----------------------------------------------
-    // (10) transmission => 2D-based "refraction" with partial offset
+    // (10) transmission => 2D-based "refraction"
     //----------------------------------------------
-    // We'll do a naive approach that merges baseTexCoords with some refraction offset
-    // so that orientation is consistent with non-distorted modes.
-
+    // We'll do a naive approach that merges baseTexCoords with a partial refraction offset
+    // and optionally normal-based distortion. Then we handle the "screen facing" logic.
     float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
     if (averageTf > 0.001)
     {
         // We'll store final UVs in `finalScreenCoords`
         vec2 finalScreenCoords = texCoords;
 
-        // 1) If usePlanarNormalDistortion => we do a small refraction offset
+        // 1) If usePlanarNormalDistortion => do a small refraction offset
         if (usePlanarNormalDistortion)
         {
             // "air -> object," ratio ~ 1.0 / ior
@@ -990,8 +989,7 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
         }
 
         // 3) Normal-based distortion (offset from normalMap)
-        //    if you also want that logic.
-        //    We'll unify it with the rest of the approach:
+        //    if you want an additional wave effect.
         if (usePlanarNormalDistortion)
         {
             // Sample the normal map's RG channels at 'texCoords'
@@ -999,11 +997,40 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
             finalScreenCoords += (nrg * distortionStrength);
         }
 
-        // 4) Clamp to [0,1]
-        finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+        // We'll hold our final color sample from the screen
+        vec3 refr2D;
 
-        // 5) Sample from screenTexture
-        vec3 refr2D = texture(screenTexture, finalScreenCoords).rgb;
+        // 4) 'screenFacingPlanarTexture' logic
+        float facing = dot(N, V);
+        vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+
+        if (screenFacingPlanarTexture)
+        {
+            // Only sample if fragment faces camera above threshold
+            if (facing > planarFragmentViewThreshold)
+            {
+                // clamp coords to [0,1]
+                finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+                refr2D = texture(screenTexture, finalScreenCoords).rgb;
+            }
+            else
+            {
+                // If not facing, use fallback
+                refr2D = fallbackColor;
+            }
+        }
+        else
+        {
+            // always sample
+            finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+            refr2D = texture(screenTexture, finalScreenCoords).rgb;
+        }
+
+        // 5) If the sample is near black, fallback
+        if (length(refr2D) < 0.05)
+        {
+            refr2D = fallbackColor;
+        }
 
         // 6) Multiply by the transmission color => tint
         refr2D *= material.transmission;
