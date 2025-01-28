@@ -88,6 +88,7 @@ struct Material {
     vec3 specular;// from Ks
     float shininess;// from Ns
     vec3 emissive;// from Ke
+    float fresnelExponent;// from Pfe (non-standard parameter)
     int illuminationModel;// from illum
 
 // "Core" PBR fields
@@ -769,6 +770,18 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+// A variant of fresnelSchlick that applies an extra exponent to tweak the ramp:
+vec3 fresnelSchlickExponent(float cosTheta, vec3 F0, float exponent)
+{
+    // Standard Schlick
+    vec3 base = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+
+    // Then raise it to an exponent to intensify or soften the ramp
+    // e.g., exponent > 1 => reflection intensifies near edges
+    //       exponent < 1 => reflection is more uniform
+    return pow(base, vec3(exponent));
+}
+
 ////////////////////////////////////////////////////////////////////////
 // 2) Additional Helpers
 ////////////////////////////////////////////////////////////////////////
@@ -904,20 +917,19 @@ vec2 texCoords// For normal-based distortion if desired
     float mipLevel = effectiveRoughness * MAX_MIPS;
     vec3 envSample = textureLod(environmentMap, reflectDir, mipLevel).rgb;
 
-    // Fresnel for environment
-    vec3 F_env = fresnelSchlick(NdotV, F0);
+    // Fresnel for environment (with exponent tweak)
+    float exponent = material.fresnelExponent;// e.g. default 1.0 if not set
+    vec3 F_env = fresnelSchlickExponent(NdotV, F0, exponent);
 
-    // Typically for IBL, we also do a Lambertian diffuse from the environment
-    // but let's keep it simpler and do spec only:
-    //   environmentSpec = envSample * F_env
-    // Then scale by a geometry term or so. We'll just do an approx:
-    float G_approx = 1.0;// or something based on roughness
-
+    // Approx geometry term or just 1.0
+    float G_approx = 1.0;
     vec3 environmentSpec = envSample * F_env * G_approx;
-    // We also scale by environmentMapStrength, plus we might want less reflection if very rough
+
+    // Scale by environmentMapStrength * (1.0 - effectiveRoughness)
+    // so rough surfaces show less reflection
     float reflectionFactor = environmentMapStrength * clamp(1.0 - effectiveRoughness, 0.0, 1.0);
 
-    // Combine environment reflection with localLighting
+    // Combine environment reflection with local lighting
     vec3 environmentContribution = environmentSpec * reflectionFactor;
 
     //----------------------------------------------
