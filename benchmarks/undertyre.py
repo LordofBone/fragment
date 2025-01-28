@@ -97,6 +97,7 @@ def run_benchmark(
             "aniso": 0.504587,  # aniso
             "anisor": 0.770642,  # anisor
             "transmission": (0.0, 0.0, 0.0),  # Tf
+            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
         },
     )
 
