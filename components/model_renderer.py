@@ -509,7 +509,7 @@ class ModelRenderer(AbstractRenderer):
         illumination_model = getattr(material, "illumination_model", 2)
         transparency = getattr(material, "transparency", 1.0)
 
-        # Now for the pbr_extensions. If no user override was given, we use your default.
+        # Now for the pbr_extensions. If no user override was given, use a default.
         roughness = self.pbr_extensions.get("roughness", 0.5)  # Default: 0.5 (moderately rough surface)
         metallic = self.pbr_extensions.get("metallic", 0.0)  # Default: 0.0 (non-metallic)
         clearcoat = self.pbr_extensions.get("clearcoat", 0.0)  # Default: 0.0 (no clearcoat)
