@@ -954,65 +954,68 @@ vec3 computePBRLighting(vec3 N, vec3 V, vec3 fragPos, vec3 baseColor, vec2 texCo
     // (10) transmission => 2D-based "refraction"
     //----------------------------------------------
     // We'll do a naive approach:
-    // 1) If material.transmission is near 0, skip entirely
-    // 2) If not, do refraction logic
-    //   2a) If usePlanarNormalDistortion == true => do normal-based offset
-    //   2b) Else => just sample screenTexture with unmodified texCoords
-    // 3) Optionally flip the final coords
-    // 4) Multiply by transmission color
-    // 5) Combine refraction with finalColor
+    //  1) If averageTf>0 => we want some transparency
+    //  2) If usePlanarNormalDistortion => we do "refraction + normal offset"
+    //     else => skip refraction, just sample 'screenTexture' at 'texCoords'
+    //  3) We always do flipping before sampling, so the user sees the flipped region
+    //  4) Finally, multiply by transmission color & mix with finalColor
+    //----------------------------------------------
 
     float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
     if (averageTf > 0.001)
     {
-        // We'll declare finalScreenCoords + refr2D here so they're accessible in both branches
+        // We'll store final UVs in `finalScreenCoords`
         vec2 finalScreenCoords;
-        vec3 refr2D = vec3(0.0);
 
         if (usePlanarNormalDistortion)
         {
-            // For "air -> object," ratio ~ 1.0 / ior
+            // "air -> object," ratio ~ 1.0 / ior
             float refractionRatio = 1.0 / material.ior;
             vec3 refractDir = refract(-V, N, refractionRatio);
 
-            // Map refractDir.xy from [-1,1] to [0,1]
+            // 1) Convert from [-1..1] to [0..1]
             finalScreenCoords = refractDir.xy * 0.5 + 0.5;
 
-            // Sample the normal map's RG channels at 'texCoords'
+            // 2) Flip if requested (before we offset by normal, or after—your choice)
+            if (flipPlanarHorizontal)
+            {
+                finalScreenCoords.x = 1.0 - finalScreenCoords.x;
+            }
+            if (flipPlanarVertical)
+            {
+                finalScreenCoords.y = 1.0 - finalScreenCoords.y;
+            }
+
+            // 3) Normal-based offset
             vec2 nrg = texture(normalMap, texCoords).rg * 2.0 - 1.0;
             finalScreenCoords += (nrg * distortionStrength);
-
-            // Clamp coords to [0,1] to avoid sampling outside the texture
-            finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
-
-            // Temporary sample
-            refr2D = texture(screenTexture, finalScreenCoords).rgb;
         }
         else
         {
-            // If not using planar normal distortion, just do "no refraction" or "simple pass"
-            // We'll interpret your code as "no refraction offset" => just sample screenTexture at 'texCoords'
-            finalScreenCoords = clamp(texCoords, 0.0, 1.0);
-            refr2D = texture(screenTexture, finalScreenCoords).rgb;
+            // If we do no refraction & no normal offset, we just sample the screenTexture at original texCoords
+            finalScreenCoords = texCoords;
+
+            // Flip if requested
+            if (flipPlanarHorizontal)
+            {
+                finalScreenCoords.x = 1.0 - finalScreenCoords.x;
+            }
+            if (flipPlanarVertical)
+            {
+                finalScreenCoords.y = 1.0 - finalScreenCoords.y;
+            }
         }
 
-        // Flip if needed
-        if (flipPlanarHorizontal)
-        {
-            finalScreenCoords.x = 1.0 - finalScreenCoords.x;
-        }
-        if (flipPlanarVertical)
-        {
-            finalScreenCoords.y = 1.0 - finalScreenCoords.y;
-        }
+        // 4) Clamp to [0..1]
+        finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
 
-        // If you really want to apply flipping BEFORE the sample, do it above
-        // (But this example matches your code structure, flipping after the sample.)
+        // 5) Sample from screenTexture
+        vec3 refr2D = texture(screenTexture, finalScreenCoords).rgb;
 
-        // Multiply the final color by the transmission color to "tint"
+        // 6) Multiply by the transmission color => tint
         refr2D *= material.transmission;
 
-        // Combine refraction with final color
+        // 7) Blend with finalColor
         finalColor = mix(finalColor, refr2D, averageTf);
     }
 
