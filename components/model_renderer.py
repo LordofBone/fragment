@@ -490,6 +490,7 @@ class ModelRenderer(AbstractRenderer):
 
         loc_ior = glGetUniformLocation(self.shader_engine.shader_program, "material.ior")
         loc_emissive = glGetUniformLocation(self.shader_engine.shader_program, "material.emissive")
+        loc_fresnel_exponent = glGetUniformLocation(self.shader_engine.shader_program, "material.fresnelExponent")
         loc_illumination_model = glGetUniformLocation(self.shader_engine.shader_program, "material.illuminationModel")
         loc_transparency = glGetUniformLocation(self.shader_engine.shader_program, "material.transparency")
         loc_clearcoat = glGetUniformLocation(self.shader_engine.shader_program, "material.clearcoat")
@@ -520,6 +521,9 @@ class ModelRenderer(AbstractRenderer):
         anisor = self.pbr_extensions.get("anisor", 0.0)  # Default: 0.0 (no anisotropic rotation)
         transmission = self.pbr_extensions.get("transmission", (0.0, 0.0, 0.0))  # Default: 0.0 (no transparency)
 
+        # Custom non-standard extensions
+        fresnel_exponent = self.pbr_extensions.get("fresnel_exponent", 0.5)  # Default: 0.5 (moderate fresnel)
+
         ############################################
         # 3) Upload each to GPU
         ############################################
@@ -541,6 +545,8 @@ class ModelRenderer(AbstractRenderer):
             glUniform1f(loc_ior, float(ior))
         if loc_emissive >= 0:
             glUniform3f(loc_emissive, *emissive)
+        if loc_fresnel_exponent >= 0:
+            glUniform1f(loc_fresnel_exponent, fresnel_exponent)
         if loc_illumination_model >= 0:
             glUniform1i(loc_illumination_model, illumination_model)
         if loc_transparency >= 0:
