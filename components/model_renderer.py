@@ -514,8 +514,9 @@ class ModelRenderer(AbstractRenderer):
         roughness = self.pbr_extensions.get("roughness", 0.5)  # Default: 0.5 (moderately rough surface)
         metallic = self.pbr_extensions.get("metallic", 0.0)  # Default: 0.0 (non-metallic)
         clearcoat = self.pbr_extensions.get("clearcoat", 0.0)  # Default: 0.0 (no clearcoat)
-        clearcoat_roughness = self.pbr_extensions.get("clearcoat_roughness",
-                                                      0.5)  # Default: 0.5 (average roughness for clearcoat)
+        clearcoat_roughness = self.pbr_extensions.get(
+            "clearcoat_roughness", 0.5
+        )  # Default: 0.5 (average roughness for clearcoat)
         sheen = self.pbr_extensions.get("sheen", 0.0)  # Default: 0.0 (no sheen)
         aniso = self.pbr_extensions.get("aniso", 0.0)  # Default: 0.0 (no anisotropy)
         anisor = self.pbr_extensions.get("anisor", 0.0)  # Default: 0.0 (no anisotropic rotation)
