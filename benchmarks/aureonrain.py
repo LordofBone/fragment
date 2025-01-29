@@ -84,7 +84,6 @@ def run_benchmark(
         loop=True,
         msaa_level=msaa_level,
         culling=True,
-        alpha_blending=True,
         lighting_mode="pbr",
         sound_enabled=sound_enabled,
         background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
