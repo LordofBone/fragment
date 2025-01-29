@@ -132,7 +132,7 @@ def run_benchmark(
             "aniso": 0.036697,  # aniso
             "anisor": 0.036697,  # anisor
             "transmission": [1.0, 1.0, 1.0],  # Tf
-            "fresnel_exponent": 0.2,  # from Pfe (non-standard parameter)
+            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
         },
     )
 
@@ -174,7 +174,7 @@ def run_benchmark(
             "aniso": 0.036697,  # aniso
             "anisor": 0.036697,  # anisor
             "transmission": [0.5, 0.5, 0.5],  # Tf
-            "fresnel_exponent": 0.2,  # from Pfe (non-standard parameter)
+            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
         },
     )
 
@@ -210,7 +210,7 @@ def run_benchmark(
             "aniso": 0.036697,  # aniso
             "anisor": 0.036697,  # anisor
             "transmission": (0.0, 0.0, 0.0),  # Tf
-            "fresnel_exponent": 0.2,  # from Pfe (non-standard parameter)
+            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
         },
     )
 
