@@ -904,9 +904,9 @@ class AbstractRenderer(ABC):
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "nearPlane"), self.near_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "farPlane"), self.far_plane)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacy_opacity"), self.legacy_opacity)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacyOpacity"), self.legacy_opacity)
 
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacy_roughness"), self.legacy_roughness)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacyRoughness"), self.legacy_roughness)
 
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "environmentMapStrength"), self.env_map_strength
