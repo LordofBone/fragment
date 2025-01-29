@@ -1,4 +1,5 @@
 #version 330 core
+#include "common_funcs.glsl"
 
 in vec2 TexCoords;
 in vec3 FragPos;
@@ -13,10 +14,15 @@ void main()
 {
     vec3 diffuseColor = texture(diffuseMap, TexCoords).rgb;
 
-    vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(vec3(0.0, 0.0, 1.0));
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 result = diffuseColor * diff;
+    vec3 resultColor = computeAmbientColor(diffuseColor);
 
-    FragColor = vec4(result, 1.0);
+    vec3 norm = normalize(Normal);
+    vec3 lightDir = normalize(vec3(4.0, 1.0, 1.0));
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 result = resultColor * diff;
+
+    // Incorporate `legacyOpacity` parameter
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(result, alpha);
 }

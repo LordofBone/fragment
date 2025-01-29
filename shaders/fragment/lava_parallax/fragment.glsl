@@ -7,13 +7,16 @@
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-
-// For POM
 in vec3 TangentFragPos;
 in vec3 TangentViewPos;
 in vec3 TangentLightPos;
-
 in vec4 FragPosLightSpace;
+in float FragPosW;
+
+// TBN rows
+in vec3 TBNrow0;
+in vec3 TBNrow1;
+in vec3 TBNrow2;
 
 // --------------------------------------------
 // Output
@@ -23,43 +26,44 @@ out vec4 FragColor;
 // --------------------------------------------
 // Uniforms
 // --------------------------------------------
-uniform samplerCube environmentMap;
 uniform sampler2D shadowMap;
 uniform vec3 cameraPos;
 
 // Toggling
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+uniform int lightingMode;
 uniform bool shadowingEnabled;
 
 // Shadow parameters
 uniform float surfaceDepth;
 uniform float shadowStrength;
 uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
 
-// Reflection intensity
-uniform float environmentMapStrength;
+// Additional color style
+uniform vec3 lavaBaseColor;// e.g. (1.0, 0.3, 0.0)
+uniform vec3 lavaBrightColor;// e.g. (1.0, 0.7, 0.0)
 
-// --------------------------------------------
-// Main
-// --------------------------------------------
 void main()
 {
+    // 1) Reconstruct TBN
+    mat3 TBN = mat3(TBNrow0, TBNrow1, TBNrow2);
+
+    // 2) View direction in world space
     vec3 viewDir = normalize(cameraPos - FragPos);
 
-    // 1) POM (Procedural Parallax Occlusion Mapping)
+    // 3) Parallax Occlusion Mapping
     float depthOffset = 0.0;
     vec2 workingTexCoords = TexCoords;
 
-    // If pomHeightScale > 0, apply the procedural parallax
     if (pomHeightScale > 0.0)
     {
-        // Convert the view direction into tangent space
+        // tangent-space view direction
         vec3 tangentViewDir = normalize(TangentViewPos - TangentFragPos);
 
-        // Use your ProceduralParallaxOcclusionMapping from common_funcs.glsl
         workingTexCoords = ProceduralParallaxOcclusionMapping(
         TexCoords,
         tangentViewDir,
@@ -68,93 +72,123 @@ void main()
         workingTexCoords = clamp(workingTexCoords, 0.0, 1.0);
     }
 
-    // 2) Wave-based distortion for lava
+    // 4) Wave-based distortion in tangent space
     vec2 waveTexCoords = workingTexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
+
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    // 3) Procedural wave normal (like lava)
-    vec3 normalMap = vec3(0.0, 0.0, 1.0);
+    // Start with "up" in tangent space
+    vec3 waveNormalTangent = vec3(0.0, 0.0, 1.0);
+
     float waveHeightX = sin(waveTexCoords.y * 10.0);
     float waveHeightY = cos(waveTexCoords.x * 10.0);
-    normalMap.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
-    normalMap = normalize(normalMap);
 
-    float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
+    waveNormalTangent.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
+    waveNormalTangent = normalize(waveNormalTangent);
 
-    // 4) Reflection from environment
-    vec3 reflectDir = reflect(-viewDir, normalMap);
-    vec3 reflection = texture(environmentMap, reflectDir).rgb * environmentMapStrength;
-    float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
+    float waveHeight = waveAmplitude * 0.5 * (waveHeightX + waveHeightY);
 
-    // 5) Lava base color
-    vec3 baseColor   = vec3(1.0, 0.3, 0.0);
-    vec3 brightColor = vec3(1.0, 0.7, 0.0);
+    // 5) Convert wave normal to WORLD space
+    vec3 finalNormal = normalize(TBN * waveNormalTangent);
 
+    // 6) Environment reflection (if desired)
+    vec3 reflectDir = reflect(-viewDir, finalNormal);
+    vec3 reflection = texture(environmentMap, reflectDir).rgb;
+    float fresnel = pow(1.0 - dot(viewDir, finalNormal), 3.0);
+
+    // 7) Lava base color
+    //    Blend between lavaBaseColor and lavaBrightColor
     float noiseValue = smoothNoise(TexCoords * 5.0 + time * 0.5);
-    vec3 lavaColor = mix(baseColor, brightColor, noiseValue);
+    vec3 lavaColor = mix(lavaBaseColor, lavaBrightColor, noiseValue);
 
-    // Mix lava + reflection (fresnel-based)
-    vec3 color = mix(lavaColor, reflection, fresnel * 0.2);
+    // Combine lava + reflection gently
+    // (reduce reflection with a small factor if you prefer)
+    vec3 combinedColor = mix(lavaColor, reflection, fresnel * 0.2);
 
-    // 6) Shadow (displaced for lava)
+    // 8) Shadows (displaced)
     float shadow = 0.0;
     if (shadowingEnabled)
     {
         shadow = ShadowCalculationDisplaced(
-        FragPos, // world-space pos
-        normalMap,
+        FragPos,
+        finalNormal,
         waveHeight,
         shadowMap,
         lightSpaceMatrix,
         model,
-        lightPositions[0], // pick your main light
-        0.05, // biasFactor
-        0.0005, // minBias
+        lightPositions[0],
+        0.05,
+        0.0005,
         shadowStrength,
         surfaceDepth
         );
     }
 
-    // 7) Local lighting (Phong or diffuse)
-    if (phongShading)
+    // 9) Local lighting
+    vec3 color;
+    if (lightingMode == 0)
     {
-        // Use lava color as base color
-        vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, color);
-        // Mix in partial darkness from shadow
-        color = mix(color, color * (1.0 - shadow * 0.5), 0.5) + phongColor * 0.5;
+        // Diffuse-only
+        vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, combinedColor, TexCoords);
+        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
+        color = diffuseColor;
     }
     else
     {
-        // Basic darkening by shadow
-        color = mix(color, color * (1.0 - shadow * 0.5), 1.0);
+        // Phong
+        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, combinedColor, TexCoords);
+        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
+        color = phongColor;
     }
 
-    // 8) Bubbles
+    // 10) Additional procedural stuff: bubbles, rocks, etc.
     float bubbleNoise = smoothNoise(TexCoords * 10.0 + time * 2.0);
     if (bubbleNoise > 0.8)
     {
-        color = brightColor;
+        color = lavaBrightColor;
     }
 
-    // 9) Rocks
     float rockNoise = smoothNoise(TexCoords * 20.0 + time * 0.1);
     if (rockNoise > 0.9)
     {
         color = mix(color, vec3(0.2, 0.2, 0.2), rockNoise - 0.9);
     }
 
-    // 10) Tone-mapping & gamma
+    // 11) Tone-mapping & gamma
     if (applyToneMapping)
     {
         color = toneMapping(color);
     }
     if (applyGammaCorrection)
     {
-        color = pow(color, vec3(1.0 / 2.2));
+        color = pow(color, vec3(1.0/2.2));
     }
 
-    color=clamp(color, 0.0, 1.0);
-    FragColor=vec4(color, 1.0);
+    color = clamp(color, 0.0, 1.0);
+
+    // 12) Incorporate `legacyOpacity` parameter
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(color, alpha);
+
+    // ---------------------------------------------------
+    // 13) Optional Depth Correction w/ clamp
+    // ---------------------------------------------------
+    if (pomHeightScale > 0.0 && depthOffset != 0.0 && enableFragDepthAdjustment) {
+        vec4 eyePos = view * vec4(FragPos, 1.0);
+
+        // Call the centralized function
+        adjustFragDepth(
+        eyePos,
+        projection,
+        vec4(FragPos, 1.0),
+        vec3[](TBNrow0, TBNrow1, TBNrow2),
+        depthOffset,
+        gl_FragDepth
+        );
+    } else {
+        gl_FragDepth = gl_FragCoord.z;
+    }
 }

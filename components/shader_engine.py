@@ -127,9 +127,7 @@ class ShaderEngine:
                         use_path = fallback_path
                     else:
                         raise FileNotFoundError(
-                            f"Included shader file not found in either:\n"
-                            f"  {include_path_local}\n"
-                            f"  {fallback_path}"
+                            f"Included shader file not found in either:\n  {include_path_local}\n  {fallback_path}"
                         )
 
                 # Read included file

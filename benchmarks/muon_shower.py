@@ -59,7 +59,15 @@ def run_benchmark(
         ambient_lighting_strength=0.55,
         ambient_lighting_color=(0.4, 1.0, 0.651),
         lights=[
-            {"position": (-0.10, 0.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {
+                "position": (-0.10, 0.0, 0.0),
+                "color": (1.0, 1.0, 1.0),
+                "strength": 1.0,
+                "orth_left": -25.0,
+                "orth_right": 25.0,
+                "orth_bottom": -25.0,
+                "orth_top": 25,
+            },
         ],
         near_plane=0.1,
         far_plane=5000,
@@ -110,9 +118,10 @@ def run_benchmark(
         particle_color=(0.973, 1.0, 0.541),
         particle_fade_to_color=True,
         particle_fade_color=(0.984, 0.988, 0.898),
-        phong_shading=True,
-        opacity=1.0,
-        shininess=0.75,
+        lighting_mode="phong",
+        alpha_blending=True,
+        legacy_opacity=1.0,
+        legacy_roughness=32,
         particle_gravity=(0.0, 0.0, 0.0),
         particle_bounce_factor=0.025,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane

@@ -10,20 +10,19 @@ in vec4 FragPosLightSpace;
 out vec4 FragColor;
 
 // Textures / uniforms
-uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
 
 // Toggling
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 uniform bool shadowingEnabled;
 
 // Shadow stuff
 uniform sampler2D shadowMap;
 uniform float surfaceDepth;
 uniform float shadowStrength;
-uniform float environmentMapStrength;
 
 // Transforms
 uniform mat4 model;
@@ -59,8 +58,8 @@ void main()
     float noiseValue = smoothNoise(TexCoords * 5.0 + time * 0.5);
     vec3 lavaColor = mix(baseColor, brightColor, noiseValue);
 
-    // Mix lava + reflection
-    vec3 color = mix(lavaColor, reflection, fresnel * 0.2);
+    // Mix lava + reflection based on Fresnel
+    vec3 envColor = mix(lavaColor, reflection, fresnel * 0.2);
 
     // Shadow
     float shadow = 0.0;
@@ -82,15 +81,20 @@ void main()
     }
 
     // Lighting
-    if (phongShading)
+    vec3 color = vec3(0.0);
+    if (lightingMode == 0)
     {
-        vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, color);
-        color = mix(color, color * (1.0 - shadow * 0.5), 0.5) + phongColor * 0.5;
+        // Diffuse lighting
+        color = computeDiffuseLighting(normalMap, viewDir, FragPos, envColor, TexCoords);
     }
-    else
+    else if (lightingMode >= 1)
     {
-        color = mix(color, color * (1.0 - shadow * 0.5), 1.0);
+        // Phong lighting
+        color = computePhongLighting(normalMap, viewDir, FragPos, envColor, TexCoords);
     }
+
+    // Apply shadow
+    color = mix(color, color * (1.0 - shadow * 0.5), shadowStrength);
 
     // Bubbles
     float bubbleNoise = smoothNoise(TexCoords * 10.0 + time * 2.0);
@@ -106,6 +110,7 @@ void main()
         color = mix(color, vec3(0.2, 0.2, 0.2), rockNoise - 0.9);
     }
 
+    // Tone Mapping and Gamma Correction
     if (applyToneMapping)
     {
         color = toneMapping(color);
@@ -115,5 +120,8 @@ void main()
         color = pow(color, vec3(1.0 / 2.2));
     }
 
-    FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    // Incorporate `legacyOpacity` parameter
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
 }

@@ -70,10 +70,10 @@ def run_benchmark(
                 "position": (8.85, 7.0, 22.0),
                 "color": (0.757, 0.902, 1),
                 "strength": 1.0,
-                "orth_left": -120.0,
-                "orth_right": 120.0,
-                "orth_bottom": -120.0,
-                "orth_top": 120,
+                "orth_left": -25.0,
+                "orth_right": 25.0,
+                "orth_bottom": -25.0,
+                "orth_top": 25,
             }
         ],
         planar_fragment_view_threshold=-1.0,
@@ -84,7 +84,7 @@ def run_benchmark(
         loop=True,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        lighting_mode="pbr",
         sound_enabled=sound_enabled,
         background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
         audio_delay=0.0,
@@ -105,23 +105,35 @@ def run_benchmark(
         },
         shader_names={
             "vertex": "standard",
-            "fragment": "stealth",
+            "fragment": "embm",
         },
-        opacity=0.0,
+        legacy_opacity=0.0,
+        legacy_roughness=32,
         distortion_strength=0.2,
-        reflection_strength=0.0,
+        refraction_strength=0.3,
         planar_camera=True,
+        planar_fov=30,
         planar_resolution=(1024, 1024),
-        planar_fov=90,
-        planar_camera_position_rotation=(0.0, 3.0, 0.0, 0.0, 0.0),
+        planar_camera_position_rotation=(0.0, 2.0, 5.0, 0.0, -10.0),
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
-        flip_planar_horizontally=True,
+        flip_planar_horizontally=False,
         flip_planar_vertically=False,
         use_planar_normal_distortion=True,
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
+        pbr_extensions={
+            "roughness": 0.399083,  # Pr
+            "metallic": 0.064220,  # Pm
+            "clearcoat": 0.110092,  # Pc
+            "clearcoat_roughness": 0.039174,  # Pcr
+            "sheen": 0.036697,  # Ps
+            "aniso": 0.036697,  # aniso
+            "anisor": 0.036697,  # anisor
+            "transmission": [1.0, 1.0, 1.0],  # Tf
+            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
+        },
     )
 
     # Define the configuration for the opaque pyramid model
@@ -135,23 +147,35 @@ def run_benchmark(
         },
         shader_names={
             "vertex": "standard",
-            "fragment": "stealth",
+            "fragment": "embm",
         },
-        opacity=0.5,
+        legacy_opacity=0.5,
+        legacy_roughness=32,
         distortion_strength=0.2,
-        reflection_strength=0.4,
+        refraction_strength=0.0,
         planar_camera=True,
+        planar_fov=120,
         planar_resolution=(1024, 1024),
-        planar_fov=90,
-        planar_camera_position_rotation=(0.0, 1.0, 0.0, 120.0, 25.0),
-        flip_planar_horizontally=False,
+        planar_camera_position_rotation=(0.0, 1.0, 0.0, 180.0, 0.0),
+        flip_planar_horizontally=True,
         flip_planar_vertically=False,
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
-        use_planar_normal_distortion=True,
+        use_planar_normal_distortion=False,
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
+        pbr_extensions={
+            "roughness": 0.399083,  # Pr
+            "metallic": 0.064220,  # Pm
+            "clearcoat": 0.110092,  # Pc
+            "clearcoat_roughness": 0.039174,  # Pcr
+            "sheen": 0.036697,  # Ps
+            "aniso": 0.036697,  # aniso
+            "anisor": 0.036697,  # anisor
+            "transmission": [0.5, 0.5, 0.5],  # Tf
+            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
+        },
     )
 
     # Define the configuration for the rotating pyramid model
@@ -166,12 +190,28 @@ def run_benchmark(
             "vertex": "parallax_mapping",
             "fragment": "parallax_mapping",
         },
-        invert_displacement_map=False,
+        legacy_roughness=32,
+        invert_displacement_map=True,
         pom_height_scale=0.016,
         pom_min_steps=128,
         pom_max_steps=512,
+        pom_eye_offset_scale=1.0,
+        pom_max_depth_clamp=0.99,
+        pom_max_forward_offset=1.0,
+        pom_enable_frag_depth_adjustment=False,
         texture_lod_bias=0.0,
         env_map_lod_bias=1.5,
+        pbr_extensions={
+            "roughness": 0.399083,  # Pr
+            "metallic": 0.064220,  # Pm
+            "clearcoat": 0.110092,  # Pc
+            "clearcoat_roughness": 0.039174,  # Pcr
+            "sheen": 0.036697,  # Ps
+            "aniso": 0.036697,  # aniso
+            "anisor": 0.036697,  # anisor
+            "transmission": (0.0, 0.0, 0.0),  # Tf
+            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
+        },
     )
 
     # Define the configuration for the particle renderer
@@ -200,8 +240,8 @@ def run_benchmark(
         particle_color=(0.18, 0.698, 1.0),
         particle_fade_to_color=True,
         particle_fade_color=(0.0, 0.0, 0.0),
-        opacity=0.85,
-        shininess=5.0,
+        legacy_opacity=0.85,
+        legacy_roughness=32,
         particle_gravity=(-8.5, -9.81, 5),
         particle_bounce_factor=0.28,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
@@ -222,14 +262,24 @@ def run_benchmark(
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
         shader_names={
-            "vertex": "standard",
-            "fragment": "water",
+            "vertex": "parallax_mapping",
+            "fragment": "water_parallax",
         },
-        wave_speed=6.0,
-        wave_amplitude=0.8,
-        randomness=7200.0,
-        tex_coord_frequency=2000.0,
-        tex_coord_amplitude=0.010,
+        invert_displacement_map=True,
+        pom_height_scale=0.064,
+        pom_min_steps=128,
+        pom_max_steps=512,
+        pom_eye_offset_scale=1.0,
+        pom_max_depth_clamp=0.99,
+        pom_max_forward_offset=1.0,
+        pom_enable_frag_depth_adjustment=False,
+        legacy_roughness=32,
+        wave_speed=0.2,
+        wave_amplitude=1.0,
+        wave_detail=7.0,
+        randomness=800.0,
+        tex_coord_frequency=500.0,
+        tex_coord_amplitude=0.03,
         width=1000.0,
         height=1000.0,
         surface_depth=10.0,

@@ -24,6 +24,7 @@ class SceneConstructor:
         """
         Rotate a renderer in the scene by 'angle' (degrees) around 'axis' (x,y,z).
         This is the original approach, rotating about a single axis by 'angle' degrees.
+        Note: Has issues with rotating surfaces, will cause weird shadow issues.
         """
         self._apply_to_renderer(name, lambda r: r.rotate(angle, axis))
 

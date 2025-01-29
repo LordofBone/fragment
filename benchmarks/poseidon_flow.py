@@ -46,20 +46,21 @@ def run_benchmark(
         ambient_lighting_strength=0.72,
         ambient_lighting_color=(0.349, 0.647, 0.902),
         lights=[
-            {"position": (8.0, -10.0, 0.0),
-             "color": (0.949, 0.463, 0.247),
-             "strength": 1.0,
-             "orth_left": -90.0,
-             "orth_right": 90.0,
-             "orth_bottom": -90.0,
-             "orth_top": 90,
-             },
+            {
+                "position": (8.0, -10.0, 0.0),
+                "color": (0.949, 0.463, 0.247),
+                "strength": 1.0,
+                "orth_left": -90.0,
+                "orth_right": 90.0,
+                "orth_bottom": -90.0,
+                "orth_top": 90,
+            },
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        lighting_mode="phong",
     )
 
     # Create the rendering instance with the base configuration
@@ -72,6 +73,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "water",
         },
+        legacy_roughness=32,
         wave_speed=6.0,
         wave_amplitude=0.8,
         randomness=550.0,
@@ -79,7 +81,7 @@ def run_benchmark(
         tex_coord_amplitude=0.01,
         width=5000.0,
         height=5000.0,
-        env_map_strength=1.0,
+        env_map_strength=0.65,
     )
 
     # Define the configuration for the skybox

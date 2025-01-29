@@ -41,17 +41,49 @@ def run_benchmark(
         ambient_lighting_strength=0.05,
         ambient_lighting_color=(0.878, 0.98, 0.714),
         lights=[
-            {"position": (6.85, 5.0, 4.0), "color": (0.671, 0.902, 0.98), "strength": 0.67},
-            {"position": (0.0, -5.0, -10.0), "color": (0.671, 0.902, 0.98), "strength": 0.6},
-            {"position": (2.2, 6.0, -4.0), "color": (0.969, 0.863, 0.431), "strength": 0.7},
-            {"position": (2.2, -2.0, 0.0), "color": (0.969, 0.863, 0.431), "strength": 0.42},
+            {
+                "position": (6.85, 5.0, 4.0),
+                "color": (0.671, 0.902, 0.98),
+                "strength": 0.87,
+                "orth_left": -25.0,
+                "orth_right": 25.0,
+                "orth_bottom": -25.0,
+                "orth_top": 25,
+            },
+            {
+                "position": (0.0, -5.0, -10.0),
+                "color": (0.671, 0.902, 0.98),
+                "strength": 0.8,
+                "orth_left": -50.0,
+                "orth_right": 50.0,
+                "orth_bottom": -50.0,
+                "orth_top": 50,
+            },
+            {
+                "position": (2.2, 6.0, -4.0),
+                "color": (0.969, 0.863, 0.431),
+                "strength": 0.9,
+                "orth_left": -50.0,
+                "orth_right": 50.0,
+                "orth_bottom": -50.0,
+                "orth_top": 50,
+            },
+            {
+                "position": (2.2, -2.0, 0.0),
+                "color": (0.969, 0.863, 0.431),
+                "strength": 0.54,
+                "orth_left": -50.0,
+                "orth_right": 50.0,
+                "orth_bottom": -50.0,
+                "orth_top": 50,
+            },
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        lighting_mode="pbr",
     )
 
     # Create the rendering instance with the base configuration
@@ -70,11 +102,23 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "embm",
         },
+        legacy_roughness=32,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         env_map_strength=0.45,
         texture_lod_bias=1.1,
         env_map_lod_bias=0.0,
+        pbr_extensions={
+            "roughness": 0.399083,  # Pr
+            "metallic": 0.064220,  # Pm
+            "clearcoat": 0.110092,  # Pc
+            "clearcoat_roughness": 0.039174,  # Pcr
+            "sheen": 0.036697,  # Ps
+            "aniso": 0.036697,  # aniso
+            "anisor": 0.036697,  # anisor
+            "transmission": [0.0, 0.0, 0.0],  # Tf
+            "fresnel_exponent": 0.2,  # from Pfe (non-standard parameter)
+        },
     )
 
     # Define the configuration for the skybox

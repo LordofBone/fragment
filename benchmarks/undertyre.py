@@ -39,14 +39,22 @@ def run_benchmark(
         ambient_lighting_strength=0.25,
         ambient_lighting_color=(1.0, 0.996, 0.753),
         lights=[
-            {"position": (12.5, 8.0, -7.0), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {
+                "position": (6.0, 0.0, 0.0),
+                "color": (1.0, 1.0, 1.0),
+                "strength": 1.0,
+                "orth_left": -25.0,
+                "orth_right": 25.0,
+                "orth_bottom": -25.0,
+                "orth_top": 25,
+            }
         ],
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        lighting_mode="pbr",
     )
 
     # Create the rendering instance with the base configuration
@@ -68,12 +76,29 @@ def run_benchmark(
         },
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        legacy_roughness=32,
         invert_displacement_map=True,
         pom_height_scale=0.016,
         pom_min_steps=128,
         pom_max_steps=512,
+        pom_eye_offset_scale=1.0,
+        pom_max_depth_clamp=0.99,
+        pom_max_forward_offset=1.0,
+        pom_enable_frag_depth_adjustment=False,
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
+        env_map_strength=0.025,
+        pbr_extensions={
+            "roughness": 0.830355,  # Pr
+            "metallic": 0.000000,  # Pm
+            "clearcoat": 2.275229,  # Pc
+            "clearcoat_roughness": 0.841927,  # Pcr
+            "sheen": 0.077798,  # Ps
+            "aniso": 0.504587,  # aniso
+            "anisor": 0.770642,  # anisor
+            "transmission": (0.0, 0.0, 0.0),  # Tf
+            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
+        },
     )
 
     # Define the configuration for the skybox
@@ -89,10 +114,10 @@ def run_benchmark(
     instance.add_renderer("tyre", "model", **tyre_config)
 
     # Translate the tyre model to a specific position, to get best view of skybox
-    instance.scene_construct.translate_renderer("tyre", (-6.85, 0.0, 6.5))
+    instance.scene_construct.translate_renderer("tyre", (-5.0, 0.0, 6.5))
 
     # Slightly tilt the model forward by 45° about X:
-    instance.scene_construct.rotate_renderer("tyre", 45, (0.0, 1.0, 0.0))
+    instance.scene_construct.rotate_renderer("tyre", 0, (0.0, 1.0, 0.0))
 
     # Then enable autorotation around X at speed 4000:
     instance.scene_construct.set_auto_rotation("tyre", True, axis=(0.0, 0, 1), speed=4000.0)

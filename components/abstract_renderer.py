@@ -114,8 +114,8 @@ class AbstractRenderer(ABC):
         fov=45,
         near_plane=0.1,
         far_plane=100,
-            ambient_lighting_strength=0.0,
-            ambient_lighting_color=(0.0, 0.0, 0.0),
+        ambient_lighting_strength=0.0,
+        ambient_lighting_color=(0.0, 0.0, 0.0),
         lights=None,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
@@ -132,21 +132,25 @@ class AbstractRenderer(ABC):
         front_face_winding="CCW",
         window_size=(800, 600),
         invert_displacement_map=False,
-            pom_height_scale=0.016,
+        pom_height_scale=0.016,
         pom_min_steps=8,
         pom_max_steps=32,
+        pom_eye_offset_scale=1.0,
+        pom_max_depth_clamp=0.99,
+        pom_max_forward_offset=1.0,
+        pom_enable_frag_depth_adjustment=False,
         shadow_map_resolution=2048,
-            lighting_mode=0,
-        opacity=1.0,
-        shininess=1.0,
+        lighting_mode="diffuse",
+        legacy_opacity=1.0,
+        legacy_roughness=32,
         env_map_strength=0.5,
         distortion_strength=0.3,
-        reflection_strength=0.0,
+        refraction_strength=0.3,
         distortion_warped=False,
-            flip_planar_horizontally=False,
-            flip_planar_vertically=False,
-            use_planar_normal_distortion=False,
-            planar_fragment_view_threshold=0.0,
+        flip_planar_horizontally=False,
+        flip_planar_vertically=False,
+        use_planar_normal_distortion=False,
+        planar_fragment_view_threshold=0.0,
         screen_texture=None,
         planar_camera=False,
         planar_resolution=(1024, 1024),
@@ -218,12 +222,16 @@ class AbstractRenderer(ABC):
         self.pom_height_scale = pom_height_scale
         self.pom_min_steps = pom_min_steps
         self.pom_max_steps = pom_max_steps
+        self.pom_eye_offset_scale = pom_eye_offset_scale
+        self.pom_max_depth_clamp = pom_max_depth_clamp
+        self.pom_max_forward_offset = pom_max_forward_offset
+        self.pom_enable_frag_depth_adjustment = pom_enable_frag_depth_adjustment
 
-        self.opacity = opacity
-        self.shininess = shininess
+        self.legacy_opacity = legacy_opacity
+        self.legacy_roughness = legacy_roughness
         self.env_map_strength = env_map_strength
         self.distortion_strength = distortion_strength
-        self.reflection_strength = reflection_strength
+        self.refraction_strength = refraction_strength
         self.distortion_warped = distortion_warped
 
         self.screen_texture = screen_texture
@@ -261,7 +269,13 @@ class AbstractRenderer(ABC):
         self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = glm.vec3(*ambient_lighting_color)
 
-        self.lighting_mode = lighting_mode
+        self.water_base_color = glm.vec3(self.dynamic_attrs.get("water_base_color", (0.0, 0.0, 0.0)))
+        self.lava_base_color = glm.vec3(self.dynamic_attrs.get("lava_base_color", (0.0, 0.0, 0.0)))
+        self.lava_bright_color = glm.vec3(self.dynamic_attrs.get("lava_bright_color", (0.0, 0.0, 0.0)))
+
+        self.dynamic_attrs.get("randomness", 0.8)
+
+        self.lighting_mode = {"diffuse": 0, "phong": 1, "pbr": 2}.get(lighting_mode, 0)
 
         self.lights_enabled = lights is not None
         if self.lights_enabled:
@@ -502,10 +516,7 @@ class AbstractRenderer(ABC):
         # 8) Planar projection
         aspect_ratio = self.planar_resolution[0] / self.planar_resolution[1]
         self.planar_projection = glm.perspective(
-            glm.radians(self.planar_fov),
-            aspect_ratio,
-            self.planar_near_plane,
-            self.planar_far_plane
+            glm.radians(self.planar_fov), aspect_ratio, self.planar_near_plane, self.planar_far_plane
         )
 
         # 9) Render
@@ -522,11 +533,7 @@ class AbstractRenderer(ABC):
         # Optional read-back for debugging
         if self.debug_mode and not self.screen_facing_planar_screenshotted:
             glBindTexture(GL_TEXTURE_2D, self.screen_texture)
-            data = glReadPixels(
-                0, 0,
-                self.planar_resolution[0], self.planar_resolution[1],
-                GL_RGB, GL_UNSIGNED_BYTE
-            )
+            data = glReadPixels(0, 0, self.planar_resolution[0], self.planar_resolution[1], GL_RGB, GL_UNSIGNED_BYTE)
             image = Image.frombytes("RGB", self.planar_resolution, data)
             image = image.transpose(Image.FLIP_TOP_BOTTOM)
             if not os.path.exists(screenshots_dir):
@@ -748,6 +755,10 @@ class AbstractRenderer(ABC):
             )
             glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(light["color"]))
             glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), light["strength"])
+            glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoLeft[{i}]"), light["orth_left"])
+            glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoRight[{i}]"), light["orth_right"])
+            glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoBottom[{i}]"), light["orth_bottom"])
+            glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoTop[{i}]"), light["orth_top"])
 
         glUniform1i(glGetUniformLocation(shader_program, "lightingMode"), self.lighting_mode)
 
@@ -853,6 +864,19 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "pomHeightScale"), self.pom_height_scale)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMinSteps"), self.pom_min_steps)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMaxSteps"), self.pom_max_steps)
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "parallaxEyeOffsetScale"), self.pom_eye_offset_scale
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "parallaxMaxDepthClamp"), self.pom_max_depth_clamp
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "maxForwardOffset"), self.pom_max_forward_offset
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "enableFragDepthAdjustment"),
+            int(self.pom_enable_frag_depth_adjustment),
+        )
 
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientStrength"), self.ambient_lighting_strength
@@ -877,9 +901,9 @@ class AbstractRenderer(ABC):
 
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "nearPlane"), self.near_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "farPlane"), self.far_plane)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "opacity"), self.opacity)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacyOpacity"), self.legacy_opacity)
 
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shininess"), self.shininess)
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacyRoughness"), self.legacy_roughness)
 
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "environmentMapStrength"), self.env_map_strength
@@ -890,10 +914,8 @@ class AbstractRenderer(ABC):
         )
 
         glUniform1f(
-            glGetUniformLocation(self.shader_engine.shader_program, "reflectionStrength"), self.reflection_strength
+            glGetUniformLocation(self.shader_engine.shader_program, "refractionStrength"), self.refraction_strength
         )
-
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "warped"), self.distortion_warped)
 
         glUniform2f(
             glGetUniformLocation(self.shader_engine.shader_program, "screenResolution"),
@@ -903,22 +925,24 @@ class AbstractRenderer(ABC):
 
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "flipPlanarHorizontal"),
-            int(self.flip_planar_horizontally)
+            int(self.flip_planar_horizontally),
         )
 
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "flipPlanarVertical"),
-            int(self.flip_planar_vertically)
+            int(self.flip_planar_vertically),
         )
 
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "usePlanarNormalDistortion"),
-            int(self.use_planar_normal_distortion)
+            int(self.use_planar_normal_distortion),
         )
 
-        (glUniform1f(
-            glGetUniformLocation(self.shader_engine.shader_program, "planarFragmentViewThreshold"),
-            self.planar_fragment_view_threshold)
+        (
+            glUniform1f(
+                glGetUniformLocation(self.shader_engine.shader_program, "planarFragmentViewThreshold"),
+                self.planar_fragment_view_threshold,
+            )
         )
 
         if self.screen_texture:
@@ -935,6 +959,24 @@ class AbstractRenderer(ABC):
             int(self.dynamic_attrs.get("use_checker_pattern", 1)),
         )
 
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "waterBaseColor"),
+            1,
+            glm.value_ptr(self.water_base_color),
+        )
+
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "lavaBaseColor"),
+            1,
+            glm.value_ptr(self.lava_base_color),
+        )
+
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "lavaBrightColor"),
+            1,
+            glm.value_ptr(self.lava_bright_color),
+        )
+
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "waveSpeed"),
             self.dynamic_attrs.get("wave_speed", 10.0),
@@ -943,6 +985,11 @@ class AbstractRenderer(ABC):
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "waveAmplitude"),
             self.dynamic_attrs.get("wave_amplitude", 0.1),
+        )
+
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "waveDetail"),
+            self.dynamic_attrs.get("wave_detail", 10.0),
         )
 
         glUniform1f(
