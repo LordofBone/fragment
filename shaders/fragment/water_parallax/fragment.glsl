@@ -129,10 +129,13 @@ void main()
         color = pow(color, vec3(1.0 / 2.2));
     }
 
-    FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    // 12) Incorporate `legacyOpacity` parameter
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
 
     // ---------------------------------------------------
-    // 12) Optional Depth Correction w/ clamp
+    // 13) Optional Depth Correction w/ clamp
     // ---------------------------------------------------
     if (pomHeightScale > 0.0 && depthOffset != 0.0 && enableFragDepthAdjustment) {
         vec4 eyePos = view * vec4(FragPos, 1.0);

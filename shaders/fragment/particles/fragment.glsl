@@ -79,9 +79,9 @@ void main()
         alphaBase = 1.0 - lifetimePercentageToFragment;
     }
 
-    // Incorporate `legacyOpacity` parameter
-    float alpha = clamp(alphaBase * legacyOpacity, 0.0, 1.0);
+    // 6) Incorporate `legacyOpacity` parameter
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
 
-    // 6) Output final
+    // 7) Output final
     finalColor = vec4(finalColorRGB, alpha);
 }

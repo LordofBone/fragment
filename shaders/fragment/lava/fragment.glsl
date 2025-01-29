@@ -120,5 +120,8 @@ void main()
         color = pow(color, vec3(1.0 / 2.2));
     }
 
-    FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    // Incorporate `legacyOpacity` parameter
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
 }
