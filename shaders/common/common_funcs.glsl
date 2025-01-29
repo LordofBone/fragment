@@ -75,8 +75,8 @@ uniform float lightOrthoLeft[10];
 uniform float lightOrthoRight[10];
 uniform float lightOrthoBottom[10];
 uniform float lightOrthoTop[10];
-uniform float legacy_roughness;
-uniform float legacy_opacity;
+uniform float legacyRoughness;
+uniform float legacyOpacity;
 
 ///////////////////////////////////////////////////////////
 // Extended PBR Material Struct for .mtl Data
@@ -544,9 +544,9 @@ vec2 texCoords
     vec3 reflectDir = reflect(-viewDir, normal);
     vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// user-defined sampler
 
-    // 5) Roughness factor? if we want a "legacy_roughness" uniform
+    // 5) Roughness factor? if we want a "legacyRoughness" uniform
     //    We'll do a simple "roughnessFactor" => less reflection if high roughness
-    float roughnessFactor = clamp(1.0 - (legacy_roughness / 100.0), 0.0, 1.0);
+    float roughnessFactor = clamp(1.0 - (legacyRoughness / 100.0), 0.0, 1.0);
 
     // 6) Blend environment reflection inversely based on roughness
     result = mix(result, result + envColor, environmentMapStrength * roughnessFactor);
@@ -599,9 +599,9 @@ vec2 texCoords
         backgroundColor = fallbackColor;
     }
 
-    // 7d) legacy_opacity => how much "lighting" vs. "backgroundColor"
-    // If legacy_opacity==1 => fully the object, 0 => fully background
-    vec3 finalOut = mix(backgroundColor, result, legacy_opacity);
+    // 7d) legacyOpacity => how much "lighting" vs. "backgroundColor"
+    // If legacyOpacity==1 => fully the object, 0 => fully background
+    vec3 finalOut = mix(backgroundColor, result, legacyOpacity);
 
     // Return
     return finalOut;
@@ -647,7 +647,7 @@ vec2 texCoords
 
             // Blinn–Phong spec with user-defined roughness
             vec3 halfwayDir = normalize(lightDir + viewDir);
-            float spec = pow(max(dot(normal, halfwayDir), 0.0), legacy_roughness);
+            float spec = pow(max(dot(normal, halfwayDir), 0.0), legacyRoughness);
             specular += spec * specularColor * lightColors[i] * lightStrengths[i];
         }
     }
@@ -708,8 +708,8 @@ vec2 texCoords
         backgroundColor = fallbackColor;
     }
 
-    // d) Mix based on legacy_opacity
-    vec3 finalOut = mix(backgroundColor, result, legacy_opacity);
+    // d) Mix based on legacyOpacity
+    vec3 finalOut = mix(backgroundColor, result, legacyOpacity);
 
     return finalOut;
 }
@@ -1134,7 +1134,7 @@ vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 
             // Blinn-Phong spec
             vec3 halfwayDir= normalize(lightDir + viewDir);
             float specAngle= max(dot(normal, halfwayDir), 0.0);
-            float spec= pow(specAngle, max(legacy_roughness, 0.0));
+            float spec= pow(specAngle, max(legacyRoughness, 0.0));
             specular += attenuation * spec * lightColors[i] * lightStrengths[i];
         }
     }
