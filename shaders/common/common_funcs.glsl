@@ -576,7 +576,7 @@ vec2 texCoords
 
     // 7c) Screen-facing check
     float facing = dot(normal, viewDir);
-    vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+    vec3 fallbackColor = vec3(0.0, 0.0, 0.0);
     vec3 backgroundColor = fallbackColor;
 
     if (screenFacingPlanarTexture)
@@ -686,7 +686,7 @@ vec2 texCoords
 
     // c) Screen-facing check
     float facing = dot(normal, viewDir);
-    vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+    vec3 fallbackColor = vec3(0.0, 0.0, 0.0);
     vec3 backgroundColor = fallbackColor;
 
     if (screenFacingPlanarTexture)
@@ -1022,7 +1022,7 @@ vec2 texCoords// For normal-based distortion if desired
 
         // 4) "screenFacingPlanarTexture" logic
         float facing = dot(N, V);
-        vec3 fallbackColor = vec3(0.2, 0.2, 0.2);
+        vec3 fallbackColor = vec3(0.0, 0.0, 0.0);
         vec3 refr2D;
 
         if (screenFacingPlanarTexture)
