@@ -105,16 +105,16 @@ def run_benchmark(
         },
         shader_names={
             "vertex": "standard",
-            "fragment": "stealth",
+            "fragment": "embm",
         },
-        opacity=0.0,
+        legacy_opacity=0.0,
         legacy_roughness=32,
         distortion_strength=0.2,
-        reflection_strength=0.0,
+        refraction_strength=0.3,
         planar_camera=True,
         planar_fov=30,
         planar_resolution=(1024, 1024),
-        planar_camera_position_rotation=(0.0, 2.0, 5.0, 0.0, 0.0),
+        planar_camera_position_rotation=(0.0, 2.0, 5.0, 0.0, -10.0),
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
         flip_planar_horizontally=False,
@@ -123,6 +123,17 @@ def run_benchmark(
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
+        pbr_extensions={
+            "roughness": 0.399083,  # Pr
+            "metallic": 0.064220,  # Pm
+            "clearcoat": 0.110092,  # Pc
+            "clearcoat_roughness": 0.039174,  # Pcr
+            "sheen": 0.036697,  # Ps
+            "aniso": 0.036697,  # aniso
+            "anisor": 0.036697,  # anisor
+            "transmission": [1.0, 1.0, 1.0],  # Tf
+            "fresnel_exponent": 0.2,  # from Pfe (non-standard parameter)
+        },
     )
 
     # Define the configuration for the opaque pyramid model
@@ -136,24 +147,35 @@ def run_benchmark(
         },
         shader_names={
             "vertex": "standard",
-            "fragment": "stealth",
+            "fragment": "embm",
         },
-        opacity=0.5,
+        legacy_opacity=0.5,
         legacy_roughness=32,
         distortion_strength=0.2,
-        reflection_strength=0.4,
+        refraction_strength=0.0,
         planar_camera=True,
-        planar_fov=90,
+        planar_fov=120,
         planar_resolution=(1024, 1024),
-        planar_camera_position_rotation=(0.0, 1.0, 0.0, 120.0, 0.0),
+        planar_camera_position_rotation=(0.0, 1.0, 0.0, 180.0, 0.0),
         flip_planar_horizontally=True,
         flip_planar_vertically=False,
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
-        use_planar_normal_distortion=True,
+        use_planar_normal_distortion=False,
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
+        pbr_extensions={
+            "roughness": 0.399083,  # Pr
+            "metallic": 0.064220,  # Pm
+            "clearcoat": 0.110092,  # Pc
+            "clearcoat_roughness": 0.039174,  # Pcr
+            "sheen": 0.036697,  # Ps
+            "aniso": 0.036697,  # aniso
+            "anisor": 0.036697,  # anisor
+            "transmission": [0.5, 0.5, 0.5],  # Tf
+            "fresnel_exponent": 0.2,  # from Pfe (non-standard parameter)
+        },
     )
 
     # Define the configuration for the rotating pyramid model
@@ -187,6 +209,8 @@ def run_benchmark(
             "sheen": 0.036697,  # Ps
             "aniso": 0.036697,  # aniso
             "anisor": 0.036697,  # anisor
+            "transmission": (0.0, 0.0, 0.0),  # Tf
+            "fresnel_exponent": 0.2,  # from Pfe (non-standard parameter)
         },
     )
 
@@ -216,7 +240,7 @@ def run_benchmark(
         particle_color=(0.18, 0.698, 1.0),
         particle_fade_to_color=True,
         particle_fade_color=(0.0, 0.0, 0.0),
-        opacity=0.85,
+        legacy_opacity=0.85,
         legacy_roughness=32,
         particle_gravity=(-8.5, -9.81, 5),
         particle_bounce_factor=0.28,  # Standard bounce factor
