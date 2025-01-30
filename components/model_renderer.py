@@ -396,6 +396,85 @@ class ModelRenderer(AbstractRenderer):
 
     def apply_material(self, material):
         """
+        # Material Parameter Legend and Descriptions
+
+        ## Basic Fields (handled by pywavefront)
+        1. `ambient` (`Ka` in .mtl)
+           - Description: The ambient reflectivity of the material. Defines the color under ambient light.
+           - Typical Range: RGB values (0.0–1.0).
+
+        2. `diffuse` (`Kd` in .mtl)
+           - Description: The diffuse reflectivity of the material. Defines how the material reflects light diffusely.
+           - Typical Range: RGB values (0.0–1.0).
+
+        3. `specular` (`Ks` in .mtl)
+           - Description: The specular reflectivity of the material. Defines the color of the specular highlights.
+           - Typical Range: RGB values (0.0–1.0).
+
+        4. `shininess` (`Ns` in .mtl)
+           - Description: The specular exponent, controlling the size and sharpness of specular highlights.
+           - Typical Range: Float (0–1000; clamped in shaders).
+
+        5. `transparency` (`d` in .mtl)
+           - Description: The transparency (or alpha) of the material. `1.0` is opaque, `0.0` is fully transparent.
+           - Typical Range: Float (0.0–1.0).
+           - Note: Pywavefront provides `transparency` directly, which is equivalent to `d` in .mtl.
+
+        6. `ior` (`Ni` in .mtl)
+           - Description: The index of refraction for transparent materials, like glass.
+           - Typical Range: Float (>1.0; e.g., 1.45 for glass).
+
+        7. `emissive` (`Ke` in .mtl)
+           - Description: The emissive color of the material. Acts as if the material emits light.
+           - Typical Range: RGB values (0.0–1.0).
+
+        8. `illumination_model` (`illum` in .mtl)
+           - Description: Specifies the lighting model:
+             - `0`: Color only, no shading.
+             - `1`: Diffuse shading only.
+             - `2`: Diffuse + specular highlights.
+           - Typical Range: Integer.
+
+        ---
+
+        ## PBR Extensions (NOT handled by pywavefront; must be added manually)
+        9. `roughness` (`Pr` in Blender .mtl)
+           - Description: Controls surface roughness. Low values result in smooth, shiny surfaces; high values create rough, diffuse surfaces.
+           - Typical Range: Float (0.0–1.0).
+           - Default: 0.5 (fallback).
+
+        10. `metallic` (`Pm` in Blender .mtl)
+            - Description: Defines whether the material behaves like a metal (1.0) or a dielectric (0.0).
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.0 (fallback).
+
+        11. `clearcoat` (`Pc` in Blender .mtl)
+            - Description: Adds a reflective clearcoat layer to the material.
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.0 (fallback).
+
+        12. `clearcoatRoughness` (`Pcr` in Blender .mtl)
+            - Description: Controls the roughness of the clearcoat layer.
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.03 (fallback).
+
+        13. `sheen` (`Ps` in Blender .mtl)
+            - Description: Simulates soft, fuzzy reflections for materials like velvet.
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.0 (fallback).
+
+        14. `anisotropy` (`aniso` in Blender .mtl)
+            - Description: Simulates directional reflections, such as brushed metal.
+            - Typical Range: Float (-1.0 to 1.0).
+            - Default: 0.0 (fallback).
+
+        15. `anisotropyRot` (`anisor` in Blender .mtl)
+            - Description: Rotates the anisotropic reflection pattern.
+            - Typical Range: Float (0.0–1.0).
+            - Default: 0.0 (fallback).
+
+        ---
+
         Sets all the fields of our extended 'Material' struct in GLSL,
         based on what pywavefront loads + any PBR extensions we parsed from the .mtl.
         If any fields are missing, we provide a default fallback.
