@@ -86,7 +86,6 @@ struct Material {
     vec3 ambient;// from Ka
     vec3 diffuse;// from Kd
     vec3 specular;// from Ks
-    float shininess;// from Ns
     vec3 emissive;// from Ke
     float fresnelExponent;// from Pfe (non-standard parameter)
     int illuminationModel;// from illum
@@ -785,20 +784,9 @@ vec3 fresnelSchlickExponent(float cosTheta, vec3 F0, float exponent)
 ////////////////////////////////////////////////////////////////////////
 // 2) Additional Helpers
 ////////////////////////////////////////////////////////////////////////
-/*
-(5) combineRoughnessAndShininess:
-    - Because old .mtl 'Ns' (shininess) conflicts with modern 'roughness',
-      we do a simple hack to combine them. Higher 'shininess' => lower roughness.
-*/
-float combineRoughnessAndShininess(float baseRoughness, float shininess)
-{
-    float shininessFactor = clamp(shininess / 128.0, 0.0, 1.0);
-    float result = baseRoughness * (1.0 - 0.8 * shininessFactor);
-    return clamp(result, 0.0, 1.0);
-}
 
 /*
-(6) computeF0FromIOR:
+(5) computeF0FromIOR:
     - For dielectrics, F0 is roughly ((ior - 1)/(ior + 1))^2 at normal incidence.
 */
 vec3 computeF0FromIOR(float ior)
@@ -809,7 +797,7 @@ vec3 computeF0FromIOR(float ior)
 }
 
 /*
-(7) computeF0Combined:
+(6) computeF0Combined:
     - Mixes the dielectric F0 with baseColor if metallic=1, then merges with old .mtl 'specular'.
 */
 vec3 computeF0Combined(vec3 baseColor, float metallic, vec3 specular, float ior)
@@ -829,7 +817,7 @@ vec3 computeF0Combined(vec3 baseColor, float metallic, vec3 specular, float ior)
 ////////////////////////////////////////////////////////////////////////
 /*
 Steps:
-(1) Combine roughness & shininess => effectiveRoughness.
+(1) Use the material.roughness directly => effectiveRoughness.
 (2) Local Cook–Torrance for point lights.
 (3) Environment Reflection (Cook–Torrance IBL).
 (4) Clearcoat
@@ -851,9 +839,9 @@ vec3 baseColor,
 vec2 texCoords// For normal-based distortion if desired
 ){
     //----------------------------------------------
-    // (1) Combine roughness + shininess
+    // (1) Just use material.roughness
     //----------------------------------------------
-    float effectiveRoughness = combineRoughnessAndShininess(material.roughness, material.shininess);
+    float effectiveRoughness = clamp(material.roughness, 0.0, 1.0);
 
     //----------------------------------------------
     // (2) Local Cook–Torrance from point lights
@@ -968,7 +956,10 @@ vec2 texCoords// For normal-based distortion if desired
     //----------------------------------------------
     // (6) Combine local + environment => finalColor
     //----------------------------------------------
-    vec3 finalColor = localLighting + environmentContribution + clearcoatContrib + sheenContrib;
+    vec3 finalColor = localLighting
+    + environmentContribution
+    + clearcoatContrib
+    + sheenContrib;
 
     // Emissive
     finalColor += material.emissive;
@@ -980,7 +971,9 @@ vec2 texCoords// For normal-based distortion if desired
     //----------------------------------------------
     // (8) Transmission => 2D-based "refraction"
     //----------------------------------------------
-    float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
+    float averageTf = (material.transmission.r
+    + material.transmission.g
+    + material.transmission.b) / 3.0;
     if (averageTf > 0.001)
     {
         // We'll store final UVs in `finalScreenCoords`
@@ -989,9 +982,7 @@ vec2 texCoords// For normal-based distortion if desired
         // 1) If usePlanarNormalDistortion => do a small refraction offset
         if (usePlanarNormalDistortion)
         {
-            // "air -> object," ratio ~ 1.0 / ior
-            float refractionRatio = 1.0 / material.ior;
-            // Refract direction in [-1..1]
+            float refractionRatio = 1.0 / material.ior;// "air -> object"
             vec3 refractDir = refract(-V, N, refractionRatio);
 
             // Convert from [-1..1] to [-0.5..+0.5]
