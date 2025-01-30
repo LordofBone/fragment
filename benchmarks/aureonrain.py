@@ -84,7 +84,7 @@ def run_benchmark(
         loop=True,
         msaa_level=msaa_level,
         culling=True,
-        lighting_mode="pbr",
+        lighting_mode="diffuse",
         sound_enabled=sound_enabled,
         background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
         audio_delay=0.0,
@@ -123,17 +123,6 @@ def run_benchmark(
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
-        pbr_extensions={
-            "roughness": 0.399083,  # Pr
-            "metallic": 0.064220,  # Pm
-            "clearcoat": 0.110092,  # Pc
-            "clearcoat_roughness": 0.039174,  # Pcr
-            "sheen": 0.036697,  # Ps
-            "aniso": 0.036697,  # aniso
-            "anisor": 0.036697,  # anisor
-            "transmission": [1.0, 1.0, 1.0],  # Tf
-            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
-        },
     )
 
     # Define the configuration for the opaque pyramid model
@@ -165,17 +154,6 @@ def run_benchmark(
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
-        pbr_extensions={
-            "roughness": 0.399083,  # Pr
-            "metallic": 0.064220,  # Pm
-            "clearcoat": 0.110092,  # Pc
-            "clearcoat_roughness": 0.039174,  # Pcr
-            "sheen": 0.036697,  # Ps
-            "aniso": 0.036697,  # aniso
-            "anisor": 0.036697,  # anisor
-            "transmission": [0.5, 0.5, 0.5],  # Tf
-            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
-        },
     )
 
     # Define the configuration for the rotating pyramid model
@@ -201,17 +179,6 @@ def run_benchmark(
         pom_enable_frag_depth_adjustment=False,
         texture_lod_bias=0.0,
         env_map_lod_bias=1.5,
-        pbr_extensions={
-            "roughness": 0.399083,  # Pr
-            "metallic": 0.064220,  # Pm
-            "clearcoat": 0.110092,  # Pc
-            "clearcoat_roughness": 0.039174,  # Pcr
-            "sheen": 0.036697,  # Ps
-            "aniso": 0.036697,  # aniso
-            "anisor": 0.036697,  # anisor
-            "transmission": (0.0, 0.0, 0.0),  # Tf
-            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
-        },
     )
 
     # Define the configuration for the particle renderer
@@ -262,8 +229,8 @@ def run_benchmark(
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
         shader_names={
-            "vertex": "parallax_mapping",
-            "fragment": "water_parallax",
+            "vertex": "standard",
+            "fragment": "water",
         },
         invert_displacement_map=True,
         pom_height_scale=0.064,
