@@ -23,6 +23,7 @@ def parse_pbr_extensions_from_mtl(mtl_path):
                 'aniso': 0.036697,
                 'anisor': 0.036697,
                 'Tf': (0.027523, 0.027523, 0.027523),
+                'Pfe': 0.5,
                 ...
             },
             'AnotherMaterial': { ... }
@@ -35,8 +36,8 @@ def parse_pbr_extensions_from_mtl(mtl_path):
     current_mat_name = None
 
     # Define which tokens we care about and how many floats they require
-    single_float_tokens = {'Pr', 'Pm', 'Ps', 'Pc', 'Pcr', 'aniso', 'anisor', 'fresnel_exponent'}
-    triple_float_tokens = {'Tf', 'transmission'}
+    single_float_tokens = {'Pr', 'Pm', 'Ps', 'Pc', 'Pcr', 'aniso', 'anisor', 'Pfe'}
+    triple_float_tokens = {'Tf'}
 
     # If the .mtl file doesn't exist, just return an empty dict
     if not os.path.isfile(mtl_path):
@@ -81,8 +82,6 @@ def parse_pbr_extensions_from_mtl(mtl_path):
                     pbr_data_by_material[current_mat_name][token] = (x, y, z)
                 except (IndexError, ValueError):
                     pass
-
-    print(pbr_data_by_material)
 
     return pbr_data_by_material
 
@@ -463,8 +462,8 @@ class ModelRenderer(AbstractRenderer):
             local_pbr['anisor'] = mat_pbr['anisor']
         if 'Tf' in mat_pbr:
             local_pbr['transmission'] = mat_pbr['Tf']
-        if 'fresnel_exponent' in mat_pbr:
-            local_pbr['fresnel_exponent'] = mat_pbr['fresnel_exponent']
+        if 'Pfe' in mat_pbr:
+            local_pbr['fresnel_exponent'] = mat_pbr['Pfe']
 
         # Now we have a final local PBR set for this material
         roughness = local_pbr.get("roughness", 0.5)
