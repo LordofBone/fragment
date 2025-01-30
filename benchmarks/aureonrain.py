@@ -229,8 +229,8 @@ def run_benchmark(
     # Define the configuration for the water surface
     water_config = base_config.add_surface(
         shader_names={
-            "vertex": "standard",
-            "fragment": "water",
+            "vertex": "parallax_mapping",
+            "fragment": "water_parallax",
         },
         invert_displacement_map=True,
         pom_height_scale=0.064,
