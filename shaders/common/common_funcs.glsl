@@ -71,15 +71,10 @@ uniform vec3 ambientColor;
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
 uniform float lightStrengths[10];
-uniform float lightAttentuationFactor = 0.001;
-
-// These define a 2D bounding region in X,Y. (No Z bounding given.)
 uniform float lightOrthoLeft[10];
 uniform float lightOrthoRight[10];
 uniform float lightOrthoBottom[10];
 uniform float lightOrthoTop[10];
-
-// "Legacy" fallback
 uniform float legacyRoughness;
 uniform float legacyOpacity;
 
@@ -160,7 +155,7 @@ float smoothNoise(vec2 p)
 }
 
 /*******************************************************
- *  Fluid Forces (Explicit Parameters):
+ *  Fluid Forces (Explicit Parameters)
  *    velocity          : the particle’s current velocity
  *    adjustedGravity   : pass in if you want to base clamping on gravity’s magnitude
  *    fluidPressure     : how strong the "pressure" drag is
@@ -233,11 +228,12 @@ vec4 sampleCubemapTent(samplerCube cubemap, vec3 dir, float offset)
 //////////////////////////////////////////////////////
 // Bicubic helpers
 //////////////////////////////////////////////////////
+
 float catmullRom1D(float x)
 {
     x = abs(x);
-    float x2 = x * x;
-    float x3 = x * x2;
+    float x2 = x*x;
+    float x3 = x*x2;
 
     if (x <= 1.0) {
         // 1.5x^3 - 2.5x^2 + 1.0
@@ -293,6 +289,7 @@ vec4 sampleCubemapBicubic(samplerCube cubemap, vec3 dir, float baseOffset)
 //////////////////////////////////////////////////////
 // Lanczos helpers
 //////////////////////////////////////////////////////
+
 float lanczos1D(float x, float lobes)
 {
     x = abs(x);
@@ -300,8 +297,8 @@ float lanczos1D(float x, float lobes)
         return 1.0;
     if (x > lobes)
         return 0.0;
-    float pi_x  = 3.14159265359 * x;
-    float pi_xL = pi_x / lobes;
+    float pi_x = 3.14159265359 * x;
+    float pi_xL= pi_x / lobes;
     return (sin(pi_x)/(pi_x)) * (sin(pi_xL)/(pi_xL));
 }
 
@@ -320,33 +317,33 @@ float stepSize
 )
 {
     vec3 fwd = normalize(dir);
-    vec3 tempUp = (abs(fwd.y) < 0.99)? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 tempUp = (abs(fwd.y)<0.99)? vec3(0, 1, 0): vec3(1, 0, 0);
     vec3 side   = normalize(cross(fwd, tempUp));
     vec3 up     = normalize(cross(side, fwd));
 
-    vec4 accumColor  = vec4(0.0);
-    float accumWeight = 0.0;
+    vec4 accumColor= vec4(0.0);
+    float accumWeight=0.0;
 
-    float minRange = -float(sampleRadius);
-    float maxRange =  float(sampleRadius) + 0.001;
+    float minRange= -float(sampleRadius);
+    float maxRange=  float(sampleRadius)+0.001;
 
-    for (float i = minRange; i <= maxRange; i += stepSize)
+    for (float i=minRange; i<=maxRange; i+= stepSize)
     {
-        for (float j = minRange; j <= maxRange; j += stepSize)
+        for (float j=minRange; j<=maxRange; j+= stepSize)
         {
-            float w = lanczos2D(i, j, lobes);
-            vec3 sampleDir = fwd + (i*baseOffset)*side + (j*baseOffset)*up;
-            sampleDir = normalize(sampleDir);
+            float w= lanczos2D(i, j, lobes);
+            vec3 sampleDir= fwd+ (i*baseOffset)*side+ (j*baseOffset)*up;
+            sampleDir= normalize(sampleDir);
 
-            vec4 c = texture(cubemap, sampleDir);
+            vec4 c= texture(cubemap, sampleDir);
 
-            accumColor += c * w;
-            accumWeight += w;
+            accumColor+= c*w;
+            accumWeight+= w;
         }
     }
 
-    if (accumWeight > 0.0)
-    return accumColor / accumWeight;
+    if (accumWeight>0.0)
+    return accumColor/ accumWeight;
     else
     return texture(cubemap, dir);
 }
@@ -380,7 +377,7 @@ vec3 toneMapping(vec3 color)
 {
     vec3 curr = Uncharted2Tonemap(color*2.0);
     vec3 whiteScale = 1.0/Uncharted2Tonemap(vec3(11.2));
-    return curr * whiteScale;
+    return curr* whiteScale;
 }
 
 // ---------------------------------------------------
@@ -455,41 +452,41 @@ float shadowStrength,
 float surfaceDepth
 )
 {
-    vec3 displacedPos = fragPosWorld;
-    displacedPos.y += waveHeight;
+    vec3 displacedPos= fragPosWorld;
+    displacedPos.y+= waveHeight;
 
-    vec4 fragPosLightSpace = lightSpaceMatrix * model * vec4(displacedPos, 1.0);
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
+    vec4 fragPosLightSpace= lightSpaceMatrix* model* vec4(displacedPos, 1.0);
+    vec3 projCoords= fragPosLightSpace.xyz/ fragPosLightSpace.w;
+    projCoords= projCoords*0.5+0.5;
 
-    if (projCoords.x < 0.0 || projCoords.x > 1.0 ||
-    projCoords.y < 0.0 || projCoords.y > 1.0 ||
-    projCoords.z < 0.0 || projCoords.z > 1.0)
+    if (projCoords.x<0.0|| projCoords.x>1.0||
+    projCoords.y<0.0|| projCoords.y>1.0||
+    projCoords.z<0.0|| projCoords.z>1.0)
     {
         return 0.0;
     }
 
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
-    float currentDepth = projCoords.z;
-    float bias = max(biasFactor * (1.0 - dot(normal, normalize(lightPos - displacedPos))), minBias);
+    float closestDepth= texture(shadowMap, projCoords.xy).r;
+    float currentDepth= projCoords.z;
+    float bias= max(biasFactor* (1.0- dot(normal, normalize(lightPos- displacedPos))), minBias);
 
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    int samples = 3;
-    for (int x = -samples; x <= samples; x++)
+    float shadow=0.0;
+    vec2 texelSize=1.0/ textureSize(shadowMap, 0);
+    int samples=3;
+    for (int x=-samples;x<=samples;x++)
     {
-        for (int y = -samples; y <= samples; y++)
+        for (int y=-samples;y<=samples;y++)
         {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            float comparison = currentDepth - bias - pcfDepth;
-            shadow += smoothstep(0.0, 0.005, comparison);
+            float pcfDepth= texture(shadowMap, projCoords.xy+ vec2(x, y)*texelSize).r;
+            float comparison= currentDepth- bias- pcfDepth;
+            shadow+= smoothstep(0.0, 0.005, comparison);
         }
     }
-    shadow /= float((samples*2+1)*(samples*2+1));
+    shadow/= float((samples*2+1)*(samples*2+1));
 
     // Attenuate by surface depth
-    shadow *= exp(-surfaceDepth * 0.1) * shadowStrength;
-    shadow = clamp(shadow, 0.0, 1.0);
+    shadow*= exp(-surfaceDepth*0.1)* shadowStrength;
+    shadow= clamp(shadow, 0.0, 1.0);
     return shadow;
 }
 
@@ -505,7 +502,6 @@ vec3 computeAmbientColor(vec3 baseColor)
 
 // ---------------------------------------------------
 // Compute Diffuse Lighting with opacity
-//  (Now includes distance-based attenuation for 3D lights.)
 // ---------------------------------------------------
 vec3 computeDiffuseLighting(
 vec3 normal,
@@ -514,15 +510,17 @@ vec3 fragPos,
 vec3 baseColor,
 vec2 texCoords
 ) {
-    // 1) Ambient
+    // 1) Ambient (using your global ambientColor * ambientStrength)
     vec3 ambient  = computeAmbientColor(baseColor);
 
-    // 2) Accumulate diffuse from up to 10 lights, with bounding checks + distance
+    // 2) Accumulate diffuse from up to 10 lights, with bounding checks
     vec3 diffuse  = vec3(0.0);
 
     for (int i = 0; i < 10; ++i)
     {
-        // 2D bounding check on X & Y
+        vec3 lightDir = normalize(lightPositions[i] - fragPos);
+
+        // Determine if the fragment is within the light's ortho bounds
         float withinBounds =
         step(lightOrthoLeft[i], fragPos.x) *
         step(fragPos.x, lightOrthoRight[i]) *
@@ -531,15 +529,10 @@ vec2 texCoords
 
         if (withinBounds > 0.0)
         {
-            // 3D distance-based attenuation
-            vec3 lightVec = lightPositions[i] - fragPos;
-            float distance = length(lightVec);
-            vec3 lightDir  = normalize(lightVec);
-
-            float attenuation = 1.0 / (1.0 + 0.09*distance + lightAttentuationFactor*(distance*distance));
+            vec3 lightDir = normalize(lightPositions[i] - fragPos);
+            // Lambertian diffuse
             float diff = max(dot(normal, lightDir), 0.0);
-
-            diffuse += diff * baseColor * lightColors[i] * lightStrengths[i] * attenuation;
+            diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
         }
     }
 
@@ -548,7 +541,7 @@ vec2 texCoords
 
     // 4) Environment reflection (legacy approach)
     vec3 reflectDir = reflect(-viewDir, normal);
-    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;
+    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// user-defined sampler
 
     // 5) Roughness factor? if we want a "legacyRoughness" uniform
     //    We'll do a simple "roughnessFactor" => less reflection if high roughness
@@ -558,7 +551,7 @@ vec2 texCoords
     result = mix(result, result + envColor, environmentMapStrength * roughnessFactor);
 
     // -----------------------------------------------------------------------
-    // 7) Screen Texture transparency part: we build a background color
+    // 7) Screen Texture transparency part:  we build a background color
     // -----------------------------------------------------------------------
     vec2 finalScreenCoords = texCoords;
 
@@ -606,6 +599,7 @@ vec2 texCoords
     }
 
     // 7d) legacyOpacity => how much "lighting" vs. "backgroundColor"
+    // If legacyOpacity==1 => fully the object, 0 => fully background
     vec3 finalOut = mix(backgroundColor, result, legacyOpacity);
 
     // Return
@@ -614,7 +608,6 @@ vec2 texCoords
 
 // ---------------------------------------------------
 // Compute Phong Lighting with opacity
-//  (Now includes distance-based attenuation for 3D lights.)
 // ---------------------------------------------------
 vec3 computePhongLighting(
 vec3 normal,
@@ -631,9 +624,12 @@ vec2 texCoords
     // White spec color
     vec3 specularColor = vec3(1.0);
 
-    // 2) Up to 10 lights with bounding checks + distance
+    // 2) Up to 10 lights with bounding checks
     for (int i = 0; i < 10; ++i)
     {
+        vec3 lightDir = normalize(lightPositions[i] - fragPos);
+
+        // Determine if the fragment is within the light's ortho bounds
         float withinBounds =
         step(lightOrthoLeft[i], fragPos.x) *
         step(fragPos.x, lightOrthoRight[i]) *
@@ -642,22 +638,16 @@ vec2 texCoords
 
         if (withinBounds > 0.0)
         {
-            // Distance-based attenuation
-            vec3 lightVec = lightPositions[i] - fragPos;
-            float distance = length(lightVec);
-            vec3 lightDir  = normalize(lightVec);
-            float attenuation = 1.0 / (1.0 + 0.09*distance + lightAttentuationFactor*(distance*distance));
+            vec3 lightDir = normalize(lightPositions[i] - fragPos);
 
             // Diffuse
             float diff = max(dot(normal, lightDir), 0.0);
-            diffuse += diff * baseColor * lightColors[i] * lightStrengths[i] * attenuation;
+            diffuse += diff * baseColor * lightColors[i] * lightStrengths[i];
 
             // Blinn–Phong spec with user-defined roughness
             vec3 halfwayDir = normalize(lightDir + viewDir);
-            float specAngle = max(dot(normal, halfwayDir), 0.0);
-            float spec      = pow(specAngle, legacyRoughness);
-
-            specular += spec * specularColor * lightColors[i] * lightStrengths[i] * attenuation;
+            float spec = pow(max(dot(normal, halfwayDir), 0.0), legacyRoughness);
+            specular += spec * specularColor * lightColors[i] * lightStrengths[i];
         }
     }
 
@@ -666,7 +656,7 @@ vec2 texCoords
 
     // 4) Environment reflection
     vec3 reflectDir = reflect(-viewDir, normal);
-    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;
+    vec3 envColor   = sampleEnvironmentMapLod(reflectDir).rgb;// user-defined call
 
     // Possibly scale by environmentMapStrength
     result = mix(result, result + envColor, environmentMapStrength);
@@ -794,6 +784,7 @@ vec3 fresnelSchlickExponent(float cosTheta, vec3 F0, float exponent)
 ////////////////////////////////////////////////////////////////////////
 // 2) Additional Helpers
 ////////////////////////////////////////////////////////////////////////
+
 /*
 (5) computeF0FromIOR:
     - For dielectrics, F0 is roughly ((ior - 1)/(ior + 1))^2 at normal incidence.
@@ -827,7 +818,7 @@ vec3 computeF0Combined(vec3 baseColor, float metallic, vec3 specular, float ior)
 /*
 Steps:
 (1) Use the material.roughness directly => effectiveRoughness.
-(2) Local Cook–Torrance for point lights (now with distance-based attenuation).
+(2) Local Cook–Torrance for point lights.
 (3) Environment Reflection (Cook–Torrance IBL).
 (4) Clearcoat
 (5) Sheen
@@ -854,7 +845,6 @@ vec2 texCoords// For normal-based distortion if desired
 
     //----------------------------------------------
     // (2) Local Cook–Torrance from point lights
-    //     with distance-based attenuation
     //----------------------------------------------
     vec3 localLighting = vec3(0.0);
 
@@ -868,7 +858,6 @@ vec2 texCoords// For normal-based distortion if desired
 
     for (int i = 0; i < 10; i++)
     {
-        // Optional bounding in X,Y
         float withinBounds =
         step(lightOrthoLeft[i], fragPos.x) *
         step(fragPos.x, lightOrthoRight[i]) *
@@ -877,14 +866,7 @@ vec2 texCoords// For normal-based distortion if desired
 
         if (withinBounds > 0.0)
         {
-            // 3D distance attenuation
-            vec3 lightVec = lightPositions[i] - fragPos;
-            float distance = length(lightVec);
-            vec3 L = normalize(lightVec);
-
-            float attenuation = 1.0 / (1.0 + 0.09 * distance + lightAttentuationFactor*(distance * distance));
-
-            // Cook-Torrance microfacet
+            vec3 L = normalize(lightPositions[i] - fragPos);
             vec3 H = normalize(V + L);
             float NdotL = max(dot(N, L), 0.0);
 
@@ -904,12 +886,9 @@ vec2 texCoords// For normal-based distortion if desired
             // Lambertian diffuse
             vec3 diffuse = kD * baseColor;
 
-            // Accumulate with attenuation
             localLighting += (diffuse + specular)
-            * lightColors[i]
-            * lightStrengths[i]
-            * NdotL
-            * attenuation;
+            * lightColors[i] * lightStrengths[i]
+            * NdotL;
         }
     }
 
@@ -1084,8 +1063,8 @@ vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
     // Ambient from user-defined "ambientColor" * ambientStrength
     vec3 ambient = computeAmbientColor(baseColor);
 
-    vec3 diffuse = vec3(0.0);
-    for (int i = 0; i < 10; i++)
+    vec3 diffuse= vec3(0.0);
+    for (int i=0;i<10;i++)
     {
         // Determine if the fragment is within the light's ortho bounds
         float withinBounds =
@@ -1096,18 +1075,18 @@ vec3 computeParticleDiffuseLighting(vec3 normal, vec3 fragPos, vec3 baseColor)
 
         if (withinBounds > 0.0)
         {
-            vec3 lightVec = lightPositions[i] - fragPos;
-            float distance = length(lightVec);
-            vec3 lightDir  = normalize(lightVec);
+            vec3 lightVec= lightPositions[i] - fragPos;
+            float distance= length(lightVec);
+            vec3 lightDir= normalize(lightVec);
 
-            float attenuation = 1.0 / (1.0 + 0.09*distance + lightAttentuationFactor*(distance*distance));
-            float diff = max(dot(normal, lightDir), 0.0);
+            float attenuation= 1.0 / (1.0 + 0.09*distance + 0.032*(distance*distance));
 
-            diffuse += attenuation * lightColors[i] * diff * baseColor * lightStrengths[i];
+            float diff= max(dot(normal, lightDir), 0.0);
+            diffuse += attenuation* lightColors[i]* diff* baseColor* lightStrengths[i];
         }
     }
 
-    return ambient + diffuse;
+    return ambient+ diffuse;
 }
 
 // ---------------------------------------------------
@@ -1134,19 +1113,19 @@ vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 
         {
             // Distance-based attenuation
             vec3 lightVec = lightPositions[i] - fragPos;
-            float distance = length(lightVec);
-            vec3 lightDir  = normalize(lightVec);
+            float distance= length(lightVec);
+            vec3 lightDir = normalize(lightVec);
 
-            float attenuation = 1.0/(1.0+ 0.09*distance + lightAttentuationFactor*(distance*distance));
+            float attenuation= 1.0/(1.0+ 0.09*distance + 0.032*(distance*distance));
 
             // Diffuse shading
             float diff = max(dot(normal, lightDir), 0.0);
             diffuse += attenuation * lightColors[i] * diff * baseColor * lightStrengths[i];
 
             // Blinn-Phong spec
-            vec3 halfwayDir = normalize(lightDir + viewDir);
-            float specAngle = max(dot(normal, halfwayDir), 0.0);
-            float spec = pow(specAngle, max(legacyRoughness, 0.0));
+            vec3 halfwayDir= normalize(lightDir + viewDir);
+            float specAngle= max(dot(normal, halfwayDir), 0.0);
+            float spec= pow(specAngle, max(legacyRoughness, 0.0));
             specular += attenuation * spec * lightColors[i] * lightStrengths[i];
         }
     }
@@ -1217,46 +1196,46 @@ float proceduralDisplacement(vec2 coords)
 // ---------------------------------------------------
 vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffset)
 {
-    float numLayers = mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
-    float layerDepth = 1.0 / numLayers;
-    float currentLayerDepth = 0.0;
-    vec2 P = viewDir.xy * pomHeightScale;
-    vec2 deltaTexCoords = P / numLayers;
+    float numLayers= mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
+    float layerDepth= 1.0/ numLayers;
+    float currentLayerDepth=0.0;
+    vec2 P= viewDir.xy* pomHeightScale;
+    vec2 deltaTexCoords= P/ numLayers;
 
-    vec2 currentTexCoords = texCoords;
-    float currentDepthMapValue = texture(displacementMap, currentTexCoords, textureLodLevel).r;
+    vec2 currentTexCoords= texCoords;
+    float currentDepthMapValue= texture(displacementMap, currentTexCoords, textureLodLevel).r;
     if (invertDisplacementMap)
     {
-        currentDepthMapValue = 1.0 - currentDepthMapValue;
+        currentDepthMapValue= 1.0- currentDepthMapValue;
     }
 
-    float depthFromTexture = currentDepthMapValue;
+    float depthFromTexture= currentDepthMapValue;
 
-    while (currentLayerDepth < depthFromTexture)
+    while (currentLayerDepth< depthFromTexture)
     {
-        currentTexCoords -= deltaTexCoords;
-        currentDepthMapValue = texture(displacementMap, currentTexCoords, textureLodLevel).r;
+        currentTexCoords-= deltaTexCoords;
+        currentDepthMapValue= texture(displacementMap, currentTexCoords, textureLodLevel).r;
         if (invertDisplacementMap)
         {
-            currentDepthMapValue = 1.0 - currentDepthMapValue;
+            currentDepthMapValue= 1.0- currentDepthMapValue;
         }
-        depthFromTexture = currentDepthMapValue;
-        currentLayerDepth += layerDepth;
+        depthFromTexture= currentDepthMapValue;
+        currentLayerDepth+= layerDepth;
     }
 
-    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-    float prevLayerDepth = currentLayerDepth - layerDepth;
-    float prevDepthFromTexture = texture(displacementMap, prevTexCoords, textureLodLevel).r;
+    vec2 prevTexCoords= currentTexCoords+ deltaTexCoords;
+    float prevLayerDepth= currentLayerDepth- layerDepth;
+    float prevDepthFromTexture= texture(displacementMap, prevTexCoords, textureLodLevel).r;
     if (invertDisplacementMap)
     {
-        prevDepthFromTexture = 1.0 - prevDepthFromTexture;
+        prevDepthFromTexture= 1.0- prevDepthFromTexture;
     }
 
-    float weight = (depthFromTexture - currentLayerDepth) /
-    ((depthFromTexture - currentLayerDepth) - (prevDepthFromTexture - prevLayerDepth));
-    vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
+    float weight= (depthFromTexture- currentLayerDepth)/
+    ((depthFromTexture- currentLayerDepth)- (prevDepthFromTexture- prevLayerDepth));
+    vec2 finalTexCoords= mix(currentTexCoords, prevTexCoords, weight);
 
-    depthOffset = pomHeightScale * (1.0 - mix(currentLayerDepth, prevLayerDepth, weight)) * 0.0001;
+    depthOffset= pomHeightScale*(1.0- mix(currentLayerDepth, prevLayerDepth, weight))* 0.0001;
     return finalTexCoords;
 }
 
@@ -1265,37 +1244,37 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
 // ---------------------------------------------------
 vec2 ProceduralParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffset)
 {
-    float numLayers = mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
-    float layerDepth = 1.0 / numLayers;
-    float currentLayerDepth = 0.0;
+    float numLayers= mix(float(pomMaxSteps), float(pomMinSteps), abs(viewDir.z));
+    float layerDepth= 1.0/ numLayers;
+    float currentLayerDepth=0.0;
 
-    vec2 P = viewDir.xy * pomHeightScale;
-    vec2 deltaTexCoords = P / numLayers;
+    vec2 P= viewDir.xy* pomHeightScale;
+    vec2 deltaTexCoords= P/ numLayers;
 
-    vec2 currentTexCoords = texCoords;
-    float currentDepth = proceduralDisplacement(currentTexCoords);
-    if (invertDisplacementMap) currentDepth = 1.0 - currentDepth;
-    float depthFromTexture = currentDepth;
+    vec2 currentTexCoords= texCoords;
+    float currentDepth= proceduralDisplacement(currentTexCoords);
+    if (invertDisplacementMap) currentDepth= 1.0- currentDepth;
+    float depthFromTexture= currentDepth;
 
-    while (currentLayerDepth < depthFromTexture)
+    while (currentLayerDepth< depthFromTexture)
     {
-        currentTexCoords -= deltaTexCoords;
-        currentDepth = proceduralDisplacement(currentTexCoords);
-        if (invertDisplacementMap) currentDepth = 1.0 - currentDepth;
-        depthFromTexture = currentDepth;
-        currentLayerDepth += layerDepth;
+        currentTexCoords-= deltaTexCoords;
+        currentDepth= proceduralDisplacement(currentTexCoords);
+        if (invertDisplacementMap) currentDepth=1.0- currentDepth;
+        depthFromTexture= currentDepth;
+        currentLayerDepth+= layerDepth;
     }
 
-    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-    float prevLayerDepth = currentLayerDepth - layerDepth;
-    float prevDepth = proceduralDisplacement(prevTexCoords);
-    if (invertDisplacementMap) prevDepth = 1.0 - prevDepth;
+    vec2 prevTexCoords= currentTexCoords+ deltaTexCoords;
+    float prevLayerDepth= currentLayerDepth- layerDepth;
+    float prevDepth= proceduralDisplacement(prevTexCoords);
+    if (invertDisplacementMap) prevDepth= 1.0- prevDepth;
 
-    float weight = (depthFromTexture - currentLayerDepth) /
-    ((depthFromTexture - currentLayerDepth) - (prevDepth - prevLayerDepth));
-    vec2 finalTexCoords = mix(currentTexCoords, prevTexCoords, weight);
+    float weight= (depthFromTexture- currentLayerDepth)/
+    ((depthFromTexture- currentLayerDepth)-(prevDepth- prevLayerDepth));
+    vec2 finalTexCoords= mix(currentTexCoords, prevTexCoords, weight);
 
-    depthOffset = pomHeightScale * (1.0 - mix(currentLayerDepth, prevLayerDepth, weight)) * 0.0001;
+    depthOffset= pomHeightScale*(1.0- mix(currentLayerDepth, prevLayerDepth, weight))* 0.0001;
     return finalTexCoords;
 }
 
