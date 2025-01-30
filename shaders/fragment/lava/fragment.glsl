@@ -63,10 +63,6 @@ void main()
     vec3 viewDir   = normalize(cameraPos - FragPos);
     vec3 reflectDir= reflect(-viewDir, normalMap);
 
-    // Sample environment
-    vec3 reflection = texture(environmentMap, reflectDir).rgb
-    * environmentMapStrength;
-
     float fresnel   = pow(1.0 - dot(viewDir, normalMap), 3.0);
 
     //------------------------------------------------
@@ -74,10 +70,6 @@ void main()
     //------------------------------------------------
     float noiseValue = smoothNoise(TexCoords * 5.0 + time * 0.5);
     vec3 lavaColor   = mix(lavaBaseColor, lavaBrightColor, noiseValue);
-
-    // Mix lava + reflection based on Fresnel
-    // e.g. reflection * 0.2 factor
-    vec3 envColor = mix(lavaColor, reflection, fresnel * 0.2);
 
     //------------------------------------------------
     // 5) Shadow
@@ -107,12 +99,12 @@ void main()
     if (lightingMode == 0)
     {
         // Diffuse
-        color = computeDiffuseLighting(normalMap, viewDir, FragPos, envColor, TexCoords);
+        color = computeDiffuseLighting(normalMap, viewDir, FragPos, lavaBaseColor, TexCoords);
     }
     else
     {
         // Phong (or if lightingMode >=2 => PBR)
-        color = computePhongLighting(normalMap, viewDir, FragPos, envColor, TexCoords);
+        color = computePhongLighting(normalMap, viewDir, FragPos, lavaBaseColor, TexCoords);
     }
 
     // Apply shadow
