@@ -105,23 +105,10 @@ void main()
     mat3 TBN = mat3(TBNrow0, TBNrow1, TBNrow2);
     vec3 finalNormal = normalize(TBN * waveNormalTangent);
 
-    //------------------------------------------------------------
-    // (D) Reflection & Refraction
-    //------------------------------------------------------------
     vec3 viewDir = normalize(cameraPos - FragPos);
-    vec3 reflectDir = reflect(-viewDir, finalNormal);
-    vec3 refractDir = refract(-viewDir, finalNormal, 1.0 / 1.33);
-
-    // Sample environment
-    vec3 reflection = texture(environmentMap, reflectDir).rgb;
-    vec3 refraction = texture(environmentMap, refractDir).rgb;
-
-    // Fresnel
-    float fresnel = pow(1.0 - dot(viewDir, finalNormal), 3.0);
-    vec3 envColor = mix(refraction, reflection, fresnel);
 
     //------------------------------------------------------------
-    // (E) Shadow Calculation using waveHeightClassic
+    // (D) Shadow Calculation using waveHeightClassic
     //------------------------------------------------------------
     float shadow = 0.0;
     if (shadowingEnabled)
@@ -129,7 +116,7 @@ void main()
         shadow = ShadowCalculationDisplaced(
         FragPos,
         finalNormal,
-        waveHeightClassic, // note: using the “classic” wave
+        waveHeightClassic,
         shadowMap,
         lightSpaceMatrix,
         model,
@@ -142,13 +129,7 @@ void main()
     }
 
     //------------------------------------------------------------
-    // (F) Combine environment with user water color
-    //------------------------------------------------------------
-    // e.g. a 50/50 mix
-    vec3 combinedBase = mix(waterBaseColor, envColor, 0.5);
-
-    //------------------------------------------------------------
-    // (G) Local Lighting
+    // (E) Local Lighting
     //------------------------------------------------------------
     vec3 color = vec3(0.0);
 
@@ -159,7 +140,7 @@ void main()
         finalNormal,
         viewDir,
         FragPos,
-        combinedBase,
+        waterBaseColor,
         TexCoords
         );
     }
@@ -170,7 +151,7 @@ void main()
         finalNormal,
         viewDir,
         FragPos,
-        combinedBase,
+        waterBaseColor,
         TexCoords
         );
     }
@@ -179,7 +160,7 @@ void main()
     color = mix(color, color * (1.0 - shadow), shadowStrength);
 
     //------------------------------------------------------------
-    // (H) Tone & Gamma
+    // (F) Tone & Gamma
     //------------------------------------------------------------
     if (applyToneMapping)
     {
@@ -191,13 +172,13 @@ void main()
     }
 
     //------------------------------------------------------------
-    // (I) Final with legacy opacity
+    // (G) Final with legacy opacity
     //------------------------------------------------------------
     float alpha = clamp(legacyOpacity, 0.0, 1.0);
     FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
 
     //------------------------------------------------------------
-    // (J) Depth Correction if POM
+    // (H) Depth Correction if POM
     //------------------------------------------------------------
     if (pomHeightScale > 0.0 && depthOffset != 0.0 && enableFragDepthAdjustment)
     {
