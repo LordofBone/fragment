@@ -101,9 +101,8 @@ void main()
         // Diffuse
         color = computeDiffuseLighting(normalMap, viewDir, FragPos, lavaBaseColor, TexCoords);
     }
-    else
+    else if (lightingMode >= 1)// Phong
     {
-        // Phong (or if lightingMode >=2 => PBR)
         color = computePhongLighting(normalMap, viewDir, FragPos, lavaBaseColor, TexCoords);
     }
 

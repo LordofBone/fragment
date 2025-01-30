@@ -132,7 +132,6 @@ void main()
     // (E) Basic environment reflection
     //--------------------------------------------
     vec3 reflectDir  = reflect(-viewDir, finalNormal);
-    vec3 reflection  = texture(environmentMap, reflectDir).rgb;
 
     // Fresnel
     float fresnel    = pow(1.0 - dot(viewDir, finalNormal), 3.0);
@@ -142,10 +141,6 @@ void main()
     //--------------------------------------------
     float noiseValue = smoothNoise(TexCoords * 5.0 + time * 0.5);
     vec3 lavaColor   = mix(lavaBaseColor, lavaBrightColor, noiseValue);
-
-    // Combine lava + reflection
-    // Slight factor for reflection, e.g. 0.2
-    vec3 combinedColor = mix(lavaColor, reflection, fresnel * 0.2);
 
     //--------------------------------------------
     // (G) Shadows (displaced)
@@ -157,7 +152,7 @@ void main()
         shadow = ShadowCalculationDisplaced(
         FragPos,
         finalNormal,
-        waveHeightClassic, // <--- the key
+        waveHeightClassic,
         shadowMap,
         lightSpaceMatrix,
         model,
@@ -179,30 +174,25 @@ void main()
         finalNormal,
         viewDir,
         FragPos,
-        combinedColor,
+        lavaBaseColor,
         TexCoords
         );
         // apply shadow
         diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
         color = diffuseColor;
     }
-    else if (lightingMode == 1)// Phong
+    else if (lightingMode >= 1)// Phong
     {
         vec3 phongColor = computePhongLighting(
         finalNormal,
         viewDir,
         FragPos,
-        combinedColor,
+        lavaBaseColor,
         TexCoords
         );
         // apply shadow
         phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color = phongColor;
-    }
-    else
-    {
-        // if you have PBR => color = computePBRLighting(...) etc.
-        color = combinedColor;
     }
 
     //--------------------------------------------
