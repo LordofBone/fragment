@@ -24,6 +24,9 @@ uniform float shadowStrength;
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
 
+// Water base color
+uniform vec3 waterBaseColor;
+
 void main()
 {
     vec2 waveTexCoords = TexCoords;
@@ -70,17 +73,21 @@ void main()
         );
     }
 
+    // Combine environment with user water color
+    // e.g. a 50/50 mix
+    vec3 combinedBase = mix(waterBaseColor, envColor, 0.5);
+
     vec3 color = vec3(0.0);
     // Lighting
     if (lightingMode == 0)
     {
         // Diffuse-only
-        color = computeDiffuseLighting(finalNormal, viewDir, FragPos, envColor, TexCoords);
+        color = computeDiffuseLighting(finalNormal, viewDir, FragPos, combinedBase, TexCoords);
     }
     else if (lightingMode >= 1)
     {
         // Phong lighting
-        color = computePhongLighting(finalNormal, viewDir, FragPos, envColor, TexCoords);
+        color = computePhongLighting(finalNormal, viewDir, FragPos, combinedBase, TexCoords);
     }
 
     // Apply shadow
