@@ -14,7 +14,6 @@ uniform sampler2D shadowMap;
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
 uniform int lightingMode;
 uniform bool shadowingEnabled;
 
@@ -46,15 +45,6 @@ void main()
 
     vec3 viewDir = normalize(cameraPos - FragPos);
 
-    vec3 reflectDir = reflect(-viewDir, finalNormal);
-    vec3 refractDir = refract(-viewDir, finalNormal, 1.0 / 1.33);
-
-    vec3 reflection = texture(environmentMap, reflectDir).rgb;
-    vec3 refraction = texture(environmentMap, refractDir).rgb;
-
-    float fresnel = pow(1.0 - dot(viewDir, finalNormal), 3.0);
-    vec3 envColor = mix(refraction, reflection, fresnel);
-
     float shadow = 0.0;
     if (shadowingEnabled)
     {
@@ -73,21 +63,17 @@ void main()
         );
     }
 
-    // Combine environment with user water color
-    // e.g. a 50/50 mix
-    vec3 combinedBase = mix(waterBaseColor, envColor, 0.5);
-
     vec3 color = vec3(0.0);
     // Lighting
     if (lightingMode == 0)
     {
         // Diffuse-only
-        color = computeDiffuseLighting(finalNormal, viewDir, FragPos, combinedBase, TexCoords);
+        color = computeDiffuseLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
     }
     else if (lightingMode >= 1)
     {
         // Phong lighting
-        color = computePhongLighting(finalNormal, viewDir, FragPos, combinedBase, TexCoords);
+        color = computePhongLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
     }
 
     // Apply shadow
