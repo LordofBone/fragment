@@ -123,17 +123,6 @@ def run_benchmark(
         screen_facing_planar_texture=True,
         texture_lod_bias=1.2,
         env_map_lod_bias=2.0,
-        pbr_extensions={
-            "roughness": 0.500000,  # Pr
-            "metallic": 0.743119,  # Pm
-            "clearcoat": 0.256881,  # Pc
-            "clearcoat_roughness": 0.433670,  # Pcr
-            "sheen": 0.053484,  # Ps
-            "aniso": 0.229358,  # aniso
-            "anisor": 0.422018,  # anisor
-            "transmission": (1.0, 1.0, 1.0),  # Tf
-            "fresnel_exponent": 0.5,  # from Pfe (non-standard parameter)
-        },
     )
 
     # Define the configuration for the skybox
