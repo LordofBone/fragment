@@ -68,7 +68,6 @@ void main()
     float waveHeightClassic = 0.5 * waveAmplitude
     * (waveHeightXClassic + waveHeightYClassic);
 
-
     //------------------------------------------------------------
     // (B) Possibly do Parallax Occlusion Mapping (POM)
     //------------------------------------------------------------
