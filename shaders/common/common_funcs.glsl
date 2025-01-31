@@ -6,9 +6,6 @@
 // ---------------------------------------------------
 uniform float textureLodLevel;
 
-// Now we have a float controlling the ambient brightness.
-uniform float ambientStrength;// 0.0 => no ambient, 1.0 => full ambient intensity
-
 // Normal map
 uniform sampler2D normalMap;
 
@@ -67,6 +64,8 @@ uniform float texCoordAmplitude;
 // ---------------------------------------------------
 // Global uniform arrays for lights
 // ---------------------------------------------------
+// Now we have a float controlling the ambient brightness.
+uniform float ambientStrength;// 0.0 => no ambient, 1.0 => full ambient intensity
 uniform vec3 ambientColor;
 uniform vec3 lightPositions[10];
 uniform vec3 lightColors[10];
