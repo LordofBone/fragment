@@ -45,11 +45,17 @@ uniform vec3 waterBaseColor;
 
 void main()
 {
-    //------------------------------------------------------------
-    // (A) Classic wave coords => used for shadow displacement
-    //------------------------------------------------------------
+    //--------------------------------------------
+    // (A) Reconstruct TBN + view direction
+    //--------------------------------------------
+    mat3 TBN = mat3(TBNrow0, TBNrow1, TBNrow2);
+    vec3 viewDir = normalize(cameraPos - FragPos);
+
+    //--------------------------------------------
+    // (B) "Classic" wave coords for shadow displacement
+    //--------------------------------------------
     vec2 waveTexCoordsClassic = TexCoords;
-    float noiseClassic = smoothNoise(waveTexCoordsClassic * randomness);
+    float noiseClassic        = smoothNoise(waveTexCoordsClassic * randomness);
 
     waveTexCoordsClassic.x += sin(time * waveSpeed
     + TexCoords.y * texCoordFrequency
@@ -60,24 +66,22 @@ void main()
     + noiseClassic)
     * texCoordAmplitude;
 
-    // Compute simple wave variation for shadow offset
+    // "Classic" wave height for shadow offset
     float waveHeightXClassic = sin(waveTexCoordsClassic.y * 10.0);
     float waveHeightYClassic = cos(waveTexCoordsClassic.x * 10.0);
 
-    // Final “classic” wave height
     float waveHeightClassic = 0.5 * waveAmplitude
     * (waveHeightXClassic + waveHeightYClassic);
 
-    //------------------------------------------------------------
-    // (B) Possibly do Parallax Occlusion Mapping (POM)
-    //------------------------------------------------------------
-    // We'll store final coords for the “visual wave normal”
-    float depthOffset = 0.0;
-    vec2 workingTexCoords = TexCoords;
+    //--------------------------------------------
+    // (C) Parallax Occlusion Mapping (POM)
+    //--------------------------------------------
+    float depthOffset     = 0.0;
+    vec2  workingTexCoords= TexCoords;
 
     if (pomHeightScale > 0.0)
     {
-        // For tangent-space parallax
+        // tangent-space view direction
         vec3 tangentViewDir = normalize(TangentViewPos - TangentFragPos);
 
         workingTexCoords = ProceduralParallaxOcclusionMapping(
@@ -89,30 +93,52 @@ void main()
         workingTexCoords = clamp(workingTexCoords, 0.0, 1.0);
     }
 
-    //------------------------------------------------------------
-    // (C) More advanced wave normal (from “computeWave”)
-    //------------------------------------------------------------
-    WaveOutput wo = computeWave(workingTexCoords);
-    float waveHeightX = wo.waveHeightX;
-    float waveHeightY = wo.waveHeightY;
+    //--------------------------------------------
+    // (D) "Visual" wave coords & normal in tangent space
+    //--------------------------------------------
+    vec2 waveTexCoords = workingTexCoords;
+    float noiseFactor  = smoothNoise(waveTexCoords * randomness);
 
-    // Build a local tangent-space normal
+    waveTexCoords.x += sin(time * waveSpeed
+    + TexCoords.y * texCoordFrequency
+    + noiseFactor)
+    * texCoordAmplitude;
+    waveTexCoords.y += cos(time * waveSpeed
+    + TexCoords.x * texCoordFrequency
+    + noiseFactor)
+    * texCoordAmplitude;
+
+    // Tangent-space normal (start with "up")
     vec3 waveNormalTangent = vec3(0.0, 0.0, 1.0);
+
+    float waveHeightX = sin(waveTexCoords.y * 10.0);
+    float waveHeightY = cos(waveTexCoords.x * 10.0);
+
     waveNormalTangent.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     waveNormalTangent = normalize(waveNormalTangent);
 
-    // Convert to world-space
-    mat3 TBN = mat3(TBNrow0, TBNrow1, TBNrow2);
+    // For possible highlight
+    float waveHeightVisual = 0.5 * waveAmplitude
+    * (waveHeightX + waveHeightY);
+
+    // Convert wave normal to WORLD space
     vec3 finalNormal = normalize(TBN * waveNormalTangent);
 
-    vec3 viewDir = normalize(cameraPos - FragPos);
+    //--------------------------------------------
+    // (E) Basic environment reflection
+    //--------------------------------------------
+    vec3 reflectDir  = reflect(-viewDir, finalNormal);
 
-    //------------------------------------------------------------
-    // (D) Shadow Calculation using waveHeightClassic
-    //------------------------------------------------------------
+    // Fresnel
+    float fresnel    = pow(1.0 - dot(viewDir, finalNormal), 3.0);
+
+    //--------------------------------------------
+    // (F) Shadows (displaced)
+    //--------------------------------------------
     float shadow = 0.0;
     if (shadowingEnabled)
     {
+        // Use waveHeightClassic for consistent Y offset
         shadow = ShadowCalculationDisplaced(
         FragPos,
         finalNormal,
@@ -122,64 +148,68 @@ void main()
         model,
         lightPositions[0], // pick first light
         0.05, // biasFactor
-        0.005, // minBias
+        0.0005, // minBias
         shadowStrength,
         surfaceDepth
         );
     }
 
-    //------------------------------------------------------------
-    // (E) Local Lighting
-    //------------------------------------------------------------
-    vec3 color = vec3(0.0);
-
-    if (lightingMode == 0)
+    //--------------------------------------------
+    // (G) Local lighting
+    //--------------------------------------------
+    vec3 color;
+    if (lightingMode == 0)// diffuse
     {
-        // Diffuse lighting
-        color = computeDiffuseLighting(
+        vec3 diffuseColor = computeDiffuseLighting(
         finalNormal,
         viewDir,
         FragPos,
         waterBaseColor,
         TexCoords
         );
+        // apply shadow
+        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
+        color = diffuseColor;
     }
-    else if (lightingMode >= 1)
+    else if (lightingMode >= 1)// Phong
     {
-        // Phong
-        color = computePhongLighting(
+        vec3 phongColor = computePhongLighting(
         finalNormal,
         viewDir,
         FragPos,
         waterBaseColor,
         TexCoords
         );
+        // apply shadow
+        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
+        color = phongColor;
     }
 
-    // Apply shadow
-    color = mix(color, color * (1.0 - shadow), shadowStrength);
-
-    //------------------------------------------------------------
-    // (F) Tone & Gamma
-    //------------------------------------------------------------
+    //--------------------------------------------
+    // (H) Tone & Gamma
+    //--------------------------------------------
     if (applyToneMapping)
     {
         color = toneMapping(color);
     }
     if (applyGammaCorrection)
     {
-        color = pow(color, vec3(1.0/2.2));
+        color = pow(color, vec3(1.0 / 2.2));
     }
 
-    //------------------------------------------------------------
-    // (G) Final with legacy opacity
-    //------------------------------------------------------------
-    float alpha = clamp(legacyOpacity, 0.0, 1.0);
-    FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
+    // clamp for safety
+    color = clamp(color, 0.0, 1.0);
 
-    //------------------------------------------------------------
-    // (H) Depth Correction if POM
-    //------------------------------------------------------------
+    //--------------------------------------------
+    // (I) legacyOpacity
+    //--------------------------------------------
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(color, alpha);
+
+    //--------------------------------------------
+    // (J) Optional Depth Correction if POM
+    //--------------------------------------------
     if (pomHeightScale > 0.0 && depthOffset != 0.0 && enableFragDepthAdjustment)
     {
         vec4 eyePos = view * vec4(FragPos, 1.0);
@@ -195,6 +225,7 @@ void main()
     }
     else
     {
+        // If not adjusting depth, just pass through
         gl_FragDepth = gl_FragCoord.z;
     }
 }
