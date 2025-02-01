@@ -80,7 +80,7 @@ void main()
     }
 
     // 6) Incorporate `legacyOpacity` parameter
-    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+    float alpha = clamp(alphaBase, 0.0, 1.0);
 
     // 7) Output final
     finalColor = vec4(finalColorRGB, alpha);
