@@ -58,6 +58,15 @@ class SceneConstructor:
 
         self._apply_to_renderer(name, do_autorot)
 
+    def set_auto_rotations(self, name, rotations):
+        """
+        Enable auto-rotation for a renderer by passing a list of (axis, speed) tuples.
+        For example, to rotate the model on the y-axis and also spin it on the x-axis:
+          scene_construct.set_auto_rotations("tyre", rotations=[((0.0,1.0,0.0), 4000.0), ((1.0,0.0,0.0), 2000.0)])
+        """
+        self._apply_to_renderer(name, lambda r: r.enable_auto_rotation(rotations=rotations))
+
+
     def _apply_to_renderer(self, name, action):
         """Apply an action to a renderer if it exists."""
         if name in self.renderers:
