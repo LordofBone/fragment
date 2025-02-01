@@ -42,7 +42,7 @@ def run_benchmark(
         ambient_lighting_color=(0.878, 0.98, 0.714),
         lights=[
             {
-                "position": (6.85, 5.0, 4.0),
+                "position": (0.0, -5.0, -10.0),
                 "color": (0.671, 0.902, 0.98),
                 "strength": 0.87,
                 "orth_left": -50.0,
@@ -51,7 +51,7 @@ def run_benchmark(
                 "orth_top": 50,
             },
             {
-                "position": (0.0, -5.0, -10.0),
+                "position": (6.85, 5.0, 145.0),
                 "color": (0.671, 0.902, 0.98),
                 "strength": 0.8,
                 "orth_left": -50.0,
@@ -60,7 +60,7 @@ def run_benchmark(
                 "orth_top": 50,
             },
             {
-                "position": (2.2, 6.0, -4.0),
+                "position": (2.2, 222.0, -34.0),
                 "color": (0.969, 0.863, 0.431),
                 "strength": 0.9,
                 "orth_left": -50.0,
