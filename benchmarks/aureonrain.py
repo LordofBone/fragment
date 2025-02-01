@@ -232,7 +232,7 @@ def run_benchmark(
             "vertex": "parallax_mapping",
             "fragment": "water_parallax",
         },
-        water_base_color=(0.341, 0.639, 0.922),
+        water_base_color=(0.569, 0.886, 0.961),
         invert_displacement_map=True,
         pom_height_scale=0.096,
         pom_min_steps=128,
