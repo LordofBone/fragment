@@ -1061,9 +1061,9 @@ class AbstractRenderer(ABC):
         """
         Clean up OpenGL resources (VAOs, VBOs, shader programs).
         """
-        if hasattr(self, "vaos") and self.vaos:
+        if hasattr(self, "vaos") and len(self.vaos) > 0:
             glDeleteVertexArrays(len(self.vaos), self.vaos)
-        if hasattr(self, "vbos") and self.vbos:
+        if hasattr(self, "vbos") and len(self.vbos) > 0:
             glDeleteBuffers(len(self.vbos), self.vbos)
         self.shader_engine.delete_shader_programs()
 
