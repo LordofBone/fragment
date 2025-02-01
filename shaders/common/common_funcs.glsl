@@ -113,10 +113,7 @@ vec4 sampleEnvironmentMapLod(vec3 envMapTexCoords)
 // If surfaceMapping is true, use fragPos.x and fragPos.z instead of fragPos.x and fragPos.y.
 float lightWithinBounds(int i, vec3 fragPos) {
     if (surfaceMapping) {
-        return step(lightOrthoLeft[i], fragPos.x) *
-        step(fragPos.x, lightOrthoRight[i]) *
-        step(lightOrthoBottom[i], fragPos.z) *
-        step(fragPos.z, lightOrthoTop[i]);
+        return 1.0;// bypass bounds check for surfaces
     } else {
         return step(lightOrthoLeft[i], fragPos.x) *
         step(fragPos.x, lightOrthoRight[i]) *
