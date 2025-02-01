@@ -4,7 +4,7 @@ import glm
 import numpy as np
 from OpenGL.GL import *
 
-from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.abstract_renderer import AbstractRenderer, with_gl_render_state
 
 
 class ParticleRenderer(AbstractRenderer):
@@ -1231,7 +1231,7 @@ class ParticleRenderer(AbstractRenderer):
         print("Particle Data:")
         print(self.cpu_particles)
 
-    @common_funcs
+    @with_gl_render_state
     def render(self):
         """
         Render the particle system.

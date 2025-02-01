@@ -4,7 +4,7 @@ import numpy as np
 import pywavefront
 from OpenGL.GL import *
 
-from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.abstract_renderer import AbstractRenderer, with_gl_render_state
 from components.texture_manager import TextureManager
 
 texture_manager = TextureManager()
@@ -372,7 +372,7 @@ class ModelRenderer(AbstractRenderer):
             glEnableVertexAttribArray(location)
             glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(pointer_offset))
 
-    @common_funcs
+    @with_gl_render_state
     def render(self):
         """
         Render all meshes of the object with their corresponding materials.

@@ -47,7 +47,7 @@ def check_gl_error(context: str, debug_mode: bool):
             raise RuntimeError(f"OpenGL error in {context}: {gl_error}")
 
 
-def common_funcs(func):
+def with_gl_render_state(func):
     """
     Decorator to set up common OpenGL state, apply transformations,
     set uniforms, and reset state after a render function call.

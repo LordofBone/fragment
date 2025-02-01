@@ -2,7 +2,7 @@ import glm
 import numpy as np
 from OpenGL.GL import *
 
-from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.abstract_renderer import AbstractRenderer, with_gl_render_state
 
 
 class Mesh:
@@ -132,7 +132,7 @@ class SurfaceRenderer(AbstractRenderer):
             glEnableVertexAttribArray(bitangent_loc)
             glVertexAttribPointer(bitangent_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(11 * float_size))
 
-    @common_funcs
+    @with_gl_render_state
     def render(self):
         """Render the surface."""
         self.shader_engine.use_shader_program()

@@ -2,7 +2,7 @@ import glm
 import numpy as np
 from OpenGL.GL import *
 
-from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.abstract_renderer import AbstractRenderer, with_gl_render_state
 
 
 class SkyboxRenderer(AbstractRenderer):
@@ -149,7 +149,7 @@ class SkyboxRenderer(AbstractRenderer):
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * vertices_array.itemsize, ctypes.c_void_p(0))
 
-    @common_funcs
+    @with_gl_render_state
     def render(self):
         glDepthFunc(
             GL_LEQUAL
