@@ -31,42 +31,30 @@ class SurfaceRenderer(AbstractRenderer):
         """Create buffers for the surface with normals, tangents, and bitangents."""
         vertices, faces = self._generate_surface_geometry()
         # vertices currently: (x,y,z,u,v)
-        # We will add normal(3), tangent(3), bitangent(3) = total 14 floats per vertex
+        # We will add normal (3), tangent (3), bitangent (3) = total 14 floats per vertex
 
-        # Compute normal, tangent, bitangent for a flat surface:
-        # Normal is (0,1,0) since this is a horizontal plane.
-        # Tangent can be (1,0,0) along x-axis
-        # Bitangent can be (0,0,-1) along z-axis (assuming a right-handed system)
+        # For a flat surface:
+        # Normal is (0,1,0) (horizontal plane),
+        # Tangent is (1,0,0) along x-axis,
+        # Bitangent is (0,0,-1) along z-axis.
         normal = (0.0, 1.0, 0.0)
         tangent = (1.0, 0.0, 0.0)
         bitangent = (0.0, 0.0, -1.0)
 
-        # Convert vertices to array for modification
-        verts = np.array(vertices, dtype=np.float32).reshape(-1, 5)  # (x,y,z,u,v)
+        # Convert vertices to array for modification (layout: x,y,z,u,v)
+        verts = np.array(vertices, dtype=np.float32).reshape(-1, 5)
 
         # Expand to (x,y,z, nx,ny,nz, u,v, tx,ty,tz, bx,by,bz)
-        # We'll just assign the same tangent/bitangent for all vertices since it's a flat surface.
         expanded = []
         for v in verts:
             x, y, z, u, vtex = v
-            expanded.append(
-                [
-                    x,
-                    y,
-                    z,
-                    normal[0],
-                    normal[1],
-                    normal[2],
-                    u,
-                    vtex,
-                    tangent[0],
-                    tangent[1],
-                    tangent[2],
-                    bitangent[0],
-                    bitangent[1],
-                    bitangent[2],
-                ]
-            )
+            expanded.append([
+                x, y, z,  # position
+                normal[0], normal[1], normal[2],  # normal
+                u, vtex,  # texCoords
+                tangent[0], tangent[1], tangent[2],  # tangent
+                bitangent[0], bitangent[1], bitangent[2]  # bitangent
+            ])
         expanded = np.array(expanded, dtype=np.float32)
 
         mesh = Mesh(expanded, faces)
@@ -95,47 +83,22 @@ class SurfaceRenderer(AbstractRenderer):
         # Vertex layout: x,y,z,u,v
         vertices = [
             # Triangle 1
-            -half_width,
-            0.0,
-            half_height,
-            0.0,
-            1.0,  # V0 top-left
-            half_width,
-            0.0,
-            half_height,
-            1.0,
-            1.0,  # V1 top-right
-            half_width,
-            0.0,
-            -half_height,
-            1.0,
-            0.0,  # V2 bottom-right
+            -half_width, 0.0, half_height, 0.0, 1.0,  # V0 top-left
+            half_width, 0.0, half_height, 1.0, 1.0,  # V1 top-right
+            half_width, 0.0, -half_height, 1.0, 0.0,  # V2 bottom-right
             # Triangle 2
-            half_width,
-            0.0,
-            -half_height,
-            1.0,
-            0.0,  # V3 bottom-right
-            -half_width,
-            0.0,
-            -half_height,
-            0.0,
-            0.0,  # V4 bottom-left
-            -half_width,
-            0.0,
-            half_height,
-            0.0,
-            1.0,  # V5 top-left
+            half_width, 0.0, -half_height, 1.0, 0.0,  # V3 bottom-right
+            -half_width, 0.0, -half_height, 0.0, 0.0,  # V4 bottom-left
+            -half_width, 0.0, half_height, 0.0, 1.0  # V5 top-left
         ]
 
         faces = [(0, 1, 2), (3, 4, 5)]
-
         return vertices, faces
 
     def _setup_vertex_attributes(self):
-        """Setup vertex attribute pointers for position, normal, texCoords, tangent, bitangent."""
+        """Setup vertex attribute pointers for position, normal, texCoords, tangent, and bitangent."""
         float_size = 4
-        # 14 floats per vertex: x,y,z(3), nx,ny,nz(3), u,v(2), tx,ty,tz(3), bx,by,bz(3)
+        # 14 floats per vertex: position(3), normal(3), texCoords(2), tangent(3), bitangent(3)
         vertex_stride = 14 * float_size
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
@@ -175,11 +138,12 @@ class SurfaceRenderer(AbstractRenderer):
         self.shader_engine.use_shader_program()
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_engine.shader_program, "model"),
-            1,
-            GL_FALSE,
-            glm.value_ptr(self.model_matrix),
+            1, GL_FALSE, glm.value_ptr(self.model_matrix)
         )
         self.set_constant_uniforms()
+
+        # *** Set the "surfaceMapping" uniform to true so that the shader uses the x-z plane for bounds checking ***
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "surfaceMapping"), 1)
 
         for mesh in self.object.mesh_list:
             vao_index = self.object.mesh_list.index(mesh)
