@@ -106,10 +106,10 @@ def run_benchmark(
     instance.scene_construct.translate_renderer("tyre", (-5.0, 0.0, 6.5))
 
     # First, tilt the tyre by 45° about the X‐axis (manual/initial rotation)
-    instance.scene_construct.rotate_renderer_euler("tyre", (45.0, 0.0, 0.0))
+    instance.scene_construct.rotate_renderer_euler("tyre", (0.0, 0.0, 0.0))
 
     # Then, enable auto-rotation on multiple axes (for example, spin about the Y axis and also roll about the X axis)
     instance.scene_construct.set_auto_rotations("tyre",
-                                                rotations=[((0.0, 1.0, 0.0), 4000.0), ((1.0, 0.0, 0.0), 2000.0)])
+                                                rotations=[((0.0, 1.0, 0.0), 20000.0), ((0.0, 0.0, 1.0), 14000.0)])
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
