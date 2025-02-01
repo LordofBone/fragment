@@ -374,6 +374,11 @@ class AbstractRenderer(ABC):
         self.apply_tone_mapping = apply_tone_mapping
         self.apply_gamma_correction = apply_gamma_correction
 
+        # Initialize the list of auto-rotations.
+        # Each element is a tuple: (axis, speed)
+        # For example: [((0.0, 1.0, 0.0), 4000.0), ((1.0, 0.0, 0.0), 2000.0)]
+        self.auto_rotations = []
+
     def get_winding_constant(self, winding: str):
         """
         Return the OpenGL constant corresponding to the front face winding.
@@ -858,33 +863,43 @@ class AbstractRenderer(ABC):
 
     def apply_transformations(self):
         """
-        Apply manual transformations to update the model matrix. If auto-rotation is enabled,
-        apply additional rotation based on time.
+        Apply manual transformations (translation, initial rotation, scaling)
+        and then apply any auto-rotations. The auto-rotations are applied in sequence
+        (the order of rotations in the list matters).
         """
-        if self.auto_rotation_enabled:
-            if self.rotation_speed != 0.0:
-                rotation_matrix = glm.rotate(
-                    glm.mat4(1), pygame.time.get_ticks() / self.rotation_speed, self.rotation_axis
-                )
-                self.model_matrix = self.manual_transformations * rotation_matrix
-            else:
-                self.auto_rotation_enabled = False
-                self.model_matrix = self.manual_transformations
+        # self.manual_transformations was computed by update_model_matrix()
+        if self.auto_rotations:
+            auto_matrix = glm.mat4(1.0)
+            # For each auto rotation, compute an incremental rotation matrix and multiply them
+            for (axis, speed) in self.auto_rotations:
+                # Here, we compute an angle based on time (you might wish to adjust the divisor)
+                angle = pygame.time.get_ticks() / speed
+                auto_matrix = auto_matrix * glm.rotate(glm.mat4(1.0), angle, glm.vec3(*axis))
+            self.model_matrix = self.manual_transformations * auto_matrix
         else:
             self.model_matrix = self.manual_transformations
 
-    def enable_auto_rotation(self, enabled=False, axis=None, speed=None):
+    def enable_auto_rotation(self, enabled=False, axis=None, speed=None, rotations=None):
         """
         Enable or disable automatic rotation.
-        :param enabled: Boolean indicating whether auto-rotation is enabled.
-        :param axis: Optional tuple for rotation axis.
-        :param speed: Optional rotation speed.
+
+        If rotations is provided, it should be a list of (axis, speed) tuples.
+        Otherwise, if enabled is True and axis and speed are provided, then a single auto-rotation is set.
+        If none of these conditions are met, auto-rotation is disabled.
+
+        Example usage:
+          # For a single auto rotation:
+          r.enable_auto_rotation(enabled=True, axis=(0.0, 1.0, 0.0), speed=4000.0)
+
+          # For multiple auto rotations:
+          r.enable_auto_rotation(rotations=[((0.0, 1.0, 0.0), 4000.0), ((1.0, 0.0, 0.0), 2000.0)])
         """
-        self.auto_rotation_enabled = enabled
-        if axis is not None:
-            self.rotation_axis = glm.vec3(*axis)
-        if speed is not None:
-            self.rotation_speed = speed
+        if rotations is not None:
+            self.auto_rotations = rotations
+        elif enabled and axis is not None and speed is not None:
+            self.auto_rotations = [(axis, speed)]
+        else:
+            self.auto_rotations = []
 
     def set_constant_uniforms(self):
         """
