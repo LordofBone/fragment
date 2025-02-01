@@ -105,11 +105,11 @@ def run_benchmark(
     # Translate the tyre model to a specific position, to get best view of skybox
     instance.scene_construct.translate_renderer("tyre", (-5.0, 0.0, 6.5))
 
-    # Slightly tilt the model forward by 45° about X:
-    instance.scene_construct.rotate_renderer("tyre", 0, (0.0, 1.0, 0.0))
+    # First, tilt the tyre by 45° about the X‐axis (manual/initial rotation)
+    instance.scene_construct.rotate_renderer_euler("tyre", (45.0, 0.0, 0.0))
 
-    # Then enable autorotation around X at speed 4000:
-    instance.scene_construct.set_auto_rotation("tyre", True, axis=(0.0, 0, 1), speed=4000.0)
-
+    # Then, enable auto-rotation on multiple axes (for example, spin about the Y axis and also roll about the X axis)
+    instance.scene_construct.set_auto_rotations("tyre",
+                                                rotations=[((0.0, 1.0, 0.0), 4000.0), ((1.0, 0.0, 0.0), 2000.0)])
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
