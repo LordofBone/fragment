@@ -28,23 +28,28 @@ uniform vec3 waterBaseColor;
 
 void main()
 {
+    // 1) Compute procedural wave texture coordinates
     vec2 waveTexCoords = TexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
+    // 2) Build a procedural normal (in tangent space)
     float waveHeightX = sin(waveTexCoords.y * 10.0);
     float waveHeightY = cos(waveTexCoords.x * 10.0);
-
     vec3 normalDetail = vec3(0.0, 0.0, 1.0);
     normalDetail.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     normalDetail = normalize(normalDetail);
 
+    // Transform to world space using the provided TBN
     vec3 finalNormal = normalize(TBN * normalDetail);
+
     float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
 
+    // 3) Compute view direction
     vec3 viewDir = normalize(cameraPos - FragPos);
 
+    // 4) Compute shadow (if enabled)
     float shadow = 0.0;
     if (shadowingEnabled)
     {
@@ -63,11 +68,11 @@ void main()
         );
     }
 
+    // 5) Compute lighting based on selected mode
     vec3 color = vec3(0.0);
-    // Lighting
     if (lightingMode == 0)
     {
-        // Diffuse-only
+        // Diffuse-only lighting
         color = computeDiffuseLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
     }
     else if (lightingMode >= 1)
@@ -76,10 +81,10 @@ void main()
         color = computePhongLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
     }
 
-    // Apply shadow
+    // 6) Apply shadow attenuation
     color = mix(color, color * (1.0 - shadow), shadowStrength);
 
-    // Tone Mapping and Gamma Correction
+    // 7) Tone mapping and gamma correction (if enabled)
     if (applyToneMapping)
     {
         color = toneMapping(color);
@@ -89,7 +94,7 @@ void main()
         color = pow(color, vec3(1.0 / 2.2));
     }
 
-    // Incorporate `legacyOpacity` parameter
+    // 8) Use legacy opacity
     float alpha = clamp(legacyOpacity, 0.0, 1.0);
 
     FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
