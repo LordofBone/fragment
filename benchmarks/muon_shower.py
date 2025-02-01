@@ -30,16 +30,16 @@ def run_benchmark(
         # Camera path simulating a spaceship gliding through space.
         # Each tuple is (x, y, z, yaw, pitch).
         camera_positions=[
-            (0.0, 0.0, -7.2, 187.0, 0.0),  # 1) Start exactly at (0,0,-7.2,187,0)
-            (1.5, 0.2, -6.8, 185.0, -2.0),  # 2) Slight forward, mild yaw decrease
-            (3.0, 0.6, -6.0, 182.0, -3.0),  # 3) More forward, gently pitch down
-            (4.5, 1.2, -4.8, 178.0, -5.0),  # 4) Arcing left, pitch ~-5
-            (6.0, 1.5, -3.5, 175.0, -4.0),  # 5) Slight right pan
-            (7.5, 1.5, -2.0, 170.0, -2.0),  # 6) Yaw ~170, pitch easing up
-            (9.0, 1.8, 0.0, 165.0, -2.0),  # 7) Passing behind objects, mild rise
-            (11.0, 2.0, 2.5, 160.0, -1.0),  # 8) Further forward
-            (13.0, 2.0, 5.0, 155.0, 0.0),  # 9) Pitch to level
-            (15.0, 2.3, 8.0, 150.0, 1.0),  # 10) End vantage, gentle final yaw
+            (-2.95, 0.0, -7.2, 207.0, 0.0),  # 1) Start exactly at (0,0,-7.2,187,0)
+            (-2.95, 0.0, -7.2, 199.0, -2.0),  # 2) Slight forward, mild yaw decrease
+            (-2.95, 0.0, -7.2, 195.0, -3.0),  # 3) More forward, gently pitch down
+            (-2.95, 0.0, -7.2, 192.0, -5.0),  # 4) Arcing left, pitch ~-5
+            (-2.95, 0.0, -7.2, 198.0, -4.0),  # 5) Slight right pan
+            (-2.95, 0.0, -7.2, 200.0, -2.0),  # 6) Yaw ~170, pitch easing up
+            (-2.95, 0.0, -7.2, 199.0, -2.0),  # 7) Passing behind objects, mild rise
+            (-2.95, 0.0, -7.2, 202.0, -1.0),  # 8) Further forward
+            (-2.95, 0.0, -7.2, 209.0, 0.0),  # 9) Pitch to level
+            (-2.95, 0.0, -7.2, 215.0, 1.0),  # 10) End vantage, gentle final yaw
         ],
         # Matching lens (roll) rotations for each keyframe
         # A subtle roll from 0 up to ~3°, then back down.
@@ -104,14 +104,14 @@ def run_benchmark(
         particle_generator=True,
         generator_delay=0.0,
         particle_size=9.0,
-        min_initial_velocity_x=-0.80,
-        max_initial_velocity_x=0.16,
-        min_initial_velocity_y=-0.2,
-        max_initial_velocity_y=0.2,
-        min_initial_velocity_z=-5.0,
+        min_initial_velocity_x=-0.84,
+        max_initial_velocity_x=-0.04,
+        min_initial_velocity_y=-0.10,
+        max_initial_velocity_y=0.10,
+        min_initial_velocity_z=-1.0,
         max_initial_velocity_z=0.0,
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
-        particle_max_lifetime=0.4,  # Set max lifetime to a realistic value
+        particle_max_lifetime=70.0,  # Set max lifetime to a realistic value
         particle_max_weight=125.5,  # Set max weight to a realistic value
         particle_min_weight=100.5,  # Set min weight to a realistic value
         particle_smooth_edges=True,
@@ -124,7 +124,7 @@ def run_benchmark(
         particle_gravity=(0.0, 0.0, 0.0),
         particle_bounce_factor=0.025,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 0.0, 1.0),  # Corrected normal for ground plane
-        particle_ground_plane_height=-7.14,
+        particle_ground_plane_height=-7.1,
         # Height of the ground plane on the axis as set by particle_ground_plane_normal
         fluid_simulation=False,  # Enable fluid simulation
         fluid_pressure=6.5,  # Pressure factor for the particles
