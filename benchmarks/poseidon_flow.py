@@ -73,6 +73,7 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "water",
         },
+        water_base_color=(0.4, 0.4, 0.4),
         legacy_roughness=32,
         wave_speed=6.0,
         wave_amplitude=0.8,
