@@ -22,6 +22,9 @@ uniform float planarFragmentViewThreshold;
 uniform bool flipPlanarHorizontal;// Flip screen texture horizontally
 uniform bool flipPlanarVertical;// Flip screen texture vertically
 
+// Add a uniform that tells the shader whether the object is a surface.
+uniform bool surfaceMapping;// if true, use fragPos.x and fragPos.z for bounds check
+
 // ---------------------------------------------------
 // Parallax Occlusion Mapping (POM) Uniforms
 // ---------------------------------------------------
@@ -106,12 +109,20 @@ vec4 sampleEnvironmentMapLod(vec3 envMapTexCoords)
     return textureLod(environmentMap, envMapTexCoords, envMapLodLevel);
 }
 
-// Returns 1.0 if fragPos is within the i-th light's orthogonal bounds; otherwise 0.0.
+// Returns 1.0 if fragPos is within the i-th light's orthogonal bounds.
+// If surfaceMapping is true, use fragPos.x and fragPos.z instead of fragPos.x and fragPos.y.
 float lightWithinBounds(int i, vec3 fragPos) {
-    return step(lightOrthoLeft[i], fragPos.x) *
-    step(fragPos.x, lightOrthoRight[i]) *
-    step(lightOrthoBottom[i], fragPos.y) *
-    step(fragPos.y, lightOrthoTop[i]);
+    if (surfaceMapping) {
+        return step(lightOrthoLeft[i], fragPos.x) *
+        step(fragPos.x, lightOrthoRight[i]) *
+        step(lightOrthoBottom[i], fragPos.z) *
+        step(fragPos.z, lightOrthoTop[i]);
+    } else {
+        return step(lightOrthoLeft[i], fragPos.x) *
+        step(fragPos.x, lightOrthoRight[i]) *
+        step(lightOrthoBottom[i], fragPos.y) *
+        step(fragPos.y, lightOrthoTop[i]);
+    }
 }
 
 // Flips and applies normal-based distortion to texture coordinates.
