@@ -15,7 +15,7 @@ uniform vec3 cameraPos;
 // Toggling
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform int lightingMode;// 0=diffuse,1=phong,2=maybe pbr
+uniform int lightingMode;// 0=diffuse, 1=phong, 2=maybe pbr
 uniform bool shadowingEnabled;
 
 // Shadow
@@ -36,40 +36,37 @@ void main()
     // 1) Wave coords
     //------------------------------------------------
     vec2 waveTexCoords = TexCoords;
-    float noiseFactor   = smoothNoise(waveTexCoords * randomness);
+    float noiseFactor = smoothNoise(waveTexCoords * randomness);
 
-    waveTexCoords.x += sin(time * waveSpeed
-    + TexCoords.y * texCoordFrequency
-    + noiseFactor)
-    * texCoordAmplitude;
-    waveTexCoords.y += cos(time * waveSpeed
-    + TexCoords.x * texCoordFrequency
-    + noiseFactor)
-    * texCoordAmplitude;
+    waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
+    waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    // 2) Procedural normal
+    //------------------------------------------------
+    // 2) Procedural normal (compute in tangent space then transform)
+    //------------------------------------------------
     vec3 normalMap = vec3(0.0, 0.0, 1.0);
     float waveHeightX = sin(waveTexCoords.y * 10.0);
     float waveHeightY = cos(waveTexCoords.x * 10.0);
 
     normalMap.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     normalMap = normalize(normalMap);
+    // Transform the procedural normal into world space:
+    vec3 finalNormal = normalize(TBN * normalMap);
 
     float waveHeight = 0.5 * waveAmplitude * (waveHeightX + waveHeightY);
 
     //------------------------------------------------
     // 3) Reflection
     //------------------------------------------------
-    vec3 viewDir   = normalize(cameraPos - FragPos);
-    vec3 reflectDir= reflect(-viewDir, normalMap);
-
-    float fresnel   = pow(1.0 - dot(viewDir, normalMap), 3.0);
+    vec3 viewDir = normalize(cameraPos - FragPos);
+    vec3 reflectDir = reflect(-viewDir, finalNormal);
+    float fresnel = pow(1.0 - dot(viewDir, finalNormal), 3.0);
 
     //------------------------------------------------
     // 4) Lava base color + bright color
     //------------------------------------------------
     float noiseValue = smoothNoise(TexCoords * 5.0 + time * 0.5);
-    vec3 lavaColor   = mix(lavaBaseColor, lavaBrightColor, noiseValue);
+    vec3 lavaColor = mix(lavaBaseColor, lavaBrightColor, noiseValue);
 
     //------------------------------------------------
     // 5) Shadow
@@ -79,7 +76,7 @@ void main()
     {
         shadow = ShadowCalculationDisplaced(
         FragPos,
-        normalMap,
+        finalNormal,
         waveHeight,
         shadowMap,
         lightSpaceMatrix,
@@ -98,12 +95,12 @@ void main()
     vec3 color = vec3(0.0);
     if (lightingMode == 0)
     {
-        // Diffuse
-        color = computeDiffuseLighting(normalMap, viewDir, FragPos, lavaBaseColor, TexCoords);
+        // Diffuse lighting
+        color = computeDiffuseLighting(finalNormal, viewDir, FragPos, lavaBaseColor, TexCoords);
     }
-    else if (lightingMode >= 1)// Phong
+    else if (lightingMode >= 1)// Phong lighting
     {
-        color = computePhongLighting(normalMap, viewDir, FragPos, lavaBaseColor, TexCoords);
+        color = computePhongLighting(finalNormal, viewDir, FragPos, lavaBaseColor, TexCoords);
     }
 
     // Apply shadow
@@ -135,8 +132,6 @@ void main()
     {
         color = pow(color, vec3(1.0/2.2));
     }
-
-    // clamp for safety
     color = clamp(color, 0.0, 1.0);
 
     //------------------------------------------------
