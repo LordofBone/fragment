@@ -1,5 +1,5 @@
 #version 430 core
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
 // -----------------------------------------------------------------------------
 // Particle Structure & Buffers

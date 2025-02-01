@@ -1,5 +1,5 @@
 #version 330 core
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
 // ---------------------------------------------------------------------
 // Vertex -> Fragment Inputs

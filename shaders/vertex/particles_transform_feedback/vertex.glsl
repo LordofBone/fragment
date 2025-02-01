@@ -1,5 +1,5 @@
 #version 430
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
 // -----------------------------------------------------------------------------
 // Inputs

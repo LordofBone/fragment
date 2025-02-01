@@ -1,5 +1,5 @@
 #version 330 core
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
 in vec2 TexCoords;
 in vec3 FragPos;
