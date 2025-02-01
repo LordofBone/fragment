@@ -63,7 +63,7 @@ def run_benchmark(
         fov=40,
         near_plane=0.2,
         far_plane=100,
-        ambient_lighting_strength=0.58,
+        ambient_lighting_strength=0.34,
         ambient_lighting_color=(0.78, 0.541, 0.0),
         lights=[
             {
@@ -232,7 +232,7 @@ def run_benchmark(
             "vertex": "parallax_mapping",
             "fragment": "water_parallax",
         },
-        water_base_color=(0.569, 0.886, 0.961),
+        water_base_color=(0.142, 0.221, 0.861),
         invert_displacement_map=True,
         pom_height_scale=0.096,
         pom_min_steps=128,
