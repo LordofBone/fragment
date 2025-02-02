@@ -89,20 +89,20 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     """
     # Expected uniform names mapped to keys used in our material values.
     uniform_names = {
-        "material.ambient": "ambient",
-        "material.diffuse": "diffuse",
+        # "material.ambient": "ambient", (currently unused, ambientColor is used instead)
+        # "material.diffuse": "diffuse", (currently unused, baseColor is used instead)
         "material.specular": "specular",
         "material.ior": "ior",
         "material.emissive": "emissive",
         "material.illuminationModel": "illumination_model",
-        "material.transparency": "transparency",
+        # "material.transparency": "transparency", (currently unused, overriden by legacyOpacity)
         "material.roughness": "roughness",
         "material.metallic": "metallic",
         "material.clearcoat": "clearcoat",
         "material.clearcoatRoughness": "clearcoat_roughness",
         "material.sheen": "sheen",
-        "material.anisotropy": "anisotropy",
-        "material.anisotropyRot": "anisotropy_rot",
+        # "material.anisotropy": "anisotropy", (currently unused)
+        # "material.anisotropyRot": "anisotropy_rot", (currently unused)
         "material.transmission": "transmission",
         "material.fresnelExponent": "fresnel_exponent"
     }
