@@ -82,12 +82,12 @@ struct Material {
 
 // Additional MTL parameters
     float ior;// Ni (index of refraction)
-    float transparency;// d (alpha/dissolve) (currently unused, overriden by legacyOpacity)
+//    float transparency;// d (alpha/dissolve) (currently unused, overriden by legacyOpacity)
     float clearcoat;// Pc
     float clearcoatRoughness;// Pcr
     float sheen;// Ps
-    float anisotropy;// aniso
-    float anisotropyRot;// anisor
+//    float anisotropy;// aniso // currently unused
+//    float anisotropyRot;// anisor // currently unused
     vec3 transmission;// Tf
 };
 uniform Material material;
