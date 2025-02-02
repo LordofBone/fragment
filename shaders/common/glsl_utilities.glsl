@@ -358,16 +358,6 @@ float stepSize
     return texture(cubemap, dir);
 }
 
-//vec4 sampleEnvironmentMap(vec3 envMapTexCoords)
-//{
-//    return texture(environmentMap, envMapTexCoords);
-//}
-//
-//vec4 sampleEnvironmentMapLod(vec3 envMapTexCoords)
-//{
-//    return textureLod(environmentMap, envMapTexCoords, envMapLodLevel);
-//}
-
 // ---------------------------------------------------
 // Tone Mapping Functions (Uncharted2)
 // ---------------------------------------------------
