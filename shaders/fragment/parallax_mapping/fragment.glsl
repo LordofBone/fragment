@@ -81,7 +81,7 @@ void main()
     float shadow = 0.0;
     if (shadowingEnabled)
     {
-        shadow = ShadowCalculationStandard(FragPosLightSpace, shadowMap);
+        shadow = ShadowCalculationStandard(FragPosLightSpace, shadowMap, FragPos);
     }
 
     // --------------------------------------------------------------
