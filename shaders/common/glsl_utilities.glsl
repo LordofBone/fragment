@@ -82,7 +82,7 @@ struct Material {
 
 // Additional MTL parameters
     float ior;// Ni (index of refraction)
-    float transparency;// d (alpha/dissolve)
+    float transparency;// d (alpha/dissolve) (currently unused)
     float clearcoat;// Pc
     float clearcoatRoughness;// Pcr
     float sheen;// Ps
