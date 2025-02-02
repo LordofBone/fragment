@@ -40,13 +40,13 @@ def run_benchmark(
         ambient_lighting_color=(1.0, 0.996, 0.753),
         lights=[
             {
-                "position": (6.0, 0.0, 0.0),
+                "position": (3.0, 0.0, -4.0),
                 "color": (1.0, 1.0, 1.0),
                 "strength": 1.0,
-                "orth_left": -25.0,
-                "orth_right": 25.0,
-                "orth_bottom": -25.0,
-                "orth_top": 25,
+                "orth_left": -5.0,
+                "orth_right": 5.0,
+                "orth_bottom": -5.0,
+                "orth_top": 5.0,
             }
         ],
         shadow_map_resolution=shadow_map_resolution,
