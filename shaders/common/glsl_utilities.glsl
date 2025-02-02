@@ -590,38 +590,47 @@ vec3 computeParticlePhongLighting(vec3 normal, vec3 viewDir, vec3 fragPos, vec3 
 // ---------------------------------------------------
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
-    float a = roughness * roughness;
+    float a  = roughness * roughness;
     float a2 = a * a;
-    float NdotH = max(dot(N, H), 0.0);
+    float NdotH  = max(dot(N, H), 0.0);
     float NdotH2 = NdotH * NdotH;
+
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = 3.14159265359 * denom * denom;
+    denom = 3.14159265359 * denom * denom;// Pi * denom^2
+
     return a2 / denom;
 }
 
 float GeometrySchlickGGX(float NdotV, float k)
 {
+    // Smith's Schlick-GGX part for one side (view or light)
     return NdotV / (NdotV * (1.0 - k) + k);
 }
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
+    // Combined Smith function using Schlick-GGX for both sides
     float r = (roughness + 1.0);
     float k = (r * r) / 8.0;
+
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
+
     float ggx1 = GeometrySchlickGGX(NdotV, k);
     float ggx2 = GeometrySchlickGGX(NdotL, k);
+
     return ggx1 * ggx2;
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
+    // Standard Fresnel Schlick
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 vec3 fresnelSchlickExponent(float cosTheta, vec3 F0, float exponent)
 {
+    // Allows adjusting the Fresnel exponent artificially
     vec3 base = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
     return pow(base, vec3(exponent));
 }
@@ -631,6 +640,7 @@ vec3 fresnelSchlickExponent(float cosTheta, vec3 F0, float exponent)
 // ---------------------------------------------------
 vec3 computeF0FromIOR(float ior)
 {
+    // For dielectric reflection at normal incidence
     float r0 = (ior - 1.0) / (ior + 1.0);
     r0 *= r0;
     return vec3(r0);
@@ -638,6 +648,8 @@ vec3 computeF0FromIOR(float ior)
 
 vec3 computeF0Combined(vec3 baseColor, float metallic, vec3 specular, float ior)
 {
+    // Mix between a pure dielectric F0 and baseColor for metals,
+    // then max against any MTL specular color
     vec3 dielectricF0 = computeF0FromIOR(ior);
     vec3 baseF0 = mix(dielectricF0, baseColor, metallic);
     baseF0 = max(baseF0, specular);
@@ -647,7 +659,7 @@ vec3 computeF0Combined(vec3 baseColor, float metallic, vec3 specular, float ior)
 // ---------------------------------------------------
 // Compute PBR Lighting with Extended Material Parameters
 // ---------------------------------------------------
-const float PI = 3.14159265359;
+const float PI       = 3.14159265359;
 const float MAX_MIPS = 5.0;// For environment map MIP
 
 vec3 computePBRLighting(
@@ -662,10 +674,11 @@ vec2 texCoords// Texture coordinates
         return baseColor;
     }
 
-    // If diffuse-only, compute ambient and diffuse components (no specular or environment reflection)
+    // If diffuse-only, compute ambient + diffuse, no specular
     if (material.illuminationModel == 1) {
         vec3 ambient = computeAmbientColor(baseColor);
         vec3 diffuseTotal = vec3(0.0);
+
         for (int i = 0; i < 10; i++) {
             if (lightWithinBounds(i, fragPos) > 0.0) {
                 vec3 L = normalize(lightPositions[i] - fragPos);
@@ -676,102 +689,173 @@ vec2 texCoords// Texture coordinates
         return ambient + diffuseTotal;
     }
 
-    // Otherwise, for illuminationModel >= 2, use full PBR shading.
+    // Otherwise, for illuminationModel >= 2, do full PBR shading.
     float effectiveRoughness = clamp(material.roughness, 0.0, 1.0);
     vec3 localLighting = vec3(0.0);
     vec3 F0 = computeF0Combined(baseColor, material.metallic, material.specular, material.ior);
 
+    // Direct lighting (point/dir lights)
     for (int i = 0; i < 10; i++) {
         if (lightWithinBounds(i, fragPos) > 0.0) {
             vec3 L = normalize(lightPositions[i] - fragPos);
             vec3 H = normalize(V + L);
+
             float NdotL = max(dot(N, L), 0.0);
-            float D = DistributionGGX(N, H, effectiveRoughness);
-            float G = GeometrySmith(N, V, L, effectiveRoughness);
             float NdotV = max(dot(N, V), 0.0);
             float HdotV = max(dot(H, V), 0.0);
-            vec3 F = fresnelSchlick(HdotV, F0);
-            float denom = 4.0 * NdotV * NdotL + 0.0001;
-            vec3 specular = (D * G * F) / denom;
+
+            // Microfacet terms
+            float D = DistributionGGX(N, H, effectiveRoughness);
+            float G = GeometrySmith(N, V, L, effectiveRoughness);
+            vec3 F  = fresnelSchlick(HdotV, F0);
+
+            float denom    = 4.0 * NdotV * NdotL + 0.0001;
+            vec3 specular  = (D * G * F) / denom;
+
+            // kS is the Fresnel reflectance
             vec3 kS = F;
+            // For metals, the entire color is in the reflection, so kD=0.
+            // For dielectrics, kD = (1 - F) * (1 - metallic)
             vec3 kD = (vec3(1.0) - kS) * (1.0 - material.metallic);
+
             vec3 diffuse = kD * baseColor;
             localLighting += (diffuse + specular) * lightColors[i] * lightStrengths[i] * NdotL;
         }
     }
 
-    // Add environment reflection
+    // Environment reflection (roughness-based LOD)
     float NdotV = max(dot(N, V), 0.0);
     vec3 reflectDir = reflect(-V, N);
-    float mipLevel = effectiveRoughness * MAX_MIPS;
-    vec3 envSample = textureLod(environmentMap, reflectDir, mipLevel).rgb;
-    float exponent = material.fresnelExponent;
-    vec3 F_env = fresnelSchlickExponent(NdotV, F0, exponent);
-    float G_approx = 1.0;
+    float mipLevel  = effectiveRoughness * MAX_MIPS;
+    vec3 envSample  = textureLod(environmentMap, reflectDir, mipLevel).rgb;
+
+    // Use fresnel exponent from the material
+    float exponent      = material.fresnelExponent;
+    vec3 F_env          = fresnelSchlickExponent(NdotV, F0, exponent);
+    float G_approx      = 1.0;
     vec3 environmentSpec = envSample * F_env * G_approx;
+
     float reflectionFactor = environmentMapStrength * clamp(1.0 - effectiveRoughness, 0.0, 1.0);
     vec3 environmentContribution = environmentSpec * reflectionFactor;
 
+    // -------------------------------------------------------
     // Clearcoat contribution (if any)
+    // -------------------------------------------------------
+    // For a physically-correct multi-lobe solution, you would
+    // typically NOT simply add this to everything else; you'd
+    // do a weighted sum ensuring energy conservation. This is
+    // a simpler "hack" that just adds a clearcoat pop.
     vec3 clearcoatContrib = vec3(0.0);
     if (material.clearcoat > 0.001) {
-        float ccRough = clamp(material.clearcoatRoughness, 0.0, 1.0);
-        vec3 H_cc = normalize(V + reflect(-V, N));
-        float NdotV_cc = max(dot(N, V), 0.0);
+        // Clamp values so huge numbers don't break shading
+        float ccAmount = clamp(material.clearcoat, 0.0, 1.0);
+        float ccRough  = clamp(material.clearcoatRoughness, 0.0, 1.0);
+
+        // Reflection dir for environment lobe
+        vec3 L_cc = reflect(-V, N);
+        vec3 H_cc = normalize(V + L_cc);
+
+        float NdotV_cc  = max(dot(N, V), 0.0);
+        float NdotL_cc  = max(dot(N, L_cc), 0.0);
+        float HdotV_cc  = max(dot(H_cc, V), 0.0);
+
         float D_cc = DistributionGGX(N, H_cc, ccRough);
-        float G_cc = GeometrySmith(N, V, -V, ccRough);
-        vec3 F0_cc = vec3(0.25);
-        vec3 F_cc = fresnelSchlick(NdotV_cc, F0_cc);
-        float denom_cc = 4.0 * NdotV_cc * NdotV_cc + 0.0001;
-        vec3 spec_cc = (D_cc * G_cc * F_cc) / denom_cc;
-        spec_cc *= material.clearcoat;
-        clearcoatContrib = spec_cc * environmentMapStrength;
+        float G_cc = GeometrySmith(N, V, L_cc, ccRough);
+
+        // Typical F0 for a clear lacquer is ~0.04
+        vec3 F0_cc = vec3(0.04);
+        vec3 F_cc  = fresnelSchlick(HdotV_cc, F0_cc);
+
+        float denom_cc  = 4.0 * NdotV_cc * NdotL_cc + 0.0001;
+        vec3 spec_cc    = (D_cc * G_cc * F_cc) / denom_cc;
+
+        // Sample environment for clearcoat reflection at ccRough-based MIP
+        float ccMip        = ccRough * MAX_MIPS;
+        vec3 envColorCC    = textureLod(environmentMap, L_cc, ccMip).rgb;
+
+        // Multiply by environment color, optional NdotL_cc factor
+        spec_cc *= envColorCC * environmentMapStrength * NdotL_cc;
+
+        // Finally scale by the user’s "clearcoat" param
+        spec_cc *= ccAmount;
+
+        clearcoatContrib = spec_cc;
     }
 
     // Sheen contribution (if any)
     vec3 sheenContrib = vec3(0.0);
     if (material.sheen > 0.001) {
         float edgeFactor = pow(1.0 - NdotV, 5.0);
-        vec3 sheenColor = mix(baseColor, vec3(1.0), 0.5);
-        sheenContrib = sheenColor * edgeFactor * material.sheen;
+        // Sheen color often tinted from baseColor up to white
+        vec3 sheenColor  = mix(baseColor, vec3(1.0), 0.5);
+        sheenContrib     = sheenColor * edgeFactor * material.sheen;
     }
 
+    // Sum everything (simple approach, not energy-conserving)
     vec3 finalColor = localLighting + environmentContribution + clearcoatContrib + sheenContrib;
+
+    // Add emissive
     finalColor += material.emissive;
+
+    // Add global ambient on top (same approach as the rest)
     vec3 ambientTerm = computeAmbientColor(finalColor);
     finalColor += ambientTerm;
 
-    // Optionally incorporate transmission (for refraction) as before
-    float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
+    // -------------------------------------------------------
+    // Optional Transmission (Refraction) mixing
+    // -------------------------------------------------------
+    float averageTf = (material.transmission.r
+    + material.transmission.g
+    + material.transmission.b) * 0.3333;
     if (averageTf > 0.001) {
         vec2 finalScreenCoords = texCoords;
+
+        // Planar normal-based distortion
         if (usePlanarNormalDistortion) {
             float refractionRatio = 1.0 / material.ior;
-            vec3 refractDir = refract(-V, N, refractionRatio);
-            vec2 refOffset = refractDir.xy * 0.5;
-            finalScreenCoords += (refOffset * refractionStrength);
+            vec3  refractDir      = refract(-V, N, refractionRatio);
+            vec2  refOffset       = refractDir.xy * 0.5;
+            finalScreenCoords    += (refOffset * refractionStrength);
         }
+
+        // Flip if needed
         if (flipPlanarHorizontal) {
             finalScreenCoords.x = 1.0 - finalScreenCoords.x;
         }
         if (flipPlanarVertical) {
             finalScreenCoords.y = 1.0 - finalScreenCoords.y;
         }
+
+        // Additional normal distortion
         if (usePlanarNormalDistortion) {
             vec2 nrg = texture(normalMap, texCoords).rg * 2.0 - 1.0;
             finalScreenCoords += (nrg * distortionStrength);
         }
+
         finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
+
+        // Sample the “screen” texture or fallback
         vec3 fallbackColor = vec3(0.0);
         vec3 refr2D;
         if (screenFacingPlanarTexture) {
-            refr2D = (dot(N, V) > planarFragmentViewThreshold) ? texture(screenTexture, finalScreenCoords).rgb : fallbackColor;
+            float facing = dot(N, V);
+            if (facing > planarFragmentViewThreshold) {
+                refr2D = texture(screenTexture, finalScreenCoords).rgb;
+            } else {
+                refr2D = fallbackColor;
+            }
         } else {
             refr2D = texture(screenTexture, finalScreenCoords).rgb;
         }
-        if (length(refr2D) < 0.05)
+
+        if (length(refr2D) < 0.05) {
             refr2D = fallbackColor;
+        }
+
+        // Tint by transmission color
         refr2D *= material.transmission;
+
+        // Mix refraction with the final color
         finalColor = mix(finalColor, refr2D, averageTf);
     }
 
