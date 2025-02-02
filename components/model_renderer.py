@@ -179,13 +179,13 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         raise RuntimeError("Uniform(s) not found in shader program: " + ", ".join(missing_uniforms))
 
     # Upload the basic fields.
-    glUniform3f(uniform_locations["material.ambient"], *material_values["ambient"])
-    glUniform3f(uniform_locations["material.diffuse"], *material_values["diffuse"])
+    # glUniform3f(uniform_locations["material.ambient"], *material_values["ambient"])
+    # glUniform3f(uniform_locations["material.diffuse"], *material_values["diffuse"])
     glUniform3f(uniform_locations["material.specular"], *material_values["specular"])
     glUniform1f(uniform_locations["material.ior"], float(material_values["ior"]))
     glUniform3f(uniform_locations["material.emissive"], *material_values["emissive"])
-    glUniform1i(uniform_locations["material.illuminationModel"], material_values["illumination_model"])
-    glUniform1f(uniform_locations["material.transparency"], float(material_values["transparency"]))
+    glUniform1i(uniform_locations["material.illuminationModel"], int(material_values["illumination_model"]))
+    # glUniform1f(uniform_locations["material.transparency"], float(material_values["transparency"]))
 
     # Upload PBR fields.
     glUniform1f(uniform_locations["material.roughness"], material_values["roughness"])
@@ -193,8 +193,8 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     glUniform1f(uniform_locations["material.clearcoat"], material_values["clearcoat"])
     glUniform1f(uniform_locations["material.clearcoatRoughness"], material_values["clearcoat_roughness"])
     glUniform1f(uniform_locations["material.sheen"], material_values["sheen"])
-    glUniform1f(uniform_locations["material.anisotropy"], material_values["anisotropy"])
-    glUniform1f(uniform_locations["material.anisotropyRot"], material_values["anisotropy_rot"])
+    # glUniform1f(uniform_locations["material.anisotropy"], material_values["anisotropy"])
+    # glUniform1f(uniform_locations["material.anisotropyRot"], material_values["anisotropy_rot"])
     glUniform3f(uniform_locations["material.transmission"], *material_values["transmission"])
     glUniform1f(uniform_locations["material.fresnelExponent"], material_values["fresnel_exponent"])
 
