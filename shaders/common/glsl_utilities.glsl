@@ -651,15 +651,36 @@ const float PI = 3.14159265359;
 const float MAX_MIPS = 5.0;// For environment map MIP
 
 vec3 computePBRLighting(
-vec3 N,
-vec3 V,
-vec3 fragPos,
-vec3 baseColor,
-vec2 texCoords
+vec3 N, // Normal at the fragment
+vec3 V, // View direction
+vec3 fragPos, // Fragment position in world space
+vec3 baseColor, // Base diffuse color from texture
+vec2 texCoords// Texture coordinates
 ) {
+    // If unlit, simply output the base color (or optionally modulate by ambient)
+    if (material.illuminationModel == 0) {
+        return baseColor;
+    }
+
+    // If diffuse-only, compute ambient and diffuse components (no specular or environment reflection)
+    if (material.illuminationModel == 1) {
+        vec3 ambient = computeAmbientColor(baseColor);
+        vec3 diffuseTotal = vec3(0.0);
+        for (int i = 0; i < 10; i++) {
+            if (lightWithinBounds(i, fragPos) > 0.0) {
+                vec3 L = normalize(lightPositions[i] - fragPos);
+                float diff = max(dot(N, L), 0.0);
+                diffuseTotal += diff * baseColor * lightColors[i] * lightStrengths[i];
+            }
+        }
+        return ambient + diffuseTotal;
+    }
+
+    // Otherwise, for illuminationModel >= 2, use full PBR shading.
     float effectiveRoughness = clamp(material.roughness, 0.0, 1.0);
     vec3 localLighting = vec3(0.0);
     vec3 F0 = computeF0Combined(baseColor, material.metallic, material.specular, material.ior);
+
     for (int i = 0; i < 10; i++) {
         if (lightWithinBounds(i, fragPos) > 0.0) {
             vec3 L = normalize(lightPositions[i] - fragPos);
@@ -678,6 +699,8 @@ vec2 texCoords
             localLighting += (diffuse + specular) * lightColors[i] * lightStrengths[i] * NdotL;
         }
     }
+
+    // Add environment reflection
     float NdotV = max(dot(N, V), 0.0);
     vec3 reflectDir = reflect(-V, N);
     float mipLevel = effectiveRoughness * MAX_MIPS;
@@ -688,6 +711,8 @@ vec2 texCoords
     vec3 environmentSpec = envSample * F_env * G_approx;
     float reflectionFactor = environmentMapStrength * clamp(1.0 - effectiveRoughness, 0.0, 1.0);
     vec3 environmentContribution = environmentSpec * reflectionFactor;
+
+    // Clearcoat contribution (if any)
     vec3 clearcoatContrib = vec3(0.0);
     if (material.clearcoat > 0.001) {
         float ccRough = clamp(material.clearcoatRoughness, 0.0, 1.0);
@@ -702,16 +727,21 @@ vec2 texCoords
         spec_cc *= material.clearcoat;
         clearcoatContrib = spec_cc * environmentMapStrength;
     }
+
+    // Sheen contribution (if any)
     vec3 sheenContrib = vec3(0.0);
     if (material.sheen > 0.001) {
         float edgeFactor = pow(1.0 - NdotV, 5.0);
         vec3 sheenColor = mix(baseColor, vec3(1.0), 0.5);
         sheenContrib = sheenColor * edgeFactor * material.sheen;
     }
+
     vec3 finalColor = localLighting + environmentContribution + clearcoatContrib + sheenContrib;
     finalColor += material.emissive;
     vec3 ambientTerm = computeAmbientColor(finalColor);
     finalColor += ambientTerm;
+
+    // Optionally incorporate transmission (for refraction) as before
     float averageTf = (material.transmission.r + material.transmission.g + material.transmission.b) / 3.0;
     if (averageTf > 0.001) {
         vec2 finalScreenCoords = texCoords;
@@ -744,6 +774,7 @@ vec2 texCoords
         refr2D *= material.transmission;
         finalColor = mix(finalColor, refr2D, averageTf);
     }
+
     return finalColor;
 }
 
