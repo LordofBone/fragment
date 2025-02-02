@@ -548,7 +548,7 @@ class ModelRenderer(AbstractRenderer):
         roughness = local_pbr.get("roughness", 0.5)
         metallic = local_pbr.get("metallic", 0.0)
         clearcoat = local_pbr.get("clearcoat", 0.0)
-        clearcoat_roughnes = local_pbr.get("clearcoat_roughness", 0.03)
+        clearcoat_roughness = local_pbr.get("clearcoat_roughness", 0.03)
         sheen = local_pbr.get("sheen", 0.0)
         aniso = local_pbr.get("aniso", 0.0)
         anisor = local_pbr.get("anisor", 0.0)
@@ -584,7 +584,7 @@ class ModelRenderer(AbstractRenderer):
         if loc_clearcoat >= 0:
             glUniform1f(loc_clearcoat, clearcoat)
         if loc_clearcoat_roughness >= 0:
-            glUniform1f(loc_clearcoat_roughness, clearcoat_roughnes)
+            glUniform1f(loc_clearcoat_roughness, clearcoat_roughness)
         if loc_sheen >= 0:
             glUniform1f(loc_sheen, sheen)
         if loc_anisotropy >= 0:
