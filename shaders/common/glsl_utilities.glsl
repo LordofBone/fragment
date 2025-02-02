@@ -69,8 +69,8 @@ uniform float legacyOpacity;
 // Extended PBR Material Structure
 // ---------------------------------------------------
 struct Material {
-    vec3 ambient;// from Ka
-    vec3 diffuse;// from Kd
+//    vec3 ambient;// from Ka (currently unused, ambientColor is used instead)
+//    vec3 diffuse;// from Kd (currently unused, baseColor is used instead)
     vec3 specular;// from Ks
     vec3 emissive;// from Ke
     float fresnelExponent;// from Pfe (non-standard parameter)
@@ -86,8 +86,8 @@ struct Material {
     float clearcoat;// Pc
     float clearcoatRoughness;// Pcr
     float sheen;// Ps
-//    float anisotropy;// aniso // currently unused
-//    float anisotropyRot;// anisor // currently unused
+//    float anisotropy;// aniso (currently unused)
+//    float anisotropyRot;// anisor (currently unused)
     vec3 transmission;// Tf
 };
 uniform Material material;
