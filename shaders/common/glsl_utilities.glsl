@@ -385,35 +385,52 @@ vec3 toneMapping(vec3 color)
 // ---------------------------------------------------
 float ShadowCalculationStandard(
 vec4 fragPosLightSpace,
-sampler2D shadowMap
-) {
+sampler2D shadowMap,
+vec3 fragPosWorld
+)
+{
     float shadow = 0.0;
-    for (int i = 0; i < 10; ++i) {
-        vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-        projCoords = projCoords * 0.5 + 0.5;
-        float withinBounds =
-        step(lightOrthoLeft[i], projCoords.x) *
-        step(projCoords.x, lightOrthoRight[i]) *
-        step(lightOrthoBottom[i], projCoords.y) *
-        step(projCoords.y, lightOrthoTop[i]) *
-        step(0.0, projCoords.z) *
-        step(projCoords.z, 1.0);
-        if (withinBounds > 0.0) {
-            float closestDepth = texture(shadowMap, projCoords.xy).r;
-            float currentDepth = projCoords.z;
-            float bias = 0.005;
-            vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-            float lightShadow = 0.0;
-            for (int x = -1; x <= 1; ++x) {
-                for (int y = -1; y <= 1; ++y) {
-                    float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-                    lightShadow += (currentDepth - bias > pcfDepth) ? 1.0 : 0.0;
+    // Transform fragPosLightSpace -> [0..1] clip space once per iteration
+    for (int i = 0; i < 10; ++i)
+    {
+        // 1) Check world-space orthographic bounds
+        float inWorldBounds = lightWithinBounds(i, fragPosWorld);
+        if (inWorldBounds > 0.0)
+        {
+            // 2) Convert to [0..1] in clip space
+            vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+            projCoords = projCoords * 0.5 + 0.5;
+
+            // Check if inside [0,1] in the x,y,z directions
+            if (projCoords.x >= 0.0 && projCoords.x <= 1.0 &&
+            projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
+            projCoords.z >= 0.0 && projCoords.z <= 1.0)
+            {
+                // 3) Perform PCF shadow sampling
+                float currentDepth = projCoords.z;
+                float bias = 0.005;
+                vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+
+                float lightShadow = 0.0;
+                for (int x = -1; x <= 1; ++x) {
+                    for (int y = -1; y <= 1; ++y) {
+                        float pcfDepth = texture(
+                        shadowMap,
+                        projCoords.xy + vec2(x, y) * texelSize
+                        ).r;
+
+                        // Accumulate shadow if we are behind the sampled depth
+                        lightShadow += (currentDepth - bias > pcfDepth) ? 1.0 : 0.0;
+                    }
                 }
+                lightShadow /= 9.0;
+
+                // Weight shadow by that light's strength
+                shadow += lightShadow * lightStrengths[i];
             }
-            lightShadow /= 9.0;
-            shadow += lightShadow * lightStrengths[i];
         }
     }
+    // Average across all lights
     shadow = clamp(shadow / 10.0, 0.0, 1.0);
     return shadow;
 }
