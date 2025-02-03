@@ -11,7 +11,6 @@ out vec4 FragColor;
 
 // Textures
 uniform sampler2D diffuseMap;
-uniform sampler2D shadowMap;
 
 // Light/camera uniforms
 uniform vec3 viewPosition;
@@ -40,7 +39,7 @@ void main()
     float shadow = 0.0;
     if (shadowingEnabled)
     {
-        shadow = ShadowCalculationStandard(FragPosLightSpace, shadowMap, FragPos);
+        shadow = ShadowCalculationStandard(FragPosLightSpace, FragPos);
     }
 
     // 5) Lighting
