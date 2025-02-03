@@ -146,7 +146,7 @@ def run_benchmark(
         planar_camera=True,
         planar_fov=120,
         planar_resolution=(1024, 1024),
-        planar_camera_position_rotation=(0.0, 1.0, 0.0, 180.0, 0.0),
+        planar_camera_position_rotation=(0.0, 1.0, 0.0, 120.0, 0.0),
         flip_planar_horizontally=True,
         flip_planar_vertically=False,
         planar_relative_to_camera=True,
