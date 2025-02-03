@@ -26,7 +26,6 @@ out vec4 FragColor;
 // Uniforms
 // ---------------------------------------------------------------------
 uniform sampler2D diffuseMap;
-uniform sampler2D shadowMap;
 
 // Toggles
 uniform bool applyToneMapping;
@@ -81,7 +80,7 @@ void main()
     float shadow = 0.0;
     if (shadowingEnabled)
     {
-        shadow = ShadowCalculationStandard(FragPosLightSpace, shadowMap, FragPos);
+        shadow = ShadowCalculationStandard(FragPosLightSpace, FragPos);
     }
 
     // --------------------------------------------------------------
