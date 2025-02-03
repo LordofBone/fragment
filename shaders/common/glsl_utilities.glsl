@@ -227,22 +227,52 @@ float smoothNoise(vec2 p)
 }
 
 // ---------------------------------------------------
+// Simple rotation about the X axis
+// ---------------------------------------------------
+mat4 rotateX(float angle)
+{
+    float c = cos(angle);
+    float s = sin(angle);
+    return mat4(
+    1.0, 0.0, 0.0, 0.0,
+    0.0, c, -s, 0.0,
+    0.0, s, c, 0.0,
+    0.0, 0.0, 0.0, 1.0
+    );
+}
+
+// ---------------------------------------------------
+// Simple rotation about the Y axis
+// ---------------------------------------------------
+mat4 rotateY(float angle)
+{
+    float c = cos(angle);
+    float s = sin(angle);
+    return mat4(
+    c, 0.0, s, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    -s, 0.0, c, 0.0,
+    0.0, 0.0, 0.0, 1.0
+    );
+}
+
+// ---------------------------------------------------
 // Ground Plane Base Normal Rotation Calculation
 // ---------------------------------------------------
-vec3 rotatePlaneNormal(vec3 baseNorm, vec2 angleDeg, vec3 baseGroundPlaneNormal, vec2 groundPlaneAngle)
+vec3 rotatePlaneNormal(vec3 baseNorm, vec2 angleDeg)
 {
     float yaw   = radians(angleDeg.x);
     float pitch = radians(angleDeg.y);
 
-    // 1) Rotate around Y by 'yaw'
-    mat4 rotY = rotate(mat4(1.0), yaw, vec3(0, 1, 0));
+    // Rotate around Y first
+    mat4 rotY = rotateY(yaw);
 
-    // 2) Then rotate around X by 'pitch'
-    mat4 rotX = rotate(rotY, pitch, vec3(1, 0, 0));
+    // Then rotate around X
+    mat4 rotX = rotateX(pitch) * rotY;
 
-    // Transform the base normal, ignoring any translation
-    vec3 rotated = normalize((rotX * vec4(baseNorm, 0.0)).xyz);
-    return rotated;
+    // Transform the base normal, ignoring translation
+    vec4 rotated4 = rotX * vec4(baseNorm, 0.0);
+    return normalize(rotated4.xyz);
 }
 
 // ---------------------------------------------------
