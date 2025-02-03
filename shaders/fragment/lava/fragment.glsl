@@ -19,9 +19,7 @@ uniform int lightingMode;// 0=diffuse, 1=phong, 2=maybe pbr
 uniform bool shadowingEnabled;
 
 // Shadow
-uniform sampler2D shadowMap;
 uniform float surfaceDepth;
-uniform float shadowStrength;
 
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
@@ -78,13 +76,11 @@ void main()
         FragPos,
         finalNormal,
         waveHeight,
-        shadowMap,
         lightSpaceMatrix,
         model,
         lightPositions[0], // pick first light
         0.05, // biasFactor
         0.0005, // minBias
-        shadowStrength,
         surfaceDepth
         );
     }
@@ -104,7 +100,8 @@ void main()
     }
 
     // Apply shadow
-    color = mix(color, color * (1.0 - shadow * 0.5), shadowStrength);
+    //    color = mix(color, color * (1.0 - shadow * 0.5), shadowStrength);
+    color *= (1.0 - shadow);
 
     //------------------------------------------------
     // 7) Additional procedural: bubbles/rocks
