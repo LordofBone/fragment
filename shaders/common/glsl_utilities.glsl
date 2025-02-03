@@ -66,6 +66,12 @@ uniform float legacyRoughness;
 uniform float legacyOpacity;
 
 // ---------------------------------------------------
+// Global Shadowing Uniforms
+// ---------------------------------------------------
+uniform sampler2D shadowMap;
+uniform float shadowStrength;
+
+// ---------------------------------------------------
 // Extended PBR Material Structure
 // ---------------------------------------------------
 struct Material {
@@ -385,12 +391,12 @@ vec3 toneMapping(vec3 color)
 // ---------------------------------------------------
 float ShadowCalculationStandard(
 vec4 fragPosLightSpace,
-sampler2D shadowMap,
 vec3 fragPosWorld
 )
 {
     float shadow = 0.0;
-    // Transform fragPosLightSpace -> [0..1] clip space once per iteration
+
+    // Loop over up to 10 lights
     for (int i = 0; i < 10; ++i)
     {
         // 1) Check world-space orthographic bounds
@@ -408,8 +414,8 @@ vec3 fragPosWorld
             {
                 // 3) Perform PCF shadow sampling
                 float currentDepth = projCoords.z;
-                float bias = 0.005;
-                vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+                float bias         = 0.005;
+                vec2 texelSize     = 1.0 / textureSize(shadowMap, 0);
 
                 float lightShadow = 0.0;
                 for (int x = -1; x <= 1; ++x) {
@@ -423,13 +429,18 @@ vec3 fragPosWorld
                         lightShadow += (currentDepth - bias > pcfDepth) ? 1.0 : 0.0;
                     }
                 }
-                lightShadow /= 9.0;
+
+                // ---------------------------------------------------------------------
+                // Instead of just dividing by 9.0, also multiply by our global shadowStrength
+                // ---------------------------------------------------------------------
+                lightShadow = (lightShadow / 9.0) * shadowStrength;
 
                 // Weight shadow by that light's strength
                 shadow += lightShadow * lightStrengths[i];
             }
         }
     }
+
     // Average across all lights
     shadow = clamp(shadow / 10.0, 0.0, 1.0);
     return shadow;
@@ -442,42 +453,58 @@ float ShadowCalculationDisplaced(
 vec3 fragPosWorld,
 vec3 normal,
 float waveHeight,
-sampler2D shadowMap,
 mat4 lightSpaceMatrix,
 mat4 model,
 vec3 lightPos,
 float biasFactor,
 float minBias,
-float shadowStrength,
 float surfaceDepth
 )
 {
     vec3 displacedPos = fragPosWorld;
     displacedPos.y += waveHeight;
+
     vec4 fragPosLightSpace = lightSpaceMatrix * model * vec4(displacedPos, 1.0);
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
+    vec3 projCoords        = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords             = projCoords * 0.5 + 0.5;
+
+    // Early exit if out of [0..1] bounds
     if (projCoords.x < 0.0 || projCoords.x > 1.0 ||
     projCoords.y < 0.0 || projCoords.y > 1.0 ||
     projCoords.z < 0.0 || projCoords.z > 1.0)
     {
         return 0.0;
     }
+
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    float bias = max(biasFactor * (1.0 - dot(normal, normalize(lightPos - displacedPos))), minBias);
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    int samples = 3;
-    for (int x = -samples; x <= samples; x++) {
-        for (int y = -samples; y <= samples; y++) {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+
+    float bias = max(
+    biasFactor * (1.0 - dot(normal, normalize(lightPos - displacedPos))),
+    minBias
+    );
+
+    float shadow    = 0.0;
+    vec2 texelSize  = 1.0 / textureSize(shadowMap, 0);
+    int   samples   = 3;
+
+    for (int x = -samples; x <= samples; x++)
+    {
+        for (int y = -samples; y <= samples; y++)
+        {
+            float pcfDepth  = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             float comparison = currentDepth - bias - pcfDepth;
             shadow += smoothstep(0.0, 0.005, comparison);
         }
     }
+
+    // Average the samples
     shadow /= float((samples * 2 + 1) * (samples * 2 + 1));
+
+    // Combine with extra attenuation and the global shadowStrength
     shadow *= exp(-surfaceDepth * 0.1) * shadowStrength;
+
+    // Clamp to [0..1]
     shadow = clamp(shadow, 0.0, 1.0);
     return shadow;
 }
