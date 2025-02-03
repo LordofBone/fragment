@@ -212,12 +212,6 @@ void main()
 
             // Nudges the particle back on top
             particle.position.xyz -= particleGroundPlaneNormal * distanceToGround;
-
-            // CPU logic: ensure we have at least a small upward velocity
-            if (abs(particle.velocity.y) < 0.1)
-            {
-                particle.velocity.y = 0.1;
-            }
         }
 
         // Lifetime percentage update

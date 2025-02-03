@@ -139,12 +139,6 @@ void main()
 
         // Push particle back up so it isn’t under the plane
         newPos -= particleGroundPlaneNormal * distGround;
-
-        // As on CPU: ensure it bounces up at least a tiny bit
-        if (abs(newVelocity.y) < 0.1)
-        {
-            newVelocity.y = 0.1;
-        }
     }
 
     // -------------------------------------------------------------------------

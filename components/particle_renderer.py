@@ -1053,10 +1053,6 @@ class ParticleRenderer(AbstractRenderer):
                 # Prevent the particle from sinking below the ground
                 position[:3] -= self.particle_ground_plane_normal * distance_to_ground
 
-                # Ensure the particle bounces with a minimum upward velocity to avoid sticking
-                if abs(velocity[1]) < 0.1:  # Assuming Y-axis is up/down
-                    velocity[1] = 0.1  # Small positive value to ensure it moves upward
-
             # Update lifetime percentage
             if lifetime > 0.0:
                 elapsed_time = current_time - spawn_time
