@@ -27,14 +27,12 @@ out vec4 FragColor;
 // Uniforms
 // ---------------------------------------------------------
 uniform vec3 cameraPos;
-uniform sampler2D shadowMap;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
 
 uniform int lightingMode;
 uniform bool shadowingEnabled;
 uniform float surfaceDepth;
-uniform float shadowStrength;
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
 uniform mat4 view;
@@ -118,13 +116,11 @@ void main()
         FragPos,
         finalNormal,
         waveHeightClassic,
-        shadowMap,
         lightSpaceMatrix,
         model,
         lightPositions[0], // pick first light
         0.05, // biasFactor
         0.0005, // minBias
-        shadowStrength,
         surfaceDepth
         );
     }
@@ -136,15 +132,16 @@ void main()
     if (lightingMode == 0)// diffuse
     {
         vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
-        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
         color = diffuseColor;
     }
     else if (lightingMode >= 1)// Phong
     {
         vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
-        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color = phongColor;
     }
+
+    // 6) Apply shadow attenuation
+    color *= (1.0 - shadow);
 
     //--------------------------------------------
     // (H) Tone & Gamma
