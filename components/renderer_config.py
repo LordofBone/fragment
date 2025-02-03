@@ -23,6 +23,7 @@ class RendererConfig:
         alpha_blending=False,
         depth_testing=True,
         shadow_map_resolution=2048,
+            shadow_strength=1.0,
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
@@ -87,6 +88,7 @@ class RendererConfig:
         self.alpha_blending = alpha_blending
         self.depth_testing = depth_testing
         self.shadow_map_resolution = shadow_map_resolution
+        self.shadow_strength = shadow_strength
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
@@ -231,6 +233,7 @@ class RendererConfig:
         env_map_lod_bias=None,
         env_map_strength=None,
         shadow_map_resolution=None,
+            shadow_strength=None,
         invert_displacement_map=None,
         pom_height_scale=None,
         pom_min_steps=None,
@@ -286,6 +289,7 @@ class RendererConfig:
             "legacy_roughness": legacy_roughness,
             "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
+            "shadow_strength": shadow_strength,
             "invert_displacement_map": invert_displacement_map,
             "pom_height_scale": pom_height_scale,
             "pom_min_steps": pom_min_steps,
@@ -346,6 +350,7 @@ class RendererConfig:
         env_map_lod_bias=None,
         env_map_strength=None,
         shadow_map_resolution=None,
+            shadow_strength=None,
         invert_displacement_map=None,
         pom_height_scale=None,
         pom_min_steps=None,
@@ -395,6 +400,7 @@ class RendererConfig:
             "legacy_roughness": legacy_roughness,
             "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
+            "shadow_strength": shadow_strength,
             "invert_displacement_map": invert_displacement_map,
             "pom_height_scale": pom_height_scale,
             "pom_min_steps": pom_min_steps,
