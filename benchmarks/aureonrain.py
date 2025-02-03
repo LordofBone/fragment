@@ -78,6 +78,7 @@ def run_benchmark(
         ],
         planar_fragment_view_threshold=-1.0,
         shadow_map_resolution=shadow_map_resolution,
+        shadow_strength=1.0,
         anisotropy=anisotropy,
         auto_camera=True,
         move_speed=0.1,
