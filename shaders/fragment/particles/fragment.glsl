@@ -72,11 +72,11 @@ void main()
     if (smoothEdges)
     {
         float edgeFactor = 1.0 - distSquared;// fade near edge
-        alphaBase = edgeFactor * (1.0 - lifetimePercentageToFragment);
+        alphaBase = edgeFactor * (legacyOpacity - lifetimePercentageToFragment);
     }
     else
     {
-        alphaBase = 1.0 - lifetimePercentageToFragment;
+        alphaBase = legacyOpacity - lifetimePercentageToFragment;
     }
 
     // 6) Incorporate `legacyOpacity` parameter
