@@ -227,6 +227,25 @@ float smoothNoise(vec2 p)
 }
 
 // ---------------------------------------------------
+// Ground Plane Base Normal Rotation Calculation
+// ---------------------------------------------------
+vec3 rotatePlaneNormal(vec3 baseNorm, vec2 angleDeg, vec3 baseGroundPlaneNormal, vec2 groundPlaneAngle)
+{
+    float yaw   = radians(angleDeg.x);
+    float pitch = radians(angleDeg.y);
+
+    // 1) Rotate around Y by 'yaw'
+    mat4 rotY = rotate(mat4(1.0), yaw, vec3(0, 1, 0));
+
+    // 2) Then rotate around X by 'pitch'
+    mat4 rotX = rotate(rotY, pitch, vec3(1, 0, 0));
+
+    // Transform the base normal, ignoring any translation
+    vec3 rotated = normalize((rotX * vec4(baseNorm, 0.0)).xyz);
+    return rotated;
+}
+
+// ---------------------------------------------------
 // Fluid Forces Calculation
 // ---------------------------------------------------
 vec3 calculateFluidForces(
