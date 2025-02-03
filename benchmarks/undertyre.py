@@ -50,6 +50,7 @@ def run_benchmark(
             }
         ],
         shadow_map_resolution=shadow_map_resolution,
+        shadow_strength=1.0,
         anisotropy=anisotropy,
         auto_camera=False,
         msaa_level=msaa_level,
