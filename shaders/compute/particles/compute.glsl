@@ -14,22 +14,22 @@ struct Particle {
     float lifetimePercentage;
 };
 
+// ---------------------------------------------------
+// SSBO: Particle setup
+// ---------------------------------------------------
 layout(std430, binding = 0) buffer ParticleBuffer {
     Particle particles[];
 };
 
 layout(std430, binding = 1) buffer GenerationData {
-    uint particlesGenerated;// used when shouldGenerate = true
+    uint particlesGenerated;// used if shouldGenerate = true
 };
 
-// -----------------------------------------------------------------------------
-// Workgroup size
-// -----------------------------------------------------------------------------
-layout(local_size_x = 128) in;
+layout(local_size_x = 128) in;// dispatch size
 
-// -----------------------------------------------------------------------------
+// ---------------------------------------------------
 // Uniforms
-// -----------------------------------------------------------------------------
+// ---------------------------------------------------
 uniform float currentTime;
 uniform float deltaTime;
 uniform float particleMaxLifetime;
@@ -37,8 +37,12 @@ uniform float particleMaxVelocity;
 uniform float particleMinWeight;
 uniform float particleMaxWeight;
 uniform float particleBounceFactor;
+
+// Base normal + angles
 uniform vec3  particleGroundPlaneNormal;
+uniform vec2  groundPlaneAngle;
 uniform float particleGroundPlaneHeight;
+
 uniform int   maxParticles;
 
 // Particle generation logic
@@ -77,9 +81,6 @@ uniform float fluidForceMultiplier;
 // -----------------------------------------------------------------------------
 shared uint particlesGeneratedInWorkgroup;
 
-// -----------------------------------------------------------------------------
-// Main
-// -----------------------------------------------------------------------------
 void main()
 {
     uint index = gl_GlobalInvocationID.x;
@@ -90,15 +91,15 @@ void main()
 
     bool isExpired = (particle.lifetimePercentage >= 1.0);
 
-    // Initialize the shared counter once per workgroup
+    // Initialize local shared counter once per workgroup
     if (gl_LocalInvocationID.x == 0) {
         particlesGeneratedInWorkgroup = 0u;
     }
     barrier();
 
-    // -------------------------------------------------------------------------
-    //  1) Generation Logic
-    // -------------------------------------------------------------------------
+    //--------------------------------------------
+    // 1) Particle Generation
+    //--------------------------------------------
     if (shouldGenerate && particleGenerator && isExpired)
     {
         // Atomically increment the global generation counter
@@ -159,85 +160,76 @@ void main()
                 particle.spawnTime += jitterValue;
             }
 
-            // Reset lifetimePercentage
+            // Reset particle lifetime
             particle.lifetimePercentage = 0.0;
         }
     }
 
-    // -------------------------------------------------------------------------
-    //  2) Update existing (active) particles
-    // -------------------------------------------------------------------------
+    //--------------------------------------------
+    // 2) Update existing particles
+    //--------------------------------------------
     if (particle.lifetimePercentage < 1.0)
     {
         // Gravity scaled by weight
-        vec3 adjustedGravity = particleGravity * particle.particleWeight;
-        particle.velocity.xyz += adjustedGravity * deltaTime;
+        vec3 adjGravity = particleGravity * particle.particleWeight;
+        particle.velocity.xyz += adjGravity * deltaTime;
 
         // Fluid simulation
-        if (fluidSimulation)
-        {
-            vec3 fluidForces = calculateFluidForces(
-            particle.velocity.xyz,
-            adjustedGravity,
-            fluidPressure,
-            fluidViscosity,
+        if (fluidSimulation) {
+            vec3 fluid = calculateFluidForces(
+            particle.velocity.xyz, adjGravity,
+            fluidPressure, fluidViscosity,
             fluidForceMultiplier
             );
-            particle.velocity.xyz += fluidForces * deltaTime;
+            particle.velocity.xyz += fluid * deltaTime;
         }
 
-        // Clamp velocity
+        // clamp velocity
         float speed = length(particle.velocity.xyz);
-        if (speed > particleMaxVelocity)
-        {
+        if (speed > particleMaxVelocity) {
             particle.velocity.xyz = normalize(particle.velocity.xyz) * particleMaxVelocity;
         }
 
-        // Integrate position
+        // Integrate
         particle.position.xyz += particle.velocity.xyz * deltaTime;
 
-        // Ground-plane collision
-        float distanceToGround = dot(particle.position.xyz, particleGroundPlaneNormal) - particleGroundPlaneHeight;
-        if (distanceToGround < 0.0)
-        {
-            // Reflect
-            particle.velocity.xyz = reflect(particle.velocity.xyz, particleGroundPlaneNormal) * particleBounceFactor;
+        // Collide with rotated ground plane
+        vec3 planeN = rotatePlaneNormal(particleGroundPlaneNormal, groundPlaneAngle);
+        float dist  = dot(particle.position.xyz, planeN) - particleGroundPlaneHeight;
+        if (dist < 0.0) {
+            // reflect
+            particle.velocity.xyz = reflect(particle.velocity.xyz, planeN) * particleBounceFactor;
 
-            // Re-clamp after bounce
-            float bounceSpeed = length(particle.velocity.xyz);
-            if (bounceSpeed > particleMaxVelocity)
-            {
+            // clamp
+            float bSpeed = length(particle.velocity.xyz);
+            if (bSpeed > particleMaxVelocity) {
                 particle.velocity.xyz = normalize(particle.velocity.xyz) * particleMaxVelocity;
             }
 
-            // Nudges the particle back on top
-            particle.position.xyz -= particleGroundPlaneNormal * distanceToGround;
+            // push out
+            particle.position.xyz -= planeN * dist;
         }
 
-        // Lifetime percentage update
-        float elapsedTime = currentTime - particle.spawnTime;
-        if (particle.lifetime > 0.0)
-        {
-            particle.lifetimePercentage = clamp(elapsedTime / particle.lifetime, 0.0, 1.0);
-        }
-        else
-        {
-            // Immortal
+        // Update lifetime
+        float elapsed = currentTime - particle.spawnTime;
+        if (particle.lifetime > 0.0) {
+            particle.lifetimePercentage = clamp(elapsed / particle.lifetime, 0.0, 1.0);
+        } else {
+            // immortal
             particle.lifetimePercentage = 0.0;
         }
 
-        // If nearly expired, clamp to 1.0
-        if (particle.lifetimePercentage >= 0.9999)
-        {
+        // If nearly expired
+        if (particle.lifetimePercentage >= 0.9999) {
             particle.lifetimePercentage = 1.0;
         }
     }
     else
     {
-        // If expired, zero velocity
+        // If expired, keep velocity zero
         particle.velocity.xyz = vec3(0.0);
     }
 
-    // Write particle back
+    // Write back to SSBO
     particles[index] = particle;
 }
