@@ -171,6 +171,7 @@ class AbstractRenderer(ABC):
         pom_max_forward_offset=1.0,
         pom_enable_frag_depth_adjustment=False,
         shadow_map_resolution=2048,
+            shadow_strength=1.0,
         lighting_mode="diffuse",
         legacy_opacity=1.0,
         legacy_roughness=32,
@@ -316,6 +317,7 @@ class AbstractRenderer(ABC):
         else:
             self.shadowing_enabled = False
             self.shadow_map_manager = None
+        self.shadow_strength = shadow_strength
 
         # Ambient lighting
         self.ambient_lighting_strength = ambient_lighting_strength
@@ -1018,7 +1020,7 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "surfaceDepth"),
                     self.dynamic_attrs.get("surface_depth", 0.0))
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shadowStrength"),
-                    self.dynamic_attrs.get("shadow_strength", 1.0))
+                    self.shadow_strength)
         glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "cameraPos"), 1,
                      glm.value_ptr(self.camera_position))
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
