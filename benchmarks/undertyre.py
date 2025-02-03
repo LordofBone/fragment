@@ -37,12 +37,12 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=50.0,
         ambient_lighting_strength=0.2,
-        ambient_lighting_color=(1.0, 0.996, 0.753),
+        ambient_lighting_color=(1.0, 0.984, 0.753),
         lights=[
             {
                 "position": (5.0, 9.0, -5.4),
-                "color": (1.0, 1.0, 1.0),
-                "strength": 1.0,
+                "color": (0.996, 0.996, 0.996),
+                "strength": 0.994,
                 "orth_left": -10.0,
                 "orth_right": 10.0,
                 "orth_bottom": -10.0,
@@ -50,7 +50,7 @@ def run_benchmark(
             }
         ],
         shadow_map_resolution=shadow_map_resolution,
-        shadow_strength=1.0,
+        shadow_strength=7.0,
         anisotropy=anisotropy,
         auto_camera=False,
         msaa_level=msaa_level,
