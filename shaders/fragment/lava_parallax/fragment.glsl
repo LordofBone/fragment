@@ -26,7 +26,6 @@ out vec4 FragColor;
 // --------------------------------------------
 // Uniforms
 // --------------------------------------------
-uniform sampler2D shadowMap;
 uniform vec3 cameraPos;
 
 // Toggling
@@ -37,7 +36,6 @@ uniform bool shadowingEnabled;
 
 // Shadow parameters
 uniform float surfaceDepth;
-uniform float shadowStrength;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
@@ -123,13 +121,11 @@ void main()
         FragPos,
         finalNormal,
         waveHeightClassic,
-        shadowMap,
         lightSpaceMatrix,
         model,
         lightPositions[0], // pick first light
         0.05, // biasFactor
         0.0005, // minBias
-        shadowStrength,
         surfaceDepth
         );
     }
@@ -141,15 +137,16 @@ void main()
     if (lightingMode == 0)// diffuse
     {
         vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, lavaBaseColor, TexCoords);
-        diffuseColor = mix(diffuseColor, diffuseColor * (1.0 - shadow), shadowStrength);
         color = diffuseColor;
     }
     else if (lightingMode >= 1)// Phong
     {
         vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, lavaBaseColor, TexCoords);
-        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
         color = phongColor;
     }
+
+    // 6) Apply shadow attenuation
+    color *= (1.0 - shadow);
 
     //--------------------------------------------
     // (I) Additional procedural effects (bubbles, rocks)
