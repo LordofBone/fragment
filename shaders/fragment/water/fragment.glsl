@@ -10,7 +10,6 @@ in vec4 FragPosLightSpace;
 out vec4 FragColor;
 
 uniform vec3 cameraPos;
-uniform sampler2D shadowMap;
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
@@ -18,7 +17,6 @@ uniform int lightingMode;
 uniform bool shadowingEnabled;
 
 uniform float surfaceDepth;
-uniform float shadowStrength;
 
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
@@ -57,13 +55,11 @@ void main()
         FragPos,
         finalNormal,
         waveHeight,
-        shadowMap,
         lightSpaceMatrix,
         model,
         lightPositions[0], // pick a main light for bias
         0.05,
         0.005,
-        shadowStrength,
         surfaceDepth
         );
     }
@@ -82,7 +78,7 @@ void main()
     }
 
     // 6) Apply shadow attenuation
-    color = mix(color, color * (1.0 - shadow), shadowStrength);
+    color *= (1.0 - shadow);
 
     // 7) Tone mapping and gamma correction (if enabled)
     if (applyToneMapping)
