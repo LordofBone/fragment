@@ -47,6 +47,7 @@ class ParticleRenderer(AbstractRenderer):
         particle_gravity=(0.0, -9.81, 0.0),
         particle_bounce_factor=0.6,
         particle_ground_plane_normal=(0.0, 1.0, 0.0),
+            particle_ground_plane_angle=(0.0, 0.0),
         particle_min_weight=0.5,
         particle_max_weight=1.0,
         fluid_simulation=False,
@@ -183,6 +184,7 @@ class ParticleRenderer(AbstractRenderer):
         self.particle_gravity = glm.vec3(particle_gravity)
         self.particle_bounce_factor = particle_bounce_factor
         self.particle_ground_plane_normal = glm.vec3(particle_ground_plane_normal)
+        self.particle_ground_plane_angle = glm.vec2(particle_ground_plane_angle)
         self.particle_min_weight = particle_min_weight
         self.particle_max_weight = particle_max_weight
         self.fluid_simulation = fluid_simulation
@@ -714,6 +716,11 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.shader_program, "particleGroundPlaneNormal"),
             1,
             glm.value_ptr(self.particle_ground_plane_normal),
+        )
+        glUniform2f(
+            glGetUniformLocation(self.shader_engine.shader_program, "groundPlaneAngle"),
+            self.particle_ground_plane_angle.x,
+            self.particle_ground_plane_angle.y
         )
 
     def set_compute_uniforms(self):
