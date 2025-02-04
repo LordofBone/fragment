@@ -30,7 +30,7 @@ def run_benchmark(
         window_size=resolution,
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
-        duration=120,
+        duration=82,
         cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
         camera_positions=[
             (10.0, 10.0, 10.0, 5.0, -10.0),
