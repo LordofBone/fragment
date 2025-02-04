@@ -1,4 +1,4 @@
-#version 430 core
+#version 430
 #include "glsl_utilities.glsl"
 
 // -----------------------------------------------------------------------------
@@ -86,19 +86,18 @@ void main()
     uint index = gl_GlobalInvocationID.x;
     if (index >= uint(maxParticles)) return;
 
+    // Fetch the current particle from the buffer
     Particle particle = particles[index];
-    particle.particleID = float(index);
-
     bool isExpired = (particle.lifetimePercentage >= 1.0);
 
-    // Initialize local shared counter once per workgroup
+    // Local workgroup counter reset (optional)
     if (gl_LocalInvocationID.x == 0) {
         particlesGeneratedInWorkgroup = 0u;
     }
     barrier();
 
     //--------------------------------------------
-    // 1) Particle Generation
+    // 1) Particle Generation (if expired)
     //--------------------------------------------
     if (shouldGenerate && particleGenerator && isExpired)
     {
@@ -106,9 +105,10 @@ void main()
         uint globalGenerated = atomicAdd(particlesGenerated, 1u);
         if (globalGenerated < particleBatchSize)
         {
-            // We'll seed our random generator with ID + time
-            uint baseSeed = uint(particle.particleID)*1664525u
-            + uint(gl_GlobalInvocationID.x)*1013904223u
+            // We'll seed our random generator with ID + current time
+            uint baseSeed =
+            uint(particle.particleID) * 1664525u
+            + uint(gl_GlobalInvocationID.x) * 1013904223u
             + uint(currentTime * 1000.0);
 
             // Random position
@@ -160,76 +160,88 @@ void main()
                 particle.spawnTime += jitterValue;
             }
 
-            // Reset particle lifetime
+            // Reset lifetime percentage
             particle.lifetimePercentage = 0.0;
         }
     }
 
     //--------------------------------------------
-    // 2) Update existing particles
+    // 2) Update existing / live particles
     //--------------------------------------------
     if (particle.lifetimePercentage < 1.0)
     {
-        // Gravity scaled by weight
-        vec3 adjGravity = particleGravity * particle.particleWeight;
-        particle.velocity.xyz += adjGravity * deltaTime;
+        // Gravity
+        vec3 adjG = particleGravity * particle.particleWeight;
+        particle.velocity.xyz += adjG * deltaTime;
 
-        // Fluid simulation
+        // Fluid forces
         if (fluidSimulation) {
-            vec3 fluid = calculateFluidForces(
-            particle.velocity.xyz, adjGravity,
-            fluidPressure, fluidViscosity,
+            vec3 fluidF = calculateFluidForces(
+            particle.velocity.xyz, // velocity
+            adjG, // gravity * weight
+            fluidPressure,
+            fluidViscosity,
             fluidForceMultiplier
             );
-            particle.velocity.xyz += fluid * deltaTime;
+            particle.velocity.xyz += fluidF * deltaTime;
         }
 
-        // clamp velocity
+        // Clamp velocity
         float speed = length(particle.velocity.xyz);
         if (speed > particleMaxVelocity) {
             particle.velocity.xyz = normalize(particle.velocity.xyz) * particleMaxVelocity;
         }
 
-        // Integrate
-        particle.position.xyz += particle.velocity.xyz * deltaTime;
+        // Integrate position
+        vec3 newPos = particle.position.xyz + particle.velocity.xyz * deltaTime;
+        particle.position.xyz = newPos;
 
-        // Collide with rotated ground plane
+        // Collide with the rotated ground plane
+        // angles.x => rotation about X, angles.y => rotation about Y
         vec3 planeN = rotatePlaneNormal(particleGroundPlaneNormal, groundPlaneAngle);
-        float dist  = dot(particle.position.xyz, planeN) - particleGroundPlaneHeight;
-        if (dist < 0.0) {
-            // reflect
-            particle.velocity.xyz = reflect(particle.velocity.xyz, planeN) * particleBounceFactor;
+        float dist  = dot(newPos, planeN) - particleGroundPlaneHeight;
+        if (dist < 0.0)
+        {
+            // Reflect & apply bounce factor
+            vec3 newVelocity = reflect(particle.velocity.xyz, planeN) * particleBounceFactor;
 
-            // clamp
-            float bSpeed = length(particle.velocity.xyz);
-            if (bSpeed > particleMaxVelocity) {
-                particle.velocity.xyz = normalize(particle.velocity.xyz) * particleMaxVelocity;
+            // Clamp after bounce
+            float bs = length(newVelocity);
+            if (bs > particleMaxVelocity) {
+                newVelocity = normalize(newVelocity) * particleMaxVelocity;
             }
 
-            // push out
-            particle.position.xyz -= planeN * dist;
+            // Push the particle out of the plane (dist is negative)
+            newPos -= planeN * dist;
+
+            // Store updated position & velocity
+            particle.position.xyz = newPos;
+            particle.velocity.xyz = newVelocity;
         }
 
-        // Update lifetime
+        // Update lifetime percentage
         float elapsed = currentTime - particle.spawnTime;
         if (particle.lifetime > 0.0) {
             particle.lifetimePercentage = clamp(elapsed / particle.lifetime, 0.0, 1.0);
-        } else {
-            // immortal
+        }
+        else {
+            // Immortal
             particle.lifetimePercentage = 0.0;
         }
 
-        // If nearly expired
+        // Mark fully expired if nearly done
         if (particle.lifetimePercentage >= 0.9999) {
             particle.lifetimePercentage = 1.0;
         }
     }
     else
     {
-        // If expired, keep velocity zero
+        // Expired -> set velocity to zero
         particle.velocity.xyz = vec3(0.0);
     }
 
-    // Write back to SSBO
+    //--------------------------------------------
+    // 3) Write particle back to SSBO
+    //--------------------------------------------
     particles[index] = particle;
 }
