@@ -416,8 +416,6 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
 
-        self.set_cpu_uniforms()
-
         # Set up the vertex attributes
         self._setup_vertex_attributes_cpu()
 
@@ -895,25 +893,6 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.compute_shader_program, "maxInitialVelocityZ"),
             np.float32(self.max_initial_velocity_z),
         )
-
-    def set_cpu_uniforms(self):
-        """
-        Set up the uniforms for the CPU-based particle rendering.
-        """
-        self.shader_engine.use_shader_program()
-
-        # Set other uniforms like particle size, color, etc.
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "particleSize"), self.particle_size)
-        glUniform3fv(
-            glGetUniformLocation(self.shader_engine.shader_program, "particleColor"),
-            1,
-            glm.value_ptr(self.particle_color),
-        )
-
-        if self.debug_mode:
-            print("Set particle uniforms for CPU mode.")
-            print(f"particleSize: {self.particle_size}")
-            print(f"particleColor: {self.particle_color}")
 
     def update_particles(self):
         """
