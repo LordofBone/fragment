@@ -7,6 +7,43 @@ from OpenGL.GL import *
 from components.abstract_renderer import AbstractRenderer, with_gl_render_state
 
 
+def rotate_plane_normal_py(base_normal, angleX_deg, angleY_deg):
+    """
+    Rotate a base_normal vector by first applying a rotation of 'angleX_deg'
+    around the X-axis, then a rotation of 'angleY_deg' around the Y-axis.
+
+    This yields a final transform matrix = (RotY * RotX).
+    The rightmost multiplication (RotX) is applied first, then RotY is applied
+    to the result.  That way, if angleX_deg=45 and angleY_deg=30, we do:
+      1) rotate around X by 45 deg
+      2) rotate that result around Y by 30 deg
+    """
+    # Convert degrees to radians
+    rx = glm.radians(angleX_deg)
+    ry = glm.radians(angleY_deg)
+
+    # Build the same matrices you'd do in GLSL, but in Python via glm
+    rotX = glm.rotate(glm.mat4(1.0), rx, glm.vec3(1, 0, 0))
+    rotY = glm.rotate(glm.mat4(1.0), ry, glm.vec3(0, 1, 0))
+
+    # Matrix multiply so that X-rotation happens first, then Y-rotation
+    mat4_final = rotY * rotX
+
+    # Apply this to base_normal (with w=0)
+    # Convert base_normal to glm.vec3 if needed
+    if not isinstance(base_normal, glm.vec3):
+        base_normal = glm.vec3(*base_normal)
+
+    rotated4 = mat4_final * glm.vec4(base_normal, 0.0)
+
+    # Convert to numpy and normalize
+    planeN = np.array([rotated4.x, rotated4.y, rotated4.z], dtype=np.float32)
+    norm = np.linalg.norm(planeN)
+    if norm > 1e-12:
+        planeN /= norm
+
+    return planeN
+
 class ParticleRenderer(AbstractRenderer):
     # Define maximum particles for each render mode (to prevent slowdowns)
     DEFAULT_MAX_PARTICLES_MAPPING = {"cpu": 2000, "transform_feedback": 200000, "compute_shader": 2000000}
@@ -1000,32 +1037,14 @@ class ParticleRenderer(AbstractRenderer):
 
         current_time = time.time() - self.start_time  # Relative time since particle system started
 
-        # 1) Build the same rotation for the plane normal
-        #    we assume self.particle_ground_plane_normal = glm.vec3(...) (the "base")
-        #    and self.particle_ground_plane_angle = (yawDeg, pitchDeg)
+        # ----------------------------------------------------------------
+        # 1) Build plane normal using the same logic as transform feedback
+        #    and compute shader. We interpret groundPlaneAngle.x as yaw,
+        #    groundPlaneAngle.y as pitch, then apply yaw->pitch in that order.
+        # ----------------------------------------------------------------
         yaw_deg = self.particle_ground_plane_angle[0]
         pitch_deg = self.particle_ground_plane_angle[1]
-
-        # Convert to radians
-        yaw_rad = np.radians(yaw_deg)
-        pitch_rad = np.radians(pitch_deg)
-
-        # We can use glm for convenience
-        import glm
-
-        rotY = glm.mat4(1.0)
-        rotY = glm.rotate(rotY, yaw_rad, glm.vec3(0, 1, 0))
-
-        rotX = glm.rotate(glm.mat4(1.0), pitch_rad, glm.vec3(1, 0, 0))
-        # Combine: note that if we want "rotate around Y, then X," we multiply in the correct order:
-        mat4_final = rotX * rotY  # or rotY * rotX depending on your convention
-
-        # transform base normal
-        base = glm.vec4(self.particle_ground_plane_normal, 0.0)
-        rotated4 = mat4_final * base
-        # convert to numpy
-        planeN = np.array([rotated4.x, rotated4.y, rotated4.z], dtype=np.float32)
-        planeN /= np.linalg.norm(planeN)  # ensure normalized
+        planeN = rotate_plane_normal_py(self.particle_ground_plane_normal, yaw_deg, pitch_deg)
 
         # 2) Iterate over all particles
         for i in range(self.max_particles):
@@ -1037,7 +1056,7 @@ class ParticleRenderer(AbstractRenderer):
             weight = self.cpu_particles[i, 11]  # weight
             lifetime_pct = self.cpu_particles[i, 12]  # lifetimePercentage
 
-            # skip if expired
+            # Skip if expired
             if lifetime_pct >= 1.0:
                 continue
 
@@ -1047,88 +1066,81 @@ class ParticleRenderer(AbstractRenderer):
 
             # Fluid forces if enabled
             if self.fluid_simulation:
-                # Calculate fluid damping forces
-                # 1) Pressure ~ -velocity * fluid_pressure
+                # Pressure ~ -velocity * fluid_pressure
                 pressure_force = -velocity[:3] * self.fluid_pressure
-
-                # 2) Viscosity ~ -velocity * fluid_viscosity
+                # Viscosity ~ -velocity * fluid_viscosity
                 viscosity_force = -velocity[:3] * self.fluid_viscosity
-
-                # Combine
+                # Combine and clamp
                 total_fluid_force = pressure_force + viscosity_force
-
-                # clamp
                 max_fluid = np.linalg.norm(adjusted_gravity) * self.fluid_force_multiplier
                 fmag = np.linalg.norm(total_fluid_force)
                 if fmag > max_fluid:
                     total_fluid_force = total_fluid_force / fmag * max_fluid
 
-                # Integrate: add to velocity
+                # Integrate fluid force
                 velocity[:3] += total_fluid_force * self.delta_time
 
-            # clamp velocity
+            # Clamp velocity
             speed = np.linalg.norm(velocity[:3])
             if speed > self.particle_max_velocity:
                 velocity[:3] = velocity[:3] / speed * self.particle_max_velocity
 
-            # integrate
-            position += velocity * self.delta_time
+            # Integrate position
+            position[:3] += velocity[:3] * self.delta_time
 
-            # collision with planeN
+            # Collision with the rotated plane
             dist_to_plane = np.dot(position[:3], planeN) - self.particle_ground_plane_height
             if dist_to_plane < 0.0:
-                # reflect
+                # Reflect velocity about planeN and apply bounce factor
                 vel_dot = np.dot(velocity[:3], planeN)
                 velocity[:3] = velocity[:3] - 2.0 * vel_dot * planeN
                 velocity[:3] *= self.particle_bounce_factor
 
-                # clamp after bounce
+                # Clamp velocity after bounce
                 bspeed = np.linalg.norm(velocity[:3])
                 if bspeed > self.particle_max_velocity:
                     velocity[:3] = velocity[:3] / bspeed * self.particle_max_velocity
 
-                # push out
+                # Push particle out of the plane
                 position[:3] -= planeN * dist_to_plane
 
-            # update lifetime
+            # Update lifetime
             if lifetime > 0.0:
                 elapsed = current_time - spawn_time
                 new_pct = elapsed / lifetime
                 new_pct = max(0.0, min(new_pct, 1.0))
                 if new_pct >= 1.0:
-                    # expired
+                    # Expired
                     self.cpu_particles[i, 12] = 1.0
                     self.free_slots.append(i)
                     continue
                 else:
                     lifetime_pct = new_pct
             else:
-                # immortal
+                # Immortal
                 lifetime_pct = 0.0
 
-            # store updated data
+            # Store updated data
             self.cpu_particles[i, 0:4] = position
             self.cpu_particles[i, 4:8] = velocity
             self.cpu_particles[i, 12] = lifetime_pct
 
-            # Debug output to track lifetime, weight, and velocity
             if self.debug_mode:
                 print(
                     f"Particle {i} -> Pos {position}, Vel {velocity}, "
                     f"Weight {weight}, ID {particle_id}, LifetimePct {lifetime_pct}"
                 )
 
-        # Now upload positions/lifetimes/IDs to GPU for rendering
+        # 3) Upload updated positions/lifetimes/IDs to GPU for rendering
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 
         # Only upload active particles
         particle_data_to_upload = np.hstack((
             self.cpu_particles[:self.active_particles, 0:4],  # position
             self.cpu_particles[:self.active_particles, 12].reshape(-1, 1),  # lifetimePct
-            self.cpu_particles[:self.active_particles, 10].reshape(-1, 1),  # ID
+            self.cpu_particles[:self.active_particles, 10].reshape(-1, 1)  # ID
         )).astype(np.float32)
 
-        # Upload data to the GPU
         glBufferSubData(GL_ARRAY_BUFFER, 0, particle_data_to_upload.nbytes, particle_data_to_upload)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
