@@ -227,52 +227,48 @@ float smoothNoise(vec2 p)
 }
 
 // ---------------------------------------------------
-// Simple rotation about the X axis
+// Builds a rotation matrix about `axis` by `angle` (radians).
 // ---------------------------------------------------
-mat4 rotateX(float angle)
+mat4 rotationMatrix(float angle, vec3 axis)
 {
-    float c = cos(angle);
-    float s = sin(angle);
+    axis = normalize(axis);
+    float c  = cos(angle);
+    float s  = sin(angle);
+    float oc = 1.0 - c;
+
     return mat4(
-    1.0, 0.0, 0.0, 0.0,
-    0.0, c, -s, 0.0,
-    0.0, s, c, 0.0,
+    oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
+    oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s, 0.0,
+    oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c, 0.0,
     0.0, 0.0, 0.0, 1.0
     );
 }
 
 // ---------------------------------------------------
-// Simple rotation about the Y axis
+// rotatePlaneNormal(baseNormal, angles):
+//   angles.x => rotate around X by angles.x degrees
+//   angles.y => rotate around Y by angles.y degrees
+// Final transform = rotY * rotX, so the rotation around X
+// happens first, then around Y.
+//
+// This precisely matches your Python `rotate_plane_normal_py(...)`
+// with mat4_final = rotY * rotX.
 // ---------------------------------------------------
-mat4 rotateY(float angle)
+vec3 rotatePlaneNormal(in vec3 baseNormal, in vec2 angles)
 {
-    float c = cos(angle);
-    float s = sin(angle);
-    return mat4(
-    c, 0.0, s, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    -s, 0.0, c, 0.0,
-    0.0, 0.0, 0.0, 1.0
-    );
-}
+    float rx = radians(angles.x);// angleX in degrees
+    float ry = radians(angles.y);// angleY in degrees
 
-// ---------------------------------------------------
-// Ground Plane Base Normal Rotation Calculation
-// ---------------------------------------------------
-vec3 rotatePlaneNormal(vec3 baseNorm, vec2 angleDeg)
-{
-    float yaw   = radians(angleDeg.x);
-    float pitch = radians(angleDeg.y);
+    // Build the rotation matrices
+    mat4 rotX = rotationMatrix(rx, vec3(1.0, 0.0, 0.0));
+    mat4 rotY = rotationMatrix(ry, vec3(0.0, 1.0, 0.0));
 
-    // Rotate around Y first
-    mat4 rotY = rotateY(yaw);
+    // Multiply so X is applied first, then Y
+    mat4 finalMat = rotY * rotX;
 
-    // Then rotate around X
-    mat4 rotX = rotateX(pitch) * rotY;
-
-    // Transform the base normal, ignoring translation
-    vec4 rotated4 = rotX * vec4(baseNorm, 0.0);
-    return normalize(rotated4.xyz);
+    // Transform the normal (w=0 => no translation)
+    vec4 outN = finalMat * vec4(baseNormal, 0.0);
+    return normalize(outN.xyz);
 }
 
 // ---------------------------------------------------
