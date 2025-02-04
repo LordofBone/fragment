@@ -495,7 +495,6 @@ class ParticleRenderer(AbstractRenderer):
         particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages = (
             self.generate_initial_data(num_particles)
         )
-        print(particle_positions)
 
         # Gather the arrays to be concatenated
         arrays_to_stack = [
