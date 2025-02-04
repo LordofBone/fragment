@@ -495,6 +495,7 @@ class ParticleRenderer(AbstractRenderer):
         particle_positions, particle_velocities, spawn_times, lifetimes, particle_ids, weights, lifetime_percentages = (
             self.generate_initial_data(num_particles)
         )
+        print(particle_positions)
 
         # Gather the arrays to be concatenated
         arrays_to_stack = [
@@ -667,8 +668,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Enable and set the vertex attribute arrays
         glEnableVertexAttribArray(position_loc)
-        # This is strange as the position is a vec4 but only works when 3 floats are set here for the size
-        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
+        glVertexAttribPointer(position_loc, 4, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
 
         # Enable and set the vertex attribute array for lifetime percentage
         glEnableVertexAttribArray(lifetime_percentage_loc)
