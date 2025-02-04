@@ -124,8 +124,11 @@ void main()
         newPos -= planeN * dist;
     }
 
+    // Calculate world position
+    vec4 worldPos = model * vec4(newPos, 1.0);
+
     // Set particle size based on distance to camera
-    vec3 toCam = cameraPosition - newPos;
+    vec3 toCam = cameraPosition - worldPos.xyz;
     float dCam = length(toCam);
     float size = particleSize / dCam;
     gl_PointSize = size;
@@ -135,7 +138,6 @@ void main()
     tfVelocity = vec4(newVelocity, 0.0);
 
     // Compute final clip-space position for rendering
-    vec4 worldPos = model * vec4(newPos, 1.0);
-    gl_Position   = projection * view * worldPos;
-    fragPos       = worldPos.xyz;
+    gl_Position = projection * view * worldPos;
+    fragPos = worldPos.xyz;
 }
