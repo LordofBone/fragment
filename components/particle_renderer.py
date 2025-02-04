@@ -836,6 +836,11 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.compute_shader_program, "particleGroundPlaneHeight"),
             np.float32(self.particle_ground_plane_height),
         )
+        glUniform2f(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "groundPlaneAngle"),
+            self.particle_ground_plane_angle.x,
+            self.particle_ground_plane_angle.y
+        )
         glUniform1f(
             glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidPressure"),
             np.float32(self.fluid_pressure),
