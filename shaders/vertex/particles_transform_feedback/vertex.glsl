@@ -12,25 +12,28 @@ layout (location = 4) in float particleID;
 layout (location = 5) in float particleWeight;
 layout (location = 6) in float lifetimePercentage;
 
-// -----------------------------------------------------------------------------
-// Uniforms
-// -----------------------------------------------------------------------------
+// For the collision plane
+uniform vec3  particleGroundPlaneNormal;// base normal
+uniform vec2  groundPlaneAngle;// yaw, pitch in degrees
+uniform float particleGroundPlaneHeight;
+
 uniform float currentTime;
 uniform float deltaTime;
-uniform float particleBounceFactor;
-uniform vec3  particleGroundPlaneNormal;
-uniform vec2 groundPlaneAngle;
-uniform float particleGroundPlaneHeight;
 uniform float particleMaxVelocity;
-uniform float particleSize;
-uniform vec3  particleColor;
+uniform float particleBounceFactor;
 
+// Gravity, fluid, etc.
 uniform bool  fluidSimulation;
 uniform vec3  particleGravity;
 uniform float fluidPressure;
 uniform float fluidViscosity;
 uniform float fluidForceMultiplier;
 
+// Sizing / color
+uniform float particleSize;
+uniform vec3  particleColor;
+
+// MVP & camera
 uniform mat4  view;
 uniform mat4  projection;
 uniform mat4  model;
@@ -47,7 +50,7 @@ out float tfParticleID;
 out float tfLifetimePercentage;
 out float tfParticleWeight;
 
-// For the fragment shader
+// For fragment shader
 out float lifetimePercentageToFragment;
 out vec3  fragColor;
 flat out float particleIDOut;
@@ -55,25 +58,24 @@ out vec3  fragPos;
 
 void main()
 {
-    // Pass original scalar data forward (unchanged)
-    tfSpawnTime         = spawnTime;
-    tfParticleLifetime  = particleLifetime;
-    tfParticleID        = particleID;
-    tfParticleWeight    = particleWeight;
-    fragColor           = particleColor;
-    particleIDOut       = particleID;
+    // Pass along unchanged values
+    tfSpawnTime        = spawnTime;
+    tfParticleLifetime = particleLifetime;
+    tfParticleID       = particleID;
+    tfParticleWeight   = particleWeight;
+    fragColor          = particleColor;
+    particleIDOut      = particleID;
 
-    float elapsedTime = currentTime - spawnTime;
-    float calcLifetimePct = 0.0;
+    float elapsed      = currentTime - spawnTime;
+    float calcLifetime = 0.0;
     if (particleLifetime > 0.0) {
-        calcLifetimePct = clamp(elapsedTime / particleLifetime, 0.0, 1.0);
+        calcLifetime = clamp(elapsed / particleLifetime, 0.0, 1.0);
     }
-    tfLifetimePercentage         = calcLifetimePct;
-    lifetimePercentageToFragment = calcLifetimePct;
+    tfLifetimePercentage = calcLifetime;
+    lifetimePercentageToFragment = calcLifetime;
 
-    // If expired -> skip
-    if (calcLifetimePct >= 1.0 || lifetimePercentage >= 1.0)
-    {
+    // If expired, skip further processing
+    if (calcLifetime >= 1.0 || lifetimePercentage >= 1.0) {
         tfPosition           = position;
         tfVelocity           = velocity;
         tfLifetimePercentage = 1.0;
@@ -86,19 +88,18 @@ void main()
         return;
     }
 
-    // -------------------------------------------------------------------------
-    // Forces
-    // -------------------------------------------------------------------------
-    vec3 adjustedGravity = particleGravity * particleWeight;
-    vec3 newVelocity     = velocity.xyz + adjustedGravity * deltaTime;
+    // Gravity integration
+    vec3 adjGravity  = particleGravity * particleWeight;
+    vec3 newVelocity = velocity.xyz + adjGravity * deltaTime;
 
+    // Fluid forces (if enabled)
     if (fluidSimulation) {
-        vec3 fluidForces = calculateFluidForces(
-        newVelocity, adjustedGravity,
+        vec3 fluid = calculateFluidForces(
+        newVelocity, adjGravity,
         fluidPressure, fluidViscosity,
         fluidForceMultiplier
         );
-        newVelocity += fluidForces * deltaTime;
+        newVelocity += fluid * deltaTime;
     }
 
     // Clamp velocity
@@ -107,44 +108,34 @@ void main()
         newVelocity = normalize(newVelocity) * particleMaxVelocity;
     }
 
-    // Integrate
+    // Integrate position
     vec3 newPos = position.xyz + newVelocity * deltaTime;
 
-    // -------------------------------------------------------------------------
-    // Collision with rotated plane
-    // -------------------------------------------------------------------------
-    // 1) Compute final plane normal from base + angles:
+    // Collide with the rotated ground plane
     vec3 planeN = rotatePlaneNormal(particleGroundPlaneNormal, groundPlaneAngle);
-
-    // 2) Distance
-    float distGround = dot(newPos, planeN) - particleGroundPlaneHeight;
-    if (distGround < 0.0)
-    {
+    float dist  = dot(newPos, planeN) - particleGroundPlaneHeight;
+    if (dist < 0.0) {
         newVelocity = reflect(newVelocity, planeN) * particleBounceFactor;
-
-        float bounceSpeed = length(newVelocity);
-        if (bounceSpeed > particleMaxVelocity) {
+        float bSpeed = length(newVelocity);
+        if (bSpeed > particleMaxVelocity) {
             newVelocity = normalize(newVelocity) * particleMaxVelocity;
         }
-
-        // push out so it’s not under the plane
-        newPos -= planeN * distGround;
+        // Push particle out of the plane boundary (note: dist is negative)
+        newPos -= planeN * dist;
     }
 
-    // -------------------------------------------------------------------------
-    // Render
-    // -------------------------------------------------------------------------
-    vec3 toCamera = cameraPosition - newPos;
-    float distanceFromCamera = length(toCamera);
-    float adjustedSize = particleSize / distanceFromCamera;
-    gl_PointSize = adjustedSize;
+    // Set particle size based on distance to camera
+    vec3 toCam = cameraPosition - newPos;
+    float dCam = length(toCam);
+    float size = particleSize / dCam;
+    gl_PointSize = size;
 
-    // TF outputs
+    // Set transform feedback outputs
     tfPosition = vec4(newPos, 1.0);
     tfVelocity = vec4(newVelocity, 0.0);
 
-    // MVP transform
-    vec4 worldPosition = model * vec4(newPos, 1.0);
-    gl_Position        = projection * view * worldPosition;
-    fragPos            = worldPosition.xyz;
+    // Compute final clip-space position for rendering
+    vec4 worldPos = model * vec4(newPos, 1.0);
+    gl_Position   = projection * view * worldPos;
+    fragPos       = worldPos.xyz;
 }
