@@ -1,37 +1,20 @@
 name: Bump Version
 
 on:
-  workflow_run:
-    workflows: [ "Lint and Format Code" ]
-    types: [ completed ]
-    branches:
-      - '**'  # Listen for workflow runs on any branch
+  workflow_call:
+    secrets:
+      # We'll pass our GitHub token so we can push
+      token:
+        required: true
 
 jobs:
-  bump:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  bump_job:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
-      - uses: actions/checkout@v2
+      - name: Check out code
+        uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Fetch full history to allow bump2version and tagging
-
-      - name: Get the branch of the triggering PR
-        id: get_branch
-        run: |
-          BRANCH_NAME=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }} | jq -r '.head_branch')
-          echo "Branch detected: $BRANCH_NAME"
-          echo "branch=$BRANCH_NAME" >> $GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Checkout PR branch
-        run: |
-          git fetch origin ${{ env.branch }}
-          git checkout ${{ env.branch }}
+          fetch-depth: 0  # Ensure full history for bump2version
 
       - name: Set Git Config
         run: |
@@ -46,13 +29,13 @@ jobs:
         run: pip install bump2version
 
       - name: Bump Version
-        run: bump2version minor
+        run: bump2version minor  # or patch, or major
 
-      - name: Auto Commit Changes (Version)
+      - name: Commit Bump
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'Code version bumped'
-          branch: ${{ env.branch }}
 
       - name: Push Changes
-        run: git push origin ${{ env.branch }} --follow-tags
+        run: |
+          git push origin HEAD --tags

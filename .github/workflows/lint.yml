@@ -12,8 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          # You can leave this shallow if you don’t need full history for linting
-          fetch-depth: 1
+          fetch-depth: 1  # Shallow is fine for just linting
 
       - name: Set Git Config
         run: |
@@ -29,12 +28,19 @@ jobs:
 
       - name: Run Ruff Linting and Formatting
         run: |
-          # Run Ruff to automatically fix issues (ignoring errors)
           ruff check . --fix || true
-          # Run Ruff again to ensure formatting is correct
           ruff format .
 
       - name: Auto Commit Changes (Ruff)
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'Code linted by Ruff'
+
+  # Now define a second job to call the Bump workflow
+  bump_version:
+    name: Bump the Version
+    needs: lint
+    if: ${{ success() }}
+    uses: ./.github/workflows/bump.yml
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
