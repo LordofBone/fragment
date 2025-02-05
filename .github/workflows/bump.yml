@@ -28,6 +28,14 @@ jobs:
       - name: Install Dependencies
         run: pip install bump2version
 
+      - name: Print and Change Directory
+        run: |
+          echo "Current directory before change:"
+          pwd
+          echo "Showing contents of current directory:"
+          ls -la
+        shell: bash
+
       - name: Bump Version
         run: bump2version minor  # or patch, or major
 
