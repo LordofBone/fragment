@@ -26,6 +26,11 @@ jobs:
           # Run Ruff again to ensure formatting is correct
           ruff format .
 
+      - name: Auto Commit Changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'Code linted by Ruff'
+
       - name: Bump Version
         # This runs a minor bump. Change "minor" to "patch" or "major" as needed.
         run: bump2version minor
@@ -33,4 +38,4 @@ jobs:
       - name: Auto Commit Changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: 'Code linted by Ruff and version bumped'
+          commit_message: 'Code version bumped'
