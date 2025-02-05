@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      PATCH_THRESHOLD: 250
+      MINOR_THRESHOLD: 1000
 
     steps:
       - uses: actions/checkout@v2
@@ -43,7 +46,6 @@ jobs:
         shell: bash
         run: |
           # Compare the current commit with the previous commit.
-          # (Adjust the diff target as needed.)
           DIFF_OUTPUT=$(git diff --shortstat HEAD^)
           echo "Diff stats: $DIFF_OUTPUT"
           
@@ -53,10 +55,10 @@ jobs:
           total=$((insertions + deletions))
           echo "Total changes (insertions + deletions): $total"
 
-          if [ "$total" -lt 10 ]; then
+          if [ "$total" -lt "$PATCH_THRESHOLD" ]; then
             echo "Bump level: patch"
             echo "level=patch" >> $GITHUB_OUTPUT
-          elif [ "$total" -ge 10 ] && [ "$total" -lt 100 ]; then
+          elif [ "$total" -ge "$PATCH_THRESHOLD" ] && [ "$total" -lt "$MINOR_THRESHOLD" ]; then
             echo "Bump level: minor"
             echo "level=minor" >> $GITHUB_OUTPUT
           else
