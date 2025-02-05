@@ -35,7 +35,3 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'Code version bumped'
-
-      - name: Push Changes
-        run: |
-          git push origin HEAD --tags
