@@ -42,7 +42,7 @@ jobs:
           commit_message: 'Code linted by Ruff'
 
       - name: Run Python Unit Tests
-        run: pytest tests/test_suite.py
+        run: pytest ./tests --html-report=./reports/report.html
 
       - name: Determine Bump Level
         id: bump_level
