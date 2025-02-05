@@ -17,6 +17,7 @@ Covers:
   - RenderingInstance (with patched OpenGL calls)
   - GUI (basic instantiation tests)
   - Additional: enumerates the /shaders folder to test that all shaders compile
+  - "Pure Python" logic tests (no OpenGL context needed).
 """
 
 import os
@@ -55,7 +56,6 @@ try:
 except ImportError:
     App = None
 
-
 # ------------------------------------------------------------------------------------
 # Dummy classes and functions for testing
 # ------------------------------------------------------------------------------------
@@ -65,7 +65,6 @@ def dummy_run_function(stats_queue, stop_event, resolution, msaa_level, anisotro
         stats_queue.put(("ready", None))
         stats_queue.put(("fps", 60))
     time.sleep(0.1)
-
 
 def dummy_play_audio(self):
     """Fake play_audio function for AudioPlayer, simulating a short wait."""
@@ -105,13 +104,10 @@ class DummySkyboxRenderer(SkyboxRenderer):
     def render(self):
         pass
 
-
 # ------------------------------------------------------------------------------------
-# Patching OpenGL calls from both OpenGL.GL.* and OpenGL.raw.GL.VERSION_2_1.*,
-# to reduce the chance of NullFunctionError.
+# Patching OpenGL calls from OpenGL.GL.* only. We do NOT patch the raw GL submodules.
 # ------------------------------------------------------------------------------------
 patch_gl_create_shader = patch("OpenGL.GL.glCreateShader", MagicMock(return_value=1))
-patch_gl_create_shader_raw = patch("OpenGL.raw.GL.VERSION_2_1.glCreateShader", MagicMock(return_value=1))
 patch_gl_shader_source = patch("OpenGL.GL.glShaderSource", MagicMock())
 patch_gl_compile_shader = patch("OpenGL.GL.glCompileShader", MagicMock())
 patch_gl_get_shaderiv = patch("OpenGL.GL.glGetShaderiv", MagicMock(return_value=True))
@@ -134,13 +130,10 @@ patch_gl_check_framebuffer = patch("OpenGL.GL.glCheckFramebufferStatus", MagicMo
 patch_gl_delete_framebuffers = patch("OpenGL.GL.glDeleteFramebuffers", MagicMock())
 patch_gl_delete_textures = patch("OpenGL.GL.glDeleteTextures", MagicMock())
 
-
-# Helper to group patches for each test class
 def patched_gl(cls):
     """Class decorator applying all needed patches to fix or intercept OpenGL calls."""
     patches = [
         patch_gl_create_shader,
-        patch_gl_create_shader_raw,
         patch_gl_shader_source,
         patch_gl_compile_shader,
         patch_gl_get_shaderiv,
@@ -167,9 +160,59 @@ def patched_gl(cls):
         cls = p(cls)
     return cls
 
+# ------------------------------------------------------------------------------------
+# New: a test class for python-only logic that doesn't require GL calls
+# ------------------------------------------------------------------------------------
+class TestPurePythonLogic(unittest.TestCase):
+    """
+    Exercises parts of the code that do not rely on an OpenGL context, such as:
+      - certain CameraController math
+      - SceneConstructor transformations
+      - Basic RendererConfig usage
+    """
+
+    def test_scene_transformations(self):
+        sc = SceneConstructor()
+        dummy = DummyRenderer("dummy_no_gl")
+        sc.add_renderer("dummy_no_gl", dummy)
+
+        # Scene transformations
+        import glm
+        sc.translate_renderer("dummy_no_gl", (5, 6, 7))
+        self.assertEqual(dummy.translation, glm.vec3(5, 6, 7))
+
+        sc.rotate_renderer_euler("dummy_no_gl", (90, 0, 0))
+        # Dummy check we stored rotation
+        self.assertAlmostEqual(dummy.rotation.x, glm.radians(90.0), places=4)
+
+        sc.scale_renderer("dummy_no_gl", (2, 2, 2))
+        self.assertEqual(dummy.scaling, glm.vec3(2, 2, 2))
+
+    def test_camera_controller_no_loop(self):
+        positions = [
+            (0, 0, 0, 0, 0),
+            (10, 10, 10, 90, 45)
+        ]
+        lens = [0, 90]
+        c = CameraController(positions, lens_rotations=lens, move_speed=1.0, loop=False)
+        pos, rot = c.update(0.2)
+        # We can confirm it moves some fraction of the way
+        self.assertGreater(pos.x, 0.0)
+        self.assertLess(pos.x, 10.0)
+
+    def test_renderer_config_without_gl(self):
+        base = RendererConfig(window_title="TestNoGL", window_size=(640, 480))
+        self.assertEqual(base.window_title, "TestNoGL")
+        self.assertEqual(base.window_size, (640, 480))
+
+        # Add a surface in pure python
+        surf_cfg = base.add_surface(shader_names=("surface_test_v", "surface_test_f"))
+        self.assertIn("shader_names", surf_cfg)
+        self.assertEqual(surf_cfg["shader_names"], ("surface_test_v", "surface_test_f"))
+
 
 # ------------------------------------------------------------------------------------
-# Tests
+# Now the rest of the test classes requiring partial GL mocks
 # ------------------------------------------------------------------------------------
 @patched_gl
 class TestRendererConfig(unittest.TestCase):
@@ -220,7 +263,6 @@ class TestRendererConfig(unittest.TestCase):
 @patch("pygame.mixer.quit", MagicMock())
 class TestAudioPlayer(unittest.TestCase):
     """Tests for the AudioPlayer class."""
-
     def test_audio_player_start_and_stop(self):
         audio_player = AudioPlayer(audio_file="dummy.wav", delay=0.1, loop=True)
         self.assertFalse(audio_player.is_playing.is_set())
@@ -330,7 +372,6 @@ class TestShaderEngine(unittest.TestCase):
 @patched_gl
 class TestShadowMapManager(unittest.TestCase):
     """Tests for the ShadowMapManager class."""
-
     def test_shadow_map_manager_initialization(self):
         smm = ShadowMapManager(shadow_width=1024, shadow_height=1024)
         self.assertEqual(smm.shadow_width, 1024)
@@ -436,7 +477,6 @@ class TestAllShadersCompilation(unittest.TestCase):
         self.assertTrue(os.path.isdir(self.shaders_root),
                         msg="No 'shaders/' folder found in the project root! Cannot test compilation.")
 
-        # Enumerate subfolders in vertex, fragment, compute
         vertex_dir = os.path.join(self.shaders_root, "vertex")
         fragment_dir = os.path.join(self.shaders_root, "fragment")
         compute_dir = os.path.join(self.shaders_root, "compute")
@@ -472,20 +512,24 @@ class TestAllShadersCompilation(unittest.TestCase):
             self.assertIsNotNone(engine.compute_shader_program, f"Compute shader compile failed: {cmp_path}")
 
 
-# ------------------------------------------------------------------------------------
-# Basic GUI tests
-# Suppress ResourceWarnings by mocking image loading in main_gui.
-# ------------------------------------------------------------------------------------
-@patch("PIL.Image.open", MagicMock())  # intercepts large_icon.ico loading
+# In the GUI test, we return a mock image with known width/height so that the code
+# in main_gui.py won't produce a TypeError.
+@patch("PIL.Image.open")
 class TestGUI(unittest.TestCase):
     """Basic tests to check that the GUI can be instantiated and manipulated."""
 
     @unittest.skipIf(App is None, "GUI module not available or cannot be imported.")
-    def test_app_instantiation(self):
+    def test_app_instantiation(self, mock_image_open):
         """Check if the App can be created and destroyed without error."""
+        # Make a fake image with known .width / .height / .size
+        mock_img = MagicMock()
+        mock_img.width = 64
+        mock_img.height = 64
+        mock_img.size = (64, 64)
+        mock_image_open.return_value = mock_img
+
         app = App()
         self.assertIsNotNone(app)
-        # We'll close the app after 200ms to avoid blocking the tests
         app.after(200, app.exit_app)
         app.mainloop()
 
