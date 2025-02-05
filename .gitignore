@@ -3,7 +3,7 @@ misc/*
 __pycache__
 screenshots/*
 !screenshots/.gitkeep
-tests/reports/*
-!tests/reports/.gitkeep
+reports/*
+!reports/.gitkeep
 tests/screenshots/*
 !tests/screenshots/.gitkeep
