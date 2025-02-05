@@ -1,11 +1,7 @@
 name: Bump Version
 
 on:
-  workflow_call:
-    secrets:
-      # We'll pass our GitHub token so we can push
-      token:
-        required: true
+  pull_request:
 
 jobs:
   bump_job:
