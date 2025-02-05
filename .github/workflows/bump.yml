@@ -9,8 +9,6 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Ensure full history for bump2version
 
       - name: Set Git Config
         run: |
