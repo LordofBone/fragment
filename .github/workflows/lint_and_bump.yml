@@ -10,7 +10,7 @@ jobs:
       contents: write
     env:
       PATCH_THRESHOLD: 250
-      MINOR_THRESHOLD: 1000
+      MINOR_THRESHOLD: 2000
 
     steps:
       - uses: actions/checkout@v2
