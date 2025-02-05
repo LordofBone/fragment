@@ -27,6 +27,7 @@ from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
 from benchmarks.undertyre import run_benchmark as run_tyre_benchmark
 from components.benchmark_manager import BenchmarkManager
 from config.path_config import images_dir, themes_dir
+from version import __version__
 
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
 customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"))
@@ -783,7 +784,7 @@ class App(customtkinter.CTk):
         )
         title_label.pack(pady=(10, 5))
 
-        version_label = customtkinter.CTkLabel(about_window, text="Version 1.0", font=("Arial", 12))
+        version_label = customtkinter.CTkLabel(about_window, text=f"Version {__version__}", font=("Arial", 12))
         version_label.pack(pady=(0, 5))
 
         developed_label = customtkinter.CTkLabel(about_window, text="Developed by 314reactor", font=("Arial", 12))
