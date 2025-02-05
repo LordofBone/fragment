@@ -42,5 +42,3 @@ jobs:
     needs: lint
     if: ${{ success() }}
     uses: ./.github/workflows/bump.yml
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
