@@ -1,18 +1,16 @@
-name: Lint and Format Code
+name: Lint, Format, and Bump Version
 
 on:
   pull_request:
 
 jobs:
-  lint:
+  lint-and-bump:
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 1  # Shallow is fine for just linting
 
       - name: Set Git Config
         run: |
@@ -24,11 +22,13 @@ jobs:
           python-version: '3.x'
 
       - name: Install Dependencies
-        run: pip install ruff
+        run: pip install ruff bump2version
 
       - name: Run Ruff Linting and Formatting
         run: |
+          # Run Ruff to automatically fix issues (ignoring errors)
           ruff check . --fix || true
+          # Run Ruff again to ensure formatting is correct
           ruff format .
 
       - name: Auto Commit Changes (Ruff)
@@ -36,10 +36,10 @@ jobs:
         with:
           commit_message: 'Code linted by Ruff'
 
-  # Now define a second job to call the Bump workflow
-      - name: Bump the Version
-        needs: lint
-        if: ${{ success() }}
-        uses: ./.github/workflows/bump.yml
-        secrets:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bump Version
+        run: bump2version patch
+
+      - name: Auto Commit Changes (Version)
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'Code version bumped'
