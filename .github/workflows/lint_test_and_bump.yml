@@ -1,4 +1,4 @@
-name: Lint, Format, and Conditional Version Bump
+name: Lint, Format, Test, and Conditional Version Bump
 
 on:
   pull_request:
@@ -27,7 +27,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install Dependencies
-        run: pip install ruff bump2version
+        run: pip install ruff bump2version pytest
 
       - name: Run Ruff Linting and Formatting
         run: |
@@ -40,6 +40,9 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'Code linted by Ruff'
+
+      - name: Run Python Unit Tests
+        run: pytest tests/test_suite.py
 
       - name: Determine Bump Level
         id: bump_level
