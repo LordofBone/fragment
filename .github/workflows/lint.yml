@@ -37,8 +37,9 @@ jobs:
           commit_message: 'Code linted by Ruff'
 
   # Now define a second job to call the Bump workflow
-  bump_version:
-    name: Bump the Version
-    needs: lint
-    if: ${{ success() }}
-    uses: ./.github/workflows/bump.yml
+      - name: Bump the Version
+        needs: lint
+        if: ${{ success() }}
+        uses: ./.github/workflows/bump.yml
+        secrets:
+          token: ${{ secrets.GITHUB_TOKEN }}

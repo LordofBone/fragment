@@ -2,12 +2,17 @@ name: Bump Version
 
 on:
   workflow_call:
+    secrets:
+      # We'll pass our GitHub token so we can push
+      token:
+        required: true
+
+permissions:
+  contents: write
 
 jobs:
   bump_job:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Check out code
@@ -28,7 +33,7 @@ jobs:
         run: pip install bump2version
 
       - name: Bump Version
-        run: bump2version minor  # or patch, or major
+        run: bump2version minor
 
       - name: Commit Bump
         uses: stefanzweifel/git-auto-commit-action@v4
