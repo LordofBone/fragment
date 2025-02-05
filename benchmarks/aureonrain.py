@@ -203,10 +203,10 @@ def run_benchmark(
         particle_max_velocity=35.0,  # Set max velocity to a realistic value
         particle_max_lifetime=2.0,  # Set max lifetime to a realistic value
         particle_max_weight=1.5,  # Set max weight to a realistic value
-        particle_min_weight=0.5,  # Set min weight to a realistic value
+        particle_min_weight=0.1,  # Set min weight to a realistic value
         particle_smooth_edges=True,
         particle_color=(0.18, 0.698, 1.0),
-        particle_fade_to_color=True,
+        particle_fade_to_color=False,
         particle_fade_color=(0.0, 0.0, 0.0),
         legacy_opacity=0.85,
         legacy_roughness=32,
@@ -214,10 +214,10 @@ def run_benchmark(
         particle_bounce_factor=0.28,  # Standard bounce factor
         particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
         particle_ground_plane_angle=(0.0, 0.0),
-        particle_ground_plane_height=1.0,  # Height of the ground plane (y = 0)
+        particle_ground_plane_height=1.0,  # Height of the ground plane relative to the ground planes normal set above
         fluid_simulation=True,  # Enable fluid simulation
-        fluid_pressure=0.75,  # Pressure factor for the particles
-        fluid_viscosity=0.25,  # Viscosity factor for the particles
+        fluid_pressure=0.95,  # Pressure factor for the particles
+        fluid_viscosity=0.65,  # Viscosity factor for the particles
         particle_spawn_time_jitter=True,  # Jitter for spawn time
         particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
         min_width=-25.0,  # Adjusted for a realistic spread along X and Z-axes
