@@ -1,4 +1,3 @@
-import _tkinter
 import io
 import multiprocessing
 import os
@@ -8,15 +7,16 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import customtkinter
 import GPUtil
+import _tkinter
+import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from customtkinter import CTkImage
 from PIL import Image, ImageFilter, ImageTk
+from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.aureonrain import run_benchmark as run_water_pyramid_benchmark
@@ -164,11 +164,11 @@ class App(customtkinter.CTk):
         common_padx = 30
         common_pady = (20, 10)
 
-        # Settings tab grid layout
+        # Settings tab grid layout (adjusted row numbers)
         self.tabview.tab("Settings").grid_columnconfigure((0, 1), weight=1)
-        self.tabview.tab("Settings").grid_rowconfigure((0, 1, 2, 3, 4, 5), weight=1)
+        self.tabview.tab("Settings").grid_rowconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
 
-        # Settings tab elements
+        # Row 0: Resolution remains unchanged
         self.resolution_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Resolution:")
         self.resolution_label.grid(row=0, column=0, padx=common_padx, pady=common_pady)
         self.resolution_optionmenu = customtkinter.CTkOptionMenu(
@@ -177,7 +177,7 @@ class App(customtkinter.CTk):
         )
         self.resolution_optionmenu.grid(row=0, column=1, padx=common_padx, pady=common_pady)
 
-        # MSAA Level setting
+        # Row 1: MSAA Level
         self.msaa_level_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="MSAA Level:")
         self.msaa_level_label.grid(row=1, column=0, padx=common_padx, pady=common_pady)
         self.msaa_level_optionmenu = customtkinter.CTkOptionMenu(
@@ -185,44 +185,50 @@ class App(customtkinter.CTk):
             values=["0", "2", "4", "8"],  # Common MSAA levels
         )
         self.msaa_level_optionmenu.grid(row=1, column=1, padx=common_padx, pady=common_pady)
-        self.msaa_level_optionmenu.set("4")  # Set default value to 0 (no MSAA)
+        self.msaa_level_optionmenu.set("4")  # Set default
 
-        # Anisotropic Filtering setting
+        # Row 2: Anisotropic Filtering
         self.anisotropy_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Anisotropy Level:")
         self.anisotropy_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
         self.anisotropy_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
-            values=["1", "2", "4", "8", "16"],  # Common anisotropy levels
+            values=["1", "2", "4", "8", "16"],
         )
         self.anisotropy_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
 
-        # Shadow Quality setting
+        # Row 3: NEW – Shading Model dropdown
+        self.shading_model_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Shading Model:")
+        self.shading_model_label.grid(row=3, column=0, padx=common_padx, pady=common_pady)
+        self.shading_model_optionmenu = customtkinter.CTkOptionMenu(
+            self.tabview.tab("Settings"),
+            values=["Diffuse", "Phong", "PBR"],
+        )
+        self.shading_model_optionmenu.grid(row=3, column=1, padx=common_padx, pady=common_pady)
+
+        # Row 4: Update Shadow Quality (shifted down from row 3)
         self.shadow_quality_label = customtkinter.CTkLabel(self.tabview.tab("Settings"), text="Shadow Quality:")
-        self.shadow_quality_label.grid(row=3, column=0, padx=common_padx, pady=common_pady)
+        self.shadow_quality_label.grid(row=4, column=0, padx=common_padx, pady=common_pady)
         self.shadow_quality_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"),
             values=["None", "1024x1024", "2048x2048", "4096x4096"],
         )
-        self.shadow_quality_optionmenu.grid(row=3, column=1, padx=common_padx, pady=common_pady)
+        self.shadow_quality_optionmenu.grid(row=4, column=1, padx=common_padx, pady=common_pady)
 
-        # Particle Render Mode setting
+        # Row 5: Update Particle Render Mode (shifted down from row 4)
         self.particle_render_mode_label = customtkinter.CTkLabel(
             self.tabview.tab("Settings"), text="Particle Render Mode:"
         )
-        self.particle_render_mode_label.grid(row=4, column=0, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_label.grid(row=5, column=0, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu = customtkinter.CTkOptionMenu(
             self.tabview.tab("Settings"), values=["CPU", "Transform Feedback", "Compute Shader"]
         )
-        self.particle_render_mode_label.grid(row=4, column=0, padx=common_padx, pady=common_pady)
-        self.particle_render_mode_optionmenu.grid(row=4, column=1, padx=common_padx, pady=common_pady)
+        self.particle_render_mode_optionmenu.grid(row=5, column=1, padx=common_padx, pady=common_pady)
 
-        # V-Sync setting
+        # Row 6: Update V-Sync and Sound (shifted down from row 5)
         self.enable_vsync_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"), text="Enable V-Sync")
-        self.enable_vsync_checkbox.grid(row=5, column=0, columnspan=1, padx=common_padx, pady=common_pady)
-
-        # Sound enabled checkbox
+        self.enable_vsync_checkbox.grid(row=6, column=0, columnspan=1, padx=common_padx, pady=common_pady)
         self.sound_enabled_checkbox = customtkinter.CTkCheckBox(self.tabview.tab("Settings"), text="Enable Sound")
-        self.sound_enabled_checkbox.grid(row=5, column=1, columnspan=1, padx=common_padx, pady=common_pady)
+        self.sound_enabled_checkbox.grid(row=6, column=1, columnspan=1, padx=common_padx, pady=common_pady)
 
         # Scenarios tab grid layout for consistency
         self.tabview.tab("Scenarios").grid_columnconfigure(0, weight=1)
@@ -301,6 +307,7 @@ class App(customtkinter.CTk):
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("4")
         self.anisotropy_optionmenu.set("16")
+        self.shading_model_optionmenu.set("PBR")
         self.shadow_quality_optionmenu.set("2048x2048")
         self.particle_render_mode_optionmenu.set("Transform Feedback")
         self.sound_enabled_checkbox.select()
@@ -528,6 +535,7 @@ class App(customtkinter.CTk):
         self.resolution_optionmenu.configure(state="disabled")
         self.msaa_level_optionmenu.configure(state="disabled")
         self.anisotropy_optionmenu.configure(state="disabled")
+        self.shading_model_optionmenu.configure(state="disabled")
         self.shadow_quality_optionmenu.configure(state="disabled")
         self.particle_render_mode_optionmenu.configure(state="disabled")
         # Disable checkboxes
@@ -550,6 +558,7 @@ class App(customtkinter.CTk):
         self.resolution_optionmenu.configure(state="normal")
         self.msaa_level_optionmenu.configure(state="normal")
         self.anisotropy_optionmenu.configure(state="normal")
+        self.shading_model_optionmenu.configure(state="normal")
         self.shadow_quality_optionmenu.configure(state="normal")
         self.particle_render_mode_optionmenu.configure(state="normal")
         # Enable checkboxes
@@ -570,39 +579,31 @@ class App(customtkinter.CTk):
 
         # Retrieve the selected resolution from the GUI
         resolution_str = self.resolution_optionmenu.get()
-
         if resolution_str == "Fullscreen":
             width, height = self.desktop_info.current_w, self.desktop_info.current_h
             fullscreen = True
         else:
-            width, height = map(int, resolution_str.split("x"))  # Convert "1024x768" to (1024, 768)
+            width, height = map(int, resolution_str.split("x"))
             fullscreen = False
 
-        # Retrieve the selected MSAA level from the GUI
+        # Retrieve other settings from the GUI
         msaa_level = int(self.msaa_level_optionmenu.get())
-
-        # Retrieve the selected anisotropy level from the GUI
         anisotropy = int(self.anisotropy_optionmenu.get())
 
+        # NEW: Retrieve the selected shading model
+        shading_model = self.shading_model_optionmenu.get().lower()
+
         shadow_quality_str = self.shadow_quality_optionmenu.get()
-
-        shadow_map_resolution = self.shadow_quality_mapping.get(shadow_quality_str, 0)  # Default to 0 if not found
-
-        # Retrieve the selected particle render mode from the GUI
+        shadow_map_resolution = self.shadow_quality_mapping.get(shadow_quality_str, 0)
         particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
-
-        vsync_enabled = self.enable_vsync_checkbox.get()
-        vsync_enabled = bool(vsync_enabled)
-
-        # Retrieve the sound enabled setting from the GUI
+        vsync_enabled = bool(self.enable_vsync_checkbox.get())
         sound_enabled = self.sound_enabled_checkbox.get()
 
-        # Map benchmark names to functions using the central BENCHMARKS dictionary
         benchmark_functions = BENCHMARKS
 
-        # Clear previous results
+        # Clear previous results and prepare BenchmarkManager
         self.benchmark_results = {}
-        self.benchmark_manager = BenchmarkManager(self.stop_event)  # Pass stop_event here
+        self.benchmark_manager = BenchmarkManager(self.stop_event)
 
         for benchmark_name in selected_benchmarks:
             if benchmark_name in benchmark_functions:
@@ -612,6 +613,7 @@ class App(customtkinter.CTk):
                     resolution=(width, height),
                     msaa_level=msaa_level,
                     anisotropy=anisotropy,
+                    shading_model=shading_model,
                     shadow_map_resolution=shadow_map_resolution,
                     particle_render_mode=particle_render_mode,
                     vsync_enabled=vsync_enabled,
@@ -621,13 +623,8 @@ class App(customtkinter.CTk):
             else:
                 tkinter.messagebox.showerror("Error", f"No benchmark found for {benchmark_name}")
 
-        # Disable widgets
         self.disable_widgets()
-
-        # Show the loading bar
         self.show_loading_bar()
-
-        # Run benchmarks in a separate thread to keep GUI responsive
         threading.Thread(target=self.run_benchmarks_thread, daemon=True).start()
 
     def run_benchmarks_thread(self):
@@ -656,54 +653,45 @@ class App(customtkinter.CTk):
         self.is_demo_mode = False
 
     def demo_mode(self):
-        # Disable widgets to prevent other actions during demo
         self.disable_widgets()
-
-        # Retrieve the selected resolution from the GUI
         resolution_str = self.resolution_optionmenu.get()
-
         if resolution_str == "Fullscreen":
             width, height = self.desktop_info.current_w, self.desktop_info.current_h
             fullscreen = True
         else:
             try:
-                width, height = map(int, resolution_str.split("x"))  # Convert "1024x768" to (1024, 768)
+                width, height = map(int, resolution_str.split("x"))
                 fullscreen = False
             except ValueError:
                 tkinter.messagebox.showerror("Invalid Resolution", "Please select a valid resolution.")
                 self.enable_widgets()
                 return
 
-        # Retrieve the selected MSAA level from the GUI
         try:
             msaa_level = int(self.msaa_level_optionmenu.get())
         except ValueError:
-            msaa_level = 0  # Default to 0 if invalid
+            msaa_level = 0
 
-        # Retrieve the selected anisotropy level from the GUI
         try:
             anisotropy = int(self.anisotropy_optionmenu.get())
         except ValueError:
-            anisotropy = 1  # Default to 1 if invalid
+            anisotropy = 1
+
+        # NEW: Retrieve the selected shading model for demo mode
+        shading_model = self.shading_model_optionmenu.get().lower()
 
         shadow_quality_str = self.shadow_quality_optionmenu.get()
-
-        shadow_map_resolution = self.shadow_quality_mapping.get(shadow_quality_str, 0)  # Default to 0 if not found
-
-        # Retrieve the selected particle render mode from the GUI
+        shadow_map_resolution = self.shadow_quality_mapping.get(shadow_quality_str, 0)
         particle_render_mode = self.particle_render_mode_optionmenu.get().lower().replace(" ", "_")
-
-        vsync_enabled = self.enable_vsync_checkbox.get()
-        vsync_enabled = bool(vsync_enabled)
-
-        # Retrieve the sound enabled setting from the GUI
+        vsync_enabled = bool(self.enable_vsync_checkbox.get())
         sound_enabled = self.sound_enabled_checkbox.get()
 
-        # Prepare parameters for the demo
+        # Prepare parameters for the demo benchmark
         demo_parameters = {
             "resolution": (width, height),
             "msaa_level": msaa_level,
             "anisotropy": anisotropy,
+            "shading_model": shading_model,
             "shadow_map_resolution": shadow_map_resolution,
             "particle_render_mode": particle_render_mode,
             "vsync_enabled": vsync_enabled,
@@ -711,16 +699,14 @@ class App(customtkinter.CTk):
             "fullscreen": fullscreen,
         }
 
-        # Initialize BenchmarkManager for Demo Mode
         self.benchmark_manager = BenchmarkManager(self.stop_event)
-
-        # Add Demo benchmark to BenchmarkManager
         self.benchmark_manager.add_benchmark(
-            name="Demo Mode",  # Unique name for the demo benchmark
+            name="Demo Mode",
             run_function=run_water_pyramid_benchmark,
             resolution=demo_parameters["resolution"],
             msaa_level=demo_parameters["msaa_level"],
             anisotropy=demo_parameters["anisotropy"],
+            shading_model=demo_parameters["shading_model"],
             shadow_map_resolution=demo_parameters["shadow_map_resolution"],
             particle_render_mode=demo_parameters["particle_render_mode"],
             vsync_enabled=demo_parameters["vsync_enabled"],
@@ -728,13 +714,8 @@ class App(customtkinter.CTk):
             fullscreen=demo_parameters["fullscreen"],
         )
 
-        # Set Demo Mode flag
         self.is_demo_mode = True
-
-        # Show the loading bar
         self.show_loading_bar()
-
-        # Run the demo benchmark in a separate thread to keep GUI responsive
         threading.Thread(target=self.run_benchmarks_thread, daemon=True).start()
 
     def show_loading_bar(self):
