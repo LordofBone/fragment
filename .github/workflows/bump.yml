@@ -3,8 +3,7 @@ name: Bump Version
 on:
   workflow_run:
     workflows: [ "Lint and Format Code" ]
-    types:
-      - completed
+    types: [ completed ]
 
 jobs:
   bump:
@@ -16,8 +15,21 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          # Fetch full history so that bump2version can work correctly (tags and commits)
-          fetch-depth: 0
+          fetch-depth: 0  # Fetch full history to allow bump2version and tagging
+
+      - name: Get the branch of the triggering PR
+        id: get_branch
+        run: |
+          BRANCH_NAME=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }} | jq -r '.head_branch')
+          echo "Branch detected: $BRANCH_NAME"
+          echo "branch=$BRANCH_NAME" >> $GITHUB_ENV
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout PR branch
+        run: |
+          git fetch origin ${{ env.branch }}
+          git checkout ${{ env.branch }}
 
       - name: Set Git Config
         run: |
@@ -38,3 +50,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'Code version bumped'
+          branch: ${{ env.branch }}
+
+      - name: Push Changes
+        run: git push origin ${{ env.branch }} --follow-tags
