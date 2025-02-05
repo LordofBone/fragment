@@ -1,4 +1,4 @@
-name: Lint, Format, and Bump Version
+name: Lint, Format, and Conditional Version Bump
 
 on:
   pull_request:
@@ -11,6 +11,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Use full history so that git diff can compare
 
       - name: Set Git Config
         run: |
@@ -36,8 +38,36 @@ jobs:
         with:
           commit_message: 'Code linted by Ruff'
 
-      - name: Bump Version
-        run: bump2version patch
+      - name: Determine Bump Level
+        id: bump_level
+        shell: bash
+        run: |
+          # Compare the current commit with the previous commit.
+          # (Adjust the diff target as needed.)
+          DIFF_OUTPUT=$(git diff --shortstat HEAD^)
+          echo "Diff stats: $DIFF_OUTPUT"
+          
+          # Extract numbers for insertions and deletions.
+          insertions=$(echo "$DIFF_OUTPUT" | grep -oP '\d+(?= insertion)' || echo 0)
+          deletions=$(echo "$DIFF_OUTPUT" | grep -oP '\d+(?= deletion)' || echo 0)
+          total=$((insertions + deletions))
+          echo "Total changes (insertions + deletions): $total"
+
+          if [ "$total" -lt 10 ]; then
+            echo "Bump level: patch"
+            echo "level=patch" >> $GITHUB_OUTPUT
+          elif [ "$total" -ge 10 ] && [ "$total" -lt 100 ]; then
+            echo "Bump level: minor"
+            echo "level=minor" >> $GITHUB_OUTPUT
+          else
+            echo "Bump level: major"
+            echo "level=major" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump Version Accordingly
+        run: |
+          echo "Using bump level: ${{ steps.bump_level.outputs.level }}"
+          bump2version ${{ steps.bump_level.outputs.level }}
 
       - name: Auto Commit Changes (Version)
         uses: stefanzweifel/git-auto-commit-action@v4
