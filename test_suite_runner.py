@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # 2) We pass --html-report=YOUR_REPORT_PATH to use the "pytest-html-reporter" plugin
     #    to generate an HTML report at "report/report.html"
     exit_code = pytest.main([
-        "tests",  # folder containing tests
+        "./tests",  # folder containing tests
         f"--html-report={report_path}",
     ])
 
