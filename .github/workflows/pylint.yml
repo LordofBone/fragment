@@ -1,10 +1,10 @@
-name: Lint and Commit
+name: Lint, Format, and Bump Version
 
 on:
   pull_request:
 
 jobs:
-  lint:
+  lint-and-bump:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -13,17 +13,24 @@ jobs:
       - uses: actions/checkout@v2
 
       - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-      - run: pip install ruff
+      - name: Install Dependencies
+        run: pip install ruff bump2version
 
-      - run: |
-          # Always run ruff to fix issues
+      - name: Run Ruff Linting and Formatting
+        run: |
+          # Run Ruff to automatically fix issues (ignoring errors)
           ruff check . --fix || true
-
-      - run: |
-          # Run ruff again to ensure the formatting is correct
+          # Run Ruff again to ensure formatting is correct
           ruff format .
 
-      - uses: stefanzweifel/git-auto-commit-action@v4
+      - name: Bump Version
+        # This runs a minor bump. Change "minor" to "patch" or "major" as needed.
+        run: bump2version minor
+
+      - name: Auto Commit Changes
+        uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: 'Code linted by Ruff'
+          commit_message: 'Code linted by Ruff and version bumped'
