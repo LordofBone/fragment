@@ -103,7 +103,7 @@ def run_benchmark(
         # },
         particle_generator=True,
         generator_delay=0.0,
-        particle_size=9.0,
+        particle_size=18.0,
         min_initial_velocity_x=-0.50,
         max_initial_velocity_x=0.0,
         min_initial_velocity_y=-0.07,
@@ -113,13 +113,13 @@ def run_benchmark(
         particle_max_velocity=20.0,  # Set max velocity to a realistic value
         particle_max_lifetime=85.0,  # Set max lifetime to a realistic value
         particle_max_weight=125.5,  # Set max weight to a realistic value
-        particle_min_weight=100.5,  # Set min weight to a realistic value
+        particle_min_weight=40.5,  # Set min weight to a realistic value
         particle_smooth_edges=True,
-        particle_color=(0.973, 1.0, 0.541),
+        particle_color=(0.98, 0.0357, 0.08),
         particle_fade_to_color=True,
-        particle_fade_color=(0.98, 0.0357, 0.08),  # This gets boosted 5x within the shader, so it's more visible
+        particle_fade_color=(0.0973, 1.0, 0.0541),  # This gets boosted 5x within the shader, so it's more visible
         lighting_mode="phong",
-        legacy_opacity=0.75,
+        legacy_opacity=0.9,
         legacy_roughness=32,
         particle_gravity=(0.0, 0.0, 0.0),
         particle_bounce_factor=0.025,  # Standard bounce factor
