@@ -80,7 +80,7 @@ class ParticleRenderer(AbstractRenderer):
         particle_max_spawn_time_jitter=0.0,
         particle_color=(1.0, 0.5, 0.2),
         particle_fade_to_color=False,
-        shader_particle_fade_color=(0.0, 1.0, 0.0),
+            particle_fade_color=(0.0, 0.0, 0.0),
         particle_gravity=(0.0, -9.81, 0.0),
         particle_bounce_factor=0.6,
         particle_ground_plane_normal=(0.0, 1.0, 0.0),
@@ -215,7 +215,7 @@ class ParticleRenderer(AbstractRenderer):
 
         self.particle_color = glm.vec3(*particle_color)
         self.particle_fade_to_color = particle_fade_to_color
-        self.shader_particle_fade_color = glm.vec3(*shader_particle_fade_color)
+        self.particle_fade_color = glm.vec3(*particle_fade_color)
         self.particle_positions = None
         self.particle_velocities = None
         self.particle_gravity = glm.vec3(particle_gravity)
@@ -703,7 +703,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "particleFadeColor"),
             1,
-            glm.value_ptr(self.shader_particle_fade_color),
+            glm.value_ptr(self.particle_fade_color),
         )
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "smoothEdges"), int(self.particle_smooth_edges)
