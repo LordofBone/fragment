@@ -1,7 +1,11 @@
 name: Bump Version
 
 on:
-  pull_request:
+  workflow_call:
+    secrets:
+      # We'll pass our GitHub token so we can push
+      token:
+        required: true
 
 jobs:
   bump_job:
@@ -9,6 +13,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Ensure full history for bump2version
 
       - name: Set Git Config
         run: |
@@ -29,3 +35,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'Code version bumped'
+
+      - name: Push Changes
+        run: |
+          git push origin HEAD --tags
