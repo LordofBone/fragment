@@ -1,0 +1,40 @@
+name: Lint and Format Code
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # You can leave this shallow if you don’t need full history for linting
+          fetch-depth: 1
+
+      - name: Set Git Config
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: pip install ruff
+
+      - name: Run Ruff Linting and Formatting
+        run: |
+          # Run Ruff to automatically fix issues (ignoring errors)
+          ruff check . --fix || true
+          # Run Ruff again to ensure formatting is correct
+          ruff format .
+
+      - name: Auto Commit Changes (Ruff)
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'Code linted by Ruff'

@@ -1,0 +1,40 @@
+name: Bump Version
+
+on:
+  workflow_run:
+    workflows: [ "Lint and Format Code" ]
+    types:
+      - completed
+
+jobs:
+  bump:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Fetch full history so that bump2version can work correctly (tags and commits)
+          fetch-depth: 0
+
+      - name: Set Git Config
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: pip install bump2version
+
+      - name: Bump Version
+        run: bump2version minor
+
+      - name: Auto Commit Changes (Version)
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'Code version bumped'
