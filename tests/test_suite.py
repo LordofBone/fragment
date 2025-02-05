@@ -1,7 +1,8 @@
 """
 test_suite.py
 
-Unit tests for the Fragment 3D Rendering Benchmark system.
+Pytest-compatible tests for the Fragment 3D Rendering Benchmark system.
+
 Covers:
   - RendererConfig
   - AudioPlayer
@@ -26,7 +27,7 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 # Adjust the Python path so that modules from your project can be imported.
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -56,11 +57,13 @@ try:
 except ImportError:
     App = None
 
+
 # ------------------------------------------------------------------------------------
 # Dummy classes and functions for testing
 # ------------------------------------------------------------------------------------
 def dummy_run_function(stats_queue, stop_event, resolution, msaa_level, anisotropy, shading_model,
                        shadow_map_resolution, particle_render_mode, vsync_enabled, sound_enabled, fullscreen):
+    """Fake run function that simulates a small wait and sends 'fps' into stats_queue."""
     if stats_queue is not None:
         stats_queue.put(("ready", None))
         stats_queue.put(("fps", 60))
@@ -71,6 +74,7 @@ def dummy_play_audio(self):
     self.is_playing.set()
     self.stop_event.wait(timeout=1)
     self.is_playing.clear()
+
 
 class DummyRenderer(AbstractRenderer):
     """
@@ -88,25 +92,42 @@ class DummyRenderer(AbstractRenderer):
     def render(self):
         self.render_called = True
 
+
 class DummySurfaceRenderer(SurfaceRenderer):
     def __init__(self, renderer_name, **kwargs):
-        super().__init__(renderer_name=renderer_name, shader_names={"vertex": "dummy", "fragment": "dummy"}, **kwargs)
+        super().__init__(
+            renderer_name=renderer_name,
+            shader_names={"vertex": "dummy", "fragment": "dummy"},
+            **kwargs
+        )
+
     def create_buffers(self):
         pass
+
     def render(self):
         pass
+
 
 class DummySkyboxRenderer(SkyboxRenderer):
     def __init__(self, renderer_name, **kwargs):
-        super().__init__(renderer_name=renderer_name, shader_names={"vertex": "dummy", "fragment": "dummy"}, **kwargs)
+        super().__init__(
+            renderer_name=renderer_name,
+            shader_names={"vertex": "dummy", "fragment": "dummy"},
+            **kwargs
+        )
+
     def create_buffers(self):
         self.vertices = [0.0] * 36
+
     def render(self):
         pass
 
+
 # ------------------------------------------------------------------------------------
-# Patching OpenGL calls from OpenGL.GL.* only. We do NOT patch the raw GL submodules.
+# Patching OpenGL calls from OpenGL.GL.* only
 # ------------------------------------------------------------------------------------
+from unittest.mock import patch
+
 patch_gl_create_shader = patch("OpenGL.GL.glCreateShader", MagicMock(return_value=1))
 patch_gl_shader_source = patch("OpenGL.GL.glShaderSource", MagicMock())
 patch_gl_compile_shader = patch("OpenGL.GL.glCompileShader", MagicMock())
@@ -160,8 +181,9 @@ def patched_gl(cls):
         cls = p(cls)
     return cls
 
+
 # ------------------------------------------------------------------------------------
-# New: a test class for python-only logic that doesn't require GL calls
+# Pure-Python Logic Tests (no OpenGL needed)
 # ------------------------------------------------------------------------------------
 class TestPurePythonLogic(unittest.TestCase):
     """
@@ -170,7 +192,6 @@ class TestPurePythonLogic(unittest.TestCase):
       - SceneConstructor transformations
       - Basic RendererConfig usage
     """
-
     def test_scene_transformations(self):
         sc = SceneConstructor()
         dummy = DummyRenderer("dummy_no_gl")
@@ -182,7 +203,6 @@ class TestPurePythonLogic(unittest.TestCase):
         self.assertEqual(dummy.translation, glm.vec3(5, 6, 7))
 
         sc.rotate_renderer_euler("dummy_no_gl", (90, 0, 0))
-        # Dummy check we stored rotation
         self.assertAlmostEqual(dummy.rotation.x, glm.radians(90.0), places=4)
 
         sc.scale_renderer("dummy_no_gl", (2, 2, 2))
@@ -196,7 +216,6 @@ class TestPurePythonLogic(unittest.TestCase):
         lens = [0, 90]
         c = CameraController(positions, lens_rotations=lens, move_speed=1.0, loop=False)
         pos, rot = c.update(0.2)
-        # We can confirm it moves some fraction of the way
         self.assertGreater(pos.x, 0.0)
         self.assertLess(pos.x, 10.0)
 
@@ -212,13 +231,14 @@ class TestPurePythonLogic(unittest.TestCase):
 
 
 # ------------------------------------------------------------------------------------
-# Now the rest of the test classes requiring partial GL mocks
+# The actual test classes that require partial GL mocks
 # ------------------------------------------------------------------------------------
 @patched_gl
 class TestRendererConfig(unittest.TestCase):
     """Tests for RendererConfig and its add_* methods."""
 
     def setUp(self):
+        # Avoid real shader discovery in tests
         RendererConfig.discover_shaders = lambda s: None
         self.config = RendererConfig(window_title="TestRenderer", window_size=(800, 600))
 
@@ -321,7 +341,6 @@ class TestCameraController(unittest.TestCase):
         controller = CameraController(positions, lens_rotations=lens_rotations, move_speed=1.0, loop=False)
         pos, rot = controller.update(0.5)
 
-        # We won't be super strict with 'almostEqual' because interpolation might vary slightly.
         self.assertGreaterEqual(pos.x, 4.5)
         self.assertLessEqual(pos.x, 5.5)
         self.assertGreaterEqual(rot.x, 40)
@@ -340,7 +359,6 @@ class TestSceneConstructor(unittest.TestCase):
         sc.add_renderer("dummy", dummy)
         self.assertIn("dummy", sc.renderers)
 
-        # Attempt a translation
         import glm
         sc.translate_renderer("dummy", (1, 2, 3))
         self.assertEqual(dummy.translation, glm.vec3(1, 2, 3))
@@ -349,7 +367,6 @@ class TestSceneConstructor(unittest.TestCase):
 @patched_gl
 class TestShaderEngine(unittest.TestCase):
     """Tests for the ShaderEngine class."""
-
     def setUp(self):
         RendererConfig.discover_shaders = lambda s: None
         self.temp_dir = tempfile.mkdtemp()
@@ -414,8 +431,7 @@ class TestTextureManager(unittest.TestCase):
         tm = TextureManager()
         tm.reset()
         dummy = tm.get_dummy_texture()
-        # We mocked glGenTextures to return 4, so we expect that
-        self.assertEqual(dummy, 4)
+        self.assertEqual(dummy, 4)  # we mocked glGenTextures to return 4
 
 
 @patched_gl
@@ -452,7 +468,6 @@ class TestRenderInstancing(unittest.TestCase):
         self.instance = RenderingInstance(config)
 
     def test_add_renderer_and_order(self):
-        # Add a dummy model renderer
         self.instance.add_renderer("dummy_model", "model", order=1,
                                    obj_path="dummy.obj",
                                    texture_paths={"diffuse": "dummy.png"},
@@ -477,15 +492,14 @@ class TestAllShadersCompilation(unittest.TestCase):
         self.assertTrue(os.path.isdir(self.shaders_root),
                         msg="No 'shaders/' folder found in the project root! Cannot test compilation.")
 
-        vertex_dir = os.path.join(self.shaders_root, "vertex")
-        fragment_dir = os.path.join(self.shaders_root, "fragment")
-        compute_dir = os.path.join(self.shaders_root, "compute")
-
         def find_shader_files(shader_type):
             base = os.path.join(self.shaders_root, shader_type)
             if not os.path.isdir(base):
                 return []
-            subfolders = [d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))]
+            subfolders = [
+                d for d in os.listdir(base)
+                if os.path.isdir(os.path.join(base, d))
+            ]
             results = []
             for sf in subfolders:
                 path = os.path.join(base, sf, f"{shader_type}.glsl")
@@ -512,12 +526,9 @@ class TestAllShadersCompilation(unittest.TestCase):
             self.assertIsNotNone(engine.compute_shader_program, f"Compute shader compile failed: {cmp_path}")
 
 
-# In the GUI test, we return a mock image with known width/height so that the code
-# in main_gui.py won't produce a TypeError.
 @patch("PIL.Image.open")
 class TestGUI(unittest.TestCase):
     """Basic tests to check that the GUI can be instantiated and manipulated."""
-
     @unittest.skipIf(App is None, "GUI module not available or cannot be imported.")
     def test_app_instantiation(self, mock_image_open):
         """Check if the App can be created and destroyed without error."""
@@ -532,10 +543,3 @@ class TestGUI(unittest.TestCase):
         self.assertIsNotNone(app)
         app.after(200, app.exit_app)
         app.mainloop()
-
-
-# ------------------------------------------------------------------------------------
-# Main Test Runner
-# ------------------------------------------------------------------------------------
-if __name__ == '__main__':
-    unittest.main()
