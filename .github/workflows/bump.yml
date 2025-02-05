@@ -4,6 +4,8 @@ on:
   workflow_run:
     workflows: [ "Lint and Format Code" ]
     types: [ completed ]
+    branches:
+      - '**'  # Listen for workflow runs on any branch
 
 jobs:
   bump:
