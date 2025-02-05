@@ -77,7 +77,7 @@ def with_gl_render_state(func):
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "viewPosition"),
             1,
-            glm.value_ptr(self.camera_position)
+            glm.value_ptr(self.camera_position),
         )
         check_gl_error("Setting viewPosition uniform", self.debug_mode)
 
@@ -171,7 +171,7 @@ class AbstractRenderer(ABC):
         pom_max_forward_offset=1.0,
         pom_enable_frag_depth_adjustment=False,
         shadow_map_resolution=2048,
-            shadow_strength=1.0,
+        shadow_strength=1.0,
         lighting_mode="diffuse",
         legacy_opacity=1.0,
         legacy_roughness=32,
@@ -311,9 +311,7 @@ class AbstractRenderer(ABC):
         if shadow_map_resolution > 0:
             self.shadowing_enabled = True
             self.shadow_width = self.shadow_height = shadow_map_resolution
-            self.shadow_map_manager = ShadowMapManager(
-                shadow_width=self.shadow_width, shadow_height=self.shadow_height
-            )
+            self.shadow_map_manager = ShadowMapManager(shadow_width=self.shadow_width, shadow_height=self.shadow_height)
         else:
             self.shadowing_enabled = False
             self.shadow_map_manager = None
@@ -361,9 +359,7 @@ class AbstractRenderer(ABC):
             self.camera_position, self.camera_rotation = self.camera_controller.update(0)
             self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
         else:
-            self.camera_controller = CameraController(
-                self.camera_positions, lens_rotations=self.lens_rotations
-            )
+            self.camera_controller = CameraController(self.camera_positions, lens_rotations=self.lens_rotations)
             self.camera_position = glm.vec3(*self.camera_positions[0][:3])
             self.camera_rotation = glm.vec2(*self.camera_positions[0][3:])
             self.main_camera_lens_rotation = self.camera_controller.lens_rotations[0]
@@ -419,8 +415,7 @@ class AbstractRenderer(ABC):
 
         glBindTexture(GL_TEXTURE_2D, self.depth_vis_texture)
         glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGB, self.window_size[0], self.window_size[1],
-            0, GL_RGB, GL_UNSIGNED_BYTE, None
+            GL_TEXTURE_2D, 0, GL_RGB, self.window_size[0], self.window_size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, None
         )
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
@@ -469,9 +464,15 @@ class AbstractRenderer(ABC):
 
         glBindTexture(GL_TEXTURE_2D, self.planar_texture)
         glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGB,
-            self.planar_resolution[0], self.planar_resolution[1],
-            0, GL_RGB, GL_UNSIGNED_BYTE, None,
+            GL_TEXTURE_2D,
+            0,
+            GL_RGB,
+            self.planar_resolution[0],
+            self.planar_resolution[1],
+            0,
+            GL_RGB,
+            GL_UNSIGNED_BYTE,
+            None,
         )
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
@@ -598,11 +599,15 @@ class AbstractRenderer(ABC):
         self.shader_engine.use_shadow_shader_program()
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_engine.shadow_shader_program, "model"),
-            1, GL_FALSE, glm.value_ptr(self.model_matrix)
+            1,
+            GL_FALSE,
+            glm.value_ptr(self.model_matrix),
         )
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_engine.shadow_shader_program, "lightSpaceMatrix"),
-            1, GL_FALSE, glm.value_ptr(light_space_matrix)
+            1,
+            GL_FALSE,
+            glm.value_ptr(light_space_matrix),
         )
 
         if hasattr(self, "object") and hasattr(self.object, "mesh_list"):
@@ -680,9 +685,7 @@ class AbstractRenderer(ABC):
         if self.cubemap_folder:
             self.load_cubemap(self.cubemap_folder, self.environmentMap)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.environmentMap)
-        glUniform1i(
-            glGetUniformLocation(self.shader_engine.shader_program, "environmentMap"), env_map_unit
-        )
+        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "environmentMap"), env_map_unit)
 
     def load_and_set_texture(self, texture_type, uniform_name):
         """
@@ -733,8 +736,7 @@ class AbstractRenderer(ABC):
             img_data = pygame.image.tostring(surface, "RGB", True)
             width, height = surface.get_size()
             glTexImage2D(
-                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
-                width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data
             )
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
@@ -754,10 +756,7 @@ class AbstractRenderer(ABC):
         """
         if self.auto_camera:
             self.camera_controller = CameraController(
-                self.camera_positions,
-                lens_rotations=self.lens_rotations,
-                move_speed=self.move_speed,
-                loop=self.loop
+                self.camera_positions, lens_rotations=self.lens_rotations, move_speed=self.move_speed, loop=self.loop
             )
             self.camera_position, self.camera_rotation = self.camera_controller.update(0)
             self.main_camera_lens_rotation = self.camera_controller.get_current_lens_rotation()
@@ -797,13 +796,9 @@ class AbstractRenderer(ABC):
         self.shader_engine.use_shader_program()
         for i, light in enumerate(self.lights):
             glUniform3fv(
-                glGetUniformLocation(shader_program, f"lightPositions[{i}]"),
-                1, glm.value_ptr(light["position"])
+                glGetUniformLocation(shader_program, f"lightPositions[{i}]"), 1, glm.value_ptr(light["position"])
             )
-            glUniform3fv(
-                glGetUniformLocation(shader_program, f"lightColors[{i}]"),
-                1, glm.value_ptr(light["color"])
-            )
+            glUniform3fv(glGetUniformLocation(shader_program, f"lightColors[{i}]"), 1, glm.value_ptr(light["color"]))
             glUniform1f(glGetUniformLocation(shader_program, f"lightStrengths[{i}]"), light["strength"])
             glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoLeft[{i}]"), light["orth_left"])
             glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoRight[{i}]"), light["orth_right"])
@@ -873,7 +868,7 @@ class AbstractRenderer(ABC):
         if self.auto_rotations:
             auto_matrix = glm.mat4(1.0)
             # For each auto rotation, compute an incremental rotation matrix and multiply them
-            for (axis, speed) in self.auto_rotations:
+            for axis, speed in self.auto_rotations:
                 # Here, we compute an angle based on time (you might wish to adjust the divisor)
                 angle = pygame.time.get_ticks() / speed
                 auto_matrix = auto_matrix * glm.rotate(glm.mat4(1.0), angle, glm.vec3(*axis))
@@ -911,10 +906,12 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "textureLodLevel"), self.texture_lod_bias)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
         # Re-added tone mapping and gamma correction flags:
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "applyToneMapping"),
-                    self.apply_tone_mapping)
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "applyGammaCorrection"),
-                    self.apply_gamma_correction)
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "applyToneMapping"), self.apply_tone_mapping
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "applyGammaCorrection"), self.apply_gamma_correction
+        )
 
     def set_shader_uniforms(self):
         """
@@ -926,15 +923,18 @@ class AbstractRenderer(ABC):
         # --- Model, View, Projection ---
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_engine.shader_program, "model"),
-            1, GL_FALSE, glm.value_ptr(self.model_matrix)
+            1,
+            GL_FALSE,
+            glm.value_ptr(self.model_matrix),
         )
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_engine.shader_program, "view"),
-            1, GL_FALSE, glm.value_ptr(self.view)
+            glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(self.view)
         )
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_engine.shader_program, "projection"),
-            1, GL_FALSE, glm.value_ptr(self.projection)
+            1,
+            GL_FALSE,
+            glm.value_ptr(self.projection),
         )
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "nearPlane"), self.near_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "farPlane"), self.far_plane)
@@ -943,86 +943,139 @@ class AbstractRenderer(ABC):
         if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
             glUniformMatrix4fv(
                 glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
-                1, GL_FALSE, glm.value_ptr(self.shadow_map_manager.light_space_matrix)
+                1,
+                GL_FALSE,
+                glm.value_ptr(self.shadow_map_manager.light_space_matrix),
             )
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "shadowingEnabled"),
-                    int(self.shadowing_enabled))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "shadowingEnabled"), int(self.shadowing_enabled)
+        )
 
         # --- Parallax Mapping ---
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "invertDisplacementMap"),
-                    int(self.invert_displacement_map))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "invertDisplacementMap"),
+            int(self.invert_displacement_map),
+        )
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "pomHeightScale"), self.pom_height_scale)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMinSteps"), self.pom_min_steps)
         glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "pomMaxSteps"), self.pom_max_steps)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "parallaxEyeOffsetScale"),
-                    self.pom_eye_offset_scale)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "parallaxMaxDepthClamp"),
-                    self.pom_max_depth_clamp)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "maxForwardOffset"),
-                    self.pom_max_forward_offset)
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "enableFragDepthAdjustment"),
-                    int(self.pom_enable_frag_depth_adjustment))
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "parallaxEyeOffsetScale"), self.pom_eye_offset_scale
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "parallaxMaxDepthClamp"), self.pom_max_depth_clamp
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "maxForwardOffset"), self.pom_max_forward_offset
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "enableFragDepthAdjustment"),
+            int(self.pom_enable_frag_depth_adjustment),
+        )
 
         # --- Ambient and Material ---
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "ambientStrength"),
-                    self.ambient_lighting_strength)
-        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"), 1,
-                     glm.value_ptr(self.ambient_lighting_color))
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "ambientStrength"), self.ambient_lighting_strength
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "ambientColor"),
+            1,
+            glm.value_ptr(self.ambient_lighting_color),
+        )
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacyOpacity"), self.legacy_opacity)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "legacyRoughness"), self.legacy_roughness)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "environmentMapStrength"),
-                    self.env_map_strength)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "distortionStrength"),
-                    self.distortion_strength)
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "refractionStrength"),
-                    self.refraction_strength)
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "environmentMapStrength"), self.env_map_strength
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "distortionStrength"), self.distortion_strength
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "refractionStrength"), self.refraction_strength
+        )
 
         # --- Screen and Planar Texture ---
         glUniform2f(
             glGetUniformLocation(self.shader_engine.shader_program, "screenResolution"),
-            self.window_size[0], self.window_size[1]
+            self.window_size[0],
+            self.window_size[1],
         )
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "flipPlanarHorizontal"),
-                    int(self.flip_planar_horizontally))
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "flipPlanarVertical"),
-                    int(self.flip_planar_vertically))
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "usePlanarNormalDistortion"),
-                    int(self.use_planar_normal_distortion))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "planarFragmentViewThreshold"),
-                    self.planar_fragment_view_threshold)
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "flipPlanarHorizontal"),
+            int(self.flip_planar_horizontally),
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "flipPlanarVertical"),
+            int(self.flip_planar_vertically),
+        )
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "usePlanarNormalDistortion"),
+            int(self.use_planar_normal_distortion),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "planarFragmentViewThreshold"),
+            self.planar_fragment_view_threshold,
+        )
         if self.screen_texture:
             screen_texture_unit = texture_manager.get_texture_unit(str(self.identifier), "planar_camera")
             glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "screenTexture"), screen_texture_unit)
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "screenFacingPlanarTexture"),
-                    int(self.screen_facing_planar_texture))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "screenFacingPlanarTexture"),
+            int(self.screen_facing_planar_texture),
+        )
 
         # --- Dynamic Material and Effects ---
-        glUniform1i(glGetUniformLocation(self.shader_engine.shader_program, "useCheckerPattern"),
-                    int(self.dynamic_attrs.get("use_checker_pattern", 1)))
-        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "waterBaseColor"), 1,
-                     glm.value_ptr(self.water_base_color))
-        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "lavaBaseColor"), 1,
-                     glm.value_ptr(self.lava_base_color))
-        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "lavaBrightColor"), 1,
-                     glm.value_ptr(self.lava_bright_color))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "waveSpeed"),
-                    self.dynamic_attrs.get("wave_speed", 10.0))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "waveAmplitude"),
-                    self.dynamic_attrs.get("wave_amplitude", 0.1))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "waveDetail"),
-                    self.dynamic_attrs.get("wave_detail", 10.0))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "randomness"),
-                    self.dynamic_attrs.get("randomness", 0.8))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "texCoordFrequency"),
-                    self.dynamic_attrs.get("tex_coord_frequency", 100.0))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "texCoordAmplitude"),
-                    self.dynamic_attrs.get("tex_coord_amplitude", 0.1))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "surfaceDepth"),
-                    self.dynamic_attrs.get("surface_depth", 0.0))
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shadowStrength"),
-                    self.shadow_strength)
-        glUniform3fv(glGetUniformLocation(self.shader_engine.shader_program, "cameraPos"), 1,
-                     glm.value_ptr(self.camera_position))
+        glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "useCheckerPattern"),
+            int(self.dynamic_attrs.get("use_checker_pattern", 1)),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "waterBaseColor"),
+            1,
+            glm.value_ptr(self.water_base_color),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "lavaBaseColor"),
+            1,
+            glm.value_ptr(self.lava_base_color),
+        )
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "lavaBrightColor"),
+            1,
+            glm.value_ptr(self.lava_bright_color),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "waveSpeed"),
+            self.dynamic_attrs.get("wave_speed", 10.0),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "waveAmplitude"),
+            self.dynamic_attrs.get("wave_amplitude", 0.1),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "waveDetail"),
+            self.dynamic_attrs.get("wave_detail", 10.0),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "randomness"),
+            self.dynamic_attrs.get("randomness", 0.8),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "texCoordFrequency"),
+            self.dynamic_attrs.get("tex_coord_frequency", 100.0),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "texCoordAmplitude"),
+            self.dynamic_attrs.get("tex_coord_amplitude", 0.1),
+        )
+        glUniform1f(
+            glGetUniformLocation(self.shader_engine.shader_program, "surfaceDepth"),
+            self.dynamic_attrs.get("surface_depth", 0.0),
+        )
+        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "shadowStrength"), self.shadow_strength)
+        glUniform3fv(
+            glGetUniformLocation(self.shader_engine.shader_program, "cameraPos"), 1, glm.value_ptr(self.camera_position)
+        )
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "time"), pygame.time.get_ticks() / 1000.0)
 
     def create_dummy_texture(self):
@@ -1050,11 +1103,14 @@ class AbstractRenderer(ABC):
         if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
             glUniformMatrix4fv(
                 glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
-                1, GL_FALSE, glm.value_ptr(self.shadow_map_manager.light_space_matrix)
+                1,
+                GL_FALSE,
+                glm.value_ptr(self.shadow_map_manager.light_space_matrix),
             )
             glUniform3fv(
                 glGetUniformLocation(self.shader_engine.shader_program, "lightPosition"),
-                1, glm.value_ptr(self.lights[0]["position"])
+                1,
+                glm.value_ptr(self.lights[0]["position"]),
             )
             glBindTexture(GL_TEXTURE_2D, self.shadow_map_manager.depth_map)
         else:

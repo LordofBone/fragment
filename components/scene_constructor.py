@@ -66,7 +66,6 @@ class SceneConstructor:
         """
         self._apply_to_renderer(name, lambda r: r.enable_auto_rotation(rotations=rotations))
 
-
     def _apply_to_renderer(self, name, action):
         """Apply an action to a renderer if it exists."""
         if name in self.renderers:

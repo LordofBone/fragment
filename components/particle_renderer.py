@@ -44,6 +44,7 @@ def rotate_plane_normal_py(base_normal, angleX_deg, angleY_deg):
 
     return planeN
 
+
 class ParticleRenderer(AbstractRenderer):
     # Define maximum particles for each render mode (to prevent slowdowns)
     DEFAULT_MAX_PARTICLES_MAPPING = {"cpu": 2000, "transform_feedback": 200000, "compute_shader": 2000000}
@@ -80,11 +81,11 @@ class ParticleRenderer(AbstractRenderer):
         particle_max_spawn_time_jitter=0.0,
         particle_color=(1.0, 0.5, 0.2),
         particle_fade_to_color=False,
-            particle_fade_color=(0.0, 0.0, 0.0),
+        particle_fade_color=(0.0, 0.0, 0.0),
         particle_gravity=(0.0, -9.81, 0.0),
         particle_bounce_factor=0.6,
         particle_ground_plane_normal=(0.0, 1.0, 0.0),
-            particle_ground_plane_angle=(0.0, 0.0),
+        particle_ground_plane_angle=(0.0, 0.0),
         particle_min_weight=0.5,
         particle_max_weight=1.0,
         fluid_simulation=False,
@@ -754,7 +755,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform2f(
             glGetUniformLocation(self.shader_engine.shader_program, "groundPlaneAngle"),
             self.particle_ground_plane_angle.x,
-            self.particle_ground_plane_angle.y
+            self.particle_ground_plane_angle.y,
         )
 
     def set_compute_uniforms(self):
@@ -836,7 +837,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform2f(
             glGetUniformLocation(self.shader_engine.compute_shader_program, "groundPlaneAngle"),
             self.particle_ground_plane_angle.x,
-            self.particle_ground_plane_angle.y
+            self.particle_ground_plane_angle.y,
         )
         glUniform1f(
             glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidPressure"),
@@ -1118,11 +1119,13 @@ class ParticleRenderer(AbstractRenderer):
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 
         # Only upload active particles
-        particle_data_to_upload = np.hstack((
-            self.cpu_particles[:self.active_particles, 0:4],  # position
-            self.cpu_particles[:self.active_particles, 12].reshape(-1, 1),  # lifetimePct
-            self.cpu_particles[:self.active_particles, 10].reshape(-1, 1)  # ID
-        )).astype(np.float32)
+        particle_data_to_upload = np.hstack(
+            (
+                self.cpu_particles[: self.active_particles, 0:4],  # position
+                self.cpu_particles[: self.active_particles, 12].reshape(-1, 1),  # lifetimePct
+                self.cpu_particles[: self.active_particles, 10].reshape(-1, 1),  # ID
+            )
+        ).astype(np.float32)
 
         glBufferSubData(GL_ARRAY_BUFFER, 0, particle_data_to_upload.nbytes, particle_data_to_upload)
         glBindBuffer(GL_ARRAY_BUFFER, 0)

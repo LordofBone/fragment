@@ -36,19 +36,19 @@ def parse_pbr_extensions_from_mtl(mtl_path):
     current_mat_name = None
 
     # Define tokens and their expected types.
-    single_float_tokens = {'Pr', 'Pm', 'Ps', 'Pc', 'Pcr', 'aniso', 'anisor', 'Pfe'}
-    triple_float_tokens = {'Tf'}
+    single_float_tokens = {"Pr", "Pm", "Ps", "Pc", "Pcr", "aniso", "anisor", "Pfe"}
+    triple_float_tokens = {"Tf"}
 
     if not os.path.isfile(mtl_path):
         print(f"[parse_pbr_extensions_from_mtl] No .mtl file found at: {mtl_path}")
         return pbr_data_by_material
 
-    with open(mtl_path, 'r', encoding='utf-8') as f:
+    with open(mtl_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith('#'):
+            if not line or line.startswith("#"):
                 continue
-            if line.startswith('newmtl '):
+            if line.startswith("newmtl "):
                 current_mat_name = line.split(None, 1)[1]
                 if current_mat_name not in pbr_data_by_material:
                     pbr_data_by_material[current_mat_name] = {}
@@ -104,7 +104,7 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         # "material.anisotropy": "anisotropy", (currently unused)
         # "material.anisotropyRot": "anisotropy_rot", (currently unused)
         "material.transmission": "transmission",
-        "material.fresnelExponent": "fresnel_exponent"
+        "material.fresnelExponent": "fresnel_exponent",
     }
 
     # Retrieve basic material values from pywavefront attributes.
@@ -164,7 +164,7 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         "anisotropy": anisotropy,
         "anisotropy_rot": anisotropy_rot,
         "transmission": transmission,
-        "fresnel_exponent": fresnel_exponent
+        "fresnel_exponent": fresnel_exponent,
     }
 
     # Get uniform locations for all expected uniforms.
@@ -205,20 +205,16 @@ class ModelRenderer(AbstractRenderer):
         self.obj_path = obj_path
 
         # Load the .obj with materials and face data.
-        self.object = pywavefront.Wavefront(
-            self.obj_path,
-            create_materials=True,
-            collect_faces=True
-        )
+        self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
         # Attempt to parse the same .mtl for any PBR extensions.
-        mtl_path = self.obj_path.replace('.obj', '.mtl')
+        mtl_path = self.obj_path.replace(".obj", ".mtl")
         extra_pbr_data = parse_pbr_extensions_from_mtl(mtl_path)
 
         # Attach extra PBR data (if any) to each material.
         for mesh in self.object.mesh_list:
             for mat in mesh.materials:
-                mat_name = getattr(mat, 'name', None)
+                mat_name = getattr(mat, "name", None)
                 if mat_name and mat_name in extra_pbr_data:
                     mat.pbr_extensions = extra_pbr_data[mat_name]
                 else:
@@ -234,7 +230,7 @@ class ModelRenderer(AbstractRenderer):
             "aniso": 0.0,
             "anisor": 0.0,
             "transmission": (0.0, 0.0, 0.0),
-            "fresnel_exponent": 0.5
+            "fresnel_exponent": 0.5,
         }
         # Override defaults if user provided any.
         user_pbr = kwargs.get("pbr_extensions", {})
@@ -263,16 +259,18 @@ class ModelRenderer(AbstractRenderer):
                 vertices_array = np.array(vertices, dtype=np.float32).reshape(-1, 8)
 
                 # Reorder from (u, v, nx, ny, nz, x, y, z) to (x, y, z, nx, ny, nz, u, v)
-                reordered = np.column_stack((
-                    vertices_array[:, 5],  # x
-                    vertices_array[:, 6],  # y
-                    vertices_array[:, 7],  # z
-                    vertices_array[:, 2],  # nx
-                    vertices_array[:, 3],  # ny
-                    vertices_array[:, 4],  # nz
-                    vertices_array[:, 0],  # u
-                    vertices_array[:, 1]  # v
-                ))
+                reordered = np.column_stack(
+                    (
+                        vertices_array[:, 5],  # x
+                        vertices_array[:, 6],  # y
+                        vertices_array[:, 7],  # z
+                        vertices_array[:, 2],  # nx
+                        vertices_array[:, 3],  # ny
+                        vertices_array[:, 4],  # nz
+                        vertices_array[:, 0],  # u
+                        vertices_array[:, 1],  # v
+                    )
+                )
 
                 # Compute tangents and bitangents.
                 reordered = self.compute_tangents_and_bitangents(reordered)
@@ -320,11 +318,11 @@ class ModelRenderer(AbstractRenderer):
                 T = (deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r
                 B = (deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r
 
-            tangent[i0] += T;
-            tangent[i1] += T;
+            tangent[i0] += T
+            tangent[i1] += T
             tangent[i2] += T
-            bitangent[i0] += B;
-            bitangent[i1] += B;
+            bitangent[i0] += B
+            bitangent[i1] += B
             bitangent[i2] += B
 
         for i in range(verts.shape[0]):
