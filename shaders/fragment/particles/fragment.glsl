@@ -43,12 +43,14 @@ void main()
     //    at t=0 => variedColor
     //    at t=1 => particleFadeColor
     vec3 baseColor;
+    // We need to boost the fade color to make it more visible when mixing
+    vec3 particleFadeColorBoosted = particleFadeColor * 5.0;// Make the fade color more intense
     if (particleFadeToColor)
     {
         // Note: you can invert the mix arguments if you want the color
         // to start at fadeColor and end at variedColor. As is, it starts varied
         // and goes to fadeColor over lifetime [0..1].
-        baseColor = mix(variedColor, particleFadeColor, lifetimePercentageToFragment);
+        baseColor = mix(variedColor, particleFadeColorBoosted, lifetimePercentageToFragment);
     }
     else
     {
