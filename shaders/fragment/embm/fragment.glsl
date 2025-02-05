@@ -1,5 +1,5 @@
 #version 330 core
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
 in vec2 TexCoords;
 in vec3 FragPos;
@@ -11,64 +11,77 @@ out vec4 FragColor;
 
 // Textures
 uniform sampler2D diffuseMap;
-uniform sampler2D normalMap;
-uniform samplerCube environmentMap;
-uniform sampler2D shadowMap;
 
 // Light/camera uniforms
 uniform vec3 viewPosition;
-uniform float envMapLodLevel;
+
+// Feature toggles
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
 uniform bool shadowingEnabled;
-uniform float environmentMapStrength;
+// Lighting mode selector: 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
 
 void main()
 {
-    // Sample tangent-space normal
+    // 1) Build the normal from the tangent-space normal map
+    //    (assuming a normalMap is present, otherwise skip)
     vec3 normalTangent = texture(normalMap, TexCoords, textureLodLevel).rgb * 2.0 - 1.0;
     vec3 normal = normalize(TBN * normalTangent);
 
+    // 2) View direction
     vec3 viewDir = normalize(viewPosition - FragPos);
-    vec3 diffuseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
 
-    // Reflection from environment
-    vec3 reflectDir = reflect(-viewDir, normal);
-    vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
+    // 3) Base diffuse color from texture
+    vec3 baseColor = texture(diffuseMap, TexCoords, textureLodLevel).rgb;
 
-    // Shadow
+    // 4) Shadow factor (0..1). If shadowingEnabled is false, shadow=0
     float shadow = 0.0;
     if (shadowingEnabled)
     {
-        shadow = ShadowCalculationStandard(FragPosLightSpace, shadowMap);
+        shadow = ShadowCalculationStandard(FragPosLightSpace, FragPos);
     }
 
-    // Lighting
+    // 5) Lighting
     vec3 lighting = vec3(0.0);
-    if (phongShading)
+    if (lightingMode == 0)
     {
-        lighting = computePhongLighting(normal, viewDir, FragPos, diffuseColor);
+        // Pure diffuse
+        lighting = computeDiffuseLighting(normal, viewDir, FragPos, baseColor, TexCoords);
     }
-    else
+    else if (lightingMode == 1)
     {
-        lighting = computeDiffuseLighting(normal, FragPos, diffuseColor);
+        // Legacy Phong
+        lighting = computePhongLighting(normal, viewDir, FragPos, baseColor, TexCoords);
+    }
+    else if (lightingMode == 2)
+    {
+        // PBR (includes environment reflection inside)
+        lighting = computePBRLighting(normal, viewDir, FragPos, baseColor, TexCoords);
     }
 
-    lighting = (1.0 - shadow) * lighting;
+    // 6) Apply shadow: (1.0 - shadow)
+    lighting *= (1.0 - shadow);
 
-    // Blend with environment
-    vec3 result = mix(lighting, lighting + envColor, environmentMapStrength);
+    vec3 result = lighting;
 
+    // 8) Tone mapping
     if (applyToneMapping)
     {
         result = toneMapping(result);
     }
+
+    // 9) Gamma correction
     if (applyGammaCorrection)
     {
-        result = pow(result, vec3(1.0 / 2.2));
+        // typical sRGB gamma ~2.2
+        result = pow(result, vec3(1.0/2.2));
     }
 
+    // 10) Incorporate `legacyOpacity` parameter
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    // 11) Clamp & output
     result = clamp(result, 0.0, 1.0);
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(result, alpha);
 }

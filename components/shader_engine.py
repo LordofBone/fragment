@@ -100,7 +100,7 @@ class ShaderEngine:
         This replaces the line with the contents of the included file.
         We'll look in:
             1) The current directory of the referencing file
-            2) The base_dir/common_dir_name folder (for "common_funcs.glsl", etc.)
+            2) The base_dir/common_dir_name folder (for "glsl_utilities.glsl", etc.)
         """
         lines = source.split("\n")
         processed_lines = []
@@ -127,9 +127,7 @@ class ShaderEngine:
                         use_path = fallback_path
                     else:
                         raise FileNotFoundError(
-                            f"Included shader file not found in either:\n"
-                            f"  {include_path_local}\n"
-                            f"  {fallback_path}"
+                            f"Included shader file not found in either:\n  {include_path_local}\n  {fallback_path}"
                         )
 
                 # Read included file

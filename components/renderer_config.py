@@ -13,9 +13,6 @@ class RendererConfig:
         texture_paths=None,
         cubemap_folder=None,
         camera_positions=None,
-        camera_target=(0, 0, 0),
-        up_vector=(0, 1, 0),
-        rotation_axis=(0, 3, 0),
         fov=40,
         near_plane=0.1,
         far_plane=1000,
@@ -26,22 +23,28 @@ class RendererConfig:
         alpha_blending=False,
         depth_testing=True,
         shadow_map_resolution=2048,
+        shadow_strength=1.0,
         culling=True,
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
         env_map_strength=0.5,
         invert_displacement_map=False,
-        pom_height_scale=0.04,
+        pom_height_scale=0.016,
         pom_min_steps=8,
         pom_max_steps=32,
+        pom_eye_offset_scale=1.0,
+        pom_max_depth_clamp=0.99,
+        pom_max_forward_offset=1.0,
+        pom_enable_frag_depth_adjustment=False,
         move_speed=1.0,
         loop=True,
         front_face_winding="CCW",
         shaders=None,
-        phong_shading=False,
-        opacity=1.0,
-        shininess=1.0,
-        ambient_lighting_strength=(0.0, 0.0, 0.0),
+        lighting_mode="diffuse",
+        legacy_opacity=1.0,
+        legacy_roughness=32,
+        ambient_lighting_strength=0.0,
+        ambient_lighting_color=(0.0, 0.0, 0.0),
         planar_camera=False,
         planar_fov=45,
         planar_near_plane=0.1,
@@ -50,7 +53,13 @@ class RendererConfig:
         planar_camera_position_rotation=(0, 0, 0, 0, 0),
         planar_relative_to_camera=True,
         planar_camera_lens_rotation=0.0,
+        flip_planar_horizontally=False,
+        flip_planar_vertically=False,
+        use_planar_normal_distortion=False,
         screen_facing_planar_texture=False,
+        planar_fragment_view_threshold=0.0,
+        distortion_strength=0.3,
+        refraction_strength=0.3,
         lens_rotations=None,
         background_audio=None,
         sound_enabled=True,
@@ -66,12 +75,9 @@ class RendererConfig:
         self.fullscreen = fullscreen
         self.duration = duration
         self.texture_paths = texture_paths
-        self.shaders = shaders
+        self.shaders = shaders or {}
         self.cubemap_folder = cubemap_folder
         self.camera_positions = camera_positions
-        self.camera_target = camera_target
-        self.rotation_axis = rotation_axis
-        self.up_vector = up_vector
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
@@ -82,6 +88,7 @@ class RendererConfig:
         self.alpha_blending = alpha_blending
         self.depth_testing = depth_testing
         self.shadow_map_resolution = shadow_map_resolution
+        self.shadow_strength = shadow_strength
         self.culling = culling
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
@@ -90,14 +97,18 @@ class RendererConfig:
         self.pom_height_scale = pom_height_scale
         self.pom_min_steps = pom_min_steps
         self.pom_max_steps = pom_max_steps
+        self.pom_eye_offset_scale = pom_eye_offset_scale
+        self.pom_max_depth_clamp = pom_max_depth_clamp
+        self.pom_max_forward_offset = pom_max_forward_offset
+        self.pom_enable_frag_depth_adjustment = pom_enable_frag_depth_adjustment
         self.move_speed = move_speed
         self.loop = loop
         self.front_face_winding = front_face_winding
-        self.phong_shading = phong_shading
-        self.opacity = opacity
-        self.shininess = shininess
+        self.lighting_mode = lighting_mode
+        self.legacy_opacity = legacy_opacity
+        self.legacy_roughness = legacy_roughness
         self.ambient_lighting_strength = ambient_lighting_strength
-        self.shaders = {}
+        self.ambient_lighting_color = ambient_lighting_color
 
         # Planar camera settings combined
         self.planar_camera = planar_camera
@@ -108,7 +119,13 @@ class RendererConfig:
         self.planar_camera_position_rotation = planar_camera_position_rotation
         self.planar_relative_to_camera = planar_relative_to_camera
         self.planar_camera_lens_rotation = planar_camera_lens_rotation
+        self.flip_planar_horizontally = flip_planar_horizontally
+        self.flip_planar_vertically = flip_planar_vertically
+        self.use_planar_normal_distortion = use_planar_normal_distortion
         self.screen_facing_planar_texture = screen_facing_planar_texture
+        self.planar_fragment_view_threshold = planar_fragment_view_threshold
+        self.distortion_strength = distortion_strength
+        self.refraction_strength = refraction_strength
 
         # Lens rotations for the camera
         self.lens_rotations = lens_rotations or [0.0] * len(self.camera_positions)
@@ -119,16 +136,56 @@ class RendererConfig:
         self.audio_delay = audio_delay
         self.audio_loop = audio_loop
 
+        self.discover_shaders()
+
         # Debug mode
         self.debug_mode = debug_mode
 
-        self.validate_winding()
-        self.discover_shaders()
-
-    def validate_winding(self):
-        """Validate the front face winding option."""
-        if self.front_face_winding not in ("CW", "CCW"):
+    def _validate_config(self, config):
+        """Private method to validate specific configuration options."""
+        # Validate front_face_winding
+        winding = config.get("front_face_winding", self.front_face_winding)
+        if winding not in ("CW", "CCW"):
             raise ValueError("Invalid front_face_winding option. Use 'CW' or 'CCW'.")
+
+        # Validate lighting_mode
+        lighting = config.get("lighting_mode", self.lighting_mode)
+        if lighting not in ("diffuse", "phong", "pbr"):
+            raise ValueError("Invalid lighting mode option. Use 'diffuse', 'phong', or 'pbr'.")
+
+        # Validate shininess if lighting_mode is 'diffuse' or 'phong'
+        if lighting in ("diffuse", "phong"):
+            legacy_roughness = config.get("legacy_roughness", self.legacy_roughness)
+            if not (0.0 <= legacy_roughness <= 100.0):
+                raise ValueError("Invalid legacy_roughness value. Must be between 0 and 100.")
+
+        # Validate particle_render_mode if present
+        if "particle_render_mode" in config:
+            particle_mode = config["particle_render_mode"]
+            if particle_mode not in ("cpu", "transform_feedback", "compute_shader"):
+                raise ValueError(
+                    "Invalid particle render mode option. Use 'cpu', 'transform_feedback', or 'compute_shader'."
+                )
+
+        if "particle_type" in config:
+            particle_type = config["particle_type"]
+            if particle_type not in (
+                "points",
+                "lines",
+                "line_strip",
+                "line_loop",
+                "lines_adjacency",
+                "line_strip_adjacency",
+                "triangles",
+                "triangle_strip",
+                "triangle_fan",
+                "triangles_adjacency",
+                "triangle_strip_adjacency",
+                "patches",
+            ):
+                raise ValueError(
+                    "Invalid particle type option. Use 'points', 'lines', 'line_strip', 'line_loop', 'lines_adjacency', 'line_strip_adjacency', 'triangles', 'triangle_strip', 'triangle_fan', 'triangles_adjacency', 'triangle_strip_adjacency', or 'patches'."
+                )
 
     def discover_shaders(self):
         """Discover shaders in the shaders directory."""
@@ -158,8 +215,6 @@ class RendererConfig:
         obj_path,
         texture_paths,
         shader_names=("standard", "default"),
-        rotation_speed=0.0,
-        rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         width=10.0,
@@ -167,18 +222,26 @@ class RendererConfig:
         alpha_blending=None,
         depth_testing=None,
         culling=None,
+        front_face_winding=None,
         cubemap_folder=None,
-        phong_shading=None,
-        opacity=1.0,
-        shininess=1.0,
-        texture_lod_bias=0.0,
-        env_map_lod_bias=0.0,
+        lighting_mode=None,
+        legacy_opacity=None,
+        ambient_lighting_strength=None,
+        ambient_lighting_color=None,
+        legacy_roughness=None,
+        texture_lod_bias=None,
+        env_map_lod_bias=None,
         env_map_strength=None,
         shadow_map_resolution=None,
+        shadow_strength=None,
         invert_displacement_map=None,
         pom_height_scale=None,
         pom_min_steps=None,
         pom_max_steps=None,
+        pom_eye_offset_scale=None,
+        pom_max_depth_clamp=None,
+        pom_max_forward_offset=None,
+        pom_enable_frag_depth_adjustment=None,
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -188,6 +251,12 @@ class RendererConfig:
         planar_relative_to_camera=None,
         planar_camera_lens_rotation=None,
         screen_facing_planar_texture=None,
+        planar_fragment_view_threshold=None,
+        flip_planar_horizontally=None,
+        flip_planar_vertically=None,
+        use_planar_normal_distortion=None,
+        distortion_strength=None,
+        refraction_strength=None,
         lens_rotations=None,
         debug_mode=None,
         **kwargs,
@@ -202,8 +271,6 @@ class RendererConfig:
             "obj_path": obj_path,
             "texture_paths": texture_paths,
             "shader_names": shader_names,
-            "rotation_speed": rotation_speed,
-            "rotation_axis": rotation_axis,
             "apply_tone_mapping": apply_tone_mapping,
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
@@ -211,18 +278,26 @@ class RendererConfig:
             "alpha_blending": alpha_blending,
             "depth_testing": depth_testing,
             "culling": culling,
+            "front_face_winding": front_face_winding,
             "cubemap_folder": cubemap_folder,
-            "phong_shading": phong_shading,
-            "opacity": opacity,
+            "lighting_mode": lighting_mode,
+            "legacy_opacity": legacy_opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
-            "shininess": shininess,
+            "ambient_lighting_strength": ambient_lighting_strength,
+            "ambient_lighting_color": ambient_lighting_color,
+            "legacy_roughness": legacy_roughness,
             "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
+            "shadow_strength": shadow_strength,
             "invert_displacement_map": invert_displacement_map,
-            "height_scale": pom_height_scale,
-            "min_steps": pom_min_steps,
-            "max_steps": pom_max_steps,
+            "pom_height_scale": pom_height_scale,
+            "pom_min_steps": pom_min_steps,
+            "pom_max_steps": pom_max_steps,
+            "pom_eye_offset_scale": pom_eye_offset_scale,
+            "pom_max_depth_clamp": pom_max_depth_clamp,
+            "pom_max_forward_offset": pom_max_forward_offset,
+            "pom_enable_frag_depth_adjustment": pom_enable_frag_depth_adjustment,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
@@ -232,6 +307,12 @@ class RendererConfig:
             "planar_relative_to_camera": planar_relative_to_camera,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
             "screen_facing_planar_texture": screen_facing_planar_texture,
+            "planar_fragment_view_threshold": planar_fragment_view_threshold,
+            "flip_planar_horizontally": flip_planar_horizontally,
+            "flip_planar_vertically": flip_planar_vertically,
+            "use_planar_normal_distortion": use_planar_normal_distortion,
+            "distortion_strength": distortion_strength,
+            "refraction_strength": refraction_strength,
             "lens_rotations": lens_rotations,
             "debug_mode": debug_mode,
         }
@@ -244,12 +325,14 @@ class RendererConfig:
             if key not in model_config:
                 model_config[key] = value
 
+        # Validate the updated configuration
+        self._validate_config(model_config)
+
         return model_config
 
     def add_surface(
         self,
         shader_names=("standard", "default"),
-        rotation_speed=0.0,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         width=500.0,
@@ -258,17 +341,24 @@ class RendererConfig:
         depth_testing=None,
         culling=None,
         cubemap_folder=None,
-        phong_shading=None,
-        opacity=1.0,
-        shininess=1.0,
-        texture_lod_bias=0.0,
-        env_map_lod_bias=0.0,
+        lighting_mode=None,
+        legacy_opacity=None,
+        ambient_lighting_strength=None,
+        ambient_lighting_color=None,
+        legacy_roughness=None,
+        texture_lod_bias=None,
+        env_map_lod_bias=None,
         env_map_strength=None,
         shadow_map_resolution=None,
+        shadow_strength=None,
         invert_displacement_map=None,
         pom_height_scale=None,
         pom_min_steps=None,
         pom_max_steps=None,
+        pom_eye_offset_scale=None,
+        pom_max_depth_clamp=None,
+        pom_max_forward_offset=None,
+        pom_enable_frag_depth_adjustment=None,
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -278,6 +368,12 @@ class RendererConfig:
         planar_relative_to_camera=None,
         planar_camera_lens_rotation=None,
         screen_facing_planar_texture=None,
+        flip_planar_horizontally=None,
+        flip_planar_vertically=None,
+        use_planar_normal_distortion=None,
+        planar_fragment_view_threshold=None,
+        distortion_strength=None,
+        refraction_strength=None,
         lens_rotations=None,
         debug_mode=None,
         **kwargs,
@@ -287,7 +383,6 @@ class RendererConfig:
 
         surface_specifics = {
             "shader_names": shader_names,
-            "rotation_speed": rotation_speed,
             "apply_tone_mapping": apply_tone_mapping,
             "apply_gamma_correction": apply_gamma_correction,
             "width": width,
@@ -296,17 +391,24 @@ class RendererConfig:
             "depth_testing": depth_testing,
             "culling": culling,
             "cubemap_folder": cubemap_folder,
-            "phong_shading": phong_shading,
-            "opacity": opacity,
+            "lighting_mode": lighting_mode,
+            "legacy_opacity": legacy_opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
-            "shininess": shininess,
+            "ambient_lighting_strength": ambient_lighting_strength,
+            "ambient_lighting_color": ambient_lighting_color,
+            "legacy_roughness": legacy_roughness,
             "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
+            "shadow_strength": shadow_strength,
             "invert_displacement_map": invert_displacement_map,
-            "height_scale": pom_height_scale,
-            "min_steps": pom_min_steps,
-            "max_steps": pom_max_steps,
+            "pom_height_scale": pom_height_scale,
+            "pom_min_steps": pom_min_steps,
+            "pom_max_steps": pom_max_steps,
+            "pom_eye_offset_scale": pom_eye_offset_scale,
+            "pom_max_depth_clamp": pom_max_depth_clamp,
+            "pom_max_forward_offset": pom_max_forward_offset,
+            "pom_enable_frag_depth_adjustment": pom_enable_frag_depth_adjustment,
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
@@ -316,6 +418,12 @@ class RendererConfig:
             "planar_relative_to_camera": planar_relative_to_camera,
             "planar_camera_lens_rotation": planar_camera_lens_rotation,
             "screen_facing_planar_texture": screen_facing_planar_texture,
+            "flip_planar_horizontally": flip_planar_horizontally,
+            "flip_planar_vertically": flip_planar_vertically,
+            "use_planar_normal_distortion": use_planar_normal_distortion,
+            "planar_fragment_view_threshold": planar_fragment_view_threshold,
+            "distortion_strength": distortion_strength,
+            "refraction_strength": refraction_strength,
             "lens_rotations": lens_rotations,
             "debug_mode": debug_mode,
         }
@@ -326,6 +434,9 @@ class RendererConfig:
         for key, value in kwargs.items():
             if key not in surface_config:
                 surface_config[key] = value
+
+        # Validate the updated configuration
+        self._validate_config(surface_config)
 
         return surface_config
 
@@ -345,6 +456,9 @@ class RendererConfig:
             if key not in skybox_config:
                 skybox_config[key] = value
 
+        # Validate the updated configuration
+        self._validate_config(skybox_config)
+
         return skybox_config
 
     def add_particle_renderer(
@@ -354,11 +468,13 @@ class RendererConfig:
         particle_shader_override=False,
         compute_shader_program=None,
         alpha_blending=None,
-        phong_shading=None,
-        opacity=1.0,
-        texture_lod_bias=0.0,
-        env_map_lod_bias=0.0,
-        shininess=0.001,
+        lighting_mode=None,
+        legacy_opacity=None,
+        texture_lod_bias=None,
+        env_map_lod_bias=None,
+        ambient_lighting_strength=None,
+        ambient_lighting_color=None,
+        legacy_roughness=None,
         depth_testing=None,
         culling=None,
         particle_generator=False,
@@ -382,6 +498,7 @@ class RendererConfig:
         particle_gravity=(0.0, -9.81, 0.0),
         particle_bounce_factor=0.5,
         particle_ground_plane_normal=(0.0, 1.0, 0.0),
+        particle_ground_plane_angle=(0.0, 0.0),
         particle_ground_plane_height=0.0,
         particle_max_lifetime=5.0,
         particle_max_weight=1.0,
@@ -398,6 +515,7 @@ class RendererConfig:
         fluid_pressure=0.0,
         fluid_viscosity=0.0,
         fluid_force_multiplier=1.0,
+        debug_mode=None,
         **kwargs,
     ):
         """Add a particle renderer to the configuration."""
@@ -407,11 +525,13 @@ class RendererConfig:
             "particle_render_mode": particle_render_mode,
             "particle_shader_override": particle_shader_override,
             "alpha_blending": alpha_blending,
-            "phong_shading": phong_shading,
-            "opacity": opacity,
+            "lighting_mode": lighting_mode,
+            "legacy_opacity": legacy_opacity,
             "texture_lod_bias": texture_lod_bias,
             "env_map_lod_bias": env_map_lod_bias,
-            "shininess": shininess,
+            "ambient_lighting_strength": ambient_lighting_strength,
+            "ambient_lighting_color": ambient_lighting_color,
+            "legacy_roughness": legacy_roughness,
             "depth_testing": depth_testing,
             "culling": culling,
             "particle_generator": particle_generator,
@@ -437,6 +557,7 @@ class RendererConfig:
             "particle_gravity": particle_gravity,
             "particle_bounce_factor": particle_bounce_factor,
             "particle_ground_plane_normal": particle_ground_plane_normal,
+            "particle_ground_plane_angle": particle_ground_plane_angle,
             "particle_ground_plane_height": particle_ground_plane_height,
             "particle_max_lifetime": particle_max_lifetime,
             "particle_max_weight": particle_max_weight,
@@ -453,14 +574,17 @@ class RendererConfig:
             "fluid_pressure": fluid_pressure,
             "fluid_viscosity": fluid_viscosity,
             "fluid_force_multiplier": fluid_force_multiplier,
+            "debug_mode": debug_mode,
         }
 
-        # Update the configuration with particle renderer specifics, preserving non-None values
         particle_config.update({k: v for k, v in particle_specifics.items() if v is not None})
 
         # Apply any additional keyword arguments passed in kwargs
         for key, value in kwargs.items():
             if key not in particle_config:
                 particle_config[key] = value
+
+        # Validate the updated configuration
+        self._validate_config(particle_config)
 
         return particle_config

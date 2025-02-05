@@ -1,5 +1,5 @@
 #version 330 core
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
 in vec2 TexCoords;
 in vec3 FragPos;
@@ -9,51 +9,45 @@ in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
-uniform samplerCube environmentMap;
 uniform vec3 cameraPos;
-uniform vec3 ambientColor;
-uniform sampler2D shadowMap;
 
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+uniform int lightingMode;
 uniform bool shadowingEnabled;
 
 uniform float surfaceDepth;
-uniform float shadowStrength;
-uniform float environmentMapStrength;
 
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
 
+// Water base color
+uniform vec3 waterBaseColor;
+
 void main()
 {
+    // 1) Compute procedural wave texture coordinates
     vec2 waveTexCoords = TexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
+    // 2) Build a procedural normal (in tangent space)
     float waveHeightX = sin(waveTexCoords.y * 10.0);
     float waveHeightY = cos(waveTexCoords.x * 10.0);
-
     vec3 normalDetail = vec3(0.0, 0.0, 1.0);
     normalDetail.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     normalDetail = normalize(normalDetail);
 
+    // Transform to world space using the provided TBN
     vec3 finalNormal = normalize(TBN * normalDetail);
+
     float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
 
+    // 3) Compute view direction
     vec3 viewDir = normalize(cameraPos - FragPos);
 
-    vec3 reflectDir = reflect(-viewDir, finalNormal);
-    vec3 refractDir = refract(-viewDir, finalNormal, 1.0 / 1.33);
-
-    vec3 reflection = texture(environmentMap, reflectDir).rgb;
-    vec3 refraction = texture(environmentMap, refractDir).rgb;
-
-    float fresnel = pow(1.0 - dot(viewDir, finalNormal), 3.0);
-    vec3 envColor = mix(refraction, reflection, fresnel);
-
+    // 4) Compute shadow (if enabled)
     float shadow = 0.0;
     if (shadowingEnabled)
     {
@@ -61,29 +55,32 @@ void main()
         FragPos,
         finalNormal,
         waveHeight,
-        shadowMap,
         lightSpaceMatrix,
         model,
         lightPositions[0], // pick a main light for bias
         0.05,
         0.005,
-        shadowStrength,
         surfaceDepth
         );
     }
 
+    // 5) Compute lighting based on selected mode
     vec3 color = vec3(0.0);
-    if (phongShading)
+    if (lightingMode == 0)
     {
-        // If you want custom base color, pass it in
-        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, vec3(0.2, 0.5, 0.9));
-        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
-        color += phongColor;
+        // Diffuse-only lighting
+        color = computeDiffuseLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
+    }
+    else if (lightingMode >= 1)
+    {
+        // Phong lighting
+        color = computePhongLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
     }
 
-    envColor = mix(envColor, envColor * (1.0 - shadow), shadowStrength);
-    color += envColor * environmentMapStrength;
+    // 6) Apply shadow attenuation
+    color *= (1.0 - shadow);
 
+    // 7) Tone mapping and gamma correction (if enabled)
     if (applyToneMapping)
     {
         color = toneMapping(color);
@@ -93,5 +90,8 @@ void main()
         color = pow(color, vec3(1.0 / 2.2));
     }
 
-    FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    // 8) Use legacy opacity
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
 }

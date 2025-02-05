@@ -31,23 +31,31 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "garage_2/"),
-        camera_positions=[(6.4, 6.4, 6.4, -270.0, 0.0)],
+        camera_positions=[(6.4, 0.0, 6.4, -270.0, 0.0)],
+        lens_rotations=[0.0],
         fov=40,
         near_plane=0.1,
         far_plane=50.0,
+        ambient_lighting_strength=0.2,
+        ambient_lighting_color=(1.0, 0.984, 0.753),
         lights=[
-            {"position": (3.85, 3.0, 3.85), "color": (1.0, 1.0, 1.0), "strength": 1.0},
+            {
+                "position": (5.0, 9.0, -5.4),
+                "color": (0.996, 0.996, 0.996),
+                "strength": 0.994,
+                "orth_left": -10.0,
+                "orth_right": 10.0,
+                "orth_bottom": -10.0,
+                "orth_top": 10.0,
+            }
         ],
         shadow_map_resolution=shadow_map_resolution,
+        shadow_strength=7.0,
         anisotropy=anisotropy,
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
-        invert_displacement_map=True,
-        pom_height_scale=0.016,
-        pom_min_steps=128,
-        pom_max_steps=512,
+        lighting_mode="pbr",
     )
 
     # Create the rendering instance with the base configuration
@@ -67,12 +75,20 @@ def run_benchmark(
             "vertex": "parallax_mapping",
             "fragment": "parallax_mapping",
         },
-        rotation_speed=4000.0,
-        rotation_axis=(0, 3, 0),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
+        legacy_roughness=32,
+        invert_displacement_map=True,
+        pom_height_scale=0.016,
+        pom_min_steps=128,
+        pom_max_steps=512,
+        pom_eye_offset_scale=1.0,
+        pom_max_depth_clamp=0.99,
+        pom_max_forward_offset=1.0,
+        pom_enable_frag_depth_adjustment=False,
         texture_lod_bias=0.4,
         env_map_lod_bias=0.0,
+        env_map_strength=0.025,
     )
 
     # Define the configuration for the skybox
@@ -87,10 +103,15 @@ def run_benchmark(
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("tyre", "model", **tyre_config)
 
-    instance.scene_construct.translate_renderer("tyre", (-6.85, 6.25, 6.5))
+    # Translate the tyre model to a specific position, to get best view of skybox
+    instance.scene_construct.translate_renderer("tyre", (-5.0, 0.0, 6.5))
 
-    # Slightly rotate it so it's angled in view
-    instance.scene_construct.rotate_renderer("tyre", 0, (0, 1, 0))
+    # First, tilt the tyre by 45° about the X‐axis (manual/initial rotation)
+    instance.scene_construct.rotate_renderer_euler("tyre", (0.0, 0.0, 0.0))
 
+    # Then, enable auto-rotation on multiple axes (for example, spin about the Y axis and also roll about the X axis)
+    instance.scene_construct.set_auto_rotations(
+        "tyre", rotations=[((0.0, 1.0, 0.0), 14000.0), ((0.0, 0.0, 1.0), 8000.0)]
+    )
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)

@@ -32,20 +32,77 @@ def run_benchmark(
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "magick_dome/"),
         camera_positions=[
-            (4.5, 2.85, -1.4, 120.0, 55.0),
+            (4.5, 2.85, -1.4, 108.0, -24.0),
         ],
+        lens_rotations=[0.0],
         fov=40,
         near_plane=0.1,
         far_plane=100,
+        ambient_lighting_strength=0.25,
+        ambient_lighting_color=(0.878, 0.98, 0.714),
         lights=[
-            {"position": (6.85, 5.0, 4.0), "color": (0.85, 0.85, 0.85), "strength": 1.0},
+            {
+                "position": (6.85, 5.0, 4.0),
+                "color": (0.969, 0.863, 0.431),
+                "strength": 0.96,
+                "orth_left": -5.0,
+                "orth_right": 5.0,
+                "orth_bottom": -5.0,
+                "orth_top": 5,
+            },
+            {
+                "position": (2.2, 222.0, -34.0),
+                "color": (0.969, 0.863, 0.431),
+                "strength": 0.9,
+                "orth_left": -5.0,
+                "orth_right": 5.0,
+                "orth_bottom": -5.0,
+                "orth_top": 5,
+            },
+            {
+                "position": (10.0, -5.0, -10.0),
+                "color": (0.671, 0.902, 0.98),
+                "strength": 0.8,
+                "orth_left": -5.0,
+                "orth_right": 5.0,
+                "orth_bottom": -5.0,
+                "orth_top": 5,
+            },
+            {
+                "position": (6.85, 5.0, 145.0),
+                "color": (0.671, 0.902, 0.98),
+                "strength": 0.76,
+                "orth_left": -5.0,
+                "orth_right": 5.0,
+                "orth_bottom": -5.0,
+                "orth_top": 5,
+            },
+            {
+                "position": (-75.0, -5.0, -10.0),
+                "color": (0.671, 0.902, 0.98),
+                "strength": 0.87,
+                "orth_left": -5.0,
+                "orth_right": 5.0,
+                "orth_bottom": -5.0,
+                "orth_top": 5,
+            },
+            {
+                "position": (2.2, -2.0, 0.0),
+                "color": (0.969, 0.863, 0.431),
+                "strength": 0.54,
+                "orth_left": -5.0,
+                "orth_right": 5.0,
+                "orth_bottom": -5.0,
+                "orth_top": 5,
+            },
         ],
         shadow_map_resolution=shadow_map_resolution,
+        shadow_strength=1.0,
         anisotropy=anisotropy,
         auto_camera=False,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=False,
+        lighting_mode="pbr",
     )
 
     # Create the rendering instance with the base configuration
@@ -64,13 +121,12 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "embm",
         },
-        rotation_speed=5000.0,
-        rotation_axis=(0, 3, 0),
+        legacy_roughness=32,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
-        env_map_strength=0.3,
-        texture_lod_bias=1.0,
-        env_map_lod_bias=0.75,
+        env_map_strength=0.45,
+        texture_lod_bias=0.8,
+        env_map_lod_bias=0.0,
     )
 
     # Define the configuration for the skybox
@@ -85,8 +141,8 @@ def run_benchmark(
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("pyramid", "model", **pyramid_config)
 
-    # Optionally enable auto-rotation for the pyramid
-    instance.scene_construct.set_auto_rotation("pyramid", True)
+    # Optionally enable autorotation for the pyramid
+    instance.scene_construct.set_auto_rotation("pyramid", True, axis=(0, 1, 0), speed=5000.0)
 
     # Run the rendering instance
     instance.run(stats_queue=stats_queue, stop_event=stop_event)

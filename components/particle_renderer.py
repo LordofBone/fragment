@@ -4,7 +4,45 @@ import glm
 import numpy as np
 from OpenGL.GL import *
 
-from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.abstract_renderer import AbstractRenderer, with_gl_render_state
+
+
+def rotate_plane_normal_py(base_normal, angleX_deg, angleY_deg):
+    """
+    Rotate a base_normal vector by first applying a rotation of 'angleX_deg'
+    around the X-axis, then a rotation of 'angleY_deg' around the Y-axis.
+
+    This yields a final transform matrix = (RotY * RotX).
+    The rightmost multiplication (RotX) is applied first, then RotY is applied
+    to the result.  That way, if angleX_deg=45 and angleY_deg=30, we do:
+      1) rotate around X by 45 deg
+      2) rotate that result around Y by 30 deg
+    """
+    # Convert degrees to radians
+    rx = glm.radians(angleX_deg)
+    ry = glm.radians(angleY_deg)
+
+    # Build the same matrices you'd do in GLSL, but in Python via glm
+    rotX = glm.rotate(glm.mat4(1.0), rx, glm.vec3(1, 0, 0))
+    rotY = glm.rotate(glm.mat4(1.0), ry, glm.vec3(0, 1, 0))
+
+    # Matrix multiply so that X-rotation happens first, then Y-rotation
+    mat4_final = rotY * rotX
+
+    # Apply this to base_normal (with w=0)
+    # Convert base_normal to glm.vec3 if needed
+    if not isinstance(base_normal, glm.vec3):
+        base_normal = glm.vec3(*base_normal)
+
+    rotated4 = mat4_final * glm.vec4(base_normal, 0.0)
+
+    # Convert to numpy and normalize
+    planeN = np.array([rotated4.x, rotated4.y, rotated4.z], dtype=np.float32)
+    norm = np.linalg.norm(planeN)
+    if norm > 1e-12:
+        planeN /= norm
+
+    return planeN
 
 
 class ParticleRenderer(AbstractRenderer):
@@ -43,10 +81,11 @@ class ParticleRenderer(AbstractRenderer):
         particle_max_spawn_time_jitter=0.0,
         particle_color=(1.0, 0.5, 0.2),
         particle_fade_to_color=False,
-        shader_particle_fade_color=(0.0, 1.0, 0.0),
+        particle_fade_color=(0.0, 0.0, 0.0),
         particle_gravity=(0.0, -9.81, 0.0),
         particle_bounce_factor=0.6,
         particle_ground_plane_normal=(0.0, 1.0, 0.0),
+        particle_ground_plane_angle=(0.0, 0.0),
         particle_min_weight=0.5,
         particle_max_weight=1.0,
         fluid_simulation=False,
@@ -177,12 +216,13 @@ class ParticleRenderer(AbstractRenderer):
 
         self.particle_color = glm.vec3(*particle_color)
         self.particle_fade_to_color = particle_fade_to_color
-        self.shader_particle_fade_color = glm.vec3(*shader_particle_fade_color)
+        self.particle_fade_color = glm.vec3(*particle_fade_color)
         self.particle_positions = None
         self.particle_velocities = None
         self.particle_gravity = glm.vec3(particle_gravity)
         self.particle_bounce_factor = particle_bounce_factor
         self.particle_ground_plane_normal = glm.vec3(particle_ground_plane_normal)
+        self.particle_ground_plane_angle = glm.vec2(particle_ground_plane_angle)
         self.particle_min_weight = particle_min_weight
         self.particle_max_weight = particle_max_weight
         self.fluid_simulation = fluid_simulation
@@ -376,8 +416,6 @@ class ParticleRenderer(AbstractRenderer):
         buffer_size = self.max_particles * self.particle_byte_size_cpu
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         glBufferData(GL_ARRAY_BUFFER, buffer_size, None, GL_DYNAMIC_DRAW)
-
-        self.set_cpu_uniforms()
 
         # Set up the vertex attributes
         self._setup_vertex_attributes_cpu()
@@ -630,8 +668,7 @@ class ParticleRenderer(AbstractRenderer):
 
         # Enable and set the vertex attribute arrays
         glEnableVertexAttribArray(position_loc)
-        # This is strange as the position is a vec4 but only works when 3 floats are set here for the size
-        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
+        glVertexAttribPointer(position_loc, 4, GL_FLOAT, GL_FALSE, vertex_stride, ctypes.c_void_p(0))
 
         # Enable and set the vertex attribute array for lifetime percentage
         glEnableVertexAttribArray(lifetime_percentage_loc)
@@ -667,7 +704,7 @@ class ParticleRenderer(AbstractRenderer):
         glUniform3fv(
             glGetUniformLocation(self.shader_engine.shader_program, "particleFadeColor"),
             1,
-            glm.value_ptr(self.shader_particle_fade_color),
+            glm.value_ptr(self.particle_fade_color),
         )
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "smoothEdges"), int(self.particle_smooth_edges)
@@ -714,6 +751,11 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.shader_program, "particleGroundPlaneNormal"),
             1,
             glm.value_ptr(self.particle_ground_plane_normal),
+        )
+        glUniform2f(
+            glGetUniformLocation(self.shader_engine.shader_program, "groundPlaneAngle"),
+            self.particle_ground_plane_angle.x,
+            self.particle_ground_plane_angle.y,
         )
 
     def set_compute_uniforms(self):
@@ -792,6 +834,11 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.compute_shader_program, "particleGroundPlaneHeight"),
             np.float32(self.particle_ground_plane_height),
         )
+        glUniform2f(
+            glGetUniformLocation(self.shader_engine.compute_shader_program, "groundPlaneAngle"),
+            self.particle_ground_plane_angle.x,
+            self.particle_ground_plane_angle.y,
+        )
         glUniform1f(
             glGetUniformLocation(self.shader_engine.compute_shader_program, "fluidPressure"),
             np.float32(self.fluid_pressure),
@@ -846,25 +893,6 @@ class ParticleRenderer(AbstractRenderer):
             glGetUniformLocation(self.shader_engine.compute_shader_program, "maxInitialVelocityZ"),
             np.float32(self.max_initial_velocity_z),
         )
-
-    def set_cpu_uniforms(self):
-        """
-        Set up the uniforms for the CPU-based particle rendering.
-        """
-        self.shader_engine.use_shader_program()
-
-        # Set other uniforms like particle size, color, etc.
-        glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "particleSize"), self.particle_size)
-        glUniform3fv(
-            glGetUniformLocation(self.shader_engine.shader_program, "particleColor"),
-            1,
-            glm.value_ptr(self.particle_color),
-        )
-
-        if self.debug_mode:
-            print("Set particle uniforms for CPU mode.")
-            print(f"particleSize: {self.particle_size}")
-            print(f"particleColor: {self.particle_color}")
 
     def update_particles(self):
         """
@@ -990,118 +1018,117 @@ class ParticleRenderer(AbstractRenderer):
         Simulate particle movement, gravity, collisions, lifetime, weight, and fluid forces.
         Particles with lifetime == 0.0 are immortal.
         """
+
         current_time = time.time() - self.start_time  # Relative time since particle system started
 
-        for i in range(self.max_particles):
-            # Explicitly copy position and velocity to avoid referencing issues
-            position = self.cpu_particles[i, 0:4].copy()  # Position (x, y, z, w)
-            velocity = self.cpu_particles[i, 4:8].copy()  # Velocity (x, y, z, w)
-            spawn_time = self.cpu_particles[i, 8]  # Spawn time
-            lifetime = self.cpu_particles[i, 9]  # Lifetime
-            particle_id = self.cpu_particles[i, 10]  # Particle ID
-            weight = self.cpu_particles[i, 11]  # Weight
-            lifetime_percentage = self.cpu_particles[i, 12]  # Lifetime percentage
+        # ----------------------------------------------------------------
+        # 1) Build plane normal using the same logic as transform feedback
+        #    and compute shader. We interpret groundPlaneAngle.x as yaw,
+        #    groundPlaneAngle.y as pitch, then apply yaw->pitch in that order.
+        # ----------------------------------------------------------------
+        yaw_deg = self.particle_ground_plane_angle[0]
+        pitch_deg = self.particle_ground_plane_angle[1]
+        planeN = rotate_plane_normal_py(self.particle_ground_plane_normal, yaw_deg, pitch_deg)
 
-            if lifetime_percentage >= 1.0:
-                continue  # Skip expired particles
+        # 2) Iterate over all particles
+        for i in range(self.max_particles):
+            position = self.cpu_particles[i, 0:4].copy()  # (x, y, z, w)
+            velocity = self.cpu_particles[i, 4:8].copy()  # (vx, vy, vz, w)
+            spawn_time = self.cpu_particles[i, 8]  # spawnTime
+            lifetime = self.cpu_particles[i, 9]  # lifetime
+            particle_id = self.cpu_particles[i, 10]  # ID
+            weight = self.cpu_particles[i, 11]  # weight
+            lifetime_pct = self.cpu_particles[i, 12]  # lifetimePercentage
+
+            # Skip if expired
+            if lifetime_pct >= 1.0:
+                continue
 
             # Apply gravity
             adjusted_gravity = self.cpu_particle_gravity[:3] * weight
             velocity[:3] += adjusted_gravity * self.delta_time
 
-            # Apply fluid forces if fluid simulation is enabled
+            # Fluid forces if enabled
             if self.fluid_simulation:
-                # Calculate fluid damping forces
-                # 1) Pressure ~ -velocity * fluid_pressure
+                # Pressure ~ -velocity * fluid_pressure
                 pressure_force = -velocity[:3] * self.fluid_pressure
-
-                # 2) Viscosity ~ -velocity * fluid_viscosity
+                # Viscosity ~ -velocity * fluid_viscosity
                 viscosity_force = -velocity[:3] * self.fluid_viscosity
-
-                # Combine
+                # Combine and clamp
                 total_fluid_force = pressure_force + viscosity_force
+                max_fluid = np.linalg.norm(adjusted_gravity) * self.fluid_force_multiplier
+                fmag = np.linalg.norm(total_fluid_force)
+                if fmag > max_fluid:
+                    total_fluid_force = total_fluid_force / fmag * max_fluid
 
-                # Optionally clamp the total fluid force
-                max_fluid_force = np.linalg.norm(adjusted_gravity) * self.fluid_force_multiplier
-                total_fluid_force_norm = np.linalg.norm(total_fluid_force)
-                if total_fluid_force_norm > max_fluid_force:
-                    total_fluid_force = (total_fluid_force / total_fluid_force_norm) * max_fluid_force
-
-                # Integrate: add to velocity
+                # Integrate fluid force
                 velocity[:3] += total_fluid_force * self.delta_time
 
-            # Clamp velocity to the max velocity
-            speed = np.linalg.norm(velocity[:3])  # Only consider x, y, z components for speed
+            # Clamp velocity
+            speed = np.linalg.norm(velocity[:3])
             if speed > self.particle_max_velocity:
-                velocity[:3] = (velocity[:3] / speed) * self.particle_max_velocity
-            # Update position based on velocity
-            position += velocity * self.delta_time
+                velocity[:3] = velocity[:3] / speed * self.particle_max_velocity
 
-            # Check for collision with the ground plane
-            distance_to_ground = (
-                np.dot(position[:3], self.particle_ground_plane_normal) - self.particle_ground_plane_height
-            )
+            # Integrate position
+            position[:3] += velocity[:3] * self.delta_time
 
-            if distance_to_ground < 0.0:  # Particle is below or at the ground
-                # Reflect the velocity based on the ground plane normal
-                velocity[:3] = (
-                    velocity[:3]
-                    - 2 * np.dot(velocity[:3], self.particle_ground_plane_normal) * self.particle_ground_plane_normal
-                )
-                velocity[:3] *= self.particle_bounce_factor  # Apply the bounce factor
+            # Collision with the rotated plane
+            dist_to_plane = np.dot(position[:3], planeN) - self.particle_ground_plane_height
+            if dist_to_plane < 0.0:
+                # Reflect velocity about planeN and apply bounce factor
+                vel_dot = np.dot(velocity[:3], planeN)
+                velocity[:3] = velocity[:3] - 2.0 * vel_dot * planeN
+                velocity[:3] *= self.particle_bounce_factor
 
-                # Prevent the particle from sinking below the ground
-                position[:3] -= self.particle_ground_plane_normal * distance_to_ground
+                # Clamp velocity after bounce
+                bspeed = np.linalg.norm(velocity[:3])
+                if bspeed > self.particle_max_velocity:
+                    velocity[:3] = velocity[:3] / bspeed * self.particle_max_velocity
 
-                # Ensure the particle bounces with a minimum upward velocity to avoid sticking
-                if abs(velocity[1]) < 0.1:  # Assuming Y-axis is up/down
-                    velocity[1] = 0.1  # Small positive value to ensure it moves upward
+                # Push particle out of the plane
+                position[:3] -= planeN * dist_to_plane
 
-            # Update lifetime percentage
+            # Update lifetime
             if lifetime > 0.0:
-                elapsed_time = current_time - spawn_time
-                lifetime_percentage = elapsed_time / lifetime
-                lifetime_percentage = max(0.0, min(float(lifetime_percentage), 1.0))  # Clamp between 0.0 and 1.0
-
-                if lifetime_percentage >= 1.0:
-                    # Particle has expired
-                    self.cpu_particles[i, 12] = 1.0  # Lifetime percentage
-                    self.free_slots.append(i)  # Add index to free slots
-                    continue  # Move to the next particle
-
+                elapsed = current_time - spawn_time
+                new_pct = elapsed / lifetime
+                new_pct = max(0.0, min(new_pct, 1.0))
+                if new_pct >= 1.0:
+                    # Expired
+                    self.cpu_particles[i, 12] = 1.0
+                    self.free_slots.append(i)
+                    continue
+                else:
+                    lifetime_pct = new_pct
             else:
-                # For immortal particles
-                lifetime_percentage = 0.0
+                # Immortal
+                lifetime_pct = 0.0
 
-            # Write back the updated lifetime percentage
-            self.cpu_particles[i, 12] = lifetime_percentage
-
-            # Write back the updated position and velocity to the particle array
+            # Store updated data
             self.cpu_particles[i, 0:4] = position
             self.cpu_particles[i, 4:8] = velocity
+            self.cpu_particles[i, 12] = lifetime_pct
 
-            # Debug output to track lifetime, weight, and velocity
             if self.debug_mode:
                 print(
-                    f"Particle {i}: Position {position}, Velocity {velocity}, Weight {weight}, ID {particle_id}, Lifetime Percentage {lifetime_percentage}"
+                    f"Particle {i} -> Pos {position}, Vel {velocity}, "
+                    f"Weight {weight}, ID {particle_id}, LifetimePct {lifetime_pct}"
                 )
 
-        # Upload the CPU-calculated particle data (positions, lifetime percentage, and IDs) to the GPU for rendering.
+        # 3) Upload updated positions/lifetimes/IDs to GPU for rendering
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 
-        # Only upload data for active particles
+        # Only upload active particles
         particle_data_to_upload = np.hstack(
             (
-                self.cpu_particles[: self.active_particles, 0:4],  # Position
-                self.cpu_particles[: self.active_particles, 12].reshape(-1, 1),  # Lifetime percentage
-                self.cpu_particles[: self.active_particles, 10].reshape(-1, 1),  # Particle ID
+                self.cpu_particles[: self.active_particles, 0:4],  # position
+                self.cpu_particles[: self.active_particles, 12].reshape(-1, 1),  # lifetimePct
+                self.cpu_particles[: self.active_particles, 10].reshape(-1, 1),  # ID
             )
         ).astype(np.float32)
 
-        # Upload data to the GPU
         glBufferSubData(GL_ARRAY_BUFFER, 0, particle_data_to_upload.nbytes, particle_data_to_upload)
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0)  # Unbind the buffer
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         self.particles_to_render = self.active_particles
 
@@ -1231,7 +1258,7 @@ class ParticleRenderer(AbstractRenderer):
         print("Particle Data:")
         print(self.cpu_particles)
 
-    @common_funcs
+    @with_gl_render_state
     def render(self):
         """
         Render the particle system.

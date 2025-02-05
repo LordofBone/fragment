@@ -25,19 +25,43 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "glacier/"),
-        camera_positions=[(4.2, 4.2, 4.2, 55.0, -60.0)],
+        camera_positions=[(4.2, 150, 4.2, 45.0, -10.0)],
+        lens_rotations=[
+            0.0,
+            0.4,
+            -0.4,
+            0.6,
+            -0.5,
+            0.4,
+            -0.6,
+            0.5,
+            -0.4,
+            0.8,
+        ],
+        auto_camera=True,
+        move_speed=0.1,
         fov=40,
         near_plane=0.1,
         far_plane=5000,
+        ambient_lighting_strength=0.62,
+        ambient_lighting_color=(0.349, 0.647, 0.902),
         lights=[
-            {"position": (5.0, 10.0, 0.0), "color": (1.0, 1.0, 1.0), "strength": 0.8},
+            {
+                "position": (9000.0, 10.0, 35000.0),
+                "color": (0.949, 0.463, 0.247),
+                "strength": 1.0,
+                "orth_left": -150.0,
+                "orth_right": 150.0,
+                "orth_bottom": -150.0,
+                "orth_top": 150,
+            },
         ],
         shadow_map_resolution=shadow_map_resolution,
+        shadow_strength=1.0,
         anisotropy=anisotropy,
-        auto_camera=True,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=False,
+        lighting_mode="phong",
     )
 
     # Create the rendering instance with the base configuration
@@ -50,15 +74,27 @@ def run_benchmark(
             "vertex": "standard",
             "fragment": "water",
         },
+        water_base_color=(0.4, 0.4, 0.4),
+        legacy_roughness=32,
         wave_speed=6.0,
         wave_amplitude=0.8,
-        randomness=400.0,
-        tex_coord_frequency=400.0,
-        tex_coord_amplitude=0.085,
-        width=50.0,
-        height=50.0,
-        env_map_strength=1.0,
+        randomness=550.0,
+        tex_coord_frequency=800.0,
+        tex_coord_amplitude=0.01,
+        width=5000.0,
+        height=5000.0,
+        env_map_strength=0.65,
     )
+
+    # Define the configuration for the skybox
+    skybox_config = base_config.add_skybox(
+        shader_names={
+            "vertex": "skybox",
+            "fragment": "skybox",
+        },
+    )
+
+    instance.add_renderer("skybox", "skybox", **skybox_config)
 
     # Add the water surface renderer to the instance with a specific name
     instance.add_renderer("water_surface", "surface", **water_config)

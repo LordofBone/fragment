@@ -1,95 +1,147 @@
 #version 330 core
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
+// ---------------------------------------------------------------------
+// Vertex -> Fragment Inputs
+// ---------------------------------------------------------------------
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-in vec3 TangentLightPos;
-in vec3 TangentViewPos;
 in vec3 TangentFragPos;
+in vec3 TangentViewPos;
 in vec4 FragPosLightSpace;
 in float FragPosW;
 
+// TBN rows
+in vec3 TBNrow0;
+in vec3 TBNrow1;
+in vec3 TBNrow2;
+
+// ---------------------------------------------------------------------
+// Outputs
+// ---------------------------------------------------------------------
 out vec4 FragColor;
 
-// Textures
+// ---------------------------------------------------------------------
+// Uniforms
+// ---------------------------------------------------------------------
 uniform sampler2D diffuseMap;
-uniform sampler2D normalMap;
-uniform samplerCube environmentMap;
-uniform sampler2D shadowMap;
 
-// Additional toggles
-uniform float envMapLodLevel;
+// Toggles
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
 uniform bool shadowingEnabled;
-uniform float envSpecularStrength;
 
+// 0 => diffuse, 1 => Phong, 2 => PBR
+uniform int lightingMode;
+
+// Camera transforms
+uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightSpaceMatrix;
 uniform vec3 viewPosition;
 
 void main()
 {
-    // Transform view direction into tangent space
-    vec3 viewDir = normalize(TangentViewPos - TangentFragPos);
+    // --------------------------------------------------------------
+    // 1) Reconstruct TBN (tangent->world)
+    // --------------------------------------------------------------
+    mat3 TBN = mat3(TBNrow0, TBNrow1, TBNrow2);
 
-    // Apply Enhanced POM with Depth Correction
+    // --------------------------------------------------------------
+    // 2) Parallax Occlusion Mapping in tangent space
+    // --------------------------------------------------------------
     float depthOffset = 0.0;
-    vec2 newTexCoords = ParallaxOcclusionMapping(TexCoords, viewDir, depthOffset);
+    vec3 viewDirTangent = normalize(TangentViewPos - TangentFragPos);
+    vec2 parallaxCoords = TexCoords;
 
-    // Recompute normal
-    vec3 norm = texture(normalMap, newTexCoords, textureLodLevel).rgb;
-    norm = normalize(norm * 2.0 - 1.0);
+    if (pomHeightScale > 0.0)
+    {
+        parallaxCoords = ParallaxOcclusionMapping(TexCoords, viewDirTangent, depthOffset);
+        parallaxCoords = clamp(parallaxCoords, 0.0, 1.0);
+    }
 
+    // --------------------------------------------------------------
+    // 3) Sample normal map in tangent space -> world space
+    // --------------------------------------------------------------
+    vec3 normalTex = texture(normalMap, parallaxCoords, textureLodLevel).rgb;
+    normalTex = normalTex * 2.0 - 1.0;
+    vec3 finalNormal = normalize(TBN * normalTex);
+
+    // --------------------------------------------------------------
+    // 4) World-space view direction
+    // --------------------------------------------------------------
     vec3 worldViewDir = normalize(viewPosition - FragPos);
 
-    // Reflection from environment
-    vec3 reflectDir = reflect(-worldViewDir, norm);
-    vec3 envColor = textureLod(environmentMap, reflectDir, envMapLodLevel).rgb;
-
-    // Shadow
+    // --------------------------------------------------------------
+    // 5) Shadows
+    // --------------------------------------------------------------
     float shadow = 0.0;
     if (shadowingEnabled)
     {
-        shadow = ShadowCalculationStandard(FragPosLightSpace, shadowMap);
+        shadow = ShadowCalculationStandard(FragPosLightSpace, FragPos);
     }
 
-    // Lighting
-    vec3 finalColor;
-    vec3 baseColor = texture(diffuseMap, newTexCoords, textureLodLevel).rgb;
+    // --------------------------------------------------------------
+    // 6) Local lighting
+    // --------------------------------------------------------------
+    vec3 baseColor = texture(diffuseMap, parallaxCoords, textureLodLevel).rgb;
+    vec3 lightingColor = vec3(0.0);
 
-    if (phongShading)
+    if (lightingMode == 0)
     {
-        finalColor = computePhongLighting(norm, worldViewDir, FragPos, baseColor);
+        lightingColor = computeDiffuseLighting(finalNormal, worldViewDir, FragPos, baseColor, TexCoords);
+    }
+    else if (lightingMode == 1)
+    {
+        lightingColor = computePhongLighting(finalNormal, worldViewDir, FragPos, baseColor, TexCoords);
     }
     else
     {
-        finalColor = computeDiffuseLighting(norm, FragPos, baseColor);
+        lightingColor = computePBRLighting(finalNormal, worldViewDir, FragPos, baseColor, TexCoords);
     }
 
-    finalColor *= (1.0 - shadow);
+    // Shadow
+    lightingColor *= (1.0 - shadow);
 
-    // Fresnel
-    float fresnel = pow(1.0 - dot(worldViewDir, norm), 3.0);
-    vec3 reflection = mix(envColor, vec3(1.0), fresnel);
+    vec3 finalColor = lightingColor;
 
-    // Combine
-    vec3 result = finalColor + reflection * envSpecularStrength;
-
+    // --------------------------------------------------------------
+    // 7) ToneMapping & Gamma
+    // --------------------------------------------------------------
     if (applyToneMapping)
     {
-        result = toneMapping(result);
+        finalColor = toneMapping(finalColor);
     }
     if (applyGammaCorrection)
     {
-        result = pow(result, vec3(1.0 / 2.2));
+        finalColor = pow(finalColor, vec3(1.0/2.2));
     }
 
-    FragColor = vec4(clamp(result, 0.0, 1.0), 1.0);
+    finalColor = clamp(finalColor, 0.0, 1.0);
 
-    // Depth Correction
-    float correctedDepth = clamp(gl_FragCoord.z - depthOffset, 0.0, 1.0);
-    gl_FragDepth = correctedDepth;
+    // 12) Incorporate `legacyOpacity` parameter
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(finalColor, alpha);
+
+    // ---------------------------------------------------
+    // 13) Optional Depth Correction w/ clamp
+    // ---------------------------------------------------
+    if (pomHeightScale > 0.0 && depthOffset != 0.0 && enableFragDepthAdjustment) {
+        vec4 eyePos = view * vec4(FragPos, 1.0);
+
+        // Call the centralized function
+        adjustFragDepth(
+        eyePos,
+        projection,
+        vec4(FragPos, 1.0),
+        vec3[](TBNrow0, TBNrow1, TBNrow2),
+        depthOffset,
+        gl_FragDepth
+        );
+    } else {
+        gl_FragDepth = gl_FragCoord.z;
+    }
 }

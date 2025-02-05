@@ -44,20 +44,35 @@ def run_benchmark(
             (-30.0, 50.0, 20.0, -29.0, -45.0),  # Directly opposite the starting point
             (-40.0, 60.0, 30.0, -23.0, -47.0),  # Rotate around to the side
             (-50.0, 70.0, 40.0, -25.0, -48.0),  # Move back around towards the front
-            (-60.4, 60.4, 60.4, -25.0, -48.0),  # Return to a symmetrical position opposite the start
-            (60.4, 60.4, 60.4, 36.0, -45.0),  # Return to the starting position
+            (-60.4, 60.4, 60.4, -25.0, -48.0),  # Return to symmetrical position opposite start
+            (60.4, 60.4, 60.4, 36.0, -45.0),  # Return to starting position
         ],
         lens_rotations=[
-            0.0,  # No rotation at the start
+            0.0,  # Start with no roll
+            3.0,
+            7.0,
+            10.0,
+            12.0,
+            8.0,
+            3.0,
+            -2.0,
+            -5.0,
+            -10.0,
+            -5.0,
+            -2.0,
+            0.0,
+            0.0,  # End with no roll, back at start
         ],
         auto_camera=True,
         fov=90,
         near_plane=0.1,
         far_plane=1000,
+        ambient_lighting_strength=0.60,
+        ambient_lighting_color=(0.216, 0.871, 0.165),
         lights=[
             {
                 "position": (50.0, 50.0, 50.0),
-                "color": (1.0, 1.0, 1.0),
+                "color": (0.992, 1.0, 0.769),
                 "strength": 0.8,
                 "orth_left": -100.0,
                 "orth_right": 100.0,
@@ -66,11 +81,12 @@ def run_benchmark(
             },
         ],
         shadow_map_resolution=shadow_map_resolution,
+        shadow_strength=1.0,
         anisotropy=anisotropy,
         move_speed=0.2,
         msaa_level=msaa_level,
         culling=True,
-        phong_shading=True,
+        lighting_mode="pbr",
     )
 
     # Create the rendering instance with the base configuration
@@ -87,22 +103,26 @@ def run_benchmark(
         },
         shader_names={
             "vertex": "standard",
-            "fragment": "stealth",
+            "fragment": "embm",
         },
-        opacity=0.0,
-        distortion_strength=0.2,
-        reflection_strength=0.0,
-        rotation_axis=(0, 3, 0),
+        planar_fragment_view_threshold=-1.0,
+        legacy_opacity=0.0,
+        legacy_roughness=32,
+        distortion_strength=0.3,
+        refraction_strength=0.65,
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         cubemap_folder=False,
         planar_camera=True,
-        planar_fov=20,
-        planar_camera_position_rotation=(30.0, 60.0, 0.0, 42.0, 0.0),
+        planar_fov=90,
+        planar_camera_position_rotation=(0.0, 0.0, 0.0, 0.0, 0.0),
         planar_relative_to_camera=True,
-        planar_camera_lens_rotation=30.0,
+        planar_camera_lens_rotation=0.0,
+        flip_planar_horizontally=True,
+        flip_planar_vertically=True,
+        use_planar_normal_distortion=True,
         screen_facing_planar_texture=True,
-        texture_lod_bias=1.0,
+        texture_lod_bias=1.2,
         env_map_lod_bias=2.0,
     )
 

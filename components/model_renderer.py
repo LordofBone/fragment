@@ -1,19 +1,241 @@
+import os
+
 import numpy as np
 import pywavefront
 from OpenGL.GL import *
 
-from components.abstract_renderer import AbstractRenderer, common_funcs
+from components.abstract_renderer import AbstractRenderer, with_gl_render_state
 from components.texture_manager import TextureManager
 
 texture_manager = TextureManager()
+
+
+def parse_pbr_extensions_from_mtl(mtl_path):
+    """
+    Parse extra PBR lines in a .mtl file, returning a dict of dicts:
+        {
+            'MaterialName': {
+                'Pr': 0.399083,
+                'Pm': 0.064220,
+                'Ps': 0.036697,
+                'Pc': 0.110092,
+                'Pcr': 0.039174,
+                'aniso': 0.036697,
+                'anisor': 0.036697,
+                'Tf': (0.027523, 0.027523, 0.027523),
+                'Pfe': 0.5,
+                ...
+            },
+            'AnotherMaterial': { ... }
+        }
+
+    It looks specifically for tokens like Pr, Pm, Ps, Pc, Pcr, aniso, anisor, Tf, etc.
+    If the file or lines are missing, it returns an empty dict or partial data.
+    """
+    pbr_data_by_material = {}
+    current_mat_name = None
+
+    # Define tokens and their expected types.
+    single_float_tokens = {"Pr", "Pm", "Ps", "Pc", "Pcr", "aniso", "anisor", "Pfe"}
+    triple_float_tokens = {"Tf"}
+
+    if not os.path.isfile(mtl_path):
+        print(f"[parse_pbr_extensions_from_mtl] No .mtl file found at: {mtl_path}")
+        return pbr_data_by_material
+
+    with open(mtl_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("newmtl "):
+                current_mat_name = line.split(None, 1)[1]
+                if current_mat_name not in pbr_data_by_material:
+                    pbr_data_by_material[current_mat_name] = {}
+                continue
+            if not current_mat_name:
+                continue
+            parts = line.split()
+            if not parts:
+                continue
+            token = parts[0]
+            if token in single_float_tokens:
+                try:
+                    value = float(parts[1])
+                    pbr_data_by_material[current_mat_name][token] = value
+                except (IndexError, ValueError):
+                    pass
+            elif token in triple_float_tokens:
+                try:
+                    x = float(parts[1])
+                    y = float(parts[2])
+                    z = float(parts[3])
+                    pbr_data_by_material[current_mat_name][token] = (x, y, z)
+                except (IndexError, ValueError):
+                    pass
+
+    return pbr_data_by_material
+
+
+def upload_material_uniforms(shader_program, material, fallback_pbr):
+    """
+    Upload material uniforms to the GPU. If any expected uniform is not found,
+    raise a RuntimeError listing the missing uniforms.
+
+    Parameters:
+        shader_program (int): The OpenGL shader program handle.
+        material: The pywavefront material object.
+        fallback_pbr (dict): A dictionary containing fallback PBR parameters.
+    """
+    # Expected uniform names mapped to keys used in our material values.
+    uniform_names = {
+        # "material.ambient": "ambient", (currently unused, ambientColor is used instead)
+        # "material.diffuse": "diffuse", (currently unused, baseColor is used instead)
+        "material.specular": "specular",
+        "material.ior": "ior",
+        "material.emissive": "emissive",
+        "material.illuminationModel": "illumination_model",
+        # "material.transparency": "transparency", (currently unused, overriden by legacyOpacity)
+        "material.roughness": "roughness",
+        "material.metallic": "metallic",
+        "material.clearcoat": "clearcoat",
+        "material.clearcoatRoughness": "clearcoat_roughness",
+        "material.sheen": "sheen",
+        # "material.anisotropy": "anisotropy", (currently unused)
+        # "material.anisotropyRot": "anisotropy_rot", (currently unused)
+        "material.transmission": "transmission",
+        "material.fresnelExponent": "fresnel_exponent",
+    }
+
+    # Retrieve basic material values from pywavefront attributes.
+    ambient = getattr(material, "ambient", [0.2, 0.2, 0.2, 1.0])[:3]
+    diffuse = getattr(material, "diffuse", [0.8, 0.8, 0.8, 1.0])[:3]
+    specular = getattr(material, "specular", [0.5, 0.5, 0.5, 1.0])[:3]
+    ior = getattr(material, "optical_density", 1.0)
+    emissive = getattr(material, "emissive", [0.0, 0.0, 0.0, 1.0])[:3]
+    illumination_model = getattr(material, "illumination_model", 2)
+    transparency = getattr(material, "transparency", 1.0)
+
+    # Merge fallback PBR with any pbr_extensions from the material.
+    local_pbr = dict(fallback_pbr)
+    mat_pbr = getattr(material, "pbr_extensions", {})
+    if "Pr" in mat_pbr:
+        local_pbr["roughness"] = mat_pbr["Pr"]
+    if "Pm" in mat_pbr:
+        local_pbr["metallic"] = mat_pbr["Pm"]
+    if "Pc" in mat_pbr:
+        local_pbr["clearcoat"] = mat_pbr["Pc"]
+    if "Pcr" in mat_pbr:
+        local_pbr["clearcoat_roughness"] = mat_pbr["Pcr"]
+    if "Ps" in mat_pbr:
+        local_pbr["sheen"] = mat_pbr["Ps"]
+    if "aniso" in mat_pbr:
+        local_pbr["anisotropy"] = mat_pbr["aniso"]
+    if "anisor" in mat_pbr:
+        local_pbr["anisotropy_rot"] = mat_pbr["anisor"]
+    if "Tf" in mat_pbr:
+        local_pbr["transmission"] = mat_pbr["Tf"]
+    if "Pfe" in mat_pbr:
+        local_pbr["fresnel_exponent"] = mat_pbr["Pfe"]
+
+    roughness = local_pbr.get("roughness", 0.5)
+    metallic = local_pbr.get("metallic", 0.0)
+    clearcoat = local_pbr.get("clearcoat", 0.0)
+    clearcoat_roughness = local_pbr.get("clearcoat_roughness", 0.03)
+    sheen = local_pbr.get("sheen", 0.0)
+    anisotropy = local_pbr.get("anisotropy", 0.0)
+    anisotropy_rot = local_pbr.get("anisotropy_rot", 0.0)
+    transmission = local_pbr.get("transmission", (0.0, 0.0, 0.0))
+    fresnel_exponent = local_pbr.get("fresnel_exponent", 0.5)
+
+    material_values = {
+        "ambient": ambient,
+        "diffuse": diffuse,
+        "specular": specular,
+        "ior": ior,
+        "emissive": emissive,
+        "illumination_model": illumination_model,
+        "transparency": transparency,
+        "roughness": roughness,
+        "metallic": metallic,
+        "clearcoat": clearcoat,
+        "clearcoat_roughness": clearcoat_roughness,
+        "sheen": sheen,
+        "anisotropy": anisotropy,
+        "anisotropy_rot": anisotropy_rot,
+        "transmission": transmission,
+        "fresnel_exponent": fresnel_exponent,
+    }
+
+    # Get uniform locations for all expected uniforms.
+    uniform_locations = {}
+    missing_uniforms = []
+    for uniform_name, key in uniform_names.items():
+        loc = glGetUniformLocation(shader_program, uniform_name)
+        uniform_locations[uniform_name] = loc
+        if loc == -1:
+            missing_uniforms.append(uniform_name)
+    if missing_uniforms:
+        raise RuntimeError("Uniform(s) not found in shader program: " + ", ".join(missing_uniforms))
+
+    # Upload the basic fields.
+    # glUniform3f(uniform_locations["material.ambient"], *material_values["ambient"])
+    # glUniform3f(uniform_locations["material.diffuse"], *material_values["diffuse"])
+    glUniform3f(uniform_locations["material.specular"], *material_values["specular"])
+    glUniform1f(uniform_locations["material.ior"], float(material_values["ior"]))
+    glUniform3f(uniform_locations["material.emissive"], *material_values["emissive"])
+    glUniform1i(uniform_locations["material.illuminationModel"], int(material_values["illumination_model"]))
+    # glUniform1f(uniform_locations["material.transparency"], float(material_values["transparency"]))
+
+    # Upload PBR fields.
+    glUniform1f(uniform_locations["material.roughness"], material_values["roughness"])
+    glUniform1f(uniform_locations["material.metallic"], material_values["metallic"])
+    glUniform1f(uniform_locations["material.clearcoat"], material_values["clearcoat"])
+    glUniform1f(uniform_locations["material.clearcoatRoughness"], material_values["clearcoat_roughness"])
+    glUniform1f(uniform_locations["material.sheen"], material_values["sheen"])
+    # glUniform1f(uniform_locations["material.anisotropy"], material_values["anisotropy"])
+    # glUniform1f(uniform_locations["material.anisotropyRot"], material_values["anisotropy_rot"])
+    glUniform3f(uniform_locations["material.transmission"], *material_values["transmission"])
+    glUniform1f(uniform_locations["material.fresnelExponent"], material_values["fresnel_exponent"])
 
 
 class ModelRenderer(AbstractRenderer):
     def __init__(self, renderer_name, obj_path, **kwargs):
         super().__init__(renderer_name=renderer_name, **kwargs)
         self.obj_path = obj_path
-        # create_materials=True and collect_faces=True ensure we have materials and faces data
+
+        # Load the .obj with materials and face data.
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
+
+        # Attempt to parse the same .mtl for any PBR extensions.
+        mtl_path = self.obj_path.replace(".obj", ".mtl")
+        extra_pbr_data = parse_pbr_extensions_from_mtl(mtl_path)
+
+        # Attach extra PBR data (if any) to each material.
+        for mesh in self.object.mesh_list:
+            for mat in mesh.materials:
+                mat_name = getattr(mat, "name", None)
+                if mat_name and mat_name in extra_pbr_data:
+                    mat.pbr_extensions = extra_pbr_data[mat_name]
+                else:
+                    mat.pbr_extensions = {}
+
+        # Create a default dict of fallback PBR parameters.
+        default_pbr = {
+            "roughness": 0.5,
+            "metallic": 0.0,
+            "clearcoat": 0.0,
+            "clearcoat_roughness": 0.03,
+            "sheen": 0.0,
+            "aniso": 0.0,
+            "anisor": 0.0,
+            "transmission": (0.0, 0.0, 0.0),
+            "fresnel_exponent": 0.5,
+        }
+        # Override defaults if user provided any.
+        user_pbr = kwargs.get("pbr_extensions", {})
+        default_pbr.update(user_pbr)
+        self.pbr_extensions = default_pbr
 
     def supports_shadow_mapping(self):
         return True
@@ -21,30 +243,6 @@ class ModelRenderer(AbstractRenderer):
     def create_buffers(self):
         """
         Create buffers for each mesh material in the object's mesh list.
-
-        This method iterates through each mesh in the object's mesh list and processes its materials.
-        For each material, it extracts vertex data and performs transformations to reorder and enhance
-        vertex attributes. The method constructs vertex buffer objects (VBOs) and vertex array objects
-        (VAOs) for handling the vertex data in OpenGL. It accounts for tangents and bitangents calculations
-        necessary for advanced shading techniques. The method appends created VBOs, VAOs, and a mapping
-        relation for each material to the respective internal lists.
-
-        Attributes
-        ----------
-        vaos : list
-            A list to store vertex array objects for the processed meshes.
-        vbos : list
-            A list to store vertex buffer objects for the processed meshes.
-        mesh_material_index_map : list
-            A list to store the mapping between mesh index and material names for the
-            processed materials.
-
-        Parameters
-        ----------
-        self : object
-            The instance of the object containing mesh_list attribute which holds
-            the meshes to be processed.
-
         """
         self.vaos = []
         self.vbos = []
@@ -57,11 +255,10 @@ class ModelRenderer(AbstractRenderer):
                     print(f"Material '{material.name}' in mesh '{mesh.name}' has no vertices. Skipping.")
                     continue
 
-                # vertex_format: 'T2F_N3F_V3F' => uv(2), normal(3), position(3) = 8 floats total
+                # For example, vertex_format 'T2F_N3F_V3F' means uv(2), normal(3), position(3)
                 vertices_array = np.array(vertices, dtype=np.float32).reshape(-1, 8)
 
-                # Current order: (u,v, nx,ny,nz, x,y,z)
-                # Desired order: (x,y,z, nx,ny,nz, u,v)
+                # Reorder from (u, v, nx, ny, nz, x, y, z) to (x, y, z, nx, ny, nz, u, v)
                 reordered = np.column_stack(
                     (
                         vertices_array[:, 5],  # x
@@ -75,10 +272,10 @@ class ModelRenderer(AbstractRenderer):
                     )
                 )
 
-                # Compute tangents and bitangents
+                # Compute tangents and bitangents.
                 reordered = self.compute_tangents_and_bitangents(reordered)
 
-                # Now reordered has (x,y,z, nx,ny,nz, u,v, tx,ty,tz, bx,by,bz) = 14 floats/vertex
+                # Now reordered has 14 floats per vertex.
                 vbo = self.create_vbo(reordered)
                 vao = self.create_vao(with_tangents=True)
 
@@ -88,117 +285,62 @@ class ModelRenderer(AbstractRenderer):
 
     def compute_tangents_and_bitangents(self, verts):
         """
-        Computes the tangent and bitangent vectors for a given set of vertices. The input
-        vertices are expected to be in the format of N x 8 array, where each row consists
-        of position (x, y, z), normal (nx, ny, nz), and texture coordinates (u, v). The
-        method appends calculated tangent and bitangent vectors to each vertex, resulting
-        in an output array of N x 14.
-
-        Parameters:
-            verts (np.ndarray): An array of shape (N, 8) containing vertices data which
-                                include positions, normals, and texture coordinates.
-
-        Returns:
-            np.ndarray: An array of shape (N, 14), where each row is composed of the original
-                        input data followed by calculated tangent (tx, ty, tz) and bitangent
-                        (bx, by, bz) vectors.
+        Compute tangent and bitangent vectors for an N x 8 array of vertices.
+        Returns an N x 14 array (appending tangent and bitangent).
         """
-        # verts: N x 8: (x,y,z, nx,ny,nz, u,v)
-        # We add tangent and bitangent: result N x 14
         tangent = np.zeros((verts.shape[0], 3), dtype=np.float32)
         bitangent = np.zeros((verts.shape[0], 3), dtype=np.float32)
-
-        # Assume every 3 vertices form a triangle
         num_triangles = verts.shape[0] // 3
+
         for i in range(num_triangles):
-            i0 = i * 3
-            i1 = i * 3 + 1
-            i2 = i * 3 + 2
-
-            v0 = verts[i0]
-            v1 = verts[i1]
-            v2 = verts[i2]
-
-            pos0 = v0[0:3]
-            pos1 = v1[0:3]
-            pos2 = v2[0:3]
-
-            uv0 = v0[6:8]
-            uv1 = v1[6:8]
-            uv2 = v2[6:8]
-
+            i0, i1, i2 = i * 3, i * 3 + 1, i * 3 + 2
+            v0, v1, v2 = verts[i0], verts[i1], verts[i2]
+            pos0, pos1, pos2 = v0[0:3], v1[0:3], v2[0:3]
+            uv0, uv1, uv2 = v0[6:8], v1[6:8], v2[6:8]
             deltaPos1 = pos1 - pos0
             deltaPos2 = pos2 - pos0
             deltaUV1 = uv1 - uv0
             deltaUV2 = uv2 - uv0
 
-            # Compute denominator for tangent calculation
             denom = deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0]
             if abs(denom) < 1e-8:
-                # Degenerate UV mapping, choose fallback tangent and bitangent
-                # For fallback, pick a vector perpendicular to normal and another perpendicular to that.
                 N = v0[3:6]
-                # If N.z is not near 1, pick T along X:
-                if abs(N[2]) < 0.9:
-                    fallbackT = np.cross([0, 0, 1], N)
-                else:
-                    fallbackT = np.cross([0, 1, 0], N)
+                fallbackT = np.cross([0, 0, 1], N) if abs(N[2]) < 0.9 else np.cross([0, 1, 0], N)
                 if np.linalg.norm(fallbackT) < 1e-8:
                     fallbackT = [1, 0, 0]
                 fallbackT = fallbackT / np.linalg.norm(fallbackT)
-
                 fallbackB = np.cross(N, fallbackT)
                 if np.linalg.norm(fallbackB) < 1e-8:
                     fallbackB = [0, 1, 0]
-
-                T = fallbackT
-                B = fallbackB
+                T, B = fallbackT, fallbackB
             else:
                 r = 1.0 / denom
                 T = (deltaPos1 * deltaUV2[1] - deltaPos2 * deltaUV1[1]) * r
                 B = (deltaPos2 * deltaUV1[0] - deltaPos1 * deltaUV2[0]) * r
 
-            # Add tangent/bitangent to all three vertices of the triangle
             tangent[i0] += T
             tangent[i1] += T
             tangent[i2] += T
-
             bitangent[i0] += B
             bitangent[i1] += B
             bitangent[i2] += B
 
-        # Normalize and fix handedness
         for i in range(verts.shape[0]):
             N = verts[i, 3:6]
             T = tangent[i]
             B = bitangent[i]
-
-            # Orthogonalize T against N
             T = T - N * np.dot(N, T)
             if np.linalg.norm(T) < 1e-8:
-                # fallback T if needed
-                # pick arbitrary perpendicular
-                if abs(N[2]) < 0.9:
-                    T = np.cross([0, 0, 1], N)
-                else:
-                    T = np.cross([0, 1, 0], N)
+                T = np.cross([0, 0, 1], N) if abs(N[2]) < 0.9 else np.cross([0, 1, 0], N)
             T = T / np.linalg.norm(T)
-
-            # Orthogonalize B
             B = B - N * np.dot(N, B) - T * np.dot(T, B)
             if np.linalg.norm(B) < 1e-8:
-                # fallback B if needed
                 B = np.cross(N, T)
                 if np.linalg.norm(B) < 1e-8:
                     B = [0, 1, 0]
             B = B / np.linalg.norm(B)
-
-            # Enforce consistent handedness
-            # If cross(N, T) dot B < 0, invert B
-            handedness = np.dot(np.cross(N, T), B)
-            if handedness < 0.0:
+            if np.dot(np.cross(N, T), B) < 0.0:
                 B = -B
-
             tangent[i] = T
             bitangent[i] = B
 
@@ -206,55 +348,18 @@ class ModelRenderer(AbstractRenderer):
         return final_array
 
     def create_vbo(self, vertices_array):
-        """
-        Creates a Vertex Buffer Object (VBO) using the provided array of vertices.
-        The VBO is generated, bound to the GL_ARRAY_BUFFER target, and loaded
-        with the vertex data from the given array. The data is specified to be
-        static and drawn frequently.
-
-        Parameters:
-            vertices_array: numpy.ndarray
-                An array of vertex data used to populate the VBO.
-
-        Returns:
-            int: An integer representing the generated VBO handle.
-        """
         vbo = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, vbo)
         glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
         return vbo
 
     def create_vao(self, with_tangents=False):
-        """
-        Creates a Vertex Array Object (VAO) and sets up vertex attributes for
-        rendering. The attributes can include position, normal, texture coordinates,
-        and optionally tangent and bitangent vectors if specified.
-
-        The method initializes a new VAO, binds it, and then retrieves attribute
-        locations from the shader program. It enables vertex attributes based on
-        whether tangents are included or not, with specific offsets for each type
-        of attribute data within the vertex layout.
-
-        Parameters:
-        with_tangents: bool
-            Flag indicating whether tangent and bitangent attributes should be
-            included in the vertex layout. If True, the VAO includes these
-            attributes; otherwise, it does not.
-
-        Returns:
-        int
-            The ID of the created VAO used for rendering operations.
-        """
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
-
         if with_tangents:
-            # (x,y,z, nx,ny,nz, u,v, tx,ty,tz, bx,by,bz) = 14 floats
             vertex_stride = 14 * self.float_size
         else:
-            # Without tangents, we had 8 floats
             vertex_stride = 8 * self.float_size
-
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
@@ -264,20 +369,15 @@ class ModelRenderer(AbstractRenderer):
         tangent_loc = glGetAttribLocation(self.shader_engine.shader_program, "tangent")
         bitangent_loc = glGetAttribLocation(self.shader_engine.shader_program, "bitangent")
 
-        # Position: (x,y,z) at offset 0
         if position_loc >= 0:
             self.enable_vertex_attrib(position_loc, 3, vertex_stride, 0)
-        # Normal: (nx,ny,nz) at offset 3 floats
         if normal_loc >= 0:
             self.enable_vertex_attrib(normal_loc, 3, vertex_stride, 3 * self.float_size)
-        # UV: (u,v) at offset 6 floats
         if tex_coords_loc >= 0:
             self.enable_vertex_attrib(tex_coords_loc, 2, vertex_stride, 6 * self.float_size)
         if with_tangents:
-            # Tangent: at offset 8 floats
             if tangent_loc >= 0:
                 self.enable_vertex_attrib(tangent_loc, 3, vertex_stride, 8 * self.float_size)
-            # Bitangent: at offset 11 floats
             if bitangent_loc >= 0:
                 self.enable_vertex_attrib(bitangent_loc, 3, vertex_stride, 11 * self.float_size)
 
@@ -286,62 +386,22 @@ class ModelRenderer(AbstractRenderer):
         return vao
 
     def get_vertex_stride(self, vertex_format):
-        """
-        Calculate the total vertex stride from a given vertex format.
-
-        The method parses the input vertex format string, which is expected to be
-        composed of parts separated by underscores, with each part containing a
-        single character specification followed by an integer. The integer indicates
-        the number of floats in that portion of the vertex. It totals these numbers
-        to compute the total stride count.
-
-        Args:
-            vertex_format (str): A string representing the format of the vertex.
-
-        Returns:
-            int: The total vertex stride calculated from the format.
-        """
         count = 0
         format_parts = vertex_format.split("_")
         for part in format_parts:
-            num = int(part[1])  # number of floats
+            num = int(part[1])
             count += num
         return count
 
     def enable_vertex_attrib(self, location, size, stride, pointer_offset):
-        """
-        Enables a vertex attribute array and defines an array of generic vertex
-        attribute data. This function is primarily used in OpenGL to specify the
-        organization of data in the vertex buffer and to pass it to the vertex
-        shader.
-
-        Parameters:
-        location (int): The location of the vertex attribute to be enabled.
-        size (int): The number of components per attribute. Must be 1, 2, 3, or 4.
-        stride (int): The byte offset between consecutive vertex attributes.
-        pointer_offset (int): The offset of the first component of the first
-        generic vertex attribute in the buffer.
-        """
         if location >= 0:
             glEnableVertexAttribArray(location)
             glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(pointer_offset))
 
-    @common_funcs
+    @with_gl_render_state
     def render(self):
         """
         Render all meshes of the object with their corresponding materials.
-
-        This method iterates over each mesh in the object's mesh list. For each
-        material in the mesh, it checks if the material has associated vertices. If
-        vertices are present, it applies the material to the context and calculates
-        the number of vertices to draw based on the vertex stride of the material.
-        Then, it binds and draws the vertex array object for that material. The
-        vao_counter is incremented after each draw call to ensure uniqueness for
-        each material's vertex array object.
-
-        Raises:
-            Any exceptions pertaining to applying material or drawing a vertex
-            array may be raised during execution.
         """
         vao_counter = 0
         for mesh_index, mesh in enumerate(self.object.mesh_list):
@@ -349,47 +409,36 @@ class ModelRenderer(AbstractRenderer):
                 vertices = material.vertices
                 if not vertices:
                     continue
+
+                # Set the material uniforms before drawing.
                 self.apply_material(material)
+
+                # Compute how many vertices this material uses.
                 count = len(vertices) // self.get_vertex_stride(material.vertex_format)
+
+                # Bind and draw.
                 self.bind_and_draw_vao(vao_counter, count)
                 vao_counter += 1
 
     def apply_material(self, material):
         """
-        Old material method; to be removed.
+        Upload the material uniforms to the GPU.
+        This function sets all extended material uniforms (including PBR parameters)
+        using the helper function upload_material_uniforms.
         """
-        glMaterialfv(GL_FRONT, GL_AMBIENT, material.ambient)
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, material.diffuse)
-        glMaterialfv(GL_FRONT, GL_SPECULAR, material.specular)
-        glMaterialf(GL_FRONT, GL_SHININESS, min(128, material.shininess))
+        glUseProgram(self.shader_engine.shader_program)
+        upload_material_uniforms(self.shader_engine.shader_program, material, self.pbr_extensions)
 
     def bind_and_draw_vao(self, vao_index, count):
-        """
-        Binds a Vertex Array Object (VAO) and issues a draw call for rendering.
-
-        This method activates a specific VAO from a list of VAOs and performs a
-        drawing operation using OpenGL's glDrawArrays function. After drawing,
-        it unbinds the VAO. This is typically used in rendering pipelines
-        where objects are drawn using vertex data stored in a VAO.
-
-        Parameters:
-            vao_index: int
-                The index of the VAO to bind from the list of available VAOs.
-            count: int
-                The number of vertices to render.
-        """
         glBindVertexArray(self.vaos[vao_index])
         glDrawArrays(GL_TRIANGLES, 0, count)
         glBindVertexArray(0)
 
     def shutdown(self):
-        if hasattr(self, "vaos") and len(self.vaos) > 0:
+        if hasattr(self, "vaos") and self.vaos:
             glDeleteVertexArrays(len(self.vaos), self.vaos)
-
-        if hasattr(self, "vbos") and len(self.vbos) > 0:
+        if hasattr(self, "vbos") and self.vbos:
             glDeleteBuffers(len(self.vbos), self.vbos)
-
-        if hasattr(self, "ebos") and len(self.ebos) > 0:
+        if hasattr(self, "ebos") and self.ebos:
             glDeleteBuffers(len(self.ebos), self.ebos)
-
         self.shader_engine.delete_shader_programs()

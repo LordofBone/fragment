@@ -1,5 +1,5 @@
 #version 330 core
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
 in vec2 TexCoords;
 in vec3 FragPos;
@@ -9,111 +9,132 @@ in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
-// Textures / uniforms
-uniform samplerCube environmentMap;
+// Camera/uniforms
 uniform vec3 cameraPos;
 
 // Toggling
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
+uniform int lightingMode;// 0=diffuse, 1=phong, 2=maybe pbr
 uniform bool shadowingEnabled;
 
-// Shadow stuff
-uniform sampler2D shadowMap;
+// Shadow
 uniform float surfaceDepth;
-uniform float shadowStrength;
-uniform float environmentMapStrength;
 
-// Transforms
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
 
+// Lava color uniforms
+uniform vec3 lavaBaseColor;// e.g. (1.0, 0.3, 0.0)
+uniform vec3 lavaBrightColor;// e.g. (1.0, 0.7, 0.0)
+
 void main()
 {
-    // Wave coords
+    //------------------------------------------------
+    // 1) Wave coords
+    //------------------------------------------------
     vec2 waveTexCoords = TexCoords;
     float noiseFactor = smoothNoise(waveTexCoords * randomness);
+
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    // Procedural normal
+    //------------------------------------------------
+    // 2) Procedural normal (compute in tangent space then transform)
+    //------------------------------------------------
     vec3 normalMap = vec3(0.0, 0.0, 1.0);
     float waveHeightX = sin(waveTexCoords.y * 10.0);
     float waveHeightY = cos(waveTexCoords.x * 10.0);
+
     normalMap.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
     normalMap = normalize(normalMap);
+    // Transform the procedural normal into world space:
+    vec3 finalNormal = normalize(TBN * normalMap);
 
-    float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
+    float waveHeight = 0.5 * waveAmplitude * (waveHeightX + waveHeightY);
 
+    //------------------------------------------------
+    // 3) Reflection
+    //------------------------------------------------
     vec3 viewDir = normalize(cameraPos - FragPos);
-    vec3 reflectDir = reflect(-viewDir, normalMap);
+    vec3 reflectDir = reflect(-viewDir, finalNormal);
+    float fresnel = pow(1.0 - dot(viewDir, finalNormal), 3.0);
 
-    // Reflection
-    vec3 reflection = texture(environmentMap, reflectDir).rgb * environmentMapStrength;
-    float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
-
-    // Lava base color
-    vec3 baseColor = vec3(1.0, 0.3, 0.0);
-    vec3 brightColor = vec3(1.0, 0.7, 0.0);
+    //------------------------------------------------
+    // 4) Lava base color + bright color
+    //------------------------------------------------
     float noiseValue = smoothNoise(TexCoords * 5.0 + time * 0.5);
-    vec3 lavaColor = mix(baseColor, brightColor, noiseValue);
+    vec3 lavaColor = mix(lavaBaseColor, lavaBrightColor, noiseValue);
 
-    // Mix lava + reflection
-    vec3 color = mix(lavaColor, reflection, fresnel * 0.2);
-
-    // Shadow
+    //------------------------------------------------
+    // 5) Shadow
+    //------------------------------------------------
     float shadow = 0.0;
     if (shadowingEnabled)
     {
         shadow = ShadowCalculationDisplaced(
         FragPos,
-        normalMap,
+        finalNormal,
         waveHeight,
-        shadowMap,
         lightSpaceMatrix,
         model,
-        lightPositions[0], // pick the first light for bias
-        0.05,
-        0.0005,
-        shadowStrength,
+        lightPositions[0], // pick first light
+        0.05, // biasFactor
+        0.0005, // minBias
         surfaceDepth
         );
     }
 
-    // Lighting
-    if (phongShading)
+    //------------------------------------------------
+    // 6) Local lighting
+    //------------------------------------------------
+    vec3 color = vec3(0.0);
+    if (lightingMode == 0)
     {
-        vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, color);
-        color = mix(color, color * (1.0 - shadow * 0.5), 0.5) + phongColor * 0.5;
+        // Diffuse lighting
+        color = computeDiffuseLighting(finalNormal, viewDir, FragPos, lavaBaseColor, TexCoords);
     }
-    else
+    else if (lightingMode >= 1)// Phong lighting
     {
-        color = mix(color, color * (1.0 - shadow * 0.5), 1.0);
+        color = computePhongLighting(finalNormal, viewDir, FragPos, lavaBaseColor, TexCoords);
     }
 
-    // Bubbles
+    // Apply shadow
+    //    color = mix(color, color * (1.0 - shadow * 0.5), shadowStrength);
+    color *= (1.0 - shadow);
+
+    //------------------------------------------------
+    // 7) Additional procedural: bubbles/rocks
+    //------------------------------------------------
     float bubbleNoise = smoothNoise(TexCoords * 10.0 + time * 2.0);
     if (bubbleNoise > 0.8)
     {
-        color = brightColor;
+        color = lavaBrightColor;
     }
 
-    // Rocks
     float rockNoise = smoothNoise(TexCoords * 20.0 + time * 0.1);
     if (rockNoise > 0.9)
     {
         color = mix(color, vec3(0.2, 0.2, 0.2), rockNoise - 0.9);
     }
 
+    //------------------------------------------------
+    // 8) Tone & Gamma
+    //------------------------------------------------
     if (applyToneMapping)
     {
         color = toneMapping(color);
     }
     if (applyGammaCorrection)
     {
-        color = pow(color, vec3(1.0 / 2.2));
+        color = pow(color, vec3(1.0/2.2));
     }
+    color = clamp(color, 0.0, 1.0);
 
-    FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+    //------------------------------------------------
+    // 9) legacyOpacity
+    //------------------------------------------------
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+
+    FragColor = vec4(color, alpha);
 }

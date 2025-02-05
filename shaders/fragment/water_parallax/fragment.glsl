@@ -1,140 +1,151 @@
 #version 330 core
-#include "common_funcs.glsl"
+#include "glsl_utilities.glsl"
 
+// ---------------------------------------------------------
+// Vertex -> Fragment inputs
+// ---------------------------------------------------------
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
-
-// For POM
 in vec3 TangentFragPos;
 in vec3 TangentViewPos;
 in vec3 TangentLightPos;
-
 in vec4 FragPosLightSpace;
+in float FragPosW;
 
+// TBN rows
+in vec3 TBNrow0;
+in vec3 TBNrow1;
+in vec3 TBNrow2;
+
+// ---------------------------------------------------------
+// Outputs
+// ---------------------------------------------------------
 out vec4 FragColor;
 
-uniform samplerCube environmentMap;
+// ---------------------------------------------------------
+// Uniforms
+// ---------------------------------------------------------
 uniform vec3 cameraPos;
-uniform vec3 ambientColor;
-
-// The shadow map & toggles
-uniform sampler2D shadowMap;
 uniform bool applyToneMapping;
 uniform bool applyGammaCorrection;
-uniform bool phongShading;
-uniform bool shadowingEnabled;
 
-// Wave/geometry parameters
+uniform int lightingMode;
+uniform bool shadowingEnabled;
 uniform float surfaceDepth;
-uniform float shadowStrength;
 uniform mat4 model;
 uniform mat4 lightSpaceMatrix;
+uniform mat4 view;
+uniform mat4 projection;
 
-// Reflection intensity
-uniform float environmentMapStrength;
+// Water base color
+uniform vec3 waterBaseColor;
 
 void main()
 {
+    //--------------------------------------------
+    // (A) Reconstruct TBN + view direction
+    //--------------------------------------------
+    mat3 TBN = mat3(TBNrow0, TBNrow1, TBNrow2);
     vec3 viewDir = normalize(cameraPos - FragPos);
 
-    // ---------------------------------------------------------
-    // 1) Procedural POM
-    // ---------------------------------------------------------
+    //--------------------------------------------
+    // (B) "Classic" wave coords for shadow displacement
+    //--------------------------------------------
+    vec2 waveTexCoordsClassic = TexCoords;
+    float noiseClassic = smoothNoise(waveTexCoordsClassic * randomness);
+
+    waveTexCoordsClassic.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseClassic) * texCoordAmplitude;
+    waveTexCoordsClassic.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseClassic) * texCoordAmplitude;
+
+    // "Classic" wave height for shadow offset
+    float waveHeightXClassic = sin(waveTexCoordsClassic.y * 10.0);
+    float waveHeightYClassic = cos(waveTexCoordsClassic.x * 10.0);
+    float waveHeightClassic = 0.5 * waveAmplitude * (waveHeightXClassic + waveHeightYClassic);
+
+    //--------------------------------------------
+    // (C) Parallax Occlusion Mapping (POM)
+    //--------------------------------------------
     float depthOffset = 0.0;
     vec2 workingTexCoords = TexCoords;
-
-    // If pomHeightScale > 0, do ProceduralParallaxOcclusionMapping
-    // (Declared in common_funcs.glsl)
     if (pomHeightScale > 0.0)
     {
-        // Transform the view direction into tangent space
+        // tangent-space view direction
         vec3 tangentViewDir = normalize(TangentViewPos - TangentFragPos);
-
-        workingTexCoords = ProceduralParallaxOcclusionMapping(
-        TexCoords,
-        tangentViewDir,
-        depthOffset
-        );
+        workingTexCoords = ProceduralParallaxOcclusionMapping(TexCoords, tangentViewDir, depthOffset);
         workingTexCoords = clamp(workingTexCoords, 0.0, 1.0);
     }
 
-    // ---------------------------------------------------------
-    // 2) Wave calculations using workingTexCoords
-    // ---------------------------------------------------------
+    //--------------------------------------------
+    // (D) "Visual" wave coords & normal in tangent space
+    //--------------------------------------------
     vec2 waveTexCoords = workingTexCoords;
-    float noiseFactor = smoothNoise(waveTexCoords * randomness);
+    float noiseFactor  = smoothNoise(waveTexCoords * randomness);
 
-    // Offset the waveTexCoords
     waveTexCoords.x += sin(time * waveSpeed + TexCoords.y * texCoordFrequency + noiseFactor) * texCoordAmplitude;
     waveTexCoords.y += cos(time * waveSpeed + TexCoords.x * texCoordFrequency + noiseFactor) * texCoordAmplitude;
 
-    // Build a procedural wave normal
-    vec3 normalMap = vec3(0.0, 0.0, 1.0);
+    // Tangent-space normal (start with "up")
+    vec3 waveNormalTangent = vec3(0.0, 0.0, 1.0);
     float waveHeightX = sin(waveTexCoords.y * 10.0);
     float waveHeightY = cos(waveTexCoords.x * 10.0);
-    normalMap.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
-    normalMap = normalize(normalMap);
 
-    float waveHeight = waveAmplitude * (waveHeightX + waveHeightY) * 0.5;
+    waveNormalTangent.xy += waveAmplitude * vec2(waveHeightX, waveHeightY);
+    waveNormalTangent = normalize(waveNormalTangent);
 
-    // ---------------------------------------------------------
-    // 3) Reflection & refraction
-    // ---------------------------------------------------------
-    // Reflect & refract with the wave-based normal
-    vec3 reflectDir = reflect(-viewDir, normalMap);
-    vec3 refractDir = refract(-viewDir, normalMap, 1.0 / 1.33);// ~IOR for water
+    // For possible highlight
+    float waveHeightVisual = 0.5 * waveAmplitude * (waveHeightX + waveHeightY);
 
-    vec3 reflection = texture(environmentMap, reflectDir).rgb;
-    vec3 refraction = texture(environmentMap, refractDir).rgb;
+    // Convert wave normal to WORLD space
+    vec3 finalNormal = normalize(TBN * waveNormalTangent);
 
-    // Fresnel effect
-    float fresnel = pow(1.0 - dot(viewDir, normalMap), 3.0);
-    vec3 envColor = mix(refraction, reflection, fresnel);
+    //--------------------------------------------
+    // (E) Basic environment reflection
+    //--------------------------------------------
+    vec3 reflectDir  = reflect(-viewDir, finalNormal);
+    float fresnel    = pow(1.0 - dot(viewDir, finalNormal), 3.0);
 
-    // ---------------------------------------------------------
-    // 4) Shadows (displaced)
-    // ---------------------------------------------------------
+    //--------------------------------------------
+    // (F) Shadows (displaced)
+    //--------------------------------------------
     float shadow = 0.0;
     if (shadowingEnabled)
     {
+        // Use waveHeightClassic for consistent Y offset
         shadow = ShadowCalculationDisplaced(
-        FragPos, // world-space frag pos
-        normalMap, // wave-based normal
-        waveHeight,
-        shadowMap,
+        FragPos,
+        finalNormal,
+        waveHeightClassic,
         lightSpaceMatrix,
         model,
-        lightPositions[0], // pick a main light for bias
-        0.05, // bias factor
-        0.005, // min bias
-        shadowStrength,
+        lightPositions[0], // pick first light
+        0.05, // biasFactor
+        0.0005, // minBias
         surfaceDepth
         );
     }
 
-    // ---------------------------------------------------------
-    // 5) Combine lighting
-    // ---------------------------------------------------------
-    vec3 color = vec3(0.0);
-
-    // Optionally compute some local Phong lighting for the water
-    if (phongShading)
+    //--------------------------------------------
+    // (G) Local lighting
+    //--------------------------------------------
+    vec3 color;
+    if (lightingMode == 0)// diffuse
     {
-        // Base “water color” or ambientColor as desired
-        vec3 phongColor = computePhongLighting(normalMap, viewDir, FragPos, vec3(0.2, 0.5, 1.0));
-        // Apply shadow
-        phongColor = mix(phongColor, phongColor * (1.0 - shadow), shadowStrength);
-        color += phongColor;
+        vec3 diffuseColor = computeDiffuseLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
+        color = diffuseColor;
+    }
+    else if (lightingMode >= 1)// Phong
+    {
+        vec3 phongColor = computePhongLighting(finalNormal, viewDir, FragPos, waterBaseColor, TexCoords);
+        color = phongColor;
     }
 
-    // Also apply environment reflection/refraction, attenuated by shadow
-    envColor = mix(envColor, envColor * (1.0 - shadow), shadowStrength);
-    color += envColor * environmentMapStrength;
+    // 6) Apply shadow attenuation
+    color *= (1.0 - shadow);
 
-    // ---------------------------------------------------------
-    // 6) Tone & Gamma
-    // ---------------------------------------------------------
+    //--------------------------------------------
+    // (H) Tone & Gamma
+    //--------------------------------------------
     if (applyToneMapping)
     {
         color = toneMapping(color);
@@ -143,7 +154,31 @@ void main()
     {
         color = pow(color, vec3(1.0 / 2.2));
     }
-
     color = clamp(color, 0.0, 1.0);
-    FragColor = vec4(color, 1.0);
+
+    //--------------------------------------------
+    // (I) legacyOpacity
+    //--------------------------------------------
+    float alpha = clamp(legacyOpacity, 0.0, 1.0);
+    FragColor = vec4(color, alpha);
+
+    //--------------------------------------------
+    // (J) Optional Depth Correction if POM
+    //--------------------------------------------
+    if (pomHeightScale > 0.0 && depthOffset != 0.0 && enableFragDepthAdjustment)
+    {
+        vec4 eyePos = view * vec4(FragPos, 1.0);
+        adjustFragDepth(
+        eyePos,
+        projection,
+        vec4(FragPos, 1.0),
+        vec3[](TBNrow0, TBNrow1, TBNrow2),
+        depthOffset,
+        gl_FragDepth
+        );
+    }
+    else
+    {
+        gl_FragDepth = gl_FragCoord.z;
+    }
 }
