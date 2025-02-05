@@ -117,7 +117,7 @@ def run_benchmark(
         particle_smooth_edges=True,
         particle_color=(0.973, 1.0, 0.541),
         particle_fade_to_color=True,
-        particle_fade_color=(0.984, 0.988, 0.898),
+        particle_fade_color=(0.98, 0.0357, 0.08),  # This gets boosted 5x within the shader, so it's more visible
         lighting_mode="phong",
         legacy_opacity=0.75,
         legacy_roughness=32,
