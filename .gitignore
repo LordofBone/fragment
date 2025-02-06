@@ -5,8 +5,8 @@ screenshots/*
 !screenshots/.gitkeep
 tests/screenshots/*
 !tests/screenshots/.gitkeep
-/reports/*
-!/reports/.gitkeep
-!/reports/archive/
-/reports/archive/*
-!/reports/archive/.gitkeep
+/report/*
+!/report/.gitkeep
+!/report/archive/
+/report/archive/*
+!/report/archive/.gitkeep
