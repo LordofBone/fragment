@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 run_all_tests.py
 
