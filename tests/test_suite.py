@@ -185,19 +185,24 @@ class TestShaderEngineAndShaders(unittest.TestCase):
 
         RendererConfig.discover_shaders = discover_shaders_override
 
-        # Create a temporary directory structure to simulate shaders if needed.
+        # Create a temporary directory structure to simulate shaders.
+        # Create a temporary folder and then a "shaders" subfolder within it.
         self.temp_shaders_dir = tempfile.mkdtemp(prefix="test_shaders_")
-        os.makedirs(os.path.join(self.temp_shaders_dir, "vertex", "dummy"), exist_ok=True)
-        os.makedirs(os.path.join(self.temp_shaders_dir, "fragment", "dummy"), exist_ok=True)
-        os.makedirs(os.path.join(self.temp_shaders_dir, "compute", "dummy_compute"), exist_ok=True)
-        # Create dummy shader files
-        with open(os.path.join(self.temp_shaders_dir, "vertex", "dummy", "vertex.glsl"), "w") as f:
+        self.temp_shaders_root = os.path.join(self.temp_shaders_dir, "shaders")
+        os.makedirs(os.path.join(self.temp_shaders_root, "vertex", "dummy"), exist_ok=True)
+        os.makedirs(os.path.join(self.temp_shaders_root, "fragment", "dummy"), exist_ok=True)
+        os.makedirs(os.path.join(self.temp_shaders_root, "compute", "dummy_compute"), exist_ok=True)
+
+        # Create dummy shader files in the proper structure.
+        with open(os.path.join(self.temp_shaders_root, "vertex", "dummy", "vertex.glsl"), "w") as f:
             f.write("#version 330 core\nvoid main() {}")
-        with open(os.path.join(self.temp_shaders_dir, "fragment", "dummy", "fragment.glsl"), "w") as f:
+        with open(os.path.join(self.temp_shaders_root, "fragment", "dummy", "fragment.glsl"), "w") as f:
             f.write("#version 330 core\nvoid main() {}")
-        with open(os.path.join(self.temp_shaders_dir, "compute", "dummy_compute", "compute.glsl"), "w") as f:
+        with open(os.path.join(self.temp_shaders_root, "compute", "dummy_compute", "compute.glsl"), "w") as f:
             f.write("#version 430 core\nvoid main() {}")
+
         # Patch RendererConfig.discover_shaders to point to our temporary shaders folder.
+        # We set PROJECT_ROOT so that os.path.join(PROJECT_ROOT, "shaders") becomes self.temp_shaders_root.
         self.original_shaders_dir = RendererConfig.__init__.__globals__.get("PROJECT_ROOT", PROJECT_ROOT)
         RendererConfig.__init__.__globals__["PROJECT_ROOT"] = self.temp_shaders_dir
 
@@ -209,11 +214,14 @@ class TestShaderEngineAndShaders(unittest.TestCase):
         """Walk the temporary shaders folder and compile all dummy shaders."""
         shader_types = {"vertex": "vertex.glsl", "fragment": "fragment.glsl", "compute": "compute.glsl"}
         for stype, filename in shader_types.items():
-            folder_path = os.path.join(self.temp_shaders_dir, stype)
+            # Use our temp_shaders_root/shader_type folder
+            folder_path = os.path.join(self.temp_shaders_root, stype)
             for root, dirs, files in os.walk(folder_path):
                 for file in files:
                     if file == filename:
                         shader_file = os.path.join(root, file)
+                        # Compute the relative path from temp_shaders_dir so that
+                        # os.path.join(shader_base_dir, rel_shader_file) becomes correct.
                         rel_shader_file = os.path.relpath(shader_file, self.temp_shaders_dir)
                         if stype == "compute":
                             engine = ShaderEngine(
@@ -239,38 +247,6 @@ class TestShaderEngineAndShaders(unittest.TestCase):
                                 )
                             self.assertIsNotNone(engine.shader_program,
                                                  f"Failed to compile {stype} shader: {shader_file}")
-
-    def tearDown(self):
-        shutil.rmtree(self.temp_shaders_dir)
-        RendererConfig.__init__.__globals__["PROJECT_ROOT"] = self.original_shaders_dir
-
-    def test_compile_all_dummy_shaders(self):
-        """Walk the temporary shaders folder and compile all dummy shaders."""
-        shader_types = {"vertex": "vertex.glsl", "fragment": "fragment.glsl", "compute": "compute.glsl"}
-        for stype, filename in shader_types.items():
-            folder_path = os.path.join(self.temp_shaders_dir, stype)
-            for root, dirs, files in os.walk(folder_path):
-                for file in files:
-                    if file == filename:
-                        shader_file = os.path.join(root, file)
-                        if stype == "compute":
-                            engine = ShaderEngine(vertex_shader_path=None, fragment_shader_path=None,
-                                                  compute_shader_path=os.path.relpath(shader_file,
-                                                                                      self.temp_shaders_dir))
-                            self.assertIsNotNone(engine.compute_shader_program,
-                                                 f"Failed to compile compute shader: {shader_file}")
-                        else:
-                            if stype == "vertex":
-                                engine = ShaderEngine(
-                                    vertex_shader_path=os.path.relpath(shader_file, self.temp_shaders_dir),
-                                    fragment_shader_path=None)
-                            else:
-                                engine = ShaderEngine(vertex_shader_path=None,
-                                                      fragment_shader_path=os.path.relpath(shader_file,
-                                                                                           self.temp_shaders_dir))
-                            self.assertIsNotNone(engine.shader_program,
-                                                 f"Failed to compile {stype} shader: {shader_file}")
-
 
 # ------------------------------------------------------------------------------
 # Tests for GUI functions (Headless Mode)
