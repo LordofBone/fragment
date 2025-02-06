@@ -7,7 +7,7 @@ This module adds additional tests to cover:
   - Headless tests of the GUI (using Tkinter’s withdraw to avoid actual windowing)
   - Testing extra pure–Python logic functions (e.g. drop shadow, config generators)
   - Creating a minimal headless OpenGL context (using patches) to run some of the
-    graphics pipeline tests.
+    graphics pipeline tests
 
 All tests are designed to run in headless mode so that they can be run automatically
 (e.g., on GitHub Actions) without requiring a full graphics environment.
@@ -43,8 +43,6 @@ except ImportError:
 # ------------------------------------------------------------------------------
 # Mocks and Patches for OpenGL functions
 # ------------------------------------------------------------------------------
-# Here we patch several OpenGL.GL calls so that no real OpenGL context is needed.
-# These patches are applied using the unittest.mock.patch decorator.
 OPENGL_PATCHES = [
     patch("OpenGL.GL.glCreateShader", MagicMock(return_value=1)),
     patch("OpenGL.GL.glShaderSource", MagicMock()),
@@ -52,8 +50,6 @@ OPENGL_PATCHES = [
     patch("OpenGL.GL.glGetShaderiv", MagicMock(return_value=True)),
     patch("OpenGL.GL.glGetShaderInfoLog", MagicMock(return_value=b"")),
     patch("OpenGL.GL.glCreateProgram", MagicMock(return_value=2)),
-    # Additional patch for the baseplatform version:
-    patch("OpenGL.platform.baseplatform.glCreateProgram", MagicMock(return_value=2)),
     patch("OpenGL.GL.glAttachShader", MagicMock()),
     patch("OpenGL.GL.glLinkProgram", MagicMock()),
     patch("OpenGL.GL.glGetProgramiv", MagicMock(return_value=True)),
@@ -72,13 +68,10 @@ OPENGL_PATCHES = [
     patch("OpenGL.GL.glDeleteTextures", MagicMock()),
 ]
 
-
-# A decorator to apply all patches to a test class.
 def apply_opengl_patches(cls):
     for patcher in OPENGL_PATCHES:
         cls = patcher(cls)
     return cls
-
 
 # ------------------------------------------------------------------------------
 # Dummy functions for simulating benchmark run and audio playback.
@@ -96,7 +89,6 @@ def dummy_play_audio(self):
     self.is_playing.set()
     time.sleep(0.1)
     self.is_playing.clear()
-
 
 # ------------------------------------------------------------------------------
 # Additional Tests for Pure-Python Logic
@@ -119,14 +111,11 @@ class TestPurePythonExtended(unittest.TestCase):
            We simulate a simple image and ensure that a new image is returned.
         """
         from gui.main_gui import App  # assuming App contains add_drop_shadow
-        # Create a simple red image.
         from PIL import Image
         red_img = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
-        # Instantiate a dummy App (if available)
         if App is None:
             self.skipTest("GUI module not available.")
         app = App()
-        # Call add_drop_shadow; check that output is a PIL Image and is larger than original.
         shadow_img = app.add_drop_shadow(red_img, shadow_offset=(5, 5), blur_radius=5)
         self.assertTrue(isinstance(shadow_img, Image.Image))
         self.assertGreater(shadow_img.width, red_img.width)
@@ -159,14 +148,24 @@ class TestPurePythonExtended(unittest.TestCase):
         self.assertEqual(data["TestBench"]["gpu_usage_data"], [30.0])
         sc.shutdown()
 
-
 # ------------------------------------------------------------------------------
 # Tests for the ShaderEngine and Shaders Folder Walk
 # ------------------------------------------------------------------------------
+def dummy_link_shader_program(self, shaders):
+    return 2
+
 @apply_opengl_patches
 class TestShaderEngineAndShaders(unittest.TestCase):
     def setUp(self):
-        # Override discover_shaders in RendererConfig to use the actual shaders folder.
+        # Manually patch glCreateProgram and glDeleteShader on the baseplatform.
+        import OpenGL.platform.baseplatform as bp
+        self._orig_glCreateProgram = getattr(bp, "glCreateProgram", None)
+        bp.glCreateProgram = MagicMock(return_value=2)
+        # Patch glDeleteShader using patch.object with create=True.
+        self._delete_shader_patch = patch.object(bp, "glDeleteShader", MagicMock(return_value=None), create=True)
+        self._delete_shader_patch.start()
+
+        # Override discover_shaders in RendererConfig to use our shaders folder.
         def discover_shaders_override(self):
             shader_root = os.path.join(PROJECT_ROOT, "shaders")
             if not os.path.exists(shader_root):
@@ -184,18 +183,16 @@ class TestShaderEngineAndShaders(unittest.TestCase):
                         if shader_type not in self.shaders:
                             self.shaders[shader_type] = {}
                         self.shaders[shader_type][folder] = shader_file
-
         RendererConfig.discover_shaders = discover_shaders_override
 
-        # Create a temporary directory structure to simulate shaders.
-        # Here we create a "shaders" subfolder in our temporary directory.
+        # Create a temporary directory structure with a "shaders" subfolder.
         self.temp_shaders_dir = tempfile.mkdtemp(prefix="test_shaders_")
         self.temp_shaders_root = os.path.join(self.temp_shaders_dir, "shaders")
         os.makedirs(os.path.join(self.temp_shaders_root, "vertex", "dummy"), exist_ok=True)
         os.makedirs(os.path.join(self.temp_shaders_root, "fragment", "dummy"), exist_ok=True)
         os.makedirs(os.path.join(self.temp_shaders_root, "compute", "dummy_compute"), exist_ok=True)
 
-        # Create dummy shader files in the proper structure.
+        # Create dummy shader files in proper structure.
         with open(os.path.join(self.temp_shaders_root, "vertex", "dummy", "vertex.glsl"), "w") as f:
             f.write("#version 330 core\nvoid main() {}")
         with open(os.path.join(self.temp_shaders_root, "fragment", "dummy", "fragment.glsl"), "w") as f:
@@ -203,18 +200,32 @@ class TestShaderEngineAndShaders(unittest.TestCase):
         with open(os.path.join(self.temp_shaders_root, "compute", "dummy_compute", "compute.glsl"), "w") as f:
             f.write("#version 430 core\nvoid main() {}")
 
-        # Patch RendererConfig.discover_shaders so that it uses our temporary shaders folder.
+        # Patch RendererConfig.discover_shaders so it uses our temporary shaders folder.
         self.original_shaders_dir = RendererConfig.__init__.__globals__.get("PROJECT_ROOT", PROJECT_ROOT)
         RendererConfig.__init__.__globals__["PROJECT_ROOT"] = self.temp_shaders_dir
 
-        # Patch the _compile_shader method of ShaderEngine to return a dummy shader handle.
+        # Patch _compile_shader to always return a dummy shader handle.
         self.compile_patch = patch.object(ShaderEngine, "_compile_shader", return_value=1)
         self.compile_patch.start()
 
+        # Patch _link_shader_program to bypass glCreateProgram.
+        self.link_patch = patch.object(ShaderEngine, "_link_shader_program", dummy_link_shader_program)
+        self.link_patch.start()
+
     def tearDown(self):
         self.compile_patch.stop()
+        self.link_patch.stop()
+        self._delete_shader_patch.stop()
         shutil.rmtree(self.temp_shaders_dir)
         RendererConfig.__init__.__globals__["PROJECT_ROOT"] = self.original_shaders_dir
+        try:
+            import OpenGL.platform.baseplatform as bp
+            if self._orig_glCreateProgram is None:
+                del bp.glCreateProgram
+            else:
+                bp.glCreateProgram = self._orig_glCreateProgram
+        except Exception:
+            pass
 
     def test_compile_all_dummy_shaders(self):
         """Walk the temporary shaders folder and compile all dummy shaders."""
@@ -225,8 +236,6 @@ class TestShaderEngineAndShaders(unittest.TestCase):
                 for file in files:
                     if file == filename:
                         shader_file = os.path.join(root, file)
-                        # Compute the relative path from temp_shaders_dir so that
-                        # os.path.join(shader_base_dir, rel_shader_file) is correct.
                         rel_shader_file = os.path.relpath(shader_file, self.temp_shaders_dir)
                         if stype == "compute":
                             engine = ShaderEngine(
@@ -260,19 +269,13 @@ class TestGUIHeadless(unittest.TestCase):
     @unittest.skipIf(App is None, "GUI module not available.")
     def test_app_instantiation_and_functions(self):
         """Test basic instantiation and functions of the GUI in headless mode."""
-        # Create the Tkinter app in headless mode by calling withdraw()
         app = App()
         app.withdraw()  # Hide the window
-        # Test that some key functions do not error:
         try:
-            # Test that appearance mode can be changed
             app.change_appearance_mode_event("Light")
-            # Test drop shadow functionality via a demo image display
             app.display_demo_image()
-            # Simulate selecting benchmarks and then running a dummy benchmark
             for key, data in app.benchmark_vars.items():
                 data["var"].set(True)
-            # Set dummy values in option menus (simulate resolution etc.)
             app.resolution_optionmenu.set("1024x768")
             app.msaa_level_optionmenu.set("4")
             app.anisotropy_optionmenu.set("16")
@@ -281,12 +284,10 @@ class TestGUIHeadless(unittest.TestCase):
             app.particle_render_mode_optionmenu.set("transform feedback")
             app.enable_vsync_checkbox.select()
             app.sound_enabled_checkbox.select()
-            # Run the benchmark in a separate thread; then force exit.
             threading.Thread(target=app.run_benchmark, daemon=True).start()
             time.sleep(0.5)
         finally:
             app.destroy()
-
 
 # ------------------------------------------------------------------------------
 # Tests for RenderingInstance and basic scene functions (with patched OpenGL)
@@ -294,30 +295,23 @@ class TestGUIHeadless(unittest.TestCase):
 @apply_opengl_patches
 class TestRenderingInstanceHeadless(unittest.TestCase):
     def setUp(self):
-        # Create a dummy RendererConfig with minimal values
         self.config = RendererConfig(window_title="TestInstance", window_size=(800, 600))
         self.config.duration = 0.5  # Short duration for testing
-        # Set a dummy shader_names so that instantiation works
         self.config.shaders = {"vertex": {"dummy": "dummy.glsl"},
                                "fragment": {"dummy": "dummy.glsl"}}
 
     def test_rendering_instance_runs(self):
-        """Test that a RenderingInstance runs and calls shutdown."""
         instance = RenderingInstance(self.config)
-        # Patch some methods to avoid real OpenGL work:
         instance.setup = MagicMock()
         instance.render_scene = MagicMock()
         instance.shutdown = MagicMock()
-        # Create a dummy stats_queue and stop_event.
         from multiprocessing import Event, Queue
         stop_event = Event()
         stats_queue = Queue()
-        # Run instance.run in a separate thread to not block.
         thread = threading.Thread(target=instance.run, args=(stats_queue, stop_event), daemon=True)
         thread.start()
         thread.join(timeout=2)
         instance.shutdown.assert_called()
-
 
 # ------------------------------------------------------------------------------
 # Main block to run tests if this module is executed directly.
