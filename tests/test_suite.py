@@ -26,10 +26,10 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 # Import modules from your project
-from components.renderer_config import RendererConfig
 from components.camera_control import CameraController
-from components.stats_collector import StatsCollector
+from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
+from components.stats_collector import StatsCollector
 
 # For GUI testing, try to import the App class.
 try:
@@ -66,27 +66,42 @@ OPENGL_PATCHES = [
     patch("OpenGL.GL.glDeleteTextures", MagicMock()),
 ]
 
+
 def apply_opengl_patches(cls):
     for patcher in OPENGL_PATCHES:
         cls = patcher(cls)
     return cls
 
+
 # ------------------------------------------------------------------------------
 # Dummy functions for simulating benchmark run and audio playback.
 # ------------------------------------------------------------------------------
-def dummy_run_function(stats_queue, stop_event, resolution, msaa_level, anisotropy, shading_model,
-                       shadow_map_resolution, particle_render_mode, vsync_enabled, sound_enabled, fullscreen):
+def dummy_run_function(
+    stats_queue,
+    stop_event,
+    resolution,
+    msaa_level,
+    anisotropy,
+    shading_model,
+    shadow_map_resolution,
+    particle_render_mode,
+    vsync_enabled,
+    sound_enabled,
+    fullscreen,
+):
     """Fake run function that simulates a short wait and sends 'fps' into stats_queue."""
     if stats_queue is not None:
         stats_queue.put(("ready", None))
         stats_queue.put(("fps", 60))
     time.sleep(0.1)
 
+
 def dummy_play_audio(self):
     """Fake play_audio function for AudioPlayer, simulating a short wait."""
     self.is_playing.set()
     time.sleep(0.1)
     self.is_playing.clear()
+
 
 # ------------------------------------------------------------------------------
 # Additional Tests for Pure-Python Logic
@@ -96,9 +111,7 @@ class TestPurePythonExtended(unittest.TestCase):
         """Test that RendererConfig.add_model returns a valid configuration dictionary."""
         base_config = RendererConfig(window_title="ExtendedTest", window_size=(800, 600))
         model_cfg = base_config.add_model(
-            obj_path="dummy.obj",
-            texture_paths={"diffuse": "dummy.png"},
-            shader_names=("standard", "default")
+            obj_path="dummy.obj", texture_paths={"diffuse": "dummy.png"}, shader_names=("standard", "default")
         )
         self.assertIsInstance(model_cfg, dict)
         self.assertEqual(model_cfg["obj_path"], "dummy.obj")
@@ -106,10 +119,12 @@ class TestPurePythonExtended(unittest.TestCase):
 
     def test_drop_shadow_function_in_gui(self):
         """Test the drop shadow function from the GUI module.
-           We simulate a simple image and ensure that a new image is returned.
+        We simulate a simple image and ensure that a new image is returned.
         """
-        from gui.main_gui import App  # assuming App contains add_drop_shadow
         from PIL import Image
+
+        from gui.main_gui import App  # assuming App contains add_drop_shadow
+
         red_img = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
         if App is None:
             self.skipTest("GUI module not available.")
@@ -146,6 +161,7 @@ class TestPurePythonExtended(unittest.TestCase):
         self.assertEqual(data["TestBench"]["gpu_usage_data"], [30.0])
         sc.shutdown()
 
+
 # ------------------------------------------------------------------------------
 # Tests for GUI functions (Headless Mode)
 # ------------------------------------------------------------------------------
@@ -173,6 +189,7 @@ class TestGUIHeadless(unittest.TestCase):
         finally:
             app.destroy()
 
+
 # ------------------------------------------------------------------------------
 # Tests for RenderingInstance and basic scene functions (with patched OpenGL)
 # ------------------------------------------------------------------------------
@@ -181,8 +198,7 @@ class TestRenderingInstanceHeadless(unittest.TestCase):
     def setUp(self):
         self.config = RendererConfig(window_title="TestInstance", window_size=(800, 600))
         self.config.duration = 0.5  # Short duration for testing
-        self.config.shaders = {"vertex": {"dummy": "dummy.glsl"},
-                               "fragment": {"dummy": "dummy.glsl"}}
+        self.config.shaders = {"vertex": {"dummy": "dummy.glsl"}, "fragment": {"dummy": "dummy.glsl"}}
 
     def test_rendering_instance_runs(self):
         instance = RenderingInstance(self.config)
@@ -190,12 +206,14 @@ class TestRenderingInstanceHeadless(unittest.TestCase):
         instance.render_scene = MagicMock()
         instance.shutdown = MagicMock()
         from multiprocessing import Event, Queue
+
         stop_event = Event()
         stats_queue = Queue()
         thread = threading.Thread(target=instance.run, args=(stats_queue, stop_event), daemon=True)
         thread.start()
         thread.join(timeout=2)
         instance.shutdown.assert_called()
+
 
 # ------------------------------------------------------------------------------
 # Main block to run tests if this module is executed directly.
