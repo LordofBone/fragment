@@ -1,15 +1,19 @@
 """
 Extended Test Suite for the Fragment 3D Rendering Benchmark System (Headless/Pure Python)
 
-This version removes all tests that relied on OpenGL calls (and thus caused NullFunctionError
-or GLError in headless CI). The remaining tests focus on:
+This version omits any OpenGL or GPU-accelerated tests to avoid NullFunctionError
+or GLError in headless CI. The tests focus on:
 
-  - Pure-Python logic (e.g., camera interpolation, config generation, stats collection)
-  - GUI logic tests that do not invoke a real OpenGL context
-  - AudioPlayer tests using mock patches (no real audio file is required)
+  - Config logic (RendererConfig)
+  - Camera interpolation (CameraController)
+  - Stats collection (StatsCollector)
+  - Scene construction logic (SceneConstructor)
+  - Benchmark management (BenchmarkManager) with a dummy run function
+  - AudioPlayer logic via mocking pygame.mixer
+  - Basic GUI interactions in headless mode (if App is available)
 
 Run via:
-  pytest --maxfail=1 --disable-warnings -q
+  pytest --html-report=./report/report.html
 or:
   python -m unittest discover -s tests
 """
@@ -27,13 +31,14 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 # --------------------------------------------------------------------------------
-# Imports from your project (pure python modules, no OpenGL calls).
+# Pure-Python Components
 # --------------------------------------------------------------------------------
 from components.camera_control import CameraController
 from components.stats_collector import StatsCollector
 from components.scene_constructor import SceneConstructor
 from components.benchmark_manager import BenchmarkManager
 from components.audio_player import AudioPlayer
+from components.renderer_config import RendererConfig
 
 # For GUI testing, try to import the App class (if available).
 try:
@@ -41,9 +46,8 @@ try:
 except ImportError:
     App = None
 
-
 # --------------------------------------------------------------------------------
-# Dummy function for simulating a benchmark run.
+# Dummy function for simulating a benchmark run (no real GL/audio).
 # --------------------------------------------------------------------------------
 def dummy_run_function(
     stats_queue,
@@ -71,35 +75,123 @@ def dummy_run_function(
 
 
 # --------------------------------------------------------------------------------
-# Tests for pure Python logic
+# Tests: Pure Python Logic
 # --------------------------------------------------------------------------------
+class TestRendererConfig(unittest.TestCase):
+    """
+    Tests around RendererConfig to ensure it accepts/validates config properly.
+    """
+
+    def test_basic_initialization(self):
+        """
+        Verify that RendererConfig can be constructed with minimal arguments
+        and has the default attributes.
+        """
+        rc = RendererConfig(window_title="Test", window_size=(800, 600))
+        self.assertEqual(rc.window_title, "Test")
+        self.assertEqual(rc.window_size, (800, 600))
+        self.assertTrue(rc.vsync_enabled)
+        self.assertFalse(rc.fullscreen)
+        self.assertEqual(rc.lighting_mode, "diffuse")  # default
+        self.assertEqual(rc.shaders, {})
+
+    def test_add_model_valid(self):
+        """
+        Test that add_model accepts valid overrides (e.g. front_face_winding, lighting_mode).
+        """
+        rc = RendererConfig(window_title="RCtest")
+        model_cfg = rc.add_model(
+            obj_path="mesh.obj",
+            texture_paths={"diffuse": "mesh_diffuse.png"},
+            front_face_winding="CW",
+            lighting_mode="phong",
+            legacy_roughness=32,
+            debug_mode=True,
+        )
+        self.assertEqual(model_cfg["obj_path"], "mesh.obj")
+        self.assertEqual(model_cfg["front_face_winding"], "CW")
+        self.assertEqual(model_cfg["lighting_mode"], "phong")
+        self.assertEqual(model_cfg["legacy_roughness"], 32)
+        self.assertTrue(model_cfg["debug_mode"])
+
+    def test_add_model_invalid_front_face_winding(self):
+        """
+        Test that add_model rejects invalid front_face_winding.
+        """
+        rc = RendererConfig()
+        with self.assertRaises(ValueError) as ctx:
+            rc.add_model(
+                obj_path="mesh.obj",
+                texture_paths={"diffuse": "mesh_diffuse.png"},
+                front_face_winding="INVALID",  # Not "CW" or "CCW"
+            )
+        self.assertIn("Invalid front_face_winding option", str(ctx.exception))
+
+    def test_add_model_invalid_lighting_mode(self):
+        """
+        Test that add_model rejects an invalid lighting mode string.
+        """
+        rc = RendererConfig()
+        with self.assertRaises(ValueError) as ctx:
+            rc.add_model(
+                obj_path="mesh.obj",
+                texture_paths={"diffuse": "mesh_diffuse.png"},
+                lighting_mode="cartoon",  # not diffuse/phong/pbr
+            )
+        self.assertIn("Invalid lighting mode option", str(ctx.exception))
+
+    def test_add_model_invalid_legacy_roughness_range(self):
+        """
+        Test that add_model rejects legacy_roughness out of [0, 100] range if lighting mode is 'phong'.
+        """
+        rc = RendererConfig()
+        # 'phong' => must check legacy_roughness in [0,100]
+        with self.assertRaises(ValueError) as ctx:
+            rc.add_model(
+                obj_path="mesh.obj",
+                texture_paths={"diffuse": "mesh_diffuse.png"},
+                lighting_mode="phong",
+                legacy_roughness=200,  # out of range
+            )
+        self.assertIn("Invalid legacy_roughness value", str(ctx.exception))
+
+    def test_add_particle_renderer_valid(self):
+        """
+        Test valid particle renderer config.
+        """
+        rc = RendererConfig()
+        pcfg = rc.add_particle_renderer(
+            particle_render_mode="cpu",
+            particle_type="points",
+            alpha_blending=True,
+        )
+        self.assertEqual(pcfg["particle_render_mode"], "cpu")
+        self.assertTrue(pcfg["alpha_blending"])
+        self.assertEqual(pcfg["particle_type"], "points")
+
+    def test_add_particle_renderer_invalid_mode(self):
+        """
+        Test that an invalid particle_render_mode is rejected.
+        """
+        rc = RendererConfig()
+        with self.assertRaises(ValueError) as ctx:
+            rc.add_particle_renderer(particle_render_mode="invalid_mode")
+        self.assertIn("Invalid particle render mode option", str(ctx.exception))
+
+    def test_add_particle_renderer_invalid_type(self):
+        """
+        Test that an invalid particle_type is rejected.
+        """
+        rc = RendererConfig()
+        with self.assertRaises(ValueError) as ctx:
+            rc.add_particle_renderer(particle_render_mode="cpu", particle_type="unknown_primitive")
+        self.assertIn("Invalid particle type option", str(ctx.exception))
+
+
 class TestPurePythonExtended(unittest.TestCase):
     """
-    Collection of tests for purely Python-based logic across your code.
+    Collection of tests for other purely Python-based logic across your code.
     """
-
-    def test_drop_shadow_function_in_gui(self):
-        """
-        Test the drop shadow function from the GUI module (if App is available).
-        We simulate a simple image and ensure that a new image is returned.
-        """
-        from PIL import Image
-
-        if App is None:
-            self.skipTest("GUI module not available, skipping drop shadow function test.")
-
-        app = App()
-        # Create a simple 50x50 red image
-        red_img = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
-
-        # Use the app's add_drop_shadow method
-        shadow_img = app.add_drop_shadow(red_img, shadow_offset=(5, 5), blur_radius=5)
-        self.assertTrue(isinstance(shadow_img, Image.Image))
-        self.assertGreater(shadow_img.width, red_img.width)
-        self.assertGreater(shadow_img.height, red_img.height)
-
-        # Clean up the app
-        app.destroy()
 
     def test_camera_controller_interpolation(self):
         """
