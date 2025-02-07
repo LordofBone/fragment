@@ -399,7 +399,14 @@ class TestGUIHeadless(unittest.TestCase):
     """
 
     @unittest.skipIf(App is None, "GUI module not available.")
-    def test_app_instantiation_and_functions(self):
+    @patch("PIL.Image.open")
+    def test_app_instantiation_and_functions(self, mock_image_open):
+        # Patch Image.open to return a dummy image to avoid unclosed file warnings.
+        from PIL import Image
+        dummy_image = Image.new("RGBA", (100, 100), (255, 255, 255, 255))
+        dummy_image.close = lambda: None  # Ensure it has a close method.
+        mock_image_open.return_value = dummy_image
+
         app = App()
         app.withdraw()  # Hide the window
         try:
