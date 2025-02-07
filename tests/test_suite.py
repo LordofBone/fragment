@@ -5,16 +5,16 @@ This version omits any OpenGL or GPU-accelerated tests to avoid NullFunctionErro
 or GLError in headless CI. The tests focus on:
 
   - Config logic (RendererConfig), including shader discovery, add_model, add_surface,
-    add_skybox and unpack behavior.
+    add_skybox, and unpack behavior.
   - Camera interpolation (CameraController)
   - Stats collection (StatsCollector)
   - Scene construction logic (SceneConstructor)
   - Benchmark management (BenchmarkManager) with a dummy run function
-  - AudioPlayer logic via mocking pygame.mixer (no actual audio file required)
+  - AudioPlayer logic via mocking pygame.mixer (no real audio file required)
   - Basic GUI interactions in headless mode (if App is available)
 
 Run via:
-  pytest --maxfail=1 --disable-warnings -q
+  pytest --html-report=./report/report.html
 or:
   python -m unittest discover -s tests
 """
@@ -94,7 +94,6 @@ def walk_shaders_dir(shader_root):
             if os.path.exists(shader_file_path):
                 if shader_type not in result:
                     result[shader_type] = {}
-                # Store the absolute path for comparison.
                 result[shader_type][shader_dir] = os.path.abspath(shader_file_path)
     return result
 
@@ -104,7 +103,7 @@ def walk_shaders_dir(shader_root):
 # --------------------------------------------------------------------------------
 class TestRendererConfig(unittest.TestCase):
     """
-    Tests around RendererConfig to ensure it accepts and validates configuration properly.
+    Tests around RendererConfig to ensure it accepts/validates configuration properly.
     """
     maxDiff = None
 
@@ -342,7 +341,7 @@ class TestBenchmarkManagerHeadless(unittest.TestCase):
 
     def test_add_and_run_benchmarks(self):
         """
-        Test adding benchmarks to the manager. We check that they are registered properly.
+        Test adding benchmarks to the manager. We check they are registered properly.
         """
         self.manager.add_benchmark(
             name="TestBenchmark",
@@ -367,9 +366,10 @@ class TestBenchmarkManagerHeadless(unittest.TestCase):
 class TestAudioPlayer(unittest.TestCase):
     """
     Test the AudioPlayer class logic without requiring a real audio file.
-    We'll mock pygame.mixer so no file I/O or audio device is needed.
+    We'll patch pygame.mixer so no file I/O or audio device is needed.
     """
 
+    @patch("pygame.mixer.get_init", return_value=True)
     @patch("pygame.mixer.init")
     @patch("pygame.mixer.music.load")
     @patch("pygame.mixer.music.play")
@@ -377,7 +377,7 @@ class TestAudioPlayer(unittest.TestCase):
     @patch("pygame.mixer.music.stop")
     @patch("pygame.mixer.quit")
     def test_audio_player_start_stop(
-            self, mock_quit, mock_stop, mock_busy, mock_play, mock_load, mock_init
+            self, mock_quit, mock_stop, mock_get_busy, mock_play, mock_load, mock_init, mock_get_init
     ):
         ap = AudioPlayer(audio_file="fake.wav", delay=0.0, loop=False)
         ap.start()
