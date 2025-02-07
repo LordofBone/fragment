@@ -4,16 +4,17 @@ Extended Test Suite for the Fragment 3D Rendering Benchmark System (Headless/Pur
 This version omits any OpenGL or GPU-accelerated tests to avoid NullFunctionError
 or GLError in headless CI. The tests focus on:
 
-  - Config logic (RendererConfig)
+  - Config logic (RendererConfig), including shader discovery, add_model, add_surface,
+    add_skybox and unpack behavior.
   - Camera interpolation (CameraController)
   - Stats collection (StatsCollector)
   - Scene construction logic (SceneConstructor)
   - Benchmark management (BenchmarkManager) with a dummy run function
-  - AudioPlayer logic via mocking pygame.mixer
+  - AudioPlayer logic via mocking pygame.mixer (no actual audio file required)
   - Basic GUI interactions in headless mode (if App is available)
 
 Run via:
-  pytest --html-report=./report/report.html
+  pytest --maxfail=1 --disable-warnings -q
 or:
   python -m unittest discover -s tests
 """
@@ -75,25 +76,64 @@ def dummy_run_function(
 
 
 # --------------------------------------------------------------------------------
-# Tests: Pure Python Logic
+# Helper: Walk the shaders directory and return a dictionary of discovered shaders.
+# --------------------------------------------------------------------------------
+def walk_shaders_dir(shader_root):
+    """
+    Walk the shader root directory and return a dictionary mapping shader types
+    ("vertex", "fragment", "compute") to a dict of {shader_dir: absolute_path}.
+    """
+    result = {}
+    for shader_type in ["vertex", "fragment", "compute"]:
+        type_path = os.path.join(shader_root, shader_type)
+        if not os.path.exists(type_path):
+            continue
+        for shader_dir in os.listdir(type_path):
+            dir_path = os.path.join(type_path, shader_dir)
+            shader_file_path = os.path.join(dir_path, f"{shader_type}.glsl")
+            if os.path.exists(shader_file_path):
+                if shader_type not in result:
+                    result[shader_type] = {}
+                # Store the absolute path for comparison.
+                result[shader_type][shader_dir] = os.path.abspath(shader_file_path)
+    return result
+
+
+# --------------------------------------------------------------------------------
+# Tests: RendererConfig and Config Logic
 # --------------------------------------------------------------------------------
 class TestRendererConfig(unittest.TestCase):
     """
-    Tests around RendererConfig to ensure it accepts/validates config properly.
+    Tests around RendererConfig to ensure it accepts and validates configuration properly.
     """
+    maxDiff = None
 
     def test_basic_initialization(self):
         """
         Verify that RendererConfig can be constructed with minimal arguments
         and has the default attributes.
         """
+
         rc = RendererConfig(window_title="Test", window_size=(800, 600))
         self.assertEqual(rc.window_title, "Test")
         self.assertEqual(rc.window_size, (800, 600))
         self.assertTrue(rc.vsync_enabled)
         self.assertFalse(rc.fullscreen)
         self.assertEqual(rc.lighting_mode, "diffuse")  # default
-        self.assertEqual(rc.shaders, {})
+
+    def test_shader_discovery(self):
+        """
+        Test that discover_shaders() correctly walks the shader directory.
+        The expected dictionary is computed by walk_shaders_dir().
+        If the shaders directory does not exist, skip this test.
+        """
+        shader_root = os.path.abspath(os.path.join("shaders"))
+        if not os.path.exists(shader_root):
+            self.skipTest("Shaders directory does not exist.")
+        rc = RendererConfig(window_title="Test", window_size=(800, 600))
+        rc.discover_shaders()
+        expected = walk_shaders_dir(shader_root)
+        self.assertEqual(rc.shaders, expected)
 
     def test_add_model_valid(self):
         """
@@ -116,7 +156,7 @@ class TestRendererConfig(unittest.TestCase):
 
     def test_add_model_invalid_front_face_winding(self):
         """
-        Test that add_model rejects invalid front_face_winding.
+        Test that add_model rejects an invalid front_face_winding.
         """
         rc = RendererConfig()
         with self.assertRaises(ValueError) as ctx:
@@ -145,7 +185,6 @@ class TestRendererConfig(unittest.TestCase):
         Test that add_model rejects legacy_roughness out of [0, 100] range if lighting mode is 'phong'.
         """
         rc = RendererConfig()
-        # 'phong' => must check legacy_roughness in [0,100]
         with self.assertRaises(ValueError) as ctx:
             rc.add_model(
                 obj_path="mesh.obj",
@@ -187,7 +226,56 @@ class TestRendererConfig(unittest.TestCase):
             rc.add_particle_renderer(particle_render_mode="cpu", particle_type="unknown_primitive")
         self.assertIn("Invalid particle type option", str(ctx.exception))
 
+    def test_add_surface_valid(self):
+        """
+        Test that add_surface accepts valid overrides and extra keyword arguments.
+        """
+        rc = RendererConfig(window_title="SurfaceTest", window_size=(1024, 768))
+        surface_cfg = rc.add_surface(
+            shader_names=("basic", "default"),
+            width=600.0,
+            height=400.0,
+            cubemap_folder="textures/cube",
+            debug_mode=True,
+            extra_param="extra_value"
+        )
+        self.assertEqual(surface_cfg["shader_names"], ("basic", "default"))
+        self.assertEqual(surface_cfg["width"], 600.0)
+        self.assertEqual(surface_cfg["height"], 400.0)
+        self.assertEqual(surface_cfg["cubemap_folder"], "textures/cube")
+        self.assertEqual(surface_cfg["debug_mode"], True)
+        self.assertEqual(surface_cfg["extra_param"], "extra_value")
 
+    def test_add_skybox_valid(self):
+        """
+        Test that add_skybox accepts valid parameters and extra keyword arguments.
+        """
+        rc = RendererConfig(window_title="SkyboxTest", window_size=(800, 600))
+        skybox_cfg = rc.add_skybox(
+            cubemap_folder="textures/skybox",
+            shader_names=("skybox_vertex", "skybox_fragment"),
+            extra_setting="extra"
+        )
+        self.assertEqual(skybox_cfg["cubemap_folder"], "textures/skybox")
+        self.assertEqual(skybox_cfg["shader_names"], ("skybox_vertex", "skybox_fragment"))
+        self.assertEqual(skybox_cfg["extra_setting"], "extra")
+
+    def test_unpack_returns_copy(self):
+        """
+        Test that unpack() returns a deep copy of the configuration dictionary.
+        Modifying the returned dict should not affect the original config.
+        """
+        rc = RendererConfig(window_title="UnpackTest", window_size=(800, 600))
+        data1 = rc.unpack()
+        data1["window_title"] = "Changed"
+        data2 = rc.unpack()
+        self.assertNotEqual(data2["window_title"], "Changed")
+        self.assertEqual(data2["window_title"], "UnpackTest")
+
+
+# --------------------------------------------------------------------------------
+# Tests: Other Pure Python Logic
+# --------------------------------------------------------------------------------
 class TestPurePythonExtended(unittest.TestCase):
     """
     Collection of tests for other purely Python-based logic across your code.
@@ -200,8 +288,6 @@ class TestPurePythonExtended(unittest.TestCase):
         positions = [(0, 0, 0, 0, 0), (10, 10, 10, 90, 45)]
         lens = [0, 90]
         cc = CameraController(positions, lens_rotations=lens, move_speed=1.0, loop=False)
-
-        # Step halfway
         pos, rot = cc.update(0.5)
         self.assertGreater(pos.x, 0)
         self.assertLess(pos.x, 10)
@@ -215,20 +301,14 @@ class TestPurePythonExtended(unittest.TestCase):
         sc = StatsCollector()
         sc.reset("TestBench", 123)
         sc.set_current_fps(60)
-
-        # Mock CPU and GPU usage
         with sc.usage_lock:
             sc.cpu_usage = 20.0
             sc.gpu_usage = 30.0
-
-        # Add a data point
         sc.add_data_point()
         data = sc.get_all_data()
-
         self.assertEqual(data["TestBench"]["fps_data"], [60])
         self.assertEqual(data["TestBench"]["cpu_usage_data"], [20.0])
         self.assertEqual(data["TestBench"]["gpu_usage_data"], [30.0])
-
         sc.shutdown()
 
     def test_scene_constructor_basic_actions(self):
@@ -237,18 +317,13 @@ class TestPurePythonExtended(unittest.TestCase):
         We mock out the AbstractRenderer so no real rendering calls occur.
         """
         from components.abstract_renderer import AbstractRenderer
-
         sc = SceneConstructor()
         mock_renderer = MagicMock(spec=AbstractRenderer)
         sc.add_renderer("test_renderer", mock_renderer)
-
-        # Translate, rotate, scale, set auto-rotation
         sc.translate_renderer("test_renderer", (1, 2, 3))
         sc.rotate_renderer("test_renderer", 45, (0, 1, 0))
         sc.scale_renderer("test_renderer", (2, 2, 2))
         sc.set_auto_rotation("test_renderer", True, axis=(0, 1, 0), speed=1000)
-
-        # Ensure the calls went to the mock properly
         mock_renderer.translate.assert_called_with((1, 2, 3))
         mock_renderer.rotate.assert_called_with(45, (0, 1, 0))
         mock_renderer.scale.assert_called_with((2, 2, 2))
@@ -267,8 +342,7 @@ class TestBenchmarkManagerHeadless(unittest.TestCase):
 
     def test_add_and_run_benchmarks(self):
         """
-        Test adding benchmarks to the manager. We won't fully run them in multiple processes,
-        but we can check they get registered properly.
+        Test adding benchmarks to the manager. We check that they are registered properly.
         """
         self.manager.add_benchmark(
             name="TestBenchmark",
@@ -305,24 +379,14 @@ class TestAudioPlayer(unittest.TestCase):
     def test_audio_player_start_stop(
             self, mock_quit, mock_stop, mock_busy, mock_play, mock_load, mock_init
     ):
-        # Create the player with a "fake.wav" filename
         ap = AudioPlayer(audio_file="fake.wav", delay=0.0, loop=False)
-        # Start playback
         ap.start()
-
-        # Check that load, init, and play were called
         mock_init.assert_called_once()
         mock_load.assert_called_with("fake.wav")
         mock_play.assert_called_with(-1 if ap.loop else 0)
-
-        # Now stop
         ap.stop()
-
-        # Ensure music.stop() and mixer.quit() were called
         mock_stop.assert_called_once()
         mock_quit.assert_called_once()
-
-        # The event is_playing should be cleared
         self.assertFalse(ap.is_playing.is_set())
 
 
@@ -336,21 +400,12 @@ class TestGUIHeadless(unittest.TestCase):
 
     @unittest.skipIf(App is None, "GUI module not available.")
     def test_app_instantiation_and_functions(self):
-        """
-        Test basic instantiation and some config changes of the GUI in headless mode.
-        This should not require OpenGL calls if the user doesn't start actual rendering.
-        """
         app = App()
         app.withdraw()  # Hide the window
-
         try:
-            # Switch appearance mode
             app.change_appearance_mode_event("Light")
-            # Check we can mark all benchmarks in the scenario tab
             for key, data in app.benchmark_vars.items():
                 data["var"].set(True)
-
-            # Change some settings
             app.resolution_optionmenu.set("1024x768")
             app.msaa_level_optionmenu.set("4")
             app.anisotropy_optionmenu.set("16")
@@ -359,10 +414,8 @@ class TestGUIHeadless(unittest.TestCase):
             app.particle_render_mode_optionmenu.set("transform feedback")
             app.enable_vsync_checkbox.select()
             app.sound_enabled_checkbox.select()
-
-            # Start run_benchmark in a separate thread (we won't wait for it fully)
             threading.Thread(target=app.run_benchmark, daemon=True).start()
-            time.sleep(0.2)  # Let it spin briefly
+            time.sleep(0.2)
         finally:
             app.destroy()
 
