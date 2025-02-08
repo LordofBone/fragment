@@ -21,10 +21,11 @@ or:
 
 import os
 import sys
-import threading
 import time
 import unittest
 from unittest.mock import MagicMock, patch
+
+from PIL import Image
 
 # Adjust PYTHONPATH to include project root
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -389,30 +390,85 @@ class TestAudioPlayer(unittest.TestCase):
         mock_quit.assert_called_once()
         self.assertFalse(ap.is_playing.is_set())
 
-
 # --------------------------------------------------------------------------------
 # GUI tests (in headless mode). We avoid any real rendering contexts.
 # --------------------------------------------------------------------------------
+
+# Dummy process to avoid spawning real processes
+class DummyProcess:
+    def __init__(self, *args, **kwargs):
+        self.pid = 1234
+
+    def start(self):
+        pass
+
+    def is_alive(self):
+        return False
+
+    def terminate(self):
+        pass
+
+    def join(self):
+        pass
+
+
+# DummyThread that runs target code immediately on the same thread
+class DummyThread:
+    def __init__(self, target=None, args=(), kwargs=None, daemon=None):
+        self.target = target
+        self.args = args
+        self.kwargs = kwargs if kwargs is not None else {}
+        self.daemon = daemon
+
+    def start(self):
+        # No real threading: just call the target
+        self.run()
+
+    def run(self):
+        if self.target:
+            self.target(*self.args, **self.kwargs)
+
+
 class TestGUIHeadless(unittest.TestCase):
-    """
-    Tests for GUI functionality in headless mode (does NOT invoke OpenGL).
-    """
 
     @unittest.skipIf(App is None, "GUI module not available.")
-    @patch("PIL.Image.open")
-    def test_app_instantiation_and_functions(self, mock_image_open):
+    # 1) Patch BenchmarkManager.run_benchmarks so it returns immediately.
+    @patch("components.benchmark_manager.BenchmarkManager.run_benchmarks", return_value=None)
+    # 2) Patch the Image.open used in gui.main_gui (not PIL.Image.open).
+    @patch("gui.main_gui.Image.open")
+    # 3) Patch Process and Thread so that real processes/threads are not spawned.
+    @patch("components.benchmark_manager.Process", new=DummyProcess)
+    @patch("gui.main_gui.threading.Thread", new=DummyThread)
+    def test_app_instantiation_and_functions(self, mock_image_open, mock_run_benchmarks):
+        """
+        Test the GUI in headless mode without spawning real threads or running real benchmarks.
+        """
         # Patch Image.open to return a dummy image to avoid unclosed file warnings.
-        from PIL import Image
         dummy_image = Image.new("RGBA", (100, 100), (255, 255, 255, 255))
         dummy_image.close = lambda: None  # Ensure it has a close method.
         mock_image_open.return_value = dummy_image
 
         app = App()
         app.withdraw()  # Hide the window
+
+        # Override app.after so that callbacks run immediately on the main thread.
+        def immediate_after(delay, func, *args, **kwargs):
+            func(*args, **kwargs)
+            return "dummy"
+
+        app.after = immediate_after
+
+        # Override the progress bar's methods (if present) so they do nothing.
+        if hasattr(app, "loading_progress_bar"):
+            app.loading_progress_bar.after_cancel = lambda id: None
+            app.loading_progress_bar.stop = lambda: None
+
         try:
+            # Set up the GUI state.
             app.change_appearance_mode_event("Light")
             for key, data in app.benchmark_vars.items():
                 data["var"].set(True)
+
             app.resolution_optionmenu.set("1024x768")
             app.msaa_level_optionmenu.set("4")
             app.anisotropy_optionmenu.set("16")
@@ -421,11 +477,22 @@ class TestGUIHeadless(unittest.TestCase):
             app.particle_render_mode_optionmenu.set("transform feedback")
             app.enable_vsync_checkbox.select()
             app.sound_enabled_checkbox.select()
-            threading.Thread(target=app.run_benchmark, daemon=True).start()
+
+            # Kick off the benchmark. Because we patched threading.Thread with DummyThread,
+            # run_benchmark() and its subsequent call run on the main thread.
+            # And because BenchmarkManager.run_benchmarks is patched to return immediately,
+            # no long-running code is executed.
+            app.after(0, app.run_benchmark)
+
+            # Let the GUI process events.
+            app.update()
             time.sleep(0.2)
+
+            # Optionally, verify that run_benchmarks was called.
+            mock_run_benchmarks.assert_called_once()
+
         finally:
             app.destroy()
-
 
 # --------------------------------------------------------------------------------
 # Main block to run tests if this module is executed directly.
