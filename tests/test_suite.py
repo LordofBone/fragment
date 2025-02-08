@@ -196,6 +196,20 @@ class TestRendererConfig(unittest.TestCase):
             )
         self.assertIn("Invalid legacy_roughness value", str(ctx.exception))
 
+    def test_add_model_invalid_pbr_overrides(self):
+        """
+        Test that invalid PBR overrides are rejected.
+        """
+        rc = RendererConfig(window_title="RCtest")
+        with self.assertRaises(ValueError) as ctx:
+            rc.add_model(
+                obj_path="mesh.obj",
+                texture_paths={"diffuse": "mesh_diffuse.png"},
+                pbr_extension_overrides={"bread": 1, "cheese": 2}
+            )
+        self.assertIn("No such material property: bread, cheese", str(ctx.exception))
+        self.assertIn("available pbr overrides are:", str(ctx.exception))
+
     def test_add_particle_renderer_valid(self):
         """
         Test valid particle renderer config.
