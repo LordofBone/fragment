@@ -35,18 +35,19 @@ if PROJECT_ROOT not in sys.path:
 # --------------------------------------------------------------------------------
 # Pure-Python Components
 # --------------------------------------------------------------------------------
-from components.camera_control import CameraController
-from components.stats_collector import StatsCollector
-from components.scene_constructor import SceneConstructor
-from components.benchmark_manager import BenchmarkManager
 from components.audio_player import AudioPlayer
+from components.benchmark_manager import BenchmarkManager
+from components.camera_control import CameraController
 from components.renderer_config import RendererConfig
+from components.scene_constructor import SceneConstructor
+from components.stats_collector import StatsCollector
 
 # For GUI testing, try to import the App class (if available).
 try:
     from gui.main_gui import App
 except ImportError:
     App = None
+
 
 # --------------------------------------------------------------------------------
 # Dummy function for simulating a benchmark run (no real GL/audio).
@@ -106,6 +107,7 @@ class TestRendererConfig(unittest.TestCase):
     """
     Tests around RendererConfig to ensure it accepts/validates configuration properly.
     """
+
     maxDiff = None
 
     def test_basic_initialization(self):
@@ -237,7 +239,7 @@ class TestRendererConfig(unittest.TestCase):
             height=400.0,
             cubemap_folder="textures/cube",
             debug_mode=True,
-            extra_param="extra_value"
+            extra_param="extra_value",
         )
         self.assertEqual(surface_cfg["shader_names"], ("basic", "default"))
         self.assertEqual(surface_cfg["width"], 600.0)
@@ -252,9 +254,7 @@ class TestRendererConfig(unittest.TestCase):
         """
         rc = RendererConfig(window_title="SkyboxTest", window_size=(800, 600))
         skybox_cfg = rc.add_skybox(
-            cubemap_folder="textures/skybox",
-            shader_names=("skybox_vertex", "skybox_fragment"),
-            extra_setting="extra"
+            cubemap_folder="textures/skybox", shader_names=("skybox_vertex", "skybox_fragment"), extra_setting="extra"
         )
         self.assertEqual(skybox_cfg["cubemap_folder"], "textures/skybox")
         self.assertEqual(skybox_cfg["shader_names"], ("skybox_vertex", "skybox_fragment"))
@@ -317,6 +317,7 @@ class TestPurePythonExtended(unittest.TestCase):
         We mock out the AbstractRenderer so no real rendering calls occur.
         """
         from components.abstract_renderer import AbstractRenderer
+
         sc = SceneConstructor()
         mock_renderer = MagicMock(spec=AbstractRenderer)
         sc.add_renderer("test_renderer", mock_renderer)
@@ -337,6 +338,7 @@ class TestBenchmarkManagerHeadless(unittest.TestCase):
 
     def setUp(self):
         from multiprocessing import Event
+
         self.stop_event = Event()
         self.manager = BenchmarkManager(self.stop_event)
 
@@ -378,7 +380,7 @@ class TestAudioPlayer(unittest.TestCase):
     @patch("pygame.mixer.music.stop")
     @patch("pygame.mixer.quit")
     def test_audio_player_start_stop(
-            self, mock_quit, mock_stop, mock_get_busy, mock_play, mock_load, mock_init, mock_get_init
+        self, mock_quit, mock_stop, mock_get_busy, mock_play, mock_load, mock_init, mock_get_init
     ):
         ap = AudioPlayer(audio_file="fake.wav", delay=0.0, loop=False)
         ap.start()
@@ -390,6 +392,7 @@ class TestAudioPlayer(unittest.TestCase):
         mock_quit.assert_called_once()
         self.assertFalse(ap.is_playing.is_set())
 
+
 # --------------------------------------------------------------------------------
 # GUI tests (in headless mode). We avoid any real rendering contexts.
 # --------------------------------------------------------------------------------
@@ -398,13 +401,18 @@ class DummyProcess:
     def __init__(self, *args, **kwargs):
         self.pid = 1234
 
-    def start(self): pass
+    def start(self):
+        pass
 
-    def is_alive(self): return False
+    def is_alive(self):
+        return False
 
-    def terminate(self): pass
+    def terminate(self):
+        pass
 
-    def join(self): pass
+    def join(self):
+        pass
+
 
 # DummyThread that runs target code immediately on the same thread
 class DummyThread:
@@ -413,15 +421,17 @@ class DummyThread:
         self.args = args
         self.kwargs = kwargs if kwargs is not None else {}
         self.daemon = daemon
+
     def start(self):
         # No real threading: just run on the same thread.
         self.run()
+
     def run(self):
         if self.target:
             self.target(*self.args, **self.kwargs)
 
-class TestGUIHeadless(unittest.TestCase):
 
+class TestGUIHeadless(unittest.TestCase):
     @unittest.skipIf(App is None, "GUI module not available.")
     # (1) Patch StatsCollector.monitor_system_usage to immediately return
     @patch("components.stats_collector.StatsCollector.monitor_system_usage", return_value=None)
@@ -433,14 +443,8 @@ class TestGUIHeadless(unittest.TestCase):
     @patch("components.benchmark_manager.Process", new=DummyProcess)
     @patch("gui.main_gui.pygame.init", lambda: None)
     @patch("gui.main_gui.threading.Thread", new=DummyThread)
-    @patch("gui.main_gui.pygame.display.Info",
-           new=lambda: type("FakeInfo", (), {"current_w": 800, "current_h": 600})())
-    def test_app_instantiation_and_functions(
-            self,
-            mock_image_open,
-            mock_run_benchmarks,
-            mock_monitor_system_usage
-    ):
+    @patch("gui.main_gui.pygame.display.Info", new=lambda: type("FakeInfo", (), {"current_w": 800, "current_h": 600})())
+    def test_app_instantiation_and_functions(self, mock_image_open, mock_run_benchmarks, mock_monitor_system_usage):
         """
         Test the GUI in headless mode without spawning real threads
         or blocking in StatsCollector's infinite loop.
@@ -494,6 +498,7 @@ class TestGUIHeadless(unittest.TestCase):
 
         finally:
             app.destroy()
+
 
 # --------------------------------------------------------------------------------
 # Main block to run tests if this module is executed directly.
