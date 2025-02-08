@@ -393,24 +393,18 @@ class TestAudioPlayer(unittest.TestCase):
 # --------------------------------------------------------------------------------
 # GUI tests (in headless mode). We avoid any real rendering contexts.
 # --------------------------------------------------------------------------------
-
 # Dummy process to avoid spawning real processes
 class DummyProcess:
     def __init__(self, *args, **kwargs):
         self.pid = 1234
 
-    def start(self):
-        pass
+    def start(self): pass
 
-    def is_alive(self):
-        return False
+    def is_alive(self): return False
 
-    def terminate(self):
-        pass
+    def terminate(self): pass
 
-    def join(self):
-        pass
-
+    def join(self): pass
 
 # DummyThread that runs target code immediately on the same thread
 class DummyThread:
@@ -419,52 +413,60 @@ class DummyThread:
         self.args = args
         self.kwargs = kwargs if kwargs is not None else {}
         self.daemon = daemon
-
     def start(self):
-        # No real threading: just call the target
+        # No real threading: just run on the same thread.
         self.run()
-
     def run(self):
         if self.target:
             self.target(*self.args, **self.kwargs)
 
-
 class TestGUIHeadless(unittest.TestCase):
 
     @unittest.skipIf(App is None, "GUI module not available.")
-    # 1) Patch BenchmarkManager.run_benchmarks so it returns immediately.
+    # (1) Patch StatsCollector.monitor_system_usage to immediately return
+    @patch("components.stats_collector.StatsCollector.monitor_system_usage", return_value=None)
+    # (2) Patch BenchmarkManager.run_benchmarks so it returns immediately
     @patch("components.benchmark_manager.BenchmarkManager.run_benchmarks", return_value=None)
-    # 2) Patch the Image.open used in gui.main_gui (not PIL.Image.open).
+    # (3) Patch the Image.open used in gui.main_gui (not PIL.Image.open).
     @patch("gui.main_gui.Image.open")
-    # 3) Patch Process and Thread so that real processes/threads are not spawned.
+    # (4) Patch Process and Thread so that real processes/threads are not spawned.
     @patch("components.benchmark_manager.Process", new=DummyProcess)
+    @patch("gui.main_gui.pygame.init", lambda: None)
     @patch("gui.main_gui.threading.Thread", new=DummyThread)
-    def test_app_instantiation_and_functions(self, mock_image_open, mock_run_benchmarks):
+    @patch("gui.main_gui.pygame.display.Info",
+           new=lambda: type("FakeInfo", (), {"current_w": 800, "current_h": 600})())
+    def test_app_instantiation_and_functions(
+            self,
+            mock_image_open,
+            mock_run_benchmarks,
+            mock_monitor_system_usage
+    ):
         """
-        Test the GUI in headless mode without spawning real threads or running real benchmarks.
+        Test the GUI in headless mode without spawning real threads
+        or blocking in StatsCollector's infinite loop.
         """
-        # Patch Image.open to return a dummy image to avoid unclosed file warnings.
+        # Create dummy image
         dummy_image = Image.new("RGBA", (100, 100), (255, 255, 255, 255))
-        dummy_image.close = lambda: None  # Ensure it has a close method.
+        dummy_image.close = lambda: None
         mock_image_open.return_value = dummy_image
 
+        # Instantiate the GUI
         app = App()
-        app.withdraw()  # Hide the window
+        app.withdraw()
 
-        # Override app.after so that callbacks run immediately on the main thread.
         def immediate_after(delay, func, *args, **kwargs):
             func(*args, **kwargs)
             return "dummy"
 
         app.after = immediate_after
 
-        # Override the progress bar's methods (if present) so they do nothing.
+        # Optionally disable progress bar
         if hasattr(app, "loading_progress_bar"):
             app.loading_progress_bar.after_cancel = lambda id: None
             app.loading_progress_bar.stop = lambda: None
 
         try:
-            # Set up the GUI state.
+            # Set up the GUI state
             app.change_appearance_mode_event("Light")
             for key, data in app.benchmark_vars.items():
                 data["var"].set(True)
@@ -478,18 +480,17 @@ class TestGUIHeadless(unittest.TestCase):
             app.enable_vsync_checkbox.select()
             app.sound_enabled_checkbox.select()
 
-            # Kick off the benchmark. Because we patched threading.Thread with DummyThread,
-            # run_benchmark() and its subsequent call run on the main thread.
-            # And because BenchmarkManager.run_benchmarks is patched to return immediately,
-            # no long-running code is executed.
+            # Kick off the benchmark (synchronous because we patched Thread).
             app.after(0, app.run_benchmark)
-
-            # Let the GUI process events.
             app.update()
             time.sleep(0.2)
 
-            # Optionally, verify that run_benchmarks was called.
+            # Confirm that run_benchmarks was called exactly once
             mock_run_benchmarks.assert_called_once()
+
+            # Confirm StatsCollector.monitor_system_usage got called
+            # (or not) depending on your needs:
+            mock_monitor_system_usage.assert_called_once()
 
         finally:
             app.destroy()
