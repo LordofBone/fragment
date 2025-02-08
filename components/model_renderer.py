@@ -215,14 +215,18 @@ class ModelRenderer(AbstractRenderer):
             "anisotropy": "aniso",
             "anisotropy_rot": "anisor",
             "transmission": "Tf",
-            "fresnel_exponent": "Pfe"
+            "fresnel_exponent": "Pfe",
         }
         # Check that override keys are valid.
         allowed_keys = set(friendly_to_token.keys())
         invalid_keys = [key for key in override_pbr if key not in allowed_keys]
         if invalid_keys:
-            raise ValueError("No such material property: " + ", ".join(invalid_keys) +
-                             "; available pbr overrides are: " + ", ".join(sorted(allowed_keys)))
+            raise ValueError(
+                "No such material property: "
+                + ", ".join(invalid_keys)
+                + "; available pbr overrides are: "
+                + ", ".join(sorted(allowed_keys))
+            )
         # For each material, apply the valid user override values.
         for mesh in self.object.mesh_list:
             for mat in mesh.materials:
@@ -265,16 +269,18 @@ class ModelRenderer(AbstractRenderer):
                     continue
 
                 vertices_array = np.array(vertices, dtype=np.float32).reshape(-1, 8)
-                reordered = np.column_stack((
-                    vertices_array[:, 5],  # x
-                    vertices_array[:, 6],  # y
-                    vertices_array[:, 7],  # z
-                    vertices_array[:, 2],  # nx
-                    vertices_array[:, 3],  # ny
-                    vertices_array[:, 4],  # nz
-                    vertices_array[:, 0],  # u
-                    vertices_array[:, 1],  # v
-                ))
+                reordered = np.column_stack(
+                    (
+                        vertices_array[:, 5],  # x
+                        vertices_array[:, 6],  # y
+                        vertices_array[:, 7],  # z
+                        vertices_array[:, 2],  # nx
+                        vertices_array[:, 3],  # ny
+                        vertices_array[:, 4],  # nz
+                        vertices_array[:, 0],  # u
+                        vertices_array[:, 1],  # v
+                    )
+                )
                 reordered = self.compute_tangents_and_bitangents(reordered)
                 vbo = self.create_vbo(reordered)
                 vao = self.create_vao(with_tangents=True)

@@ -204,11 +204,7 @@ class TestRendererConfig(unittest.TestCase):
         model_cfg = rc.add_model(
             obj_path="mesh.obj",
             texture_paths={"diffuse": "mesh_diffuse.png"},
-            pbr_extension_overrides={
-                "roughness": 0.3,
-                "metallic": 0.7,
-                "sheen": 0.2
-            }
+            pbr_extension_overrides={"roughness": 0.3, "metallic": 0.7, "sheen": 0.2},
         )
         # Check that the returned config contains the valid pbr overrides.
         self.assertEqual(model_cfg["pbr_extension_overrides"]["roughness"], 0.3)
@@ -224,7 +220,7 @@ class TestRendererConfig(unittest.TestCase):
             rc.add_model(
                 obj_path="mesh.obj",
                 texture_paths={"diffuse": "mesh_diffuse.png"},
-                pbr_extension_overrides={"bread": 1, "cheese": 2}
+                pbr_extension_overrides={"bread": 1, "cheese": 2},
             )
         self.assertIn("No such material property: bread, cheese", str(ctx.exception))
         self.assertIn("available pbr overrides are:", str(ctx.exception))

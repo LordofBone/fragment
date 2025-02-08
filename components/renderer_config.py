@@ -61,7 +61,7 @@ class RendererConfig:
         distortion_strength=0.3,
         refraction_strength=0.3,
         lens_rotations=None,
-            pbr_extension_overrides=None,
+        pbr_extension_overrides=None,
         background_audio=None,
         sound_enabled=True,
         audio_delay=0.0,
@@ -262,7 +262,7 @@ class RendererConfig:
         distortion_strength=None,
         refraction_strength=None,
         lens_rotations=None,
-            pbr_extension_overrides=None,
+        pbr_extension_overrides=None,
         debug_mode=None,
         **kwargs,
     ):
@@ -282,8 +282,10 @@ class RendererConfig:
             invalid_keys = [key for key in pbr_extension_overrides if key not in allowed_keys]
             if invalid_keys:
                 raise ValueError(
-                    "No such material property: " + ", ".join(invalid_keys) +
-                    "; available pbr overrides are: " + ", ".join(sorted(allowed_keys))
+                    "No such material property: "
+                    + ", ".join(invalid_keys)
+                    + "; available pbr overrides are: "
+                    + ", ".join(sorted(allowed_keys))
                 )
 
         # Start with a deep copy of the base configuration.
