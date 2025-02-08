@@ -9,3 +9,4 @@ GPUtil
 pytest
 pytest-html-reporter
 ruff
+glm
