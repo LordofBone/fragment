@@ -10,3 +10,4 @@ pytest
 pytest-html-reporter
 ruff
 glm
+PyOpenGL
