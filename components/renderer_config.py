@@ -266,12 +266,30 @@ class RendererConfig:
         debug_mode=None,
         **kwargs,
     ):
-        """Add a model to the configuration."""
+        # Validate pbr_extension_overrides keys if provided.
+        if pbr_extension_overrides is not None:
+            allowed_keys = {
+                "roughness",
+                "metallic",
+                "clearcoat",
+                "clearcoat_roughness",
+                "sheen",
+                "anisotropy",
+                "anisotropy_rot",
+                "transmission",
+                "fresnel_exponent",
+            }
+            invalid_keys = [key for key in pbr_extension_overrides if key not in allowed_keys]
+            if invalid_keys:
+                raise ValueError(
+                    "No such material property: " + ", ".join(invalid_keys) +
+                    "; available pbr overrides are: " + ", ".join(sorted(allowed_keys))
+                )
 
-        # Start with a deep copy of the base configuration
+        # Start with a deep copy of the base configuration.
         model_config = self.unpack()
 
-        # Now apply specific overrides provided by the model, overwriting defaults
+        # Now apply specific overrides provided by the model.
         model_specifics = {
             "obj_path": obj_path,
             "texture_paths": texture_paths,
@@ -322,18 +340,11 @@ class RendererConfig:
             "pbr_extension_overrides": pbr_extension_overrides,
             "debug_mode": debug_mode,
         }
-
-        # Update the configuration with model specifics, preserving non-None values
         model_config.update({k: v for k, v in model_specifics.items() if v is not None})
-
-        # Apply any additional keyword arguments passed in kwargs
         for key, value in kwargs.items():
             if key not in model_config:
                 model_config[key] = value
-
-        # Validate the updated configuration
         self._validate_config(model_config)
-
         return model_config
 
     def add_surface(

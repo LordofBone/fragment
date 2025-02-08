@@ -87,27 +87,20 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         material: The pywavefront material object.
         fallback_pbr (dict): A dictionary containing fallback PBR parameters.
     """
-    # Expected uniform names mapped to keys used in our material values.
     uniform_names = {
-        # "material.ambient": "ambient", (currently unused, ambientColor is used instead)
-        # "material.diffuse": "diffuse", (currently unused, baseColor is used instead)
         "material.specular": "specular",
         "material.ior": "ior",
         "material.emissive": "emissive",
         "material.illuminationModel": "illumination_model",
-        # "material.transparency": "transparency", (currently unused, overriden by legacyOpacity)
         "material.roughness": "roughness",
         "material.metallic": "metallic",
         "material.clearcoat": "clearcoat",
         "material.clearcoatRoughness": "clearcoat_roughness",
         "material.sheen": "sheen",
-        # "material.anisotropy": "anisotropy", (currently unused)
-        # "material.anisotropyRot": "anisotropy_rot", (currently unused)
         "material.transmission": "transmission",
         "material.fresnelExponent": "fresnel_exponent",
     }
 
-    # Retrieve basic material values from pywavefront attributes.
     ambient = getattr(material, "ambient", [0.2, 0.2, 0.2, 1.0])[:3]
     diffuse = getattr(material, "diffuse", [0.8, 0.8, 0.8, 1.0])[:3]
     specular = getattr(material, "specular", [0.5, 0.5, 0.5, 1.0])[:3]
@@ -116,7 +109,6 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     illumination_model = getattr(material, "illumination_model", 2)
     transparency = getattr(material, "transparency", 1.0)
 
-    # Merge fallback PBR with any pbr_extensions from the material.
     local_pbr = dict(fallback_pbr)
     mat_pbr = getattr(material, "pbr_extensions", {})
     if "Pr" in mat_pbr:
@@ -167,7 +159,6 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         "fresnel_exponent": fresnel_exponent,
     }
 
-    # Get uniform locations for all expected uniforms.
     uniform_locations = {}
     missing_uniforms = []
     for uniform_name, key in uniform_names.items():
@@ -178,13 +169,10 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     if missing_uniforms:
         raise RuntimeError("Uniform(s) not found in shader program: " + ", ".join(missing_uniforms))
 
-    # Upload the basic fields.
     glUniform3f(uniform_locations["material.specular"], *material_values["specular"])
     glUniform1f(uniform_locations["material.ior"], float(material_values["ior"]))
     glUniform3f(uniform_locations["material.emissive"], *material_values["emissive"])
     glUniform1i(uniform_locations["material.illuminationModel"], int(material_values["illumination_model"]))
-
-    # Upload PBR fields.
     glUniform1f(uniform_locations["material.roughness"], material_values["roughness"])
     glUniform1f(uniform_locations["material.metallic"], material_values["metallic"])
     glUniform1f(uniform_locations["material.clearcoat"], material_values["clearcoat"])
@@ -217,7 +205,7 @@ class ModelRenderer(AbstractRenderer):
 
         # Grab user overrides; if None or missing, default to empty dict.
         override_pbr = kwargs.get("pbr_extension_overrides") or {}
-        # Map from friendly names to .mtl tokens
+        # Map from friendly names to .mtl tokens.
         friendly_to_token = {
             "roughness": "Pr",
             "metallic": "Pm",
@@ -229,14 +217,18 @@ class ModelRenderer(AbstractRenderer):
             "transmission": "Tf",
             "fresnel_exponent": "Pfe"
         }
-
-        # For each material, override the relevant tokens if a user override is present.
-        if override_pbr:
-            for mesh in self.object.mesh_list:
-                for mat in mesh.materials:
-                    for friendly, token in friendly_to_token.items():
-                        if friendly in override_pbr:
-                            mat.pbr_extensions[token] = override_pbr[friendly]
+        # Check that override keys are valid.
+        allowed_keys = set(friendly_to_token.keys())
+        invalid_keys = [key for key in override_pbr if key not in allowed_keys]
+        if invalid_keys:
+            raise ValueError("No such material property: " + ", ".join(invalid_keys) +
+                             "; available pbr overrides are: " + ", ".join(sorted(allowed_keys)))
+        # For each material, apply the valid user override values.
+        for mesh in self.object.mesh_list:
+            for mat in mesh.materials:
+                for friendly, token in friendly_to_token.items():
+                    if friendly in override_pbr:
+                        mat.pbr_extensions[token] = override_pbr[friendly]
 
         # Create a default dict of fallback PBR parameters.
         default_pbr = {
@@ -250,9 +242,7 @@ class ModelRenderer(AbstractRenderer):
             "transmission": (0.0, 0.0, 0.0),
             "fresnel_exponent": 0.5,
         }
-
-        # Merge user-provided overrides into default. If override_pbr is empty or None,
-        # this is effectively a no-op.
+        # Merge user-provided overrides into default.
         default_pbr.update(override_pbr)
         self.pbr_extension_overrides = default_pbr
 
@@ -274,30 +264,20 @@ class ModelRenderer(AbstractRenderer):
                     print(f"Material '{material.name}' in mesh '{mesh.name}' has no vertices. Skipping.")
                     continue
 
-                # For example, vertex_format 'T2F_N3F_V3F' means uv(2), normal(3), position(3)
                 vertices_array = np.array(vertices, dtype=np.float32).reshape(-1, 8)
-
-                # Reorder from (u, v, nx, ny, nz, x, y, z) to (x, y, z, nx, ny, nz, u, v)
-                reordered = np.column_stack(
-                    (
-                        vertices_array[:, 5],  # x
-                        vertices_array[:, 6],  # y
-                        vertices_array[:, 7],  # z
-                        vertices_array[:, 2],  # nx
-                        vertices_array[:, 3],  # ny
-                        vertices_array[:, 4],  # nz
-                        vertices_array[:, 0],  # u
-                        vertices_array[:, 1],  # v
-                    )
-                )
-
-                # Compute tangents and bitangents.
+                reordered = np.column_stack((
+                    vertices_array[:, 5],  # x
+                    vertices_array[:, 6],  # y
+                    vertices_array[:, 7],  # z
+                    vertices_array[:, 2],  # nx
+                    vertices_array[:, 3],  # ny
+                    vertices_array[:, 4],  # nz
+                    vertices_array[:, 0],  # u
+                    vertices_array[:, 1],  # v
+                ))
                 reordered = self.compute_tangents_and_bitangents(reordered)
-
-                # Now reordered has 14 floats per vertex.
                 vbo = self.create_vbo(reordered)
                 vao = self.create_vao(with_tangents=True)
-
                 self.vbos.append(vbo)
                 self.vaos.append(vao)
                 self.mesh_material_index_map.append((mesh_index, material.name))
@@ -323,7 +303,6 @@ class ModelRenderer(AbstractRenderer):
 
             denom = deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0]
             if abs(denom) < 1e-8:
-                # Fallback if the UV mapping can't produce tangents
                 N = v0[3:6]
                 fallbackT = np.cross([0, 0, 1], N) if abs(N[2]) < 0.9 else np.cross([0, 1, 0], N)
                 if np.linalg.norm(fallbackT) < 1e-8:
@@ -345,7 +324,6 @@ class ModelRenderer(AbstractRenderer):
             bitangent[i1] += B
             bitangent[i2] += B
 
-        # Orthogonalize tangents and bitangents
         for i in range(verts.shape[0]):
             N = verts[i, 3:6]
             T = tangent[i]
@@ -360,7 +338,6 @@ class ModelRenderer(AbstractRenderer):
                 if np.linalg.norm(B) < 1e-8:
                     B = [0, 1, 0]
             B = B / np.linalg.norm(B)
-            # Handedness check
             if np.dot(np.cross(N, T), B) < 0.0:
                 B = -B
             tangent[i] = T
@@ -378,10 +355,7 @@ class ModelRenderer(AbstractRenderer):
     def create_vao(self, with_tangents=False):
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
-        if with_tangents:
-            vertex_stride = 14 * self.float_size
-        else:
-            vertex_stride = 8 * self.float_size
+        vertex_stride = 14 * self.float_size if with_tangents else 8 * self.float_size
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
@@ -409,10 +383,8 @@ class ModelRenderer(AbstractRenderer):
 
     def get_vertex_stride(self, vertex_format):
         count = 0
-        format_parts = vertex_format.split("_")
-        for part in format_parts:
-            num = int(part[1])
-            count += num
+        for part in vertex_format.split("_"):
+            count += int(part[1])
         return count
 
     def enable_vertex_attrib(self, location, size, stride, pointer_offset):
@@ -431,14 +403,8 @@ class ModelRenderer(AbstractRenderer):
                 vertices = material.vertices
                 if not vertices:
                     continue
-
-                # Set the material uniforms before drawing.
                 self.apply_material(material)
-
-                # Determine how many vertices this material uses.
                 count = len(vertices) // self.get_vertex_stride(material.vertex_format)
-
-                # Bind and draw.
                 self.bind_and_draw_vao(vao_counter, count)
                 vao_counter += 1
 
@@ -449,11 +415,7 @@ class ModelRenderer(AbstractRenderer):
         using the helper function upload_material_uniforms.
         """
         glUseProgram(self.shader_engine.shader_program)
-        upload_material_uniforms(
-            self.shader_engine.shader_program,
-            material,
-            self.pbr_extension_overrides
-        )
+        upload_material_uniforms(self.shader_engine.shader_program, material, self.pbr_extension_overrides)
 
     def bind_and_draw_vao(self, vao_index, count):
         glBindVertexArray(self.vaos[vao_index])
