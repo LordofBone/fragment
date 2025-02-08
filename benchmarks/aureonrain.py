@@ -125,6 +125,9 @@ def run_benchmark(
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
+        pbr_extension_overrides={
+            "transmission": (1.0, 1.0, 1.0),
+        }
     )
 
     # Define the configuration for the opaque pyramid model
@@ -156,6 +159,9 @@ def run_benchmark(
         screen_facing_planar_texture=True,
         texture_lod_bias=0.8,
         env_map_lod_bias=1.5,
+        pbr_extension_overrides={
+            "transmission": (0.5, 0.5, 0.5),
+        }
     )
 
     # Define the configuration for the rotating pyramid model
