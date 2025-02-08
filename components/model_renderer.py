@@ -87,27 +87,20 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         material: The pywavefront material object.
         fallback_pbr (dict): A dictionary containing fallback PBR parameters.
     """
-    # Expected uniform names mapped to keys used in our material values.
     uniform_names = {
-        # "material.ambient": "ambient", (currently unused, ambientColor is used instead)
-        # "material.diffuse": "diffuse", (currently unused, baseColor is used instead)
         "material.specular": "specular",
         "material.ior": "ior",
         "material.emissive": "emissive",
         "material.illuminationModel": "illumination_model",
-        # "material.transparency": "transparency", (currently unused, overriden by legacyOpacity)
         "material.roughness": "roughness",
         "material.metallic": "metallic",
         "material.clearcoat": "clearcoat",
         "material.clearcoatRoughness": "clearcoat_roughness",
         "material.sheen": "sheen",
-        # "material.anisotropy": "anisotropy", (currently unused)
-        # "material.anisotropyRot": "anisotropy_rot", (currently unused)
         "material.transmission": "transmission",
         "material.fresnelExponent": "fresnel_exponent",
     }
 
-    # Retrieve basic material values from pywavefront attributes.
     ambient = getattr(material, "ambient", [0.2, 0.2, 0.2, 1.0])[:3]
     diffuse = getattr(material, "diffuse", [0.8, 0.8, 0.8, 1.0])[:3]
     specular = getattr(material, "specular", [0.5, 0.5, 0.5, 1.0])[:3]
@@ -116,7 +109,6 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     illumination_model = getattr(material, "illumination_model", 2)
     transparency = getattr(material, "transparency", 1.0)
 
-    # Merge fallback PBR with any pbr_extensions from the material.
     local_pbr = dict(fallback_pbr)
     mat_pbr = getattr(material, "pbr_extensions", {})
     if "Pr" in mat_pbr:
@@ -167,7 +159,6 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         "fresnel_exponent": fresnel_exponent,
     }
 
-    # Get uniform locations for all expected uniforms.
     uniform_locations = {}
     missing_uniforms = []
     for uniform_name, key in uniform_names.items():
@@ -178,23 +169,15 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     if missing_uniforms:
         raise RuntimeError("Uniform(s) not found in shader program: " + ", ".join(missing_uniforms))
 
-    # Upload the basic fields.
-    # glUniform3f(uniform_locations["material.ambient"], *material_values["ambient"])
-    # glUniform3f(uniform_locations["material.diffuse"], *material_values["diffuse"])
     glUniform3f(uniform_locations["material.specular"], *material_values["specular"])
     glUniform1f(uniform_locations["material.ior"], float(material_values["ior"]))
     glUniform3f(uniform_locations["material.emissive"], *material_values["emissive"])
     glUniform1i(uniform_locations["material.illuminationModel"], int(material_values["illumination_model"]))
-    # glUniform1f(uniform_locations["material.transparency"], float(material_values["transparency"]))
-
-    # Upload PBR fields.
     glUniform1f(uniform_locations["material.roughness"], material_values["roughness"])
     glUniform1f(uniform_locations["material.metallic"], material_values["metallic"])
     glUniform1f(uniform_locations["material.clearcoat"], material_values["clearcoat"])
     glUniform1f(uniform_locations["material.clearcoatRoughness"], material_values["clearcoat_roughness"])
     glUniform1f(uniform_locations["material.sheen"], material_values["sheen"])
-    # glUniform1f(uniform_locations["material.anisotropy"], material_values["anisotropy"])
-    # glUniform1f(uniform_locations["material.anisotropyRot"], material_values["anisotropy_rot"])
     glUniform3f(uniform_locations["material.transmission"], *material_values["transmission"])
     glUniform1f(uniform_locations["material.fresnelExponent"], material_values["fresnel_exponent"])
 
@@ -220,6 +203,37 @@ class ModelRenderer(AbstractRenderer):
                 else:
                     mat.pbr_extensions = {}
 
+        # Grab user overrides; if None or missing, default to empty dict.
+        override_pbr = kwargs.get("pbr_extension_overrides") or {}
+        # Map from friendly names to .mtl tokens.
+        friendly_to_token = {
+            "roughness": "Pr",
+            "metallic": "Pm",
+            "clearcoat": "Pc",
+            "clearcoat_roughness": "Pcr",
+            "sheen": "Ps",
+            "anisotropy": "aniso",
+            "anisotropy_rot": "anisor",
+            "transmission": "Tf",
+            "fresnel_exponent": "Pfe",
+        }
+        # Check that override keys are valid.
+        allowed_keys = set(friendly_to_token.keys())
+        invalid_keys = [key for key in override_pbr if key not in allowed_keys]
+        if invalid_keys:
+            raise ValueError(
+                "No such material property: "
+                + ", ".join(invalid_keys)
+                + "; available pbr overrides are: "
+                + ", ".join(sorted(allowed_keys))
+            )
+        # For each material, apply the valid user override values.
+        for mesh in self.object.mesh_list:
+            for mat in mesh.materials:
+                for friendly, token in friendly_to_token.items():
+                    if friendly in override_pbr:
+                        mat.pbr_extensions[token] = override_pbr[friendly]
+
         # Create a default dict of fallback PBR parameters.
         default_pbr = {
             "roughness": 0.5,
@@ -232,10 +246,9 @@ class ModelRenderer(AbstractRenderer):
             "transmission": (0.0, 0.0, 0.0),
             "fresnel_exponent": 0.5,
         }
-        # Override defaults if user provided any.
-        user_pbr = kwargs.get("pbr_extensions", {})
-        default_pbr.update(user_pbr)
-        self.pbr_extensions = default_pbr
+        # Merge user-provided overrides into default.
+        default_pbr.update(override_pbr)
+        self.pbr_extension_overrides = default_pbr
 
     def supports_shadow_mapping(self):
         return True
@@ -255,10 +268,7 @@ class ModelRenderer(AbstractRenderer):
                     print(f"Material '{material.name}' in mesh '{mesh.name}' has no vertices. Skipping.")
                     continue
 
-                # For example, vertex_format 'T2F_N3F_V3F' means uv(2), normal(3), position(3)
                 vertices_array = np.array(vertices, dtype=np.float32).reshape(-1, 8)
-
-                # Reorder from (u, v, nx, ny, nz, x, y, z) to (x, y, z, nx, ny, nz, u, v)
                 reordered = np.column_stack(
                     (
                         vertices_array[:, 5],  # x
@@ -271,14 +281,9 @@ class ModelRenderer(AbstractRenderer):
                         vertices_array[:, 1],  # v
                     )
                 )
-
-                # Compute tangents and bitangents.
                 reordered = self.compute_tangents_and_bitangents(reordered)
-
-                # Now reordered has 14 floats per vertex.
                 vbo = self.create_vbo(reordered)
                 vao = self.create_vao(with_tangents=True)
-
                 self.vbos.append(vbo)
                 self.vaos.append(vao)
                 self.mesh_material_index_map.append((mesh_index, material.name))
@@ -356,10 +361,7 @@ class ModelRenderer(AbstractRenderer):
     def create_vao(self, with_tangents=False):
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
-        if with_tangents:
-            vertex_stride = 14 * self.float_size
-        else:
-            vertex_stride = 8 * self.float_size
+        vertex_stride = 14 * self.float_size if with_tangents else 8 * self.float_size
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
@@ -387,10 +389,8 @@ class ModelRenderer(AbstractRenderer):
 
     def get_vertex_stride(self, vertex_format):
         count = 0
-        format_parts = vertex_format.split("_")
-        for part in format_parts:
-            num = int(part[1])
-            count += num
+        for part in vertex_format.split("_"):
+            count += int(part[1])
         return count
 
     def enable_vertex_attrib(self, location, size, stride, pointer_offset):
@@ -409,14 +409,8 @@ class ModelRenderer(AbstractRenderer):
                 vertices = material.vertices
                 if not vertices:
                     continue
-
-                # Set the material uniforms before drawing.
                 self.apply_material(material)
-
-                # Compute how many vertices this material uses.
                 count = len(vertices) // self.get_vertex_stride(material.vertex_format)
-
-                # Bind and draw.
                 self.bind_and_draw_vao(vao_counter, count)
                 vao_counter += 1
 
@@ -427,7 +421,7 @@ class ModelRenderer(AbstractRenderer):
         using the helper function upload_material_uniforms.
         """
         glUseProgram(self.shader_engine.shader_program)
-        upload_material_uniforms(self.shader_engine.shader_program, material, self.pbr_extensions)
+        upload_material_uniforms(self.shader_engine.shader_program, material, self.pbr_extension_overrides)
 
     def bind_and_draw_vao(self, vao_index, count):
         glBindVertexArray(self.vaos[vao_index])
