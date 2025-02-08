@@ -196,6 +196,25 @@ class TestRendererConfig(unittest.TestCase):
             )
         self.assertIn("Invalid legacy_roughness value", str(ctx.exception))
 
+    def test_add_model_valid_pbr_overrides(self):
+        """
+        Test that valid PBR override keys are accepted and stored correctly.
+        """
+        rc = RendererConfig(window_title="RCtest")
+        model_cfg = rc.add_model(
+            obj_path="mesh.obj",
+            texture_paths={"diffuse": "mesh_diffuse.png"},
+            pbr_extension_overrides={
+                "roughness": 0.3,
+                "metallic": 0.7,
+                "sheen": 0.2
+            }
+        )
+        # Check that the returned config contains the valid pbr overrides.
+        self.assertEqual(model_cfg["pbr_extension_overrides"]["roughness"], 0.3)
+        self.assertEqual(model_cfg["pbr_extension_overrides"]["metallic"], 0.7)
+        self.assertEqual(model_cfg["pbr_extension_overrides"]["sheen"], 0.2)
+
     def test_add_model_invalid_pbr_overrides(self):
         """
         Test that invalid PBR overrides are rejected.
