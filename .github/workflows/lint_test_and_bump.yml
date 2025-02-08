@@ -27,7 +27,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install Dependencies
-        run: pip install ruff bump2version pygame pytest pytest-html-reporter
+        run: pip install -r requirements.txt
 
       - name: Run Ruff Linting and Formatting
         run: |
