@@ -179,13 +179,10 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         raise RuntimeError("Uniform(s) not found in shader program: " + ", ".join(missing_uniforms))
 
     # Upload the basic fields.
-    # glUniform3f(uniform_locations["material.ambient"], *material_values["ambient"])
-    # glUniform3f(uniform_locations["material.diffuse"], *material_values["diffuse"])
     glUniform3f(uniform_locations["material.specular"], *material_values["specular"])
     glUniform1f(uniform_locations["material.ior"], float(material_values["ior"]))
     glUniform3f(uniform_locations["material.emissive"], *material_values["emissive"])
     glUniform1i(uniform_locations["material.illuminationModel"], int(material_values["illumination_model"]))
-    # glUniform1f(uniform_locations["material.transparency"], float(material_values["transparency"]))
 
     # Upload PBR fields.
     glUniform1f(uniform_locations["material.roughness"], material_values["roughness"])
@@ -193,8 +190,6 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     glUniform1f(uniform_locations["material.clearcoat"], material_values["clearcoat"])
     glUniform1f(uniform_locations["material.clearcoatRoughness"], material_values["clearcoat_roughness"])
     glUniform1f(uniform_locations["material.sheen"], material_values["sheen"])
-    # glUniform1f(uniform_locations["material.anisotropy"], material_values["anisotropy"])
-    # glUniform1f(uniform_locations["material.anisotropyRot"], material_values["anisotropy_rot"])
     glUniform3f(uniform_locations["material.transmission"], *material_values["transmission"])
     glUniform1f(uniform_locations["material.fresnelExponent"], material_values["fresnel_exponent"])
 
@@ -220,6 +215,29 @@ class ModelRenderer(AbstractRenderer):
                 else:
                     mat.pbr_extensions = {}
 
+        # Grab user overrides; if None or missing, default to empty dict.
+        override_pbr = kwargs.get("pbr_extension_overrides") or {}
+        # Map from friendly names to .mtl tokens
+        friendly_to_token = {
+            "roughness": "Pr",
+            "metallic": "Pm",
+            "clearcoat": "Pc",
+            "clearcoat_roughness": "Pcr",
+            "sheen": "Ps",
+            "anisotropy": "aniso",
+            "anisotropy_rot": "anisor",
+            "transmission": "Tf",
+            "fresnel_exponent": "Pfe"
+        }
+
+        # For each material, override the relevant tokens if a user override is present.
+        if override_pbr:
+            for mesh in self.object.mesh_list:
+                for mat in mesh.materials:
+                    for friendly, token in friendly_to_token.items():
+                        if friendly in override_pbr:
+                            mat.pbr_extensions[token] = override_pbr[friendly]
+
         # Create a default dict of fallback PBR parameters.
         default_pbr = {
             "roughness": 0.5,
@@ -232,10 +250,11 @@ class ModelRenderer(AbstractRenderer):
             "transmission": (0.0, 0.0, 0.0),
             "fresnel_exponent": 0.5,
         }
-        # Override defaults if user provided any.
-        user_pbr = kwargs.get("pbr_extensions", {})
-        default_pbr.update(user_pbr)
-        self.pbr_extensions = default_pbr
+
+        # Merge user-provided overrides into default. If override_pbr is empty or None,
+        # this is effectively a no-op.
+        default_pbr.update(override_pbr)
+        self.pbr_extension_overrides = default_pbr
 
     def supports_shadow_mapping(self):
         return True
@@ -304,6 +323,7 @@ class ModelRenderer(AbstractRenderer):
 
             denom = deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0]
             if abs(denom) < 1e-8:
+                # Fallback if the UV mapping can't produce tangents
                 N = v0[3:6]
                 fallbackT = np.cross([0, 0, 1], N) if abs(N[2]) < 0.9 else np.cross([0, 1, 0], N)
                 if np.linalg.norm(fallbackT) < 1e-8:
@@ -325,6 +345,7 @@ class ModelRenderer(AbstractRenderer):
             bitangent[i1] += B
             bitangent[i2] += B
 
+        # Orthogonalize tangents and bitangents
         for i in range(verts.shape[0]):
             N = verts[i, 3:6]
             T = tangent[i]
@@ -339,6 +360,7 @@ class ModelRenderer(AbstractRenderer):
                 if np.linalg.norm(B) < 1e-8:
                     B = [0, 1, 0]
             B = B / np.linalg.norm(B)
+            # Handedness check
             if np.dot(np.cross(N, T), B) < 0.0:
                 B = -B
             tangent[i] = T
@@ -413,7 +435,7 @@ class ModelRenderer(AbstractRenderer):
                 # Set the material uniforms before drawing.
                 self.apply_material(material)
 
-                # Compute how many vertices this material uses.
+                # Determine how many vertices this material uses.
                 count = len(vertices) // self.get_vertex_stride(material.vertex_format)
 
                 # Bind and draw.
@@ -427,7 +449,11 @@ class ModelRenderer(AbstractRenderer):
         using the helper function upload_material_uniforms.
         """
         glUseProgram(self.shader_engine.shader_program)
-        upload_material_uniforms(self.shader_engine.shader_program, material, self.pbr_extensions)
+        upload_material_uniforms(
+            self.shader_engine.shader_program,
+            material,
+            self.pbr_extension_overrides
+        )
 
     def bind_and_draw_vao(self, vao_index, count):
         glBindVertexArray(self.vaos[vao_index])

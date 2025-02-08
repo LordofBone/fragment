@@ -61,6 +61,7 @@ class RendererConfig:
         distortion_strength=0.3,
         refraction_strength=0.3,
         lens_rotations=None,
+            pbr_extension_overrides=None,
         background_audio=None,
         sound_enabled=True,
         audio_delay=0.0,
@@ -129,6 +130,9 @@ class RendererConfig:
 
         # Lens rotations for the camera
         self.lens_rotations = lens_rotations or [0.0] * len(self.camera_positions)
+
+        # PBR extensions
+        self.pbr_extension_overrides = pbr_extension_overrides
 
         # Audio settings
         self.sound_enabled = sound_enabled
@@ -258,6 +262,7 @@ class RendererConfig:
         distortion_strength=None,
         refraction_strength=None,
         lens_rotations=None,
+            pbr_extension_overrides=None,
         debug_mode=None,
         **kwargs,
     ):
@@ -314,6 +319,7 @@ class RendererConfig:
             "distortion_strength": distortion_strength,
             "refraction_strength": refraction_strength,
             "lens_rotations": lens_rotations,
+            "pbr_extension_overrides": pbr_extension_overrides,
             "debug_mode": debug_mode,
         }
 
