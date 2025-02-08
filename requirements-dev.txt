@@ -1,0 +1,10 @@
+customtkinter
+pillow
+numpy
+matplotlib
+scipy
+psutil
+pygame
+GPUtil
+pytest
+pytest-html-reporter
