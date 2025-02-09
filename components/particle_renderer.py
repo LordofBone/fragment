@@ -1187,7 +1187,12 @@ class ParticleRenderer(AbstractRenderer):
         glDisable(GL_RASTERIZER_DISCARD)
 
         # Ensure that the buffer is synchronized before the next frame
-        glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
+        # Some systems do not support glMemoryBarrier and require an alternative synchronization method (e.g. glFinish)
+        if glMemoryBarrier:
+            glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
+        else:
+            # Optionally, call glFinish() or perform an alternative synchronization
+            glFinish()
 
         glBindVertexArray(0)
 

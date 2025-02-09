@@ -1,4 +1,4 @@
-#version 430
+#version 330 core
 
 // -----------------------------------------------------------------------------
 // Attribute inputs (match your Python _setup_vertex_attributes_cpu layout)

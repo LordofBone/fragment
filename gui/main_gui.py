@@ -32,6 +32,8 @@ from version import __version__
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
 customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"))
 
+multiprocessing.set_start_method("spawn", force=True)
+
 # Centralized Benchmark Names and Functions
 BENCHMARKS = {
     "Ætherial - EMBM Test": run_pyramid_benchmark,
@@ -62,7 +64,15 @@ class App(customtkinter.CTk):
         self.chart_bg_color = "#f0f0f0"  # Default chart background color
         self.chart_text_color = "#202020"  # Default chart text color
 
-        self.wm_iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+        self.window_icon_active = False  # Flag to check if the window icon has been set successfully
+
+        # Set the window icon
+        try:
+            self.wm_iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+            self.window_icon_active = True
+        except _tkinter.TclError:
+            print("Icon file not found or running on an OS that doesn't support this. Skipping.")
+            self.window_icon_active = False
 
         # Configure window
         self.title("Fragment")
@@ -302,7 +312,8 @@ class App(customtkinter.CTk):
         self.results_frame.grid_rowconfigure(0, weight=1)
 
         # Set default values
-        self.appearance_mode_optionemenu.set("Dark")
+        current_appearance_mode = customtkinter.get_appearance_mode()
+        self.appearance_mode_optionemenu.set(current_appearance_mode)
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("4")
@@ -736,7 +747,8 @@ class App(customtkinter.CTk):
 
     def show_about_info(self):
         about_window = customtkinter.CTkToplevel(self)
-        about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+        if self.window_icon_active:
+            about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
         about_window.title("About")
         about_window.geometry("400x250")
         about_window.resizable(False, False)
@@ -789,9 +801,10 @@ class App(customtkinter.CTk):
         close_button = customtkinter.CTkButton(about_window, text="Close", command=about_window.destroy)
         close_button.pack(pady=(10, 10))
 
-        about_window.after(
-            250, lambda: about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
-        )  # Restore icon after a delay (prevents default icon)
+        if self.window_icon_active:
+            about_window.after(
+                250, lambda: about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+            )  # Restore icon after a delay (prevents default icon)
 
     def generate_and_display_results(self):
         # Destroy the current results frame to reset the scroll position

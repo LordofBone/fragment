@@ -140,7 +140,7 @@ vec2 flipAndDistortTexCoords(vec2 texCoords) {
         finalCoords.y = 1.0 - finalCoords.y;
     }
     if (usePlanarNormalDistortion) {
-        vec2 nrg = texture(normalMap, texCoords, textureLodLevel).rg * 2.0 - 1.0;
+        vec2 nrg = textureLod(normalMap, texCoords, textureLodLevel).rg * 2.0 - 1.0;
         finalCoords += (nrg * distortionStrength);
     }
     return clamp(finalCoords, 0.0, 1.0);
@@ -995,14 +995,14 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
     vec2 P = viewDir.xy * pomHeightScale;
     vec2 deltaTexCoords = P / numLayers;
     vec2 currentTexCoords = texCoords;
-    float currentDepthMapValue = texture(displacementMap, currentTexCoords, textureLodLevel).r;
+    float currentDepthMapValue = textureLod(displacementMap, currentTexCoords, textureLodLevel).r;
     if (invertDisplacementMap) {
         currentDepthMapValue = 1.0 - currentDepthMapValue;
     }
     float depthFromTexture = currentDepthMapValue;
     while (currentLayerDepth < depthFromTexture) {
         currentTexCoords -= deltaTexCoords;
-        currentDepthMapValue = texture(displacementMap, currentTexCoords, textureLodLevel).r;
+        currentDepthMapValue = textureLod(displacementMap, currentTexCoords, textureLodLevel).r;
         if (invertDisplacementMap) {
             currentDepthMapValue = 1.0 - currentDepthMapValue;
         }
@@ -1011,7 +1011,7 @@ vec2 ParallaxOcclusionMapping(vec2 texCoords, vec3 viewDir, out float depthOffse
     }
     vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
     float prevLayerDepth = currentLayerDepth - layerDepth;
-    float prevDepthFromTexture = texture(displacementMap, prevTexCoords, textureLodLevel).r;
+    float prevDepthFromTexture = textureLod(displacementMap, prevTexCoords, textureLodLevel).r;
     if (invertDisplacementMap) {
         prevDepthFromTexture = 1.0 - prevDepthFromTexture;
     }
