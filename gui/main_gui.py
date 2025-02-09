@@ -1,4 +1,3 @@
-import _tkinter
 import io
 import multiprocessing
 import os
@@ -8,15 +7,16 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import customtkinter
 import GPUtil
+import _tkinter
+import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from customtkinter import CTkImage
 from PIL import Image, ImageFilter, ImageTk
+from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.baryon import run_benchmark as run_particle_benchmark
@@ -62,7 +62,11 @@ class App(customtkinter.CTk):
         self.chart_bg_color = "#f0f0f0"  # Default chart background color
         self.chart_text_color = "#202020"  # Default chart text color
 
-        self.wm_iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+        # Set the window icon
+        try:
+            self.wm_iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+        except _tkinter.TclError:
+            print("Icon file not found or running on an OS that doesn't support this. Skipping.")
 
         # Configure window
         self.title("Fragment")
