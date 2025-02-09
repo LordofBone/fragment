@@ -1,4 +1,3 @@
-import _tkinter
 import io
 import multiprocessing
 import os
@@ -8,23 +7,24 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import customtkinter
 import GPUtil
+import _tkinter
+import customtkinter
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from customtkinter import CTkImage
 from PIL import Image, ImageFilter, ImageTk
+from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.aureonrain import run_benchmark as run_water_pyramid_benchmark
-from benchmarks.crystallaxis import run_benchmark as run_pyramid_benchmark
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
 from benchmarks.nebulon import run_benchmark as run_sphere_benchmark
 from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
 from benchmarks.undertyre import run_benchmark as run_tyre_benchmark
+from benchmarks.ætherial import run_benchmark as run_pyramid_benchmark
 from components.benchmark_manager import BenchmarkManager
 from config.path_config import images_dir, themes_dir
 from version import __version__
@@ -34,7 +34,7 @@ customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"
 
 # Centralized Benchmark Names and Functions
 BENCHMARKS = {
-    "Crystallaxis - EMBM Test": run_pyramid_benchmark,
+    "Ætherial - EMBM Test": run_pyramid_benchmark,
     "Nebulon - Transparency Shader Test": run_sphere_benchmark,
     "Undertyre - Parallax Shader Test": run_tyre_benchmark,
     "Poseidon Flow - Reflection Test": run_water_benchmark,
