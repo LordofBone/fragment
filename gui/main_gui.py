@@ -64,11 +64,15 @@ class App(customtkinter.CTk):
         self.chart_bg_color = "#f0f0f0"  # Default chart background color
         self.chart_text_color = "#202020"  # Default chart text color
 
+        self.window_icon_active = False  # Flag to check if the window icon has been set successfully
+
         # Set the window icon
         try:
             self.wm_iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+            self.window_icon_active = True
         except _tkinter.TclError:
             print("Icon file not found or running on an OS that doesn't support this. Skipping.")
+            self.window_icon_active = False
 
         # Configure window
         self.title("Fragment")
@@ -743,7 +747,8 @@ class App(customtkinter.CTk):
 
     def show_about_info(self):
         about_window = customtkinter.CTkToplevel(self)
-        about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+        if self.window_icon_active:
+            about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
         about_window.title("About")
         about_window.geometry("400x250")
         about_window.resizable(False, False)
