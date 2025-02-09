@@ -19,10 +19,10 @@ from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
-from benchmarks.aureonrain import run_benchmark as run_water_pyramid_benchmark
-from benchmarks.baryon_sweep import run_benchmark as run_muon_shower_benchmark
+from benchmarks.baryon_sweep import run_benchmark as run_particle_benchmark
 from benchmarks.eidolon import run_benchmark as run_sphere_benchmark
 from benchmarks.glaciated import run_benchmark as run_water_benchmark
+from benchmarks.shimmer import run_benchmark as run_water_pyramid_benchmark
 from benchmarks.treadlock import run_benchmark as run_tyre_benchmark
 from benchmarks.ætherial import run_benchmark as run_pyramid_benchmark
 from components.benchmark_manager import BenchmarkManager
@@ -38,7 +38,7 @@ BENCHMARKS = {
     "Eidolon - Transparency Shader Test": run_sphere_benchmark,
     "Treadlock - Parallax Shader Test": run_tyre_benchmark,
     "Glaciated - Reflection Test": run_water_benchmark,
-    "Baryon Sweep - Particle System Test": run_muon_shower_benchmark,
+    "Baryon Sweep - Particle System Test": run_particle_benchmark,
 }
 
 
@@ -100,7 +100,7 @@ class App(customtkinter.CTk):
         )
         self.benchmark_button.grid(row=1, column=0, padx=20, pady=10)
 
-        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Aureonrain (Demo)", command=self.demo_mode)
+        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Shimmer (Demo)", command=self.demo_mode)
         self.demo_button.grid(row=2, column=0, padx=20, pady=10)
 
         # Bind hover events to the demo button
@@ -421,7 +421,7 @@ class App(customtkinter.CTk):
             self.image_area.configure(image=None)  # Clear if no image found
 
     def display_demo_image(self):
-        benchmark_name = "Aureonrain (Demo)"
+        benchmark_name = "Shimmer (Demo)"
         self.currently_selected_benchmark_name = benchmark_name
 
         # Construct the path to the demo image file
@@ -1273,11 +1273,11 @@ class App(customtkinter.CTk):
 
     def on_demo_leave(self, event):
         # Clear the image area only if the demo was the last hovered element
-        if self.currently_selected_benchmark_name == "Aureonrain (Demo)":
+        if self.currently_selected_benchmark_name == "Shimmer (Demo)":
             self.image_area.configure(image=None)
 
     def display_demo_image(self):
-        benchmark_name = "Aureonrain (Demo)"
+        benchmark_name = "Shimmer (Demo)"
         self.currently_selected_benchmark_name = benchmark_name
 
         # Construct the path to the demo image file
