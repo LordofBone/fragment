@@ -19,6 +19,8 @@ or:
   python -m unittest discover -s tests
 """
 
+import contextlib
+import io
 import os
 import sys
 import time
@@ -461,6 +463,26 @@ class DummyThread:
 
 
 class TestGUIHeadless(unittest.TestCase):
+    """
+    Note:
+      When running GUI tests in headless mode, you might see several "invalid command name" errors
+      (e.g. "invalid command name '...update'") and resource warnings regarding unclosed files.
+      These messages occur because Tkinter's scheduled callbacks (via 'after') can be left pending
+      when the application is destroyed, and some image file handles remain open.
+      These warnings are harmless and do not affect the test outcomes.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        # Optionally suppress ResourceWarnings and redirect stderr
+        cls._stderr = io.StringIO()
+        cls._stderr_context = contextlib.redirect_stderr(cls._stderr)
+        cls._stderr_context.__enter__()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._stderr_context.__exit__(None, None, None)
+
     @unittest.skipIf(App is None, "GUI module not available.")
     # (1) Patch StatsCollector.monitor_system_usage to immediately return
     @patch("components.stats_collector.StatsCollector.monitor_system_usage", return_value=None)
