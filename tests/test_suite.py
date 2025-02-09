@@ -583,8 +583,7 @@ class TestGUIHeadless(unittest.TestCase):
             app.display_image(valid_name)
             self.assertEqual(app.currently_selected_benchmark_name, valid_name)
             self.assertIsNotNone(
-                getattr(app.image_area, "image", None),
-                f"Image for benchmark '{valid_name}' should be loaded."
+                getattr(app.image_area, "image", None), f"Image for benchmark '{valid_name}' should be loaded."
             )
         finally:
             app.destroy()
@@ -649,7 +648,7 @@ class TestGUIHeadless(unittest.TestCase):
                 app.display_image(benchmark)
                 self.assertIsNotNone(
                     app.image_area.image,
-                    f"Image for benchmark '{benchmark}' should be loaded from '{app.image_folder}'."
+                    f"Image for benchmark '{benchmark}' should be loaded from '{app.image_folder}'.",
                 )
         finally:
             app.destroy()
@@ -683,6 +682,7 @@ class TestGUIHeadless(unittest.TestCase):
         finally:
             os.path.exists = original_exists
             app.destroy()
+
 
 # --------------------------------------------------------------------------------
 # Main block to run tests if this module is executed directly.
