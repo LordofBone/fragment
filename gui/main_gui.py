@@ -32,6 +32,8 @@ from version import __version__
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
 customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"))
 
+multiprocessing.set_start_method('spawn', force=True)
+
 # Centralized Benchmark Names and Functions
 BENCHMARKS = {
     "Ætherial - EMBM Test": run_pyramid_benchmark,
