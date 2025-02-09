@@ -1,3 +1,4 @@
+import _tkinter
 import io
 import multiprocessing
 import os
@@ -7,16 +8,15 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import GPUtil
-import _tkinter
 import customtkinter
+import GPUtil
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
+from PIL import Image, ImageFilter, ImageTk
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.baryon import run_benchmark as run_particle_benchmark
@@ -32,7 +32,7 @@ from version import __version__
 customtkinter.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
 customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"))
 
-multiprocessing.set_start_method('spawn', force=True)
+multiprocessing.set_start_method("spawn", force=True)
 
 # Centralized Benchmark Names and Functions
 BENCHMARKS = {
