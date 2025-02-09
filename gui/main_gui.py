@@ -801,9 +801,10 @@ class App(customtkinter.CTk):
         close_button = customtkinter.CTkButton(about_window, text="Close", command=about_window.destroy)
         close_button.pack(pady=(10, 10))
 
-        about_window.after(
-            250, lambda: about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
-        )  # Restore icon after a delay (prevents default icon)
+        if self.window_icon_active:
+            about_window.after(
+                250, lambda: about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
+            )  # Restore icon after a delay (prevents default icon)
 
     def generate_and_display_results(self):
         # Destroy the current results frame to reset the scroll position
