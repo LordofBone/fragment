@@ -308,7 +308,8 @@ class App(customtkinter.CTk):
         self.results_frame.grid_rowconfigure(0, weight=1)
 
         # Set default values
-        self.appearance_mode_optionemenu.set("Dark")
+        current_appearance_mode = customtkinter.get_appearance_mode()
+        self.appearance_mode_optionemenu.set(current_appearance_mode)
         self.scaling_optionemenu.set("100%")
         self.resolution_optionmenu.set("1024x768")
         self.msaa_level_optionmenu.set("4")
