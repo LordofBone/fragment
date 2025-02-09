@@ -19,6 +19,8 @@ or:
   python -m unittest discover -s tests
 """
 
+import contextlib
+import io
 import os
 import sys
 import time
@@ -461,6 +463,26 @@ class DummyThread:
 
 
 class TestGUIHeadless(unittest.TestCase):
+    """
+    Note:
+      When running GUI tests in headless mode, you might see several "invalid command name" errors
+      (e.g. "invalid command name '...update'") and resource warnings regarding unclosed files.
+      These messages occur because Tkinter's scheduled callbacks (via 'after') can be left pending
+      when the application is destroyed, and some image file handles remain open.
+      These warnings are harmless and do not affect the test outcomes.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        # Optionally suppress ResourceWarnings and redirect stderr
+        cls._stderr = io.StringIO()
+        cls._stderr_context = contextlib.redirect_stderr(cls._stderr)
+        cls._stderr_context.__enter__()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._stderr_context.__exit__(None, None, None)
+
     @unittest.skipIf(App is None, "GUI module not available.")
     # (1) Patch StatsCollector.monitor_system_usage to immediately return
     @patch("components.stats_collector.StatsCollector.monitor_system_usage", return_value=None)
@@ -526,6 +548,139 @@ class TestGUIHeadless(unittest.TestCase):
             mock_monitor_system_usage.assert_called_once()
 
         finally:
+            app.destroy()
+
+    # -------------------------------------------------------------------------
+    # Tests verifying display_image logic
+    # -------------------------------------------------------------------------
+
+    @unittest.skipIf(App is None, "GUI module not available.")
+    @patch("os.path.exists")
+    @patch("gui.main_gui.Image.open")
+    def test_display_image_valid(self, mock_image_open, mock_path_exists):
+        """
+        Test that display_image with a valid name leads to a non-None image
+        in image_area.
+        """
+        mock_path_exists.return_value = True
+        dummy_image = Image.new("RGBA", (200, 200), (255, 255, 255, 255))
+        dummy_image.close = lambda: None
+        mock_image_open.return_value = dummy_image
+
+        app = App()
+        app.withdraw()
+
+        # Disable resizing logic
+        app.on_window_resize = lambda e=None: None
+        app.unbind("<Configure>")
+
+        # Immediate after
+        app.after = lambda delay, func, *args, **kwargs: func(*args, **kwargs) or "dummy"
+        app.after_cancel = lambda id: None
+
+        try:
+            valid_name = "Shimmer (Demo)"
+            app.display_image(valid_name)
+            self.assertEqual(app.currently_selected_benchmark_name, valid_name)
+            self.assertIsNotNone(
+                getattr(app.image_area, "image", None), f"Image for benchmark '{valid_name}' should be loaded."
+            )
+        finally:
+            app.destroy()
+
+    @unittest.skipIf(App is None, "GUI module not available.")
+    @patch("os.path.exists")
+    def test_display_image_invalid(self, mock_path_exists):
+        """
+        Test that display_image with an invalid name sets image_area to image=None.
+        """
+        mock_path_exists.return_value = False
+        app = App()
+        app.withdraw()
+
+        # Disable resizing logic
+        app.on_window_resize = lambda e=None: None
+        app.unbind("<Configure>")
+
+        app.after = lambda delay, func, *args, **kwargs: func(*args, **kwargs) or "dummy"
+        app.after_cancel = lambda id: None
+
+        configure_mock = MagicMock()
+        app.image_area.configure = configure_mock
+
+        try:
+            invalid_name = "NonExistentBenchmark"
+            app.display_image(invalid_name)
+            configure_mock.assert_called_with(image=None)
+        finally:
+            app.destroy()
+
+    @unittest.skipIf(App is None, "GUI module not available.")
+    @patch("os.path.exists")
+    @patch("gui.main_gui.Image.open")
+    def test_all_benchmark_images_loaded(self, mock_image_open, mock_path_exists):
+        """
+        For each benchmark name, display_image is called, verifying the image_area
+        has a non-None image (assuming the file exists).
+        """
+
+        def exists_side_effect(path):
+            return path.endswith(".png")
+
+        mock_path_exists.side_effect = exists_side_effect
+
+        dummy_image = Image.new("RGBA", (150, 150), (255, 255, 255, 255))
+        dummy_image.close = lambda: None
+        mock_image_open.return_value = dummy_image
+
+        app = App()
+        app.withdraw()
+
+        # Disable resizing logic
+        app.on_window_resize = lambda e=None: None
+        app.unbind("<Configure>")
+
+        app.after = lambda delay, func, *args, **kwargs: func(*args, **kwargs) or "dummy"
+        app.after_cancel = lambda id: None
+
+        try:
+            for benchmark in app.benchmark_vars.keys():
+                app.display_image(benchmark)
+                self.assertIsNotNone(
+                    app.image_area.image,
+                    f"Image for benchmark '{benchmark}' should be loaded from '{app.image_folder}'.",
+                )
+        finally:
+            app.destroy()
+
+    @unittest.skipIf(App is None, "GUI module not available.")
+    def test_display_image_rejects_invalid_names(self):
+        """
+        Negative test: if a name doesn't exist or the file is missing,
+        image_area is set to image=None.
+        """
+        original_exists = os.path.exists
+        os.path.exists = lambda path: False  # Force non-existence
+
+        app = App()
+        app.withdraw()
+
+        # Disable resizing logic
+        app.on_window_resize = lambda e=None: None
+        app.unbind("<Configure>")
+
+        app.after = lambda delay, func, *args, **kwargs: func(*args, **kwargs) or "dummy"
+        app.after_cancel = lambda id: None
+
+        configure_mock = MagicMock()
+        app.image_area.configure = configure_mock
+
+        try:
+            fake_name = "FakeBenchmarkName"
+            app.display_image(fake_name)
+            configure_mock.assert_called_with(image=None)
+        finally:
+            os.path.exists = original_exists
             app.destroy()
 
 

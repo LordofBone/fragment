@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  lint-and-bump:
+  lint-test-and-bump:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -13,7 +13,8 @@ jobs:
       MINOR_THRESHOLD: 2000
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0  # Use full history so that git diff can compare
 
