@@ -26,7 +26,7 @@ def run_benchmark(
 ):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
-        window_title="Undertyre",
+        window_title="Treadlock",
         window_size=resolution,
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,

@@ -27,7 +27,7 @@ def run_benchmark(
 ):
     # Initialize the base configuration for the renderer
     base_config = RendererConfig(
-        window_title="Aureonrain",
+        window_title="Shimmer",
         window_size=resolution,
         vsync_enabled=vsync_enabled,
         fullscreen=fullscreen,
