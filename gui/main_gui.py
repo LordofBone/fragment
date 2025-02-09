@@ -23,7 +23,7 @@ from benchmarks.aureonrain import run_benchmark as run_water_pyramid_benchmark
 from benchmarks.eidolon import run_benchmark as run_sphere_benchmark
 from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
 from benchmarks.poseidon_flow import run_benchmark as run_water_benchmark
-from benchmarks.undertyre import run_benchmark as run_tyre_benchmark
+from benchmarks.treadlock import run_benchmark as run_tyre_benchmark
 from benchmarks.ætherial import run_benchmark as run_pyramid_benchmark
 from components.benchmark_manager import BenchmarkManager
 from config.path_config import images_dir, themes_dir
@@ -36,7 +36,7 @@ customtkinter.set_default_color_theme(os.path.join(themes_dir, "314reactor.json"
 BENCHMARKS = {
     "Ætherial - EMBM Test": run_pyramid_benchmark,
     "Eidolon - Transparency Shader Test": run_sphere_benchmark,
-    "Undertyre - Parallax Shader Test": run_tyre_benchmark,
+    "Treadlock - Parallax Shader Test": run_tyre_benchmark,
     "Poseidon Flow - Reflection Test": run_water_benchmark,
     "Muon Shower - Particle System Test": run_muon_shower_benchmark,
 }
