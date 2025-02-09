@@ -13,6 +13,7 @@ uniform float envMapLodLevel;// Used by sampleEnvironmentMapLod()
 
 uniform sampler2D screenTexture;
 
+uniform bool planarCameraEnabled;
 uniform bool usePlanarNormalDistortion;
 uniform float distortionStrength;
 uniform float refractionStrength;
@@ -153,16 +154,18 @@ vec3 applyScreenTexture(vec3 normal, vec3 viewDir, vec2 texCoords, vec3 lighting
     vec2 finalCoords = flipAndDistortTexCoords(texCoords);
     vec3 fallbackColor = vec3(0.0);
     vec3 backgroundColor = fallbackColor;
-    if (screenFacingPlanarTexture) {
-        float facing = dot(normal, viewDir);
-        if (facing > planarFragmentViewThreshold) {
+    if (planarCameraEnabled) {
+        if (screenFacingPlanarTexture) {
+            float facing = dot(normal, viewDir);
+            if (facing > planarFragmentViewThreshold) {
+                backgroundColor = texture(screenTexture, finalCoords).rgb;
+            }
+        } else {
             backgroundColor = texture(screenTexture, finalCoords).rgb;
         }
-    } else {
-        backgroundColor = texture(screenTexture, finalCoords).rgb;
-    }
-    if (length(backgroundColor) < 0.05) {
-        backgroundColor = fallbackColor;
+        if (length(backgroundColor) < 0.05) {
+            backgroundColor = fallbackColor;
+        }
     }
     return mix(backgroundColor, lightingResult, legacyOpacity);
 }
@@ -913,22 +916,26 @@ vec2 texCoords// Texture coordinates
 
         finalScreenCoords = clamp(finalScreenCoords, 0.0, 1.0);
 
-        // Sample the “screen” texture or fallback
         vec3 fallbackColor = vec3(0.0);
         vec3 refr2D;
-        if (screenFacingPlanarTexture) {
-            float facing = dot(N, V);
-            if (facing > planarFragmentViewThreshold) {
-                refr2D = texture(screenTexture, finalScreenCoords).rgb;
+
+        if (planarCameraEnabled) {
+            // Sample the “screen” texture or fallback
+
+            if (screenFacingPlanarTexture) {
+                float facing = dot(N, V);
+                if (facing > planarFragmentViewThreshold) {
+                    refr2D = texture(screenTexture, finalScreenCoords).rgb;
+                } else {
+                    refr2D = fallbackColor;
+                }
             } else {
+                refr2D = texture(screenTexture, finalScreenCoords).rgb;
+            }
+
+            if (length(refr2D) < 0.05) {
                 refr2D = fallbackColor;
             }
-        } else {
-            refr2D = texture(screenTexture, finalScreenCoords).rgb;
-        }
-
-        if (length(refr2D) < 0.05) {
-            refr2D = fallbackColor;
         }
 
         // Tint by transmission color

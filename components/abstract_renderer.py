@@ -1001,6 +1001,9 @@ class AbstractRenderer(ABC):
             self.window_size[1],
         )
         glUniform1i(
+            glGetUniformLocation(self.shader_engine.shader_program, "planarCameraEnabled"), int(self.planar_camera)
+        )
+        glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "flipPlanarHorizontal"),
             int(self.flip_planar_horizontally),
         )
