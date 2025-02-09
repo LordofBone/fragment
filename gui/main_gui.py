@@ -20,9 +20,9 @@ from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.aureonrain import run_benchmark as run_water_pyramid_benchmark
+from benchmarks.baryon_sweep import run_benchmark as run_muon_shower_benchmark
 from benchmarks.eidolon import run_benchmark as run_sphere_benchmark
 from benchmarks.glaciated import run_benchmark as run_water_benchmark
-from benchmarks.muon_shower import run_benchmark as run_muon_shower_benchmark
 from benchmarks.treadlock import run_benchmark as run_tyre_benchmark
 from benchmarks.ætherial import run_benchmark as run_pyramid_benchmark
 from components.benchmark_manager import BenchmarkManager
@@ -38,7 +38,7 @@ BENCHMARKS = {
     "Eidolon - Transparency Shader Test": run_sphere_benchmark,
     "Treadlock - Parallax Shader Test": run_tyre_benchmark,
     "Glaciated - Reflection Test": run_water_benchmark,
-    "Muon Shower - Particle System Test": run_muon_shower_benchmark,
+    "Baryon Sweep - Particle System Test": run_muon_shower_benchmark,
 }
 
 
