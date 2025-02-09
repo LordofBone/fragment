@@ -19,7 +19,7 @@ from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
 from scipy.interpolate import make_interp_spline
 
-from benchmarks.baryon_sweep import run_benchmark as run_particle_benchmark
+from benchmarks.baryon import run_benchmark as run_particle_benchmark
 from benchmarks.eidolon import run_benchmark as run_sphere_benchmark
 from benchmarks.gelidus import run_benchmark as run_water_benchmark
 from benchmarks.shimmer import run_benchmark as run_water_pyramid_benchmark
@@ -38,7 +38,7 @@ BENCHMARKS = {
     "Eidolon - Transparency Shader Test": run_sphere_benchmark,
     "Treadlock - Parallax Shader Test": run_tyre_benchmark,
     "Gelidus - Reflection Test": run_water_benchmark,
-    "Baryon Sweep - Particle System Test": run_particle_benchmark,
+    "Baryon - Particle System Test": run_particle_benchmark,
 }
 
 
