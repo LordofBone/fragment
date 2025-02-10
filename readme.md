@@ -1,8 +1,9 @@
 # Fragment
 
 Fragment is an advanced 3D rendering benchmark tool (inspired by 3DMark) designed for both PCs and Raspberry Pi. It
-leverages OpenGL (via PyOpenGL and Pygame) to stress-test and measure your hardware’s graphical performance. Its modular
-architecture and multiple benchmark modes make it particularly easy to run quick tests—especially on Raspberry Pi.
+leverages OpenGL (via PyOpenGL and Pygame) to stress-test and measure your hardware’s graphical performance. Its clean
+graphical interface
+and multiple benchmark modes make it particularly easy to run quick tests—especially on Raspberry Pi.
 
 ## Overview
 
