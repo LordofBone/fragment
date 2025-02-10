@@ -189,5 +189,14 @@ Fragment is licensed under the GNU General Public License (GPL). See the [LICENS
 
 ## Acknowledgements
 
-Inspired by benchmarks like 3DMark and Unigine. Built using PyOpenGL, Pygame, Matplotlib, and other open-source
-libraries.
+Fragment is inspired by benchmarks like 3DMark and Unigine and is built using PyOpenGL, Pygame, Matplotlib, and other
+open-source libraries.
+
+Additional useful tools and resources utilised during development include:
+
+- **ChatGPT** – For assisting with the Python/GLSL codebase and generating textures.
+- **[Material-Map-Generator](https://github.com/joeyballentine/Material-Map-Generator)** – For generating normal,
+  roughness, and height maps for textures.
+- **[AudioLDM2](https://github.com/haoheliu/AudioLDM2)** – For generating the ambient music used in demo mode.
+- **[sphere2cube](https://pypi.org/project/sphere2cube/)** – For converting ChatGPT-generated images into cubemaps.
+- **[Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)** – For upscaling images to higher quality.
