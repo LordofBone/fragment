@@ -41,6 +41,10 @@ and [Electromaker](https://www.electromaker.io/project/view/fragment)
 ![Benchmark Screen](docs/images/benchmark_screen.png)  
 ![Results Screen](docs/images/results_screen.png)  
 
+- Track FPS, CPU, and GPU usage in the window title bar in real-time.
+
+![Results Screen](docs/images/benchmark_run_realtime_stats.png)
+
 ### Rendering & Performance
 
 - **Rendering:** Diffuse, Phong, and PBR shading; parallax and shadow mapping.
