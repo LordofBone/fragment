@@ -151,12 +151,15 @@ The generated HTML report provides a structured overview of test results for eas
    - Particles are locked to the camera position, causing them to move with it.
    - In CPU mode, particles spawn in a different location compared to other modes.
    - Ground plane rotation for particles does not always work as expected.
+   - **Raspberry Pi (Bookworm):** Particles do not render identically to the PC version and appear visually different.
+   - **Raspberry Pi (Bookworm):** Only `GL_POINTS` works for particle rendering; other primitive types fail under
+     `glDrawArrays`.
 
 - **Performance Score:** The calculated performance score is an approximation and may not accurately represent system
   performance.
 
 - **GUI Behavior (Raspberry Pi - Bookworm):** After running the demo, the GUI incorrectly navigates to the results
-  screen instead of returning to the main interface.
+  screen instead of staying on the current screen.
 
 ## Contributing
 
