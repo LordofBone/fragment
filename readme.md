@@ -48,7 +48,10 @@ architecture and multiple benchmark modes make it particularly easy to run quick
 ### User Interface
 
 ![Main Screen](docs/images/main_screen_dark_mode.png)  
-Tune settings, and run tests.
+Tune graphical settings for benchmarks.
+
+![Main Screen_Light](docs/images/main_screen_light_mode.png)  
+Light mode.
 
 ![Benchmark Screen](docs/images/benchmark_screen.png)  
 Select benchmarks and run tests.
