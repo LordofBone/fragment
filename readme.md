@@ -95,6 +95,9 @@ Sometimes just running rpi_setup.sh is enough, but if you're having trouble, try
 
 ## Usage
 
+**Caution:** Fragment can be quite heavy on systems like the Raspberry Pi and may cause excessive heat buildup,
+especially on the GPU. Ensure adequate cooling is in place, and use at your own risk.
+
 Run the benchmark tool:
 
 ```sh  
