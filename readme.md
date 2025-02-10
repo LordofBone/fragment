@@ -1,10 +1,11 @@
 # Fragment
 
-Fragment is an advanced 3D rendering benchmark tool (inspired by 3DMark) for PCs and Raspberry Pi. It leverages OpenGL (
+Fragment is an advanced 3D rendering benchmark tool (inspired by 3DMark) for PCs and Raspberry Pi (4 and above on
+Bookworm working during my testing). It leverages OpenGL (
 via PyOpenGL and Pygame) to stress-test hardware performance, with a clean graphical interface and multiple benchmark
 modes.
 
-View the full write up on [Hackster](https://www.hackster.io/314reactor/fragment)
+View the full write-up on [Hackster](https://www.hackster.io/314reactor/fragment)
 and [Electromaker](https://www.electromaker.io/project/view/fragment)
 
 ## Features
@@ -144,8 +145,12 @@ The generated HTML report provides a structured overview of test results for eas
 ## Known Issues
 
 - **Raspberry Pi Compatibility:** Fragment may not work on all Raspberry Pi models or OS versions due to OpenGL
-  limitations.  
+  limitations, as mentioned it works on RPi 4 and above on Bookworm.  
   Use the provided setup scripts to ensure compatibility with Raspberry Pi (Bookworm).
+
+- **Memory Leaks:** There may be memory leaks, particularly on Raspberry Pi.  
+  Running benchmarks repeatedly (especially the demo) can cause out-of-memory issues.  
+  These will be investigated and addressed over time.
 
 - **Particle System:**
    - Particles are locked to the camera position, causing them to move with it.
@@ -155,11 +160,19 @@ The generated HTML report provides a structured overview of test results for eas
    - **Raspberry Pi (Bookworm):** Only `GL_POINTS` works for particle rendering; other primitive types fail under
      `glDrawArrays`.
 
+- **Graphics Limitations (Raspberry Pi):**
+   - 8× MSAA is unsupported due to GPU limitations.
+   - Compute Shader mode does not function on Raspberry Pi.
+
+- **Tone Mapping & Gamma Correction:**  
+  These functions currently do not work, resulting in a washed-out image.  
+  All lighting is currently rendered in SDR.
+
 - **Performance Score:** The calculated performance score is an approximation and may not accurately represent system
   performance.
 
 - **GUI Behavior (Raspberry Pi - Bookworm):** After running the demo, the GUI incorrectly navigates to the results
-  screen instead of staying on the current screen.
+  screen instead of returning to the current tab.
 
 ## Contributing
 
