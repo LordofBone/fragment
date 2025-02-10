@@ -141,6 +141,23 @@ python -m unittest discover -s tests
 
 The generated HTML report provides a structured overview of test results for easier debugging.
 
+## Known Issues
+
+- **Raspberry Pi Compatibility:** Fragment may not work on all Raspberry Pi models or OS versions due to OpenGL
+  limitations.  
+  Use the provided setup scripts to ensure compatibility with Raspberry Pi (Bookworm).
+
+- **Particle System:**
+   - Particles are locked to the camera position, causing them to move with it.
+   - In CPU mode, particles spawn in a different location compared to other modes.
+   - Ground plane rotation for particles does not always work as expected.
+
+- **Performance Score:** The calculated performance score is an approximation and may not accurately represent system
+  performance.
+
+- **GUI Behavior (Raspberry Pi - Bookworm):** After running the demo, the GUI incorrectly navigates to the results
+  screen instead of returning to the main interface.
+
 ## Contributing
 
 Contributions are welcome! To contribute:
