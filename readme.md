@@ -105,7 +105,14 @@ Within the GUI, you can:
 
 - Select and configure benchmark tests.
 - Adjust settings such as MSAA, anisotropy, shading models, and resolution.
-- Track live performance data and view results in Matplotlib charts.
+- Track live performance data and view overall results in Matplotlib charts.
+
+**Note:** The results from Fragment should not be taken as totally accurate.  
+The performance score is more of a "finger in the air" number at the moment, based on:  
+`performance_score = overall_avg_fps * 10`.
+
+Overall, Fragment is still a work-in-progress (WiP), so results may vary even  
+upon different runs of the same benchmarks.
 
 ## Testing
 
