@@ -122,9 +122,6 @@ Within the GUI, you can:
 - Tune resolution, MSAA, anisotropy, shading model, shadow quality, particle render mode, and more.
 - Track live performance data and view Matplotlib charts.
 
-**Command Line Options** (optional)  
-(If available, list any useful arguments or flags here.)
-
 ## Testing
 
 A headless test suite (using unittest/pytest) validates:
