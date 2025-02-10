@@ -1,160 +1,146 @@
 # Fragment
 
-Fragment is an advanced 3D rendering benchmark tool (inspired by 3DMark) designed for both PCs and Raspberry Pi. It
-leverages OpenGL (via PyOpenGL and Pygame) to stress-test and measure your hardware’s graphical performance. Its clean
-graphical interface
-and multiple benchmark modes make it particularly easy to run quick tests—especially on Raspberry Pi.
+Fragment is an advanced 3D rendering benchmark tool (inspired by 3DMark) for PCs and Raspberry Pi. It leverages OpenGL (
+via PyOpenGL and Pygame) to stress-test hardware performance, with a clean graphical interface and multiple benchmark
+modes.
 
-## Overview
-
-- **Python + OpenGL:** Written in Python, using PyOpenGL and Pygame to orchestrate benchmark scenarios.
-- **Multiple Benchmarks:** Includes various tests to explore performance in areas like particle systems, transparency
-  effects, parallax mapping, and reflections.
-- **Performance Tracking:** Real-time collection of FPS, CPU usage, and GPU usage (via psutil & GPUtil). An overall
-  performance score is computed for each benchmark run.
-- **Customization & GUI:** A CustomTkinter-based interface lets you select benchmarks, configure graphics parameters,
-  and view results with Matplotlib-generated charts.
-- **Cross-Platform:** Special setup scripts ensure that OpenGL (OSMesa) is correctly configured on Raspberry Pi.
-- **Automated Testing:** A headless test suite validates configuration logic, camera interpolation, benchmark
-  management, audio playback, and basic GUI functionality.
+View the full write up on [Hackster](https://www.hackster.io/314reactor/fragment)
+and [Electromaker](https://www.electromaker.io/project/view/fragment)
 
 ## Features
 
 ### Benchmark Modes
 
-1. **Shimmer:**  
-   ![Shimmer - Demo](docs/images/Shimmer%20-%20Demo.png)  
-   Demonstration combining most features, including particle effects and ambient audio.
+1. **Shimmer** – A demo combining multiple features, including particle effects and ambient audio.  
+   ![Shimmer](docs/images/Shimmer%20-%20Demo.png)
 
-2. **Ætherial:**  
-   ![Ætherial - EMBM Test](docs/images/Ætherial%20-%20EMBM%20Test.png)  
-   EMBM shader test using a pyramid model.
+2. **Ætherial** – EMBM shader test using a pyramid model.  
+   ![Ætherial](docs/images/Ætherial%20-%20EMBM%20Test.png)
 
-3. **Eidolon:**  
-   ![Eidolon - Transparency Shader Test](docs/images/Eidolon%20-%20Transparency%20Shader%20Test.png)  
-   Transparency and planar camera (via EMBM shaders) on spherical models.
+3. **Eidolon** – Transparency and planar camera via EMBM shaders on spherical models.  
+   ![Eidolon](docs/images/Eidolon%20-%20Transparency%20Shader%20Test.png)
 
-4. **Treadlock:**  
-   ![Treadlock - Parallax Shader Test](docs/images/Treadlock%20-%20Parallax%20Shader%20Test.png)  
-   Parallax mapping spotlight on a detailed tire model.
+4. **Treadlock** – Parallax mapping test with a spotlight on a detailed tire model.  
+   ![Treadlock](docs/images/Treadlock%20-%20Parallax%20Shader%20Test.png)
 
-5. **Gelidus:**  
-   ![Gelidus - Reflection Test](docs/images/Gelidus%20-%20Reflection%20Test.png)  
-   Reflection test with cubemap-reflective water surfaces.
+5. **Gelidus** – Reflection test using cubemap-reflective water surfaces.  
+   ![Gelidus](docs/images/Gelidus%20-%20Reflection%20Test.png)
 
-6. **Baryon:**  
-   ![Baryon - Particle System Test](docs/images/Baryon%20-%20Particle%20System%20Test.png)  
-   Particle system benchmark that can work in CPU, Transform Feedback, or Compute Shader mode.
+6. **Baryon** – Particle system benchmark supporting CPU, Transform Feedback, and Compute Shader modes.  
+   ![Baryon](docs/images/Baryon%20-%20Particle%20System%20Test.png)
 
 ### User Interface
 
-![Main Screen](docs/images/main_screen_dark_mode.png)  
-Tune graphical settings for benchmarks.
+![Main Screen - Dark Mode](docs/images/main_screen_dark_mode.png)  
+![Main Screen - Light Mode](docs/images/main_screen_light_mode.png)
 
-![Main Screen_Light](docs/images/main_screen_light_mode.png)  
-Light mode.
+- Select benchmarks, configure settings, and preview scenarios.
+- Tune graphical settings, including MSAA, anisotropy, shading models, and resolution.
+- View performance results with clean matplotlib charts.
 
 ![Benchmark Screen](docs/images/benchmark_screen.png)  
-Select benchmarks and run tests.
-
 ![Results Screen](docs/images/results_screen.png)  
-View performance charts of FPS, GPU, and CPU usage.
 
-### Rendering Highlights
+### Rendering & Performance
 
-- Multiple shading model options: Diffuse, Phong, and PBR.
-- Effects: parallax mapping, shadow mapping, tone mapping, gamma correction.
-- Configurable MSAA and anisotropic filtering.
-
-### Performance Metrics
-
-- Real-time FPS, CPU usage, GPU usage; displayed in the window title bar during benchmarks.
-- An aggregated performance score from average FPS across benchmarks (an indicative measure rather than a universal
-  comparison).
-
-### Graphical User Interface
-
-- Select benchmarks, resolutions, MSAA and anisotropy levels, shading models, and other parameters.
-- Preview images, interactive graphs, and a demo mode with synchronized background audio.
+- **Rendering:** Diffuse, Phong, and PBR shading; parallax and shadow mapping.
+- **Performance Tracking:** Real-time FPS, CPU, and GPU usage displayed in the window title bar.
+- **Graphical Settings:** Adjustable resolution, MSAA, anisotropic filtering, shading models, and shadow quality.
+- **Performance Score:** Aggregated FPS-based performance rating across benchmarks.
 
 ### Architecture
 
 - **Abstract Renderer:** Manages shaders, textures, cubemaps, camera controls, and lighting.
-- **Benchmark Construction:** Easily integrate model, surface, particle, and skybox approaches for new benchmarks.
-
-### Cross-Platform Setup
-
-- Scripts for Raspberry Pi handle libosmesa6 installation and environment variable configuration, ensuring compatibility
-  with RPi 4 (Bookworm) and above.
+- **Benchmark Construction:** Easily integrate model, surface, particle, and skybox-based benchmarks.
 
 ## Installation
 
-1. **Prerequisites**
-   - Python 3.10+
-   - PyOpenGL, Pygame, Matplotlib, NumPy, Pillow, psutil, GPUtil, CustomTkinter (and tkinter)
+### Prerequisites
 
-2. **Clone and Install**
-   ```sh
-   git clone https://github.com/LordofBone/fragment.git
-   cd fragment
-   pip install -r requirements.txt
-   ```
+- Python 3.10+
+- Dependencies: PyOpenGL, Pygame, Matplotlib, NumPy, Pillow, psutil, GPUtil, CustomTkinter
+- **Note:** `PyOpenGL-accelerate` is excluded on ARM systems due to Raspberry Pi compatibility:
+  ```sh  
+  PyOpenGL-accelerate==3.1.7; "arm" not in platform_machine and "aarch" not in platform_machine  
+  ```
 
-3. **Additional Raspberry Pi Configuration**
-   ```sh
-   chmod +x setup/rpi_setup.sh
-   ./setup/rpi_setup.sh
+### Setup
 
-   chmod +x setup/rpi_bashrc_setup.sh
-   ./setup/rpi_bashrc_setup.sh
-   ```
+Clone and install dependencies:
+
+```sh  
+git clone https://github.com/LordofBone/fragment.git  
+cd fragment  
+pip install -r requirements.txt  
+```
+
+#### Raspberry Pi Configuration
+
+```sh  
+chmod +x setup/rpi_setup.sh && ./setup/rpi_setup.sh  
+chmod +x setup/rpi_bashrc_setup.sh && ./setup/rpi_bashrc_setup.sh  
+```
+
+`rpi_setup.sh` installs libosmesa6 and configures the PYOPENGL_PLATFORM and MESA_GL_VERSION_OVERRIDE envvars for
+Fragment to work on the Raspberry Pi.
+
+`rpi_bashrc_setup.sh` adds the necessary environment variables to the `.bashrc` file for Fragment to work on the
+Raspberry Pi.
+
+Sometimes just running rpi_setup.sh is enough, but if you're having trouble, try running rpi_bashrc_setup.sh as well.
 
 ## Usage
 
-Run the main module:
-```sh
-python main.py
+Run the benchmark tool:
+
+```sh  
+python main.py  
 ```
 
 Within the GUI, you can:
 
-- Select one or more benchmarks to run.
-- Tune resolution, MSAA, anisotropy, shading model, shadow quality, particle render mode, and more.
-- Track live performance data and view Matplotlib charts.
+- Select and configure benchmark tests.
+- Adjust settings such as MSAA, anisotropy, shading models, and resolution.
+- Track live performance data and view results in Matplotlib charts.
 
 ## Testing
 
-A headless test suite (using unittest/pytest) validates:
+Fragment includes a headless test suite using `unittest` and `pytest` to validate core functionality, including:
 
-- Configuration parsing and renderer functionality.
+- Configuration parsing and renderer operations.
 - Camera interpolation and performance data collection.
-- Benchmark management and audio playback.
-- GUI logic in headless mode.
+- Benchmark execution, audio playback, and GUI logic.
 
-Run:
-```sh
-pytest --html-report=./report/report.html
+### Running Tests
+
+To execute the test suite and generate an HTML report under the `/report` directory, run:
+
+```sh  
+pytest --html=report/report.html  
 ```
 
-or:
-```sh
-python -m unittest discover -s tests
+Alternatively, use `unittest` (no report generated):
+
+```sh  
+python -m unittest discover -s tests  
 ```
+
+The generated HTML report provides a structured overview of test results for easier debugging.
 
 ## Contributing
 
-Contributions are welcome! If you have new ideas for benchmarks, optimizations, or general improvements, please:
+Contributions are welcome! To contribute:
 
-1. Fork this repository.
-2. Create a new feature branch.
-3. Make changes and ensure all tests pass.
+1. Fork the repository.
+2. Create a feature branch.
+3. Implement changes and ensure tests pass.
 4. Submit a pull request.
 
 ## License
 
-This project is licensed under the GNU General Public License (GPL). Refer to the LICENSE file for full details.
+Fragment is licensed under the GNU General Public License (GPL). See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgements
 
-Fragment draws inspiration from benchmarks provided by 3DMark, Unigine, and other industry tools. It also leverages
-libraries like PyOpenGL, Pygame, and Matplotlib.
+Inspired by benchmarks like 3DMark and Unigine. Built using PyOpenGL, Pygame, Matplotlib, and other open-source
+libraries.
