@@ -22,28 +22,39 @@ architecture and multiple benchmark modes make it particularly easy to run quick
 ### Benchmark Modes
 
 1. **Ætherial:**  
-   ![Ætherial - EMBM Test](images/Ætherial%20-%20EMBM%20Test.png)  
+   ![Ætherial - EMBM Test](docs/images/Ætherial%20-%20EMBM%20Test.png)  
    EMBM shader test using a pyramid model.
 
 2. **Eidolon:**  
-   ![Eidolon - Transparency Shader Test](images/Eidolon%20-%20Transparency%20Shader%20Test.png)  
+   ![Eidolon - Transparency Shader Test](docs/images/Eidolon%20-%20Transparency%20Shader%20Test.png)  
    Transparency and environmental mapping (via EMBM shaders) on spherical models.
 
 3. **Treadlock:**  
-   ![Treadlock - Parallax Shader Test](images/Treadlock%20-%20Parallax%20Shader%20Test.png)  
+   ![Treadlock - Parallax Shader Test](docs/images/Treadlock%20-%20Parallax%20Shader%20Test.png)  
    Parallax mapping spotlight on a detailed tire model.
 
 4. **Gelidus:**  
-   ![Gelidus - Reflection Test](images/Gelidus%20-%20Reflection%20Test.png)  
+   ![Gelidus - Reflection Test](docs/images/Gelidus%20-%20Reflection%20Test.png)  
    Reflection test with cubemap-reflective water surfaces.
 
 5. **Baryon:**  
-   ![Baryon - Particle System Test](images/Baryon%20-%20Particle%20System%20Test.png)  
+   ![Baryon - Particle System Test](docs/images/Baryon%20-%20Particle%20System%20Test.png)  
    Particle system benchmark that can work in CPU, Transform Feedback, or Compute Shader mode.
 
 6. **Shimmer:**  
-   ![Shimmer - Demo](images/Shimmer%20-%20Demo.png)  
+   ![Shimmer - Demo](docs/images/Shimmer%20-%20Demo.png)  
    Demonstration combining most features, including particle effects and ambient audio.
+
+### User Interface
+
+![Main Screen](docs/images/main_screen_dark_mode.png)  
+Tune settings, and run tests.
+
+![Benchmark Screen](docs/images/benchmark_screen.png)  
+Select benchmarks and run tests.
+
+![Results Screen](docs/images/results_screen.png)  
+View performance charts of FPS, GPU, and CPU usage.
 
 ### Rendering Highlights
 
