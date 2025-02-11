@@ -113,8 +113,6 @@ def run_benchmark(
         legacy_roughness=32,
         distortion_strength=0.3,
         refraction_strength=0.65,
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
         cubemap_folder=False,
         planar_camera=True,
         planar_fov=90,
