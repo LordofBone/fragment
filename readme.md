@@ -195,8 +195,8 @@ function, similar to the **Shimmer (Demo)** scenario:
 import os
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
-from config.path_config import diffuse_textures_dir, normal_textures_dir, displacement_textures_dir, models_dir,
-    audio_dir
+from config.path_config import (diffuse_textures_dir, normal_textures_dir, displacement_textures_dir, models_dir,
+                                audio_dir)
 
 
 def run_benchmark(stats_queue=None,
