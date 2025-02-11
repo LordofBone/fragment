@@ -174,14 +174,84 @@ The generated HTML report provides a structured overview of test results for eas
 - **GUI Behavior (Raspberry Pi - Bookworm):** After running the demo, the GUI incorrectly navigates to the results
   screen instead of returning to the current tab.
 
-## Contributing
+## GitHub Actions & Contribution Workflow
 
-Contributions are welcome! To contribute:
+Fragment uses GitHub Actions to automate linting, testing, and version management. These workflows ensure code quality
+and maintain a structured versioning system.
 
-1. Fork the repository.
-2. Create a feature branch.
-3. Implement changes and ensure tests pass.
-4. Submit a pull request.
+### Linting, Formatting, and Testing (`lint_and_test.yml`)
+
+This workflow runs on **every pull request**, ensuring that contributions meet coding standards and pass all tests
+before merging.
+
+#### Steps:
+
+1. **Checkout Repository** – Fetches the latest code.
+2. **Set Up Python** – Installs Python 3.10.
+3. **Install Dependencies** – Installs required development dependencies.
+4. **Run Ruff Linting & Formatting** –
+    - Lints the code with Ruff and auto-fixes issues.
+    - Ensures formatting is correct.
+5. **Auto Commit Linting Fixes** – Automatically commits any formatting fixes.
+6. **Run Unit Tests** – Executes tests using `pytest` and generates an HTML report (not availabe on GH pages yet).
+
+🔹 *Why this matters:* Contributors must follow consistent coding practices, and all pull requests are automatically
+checked before merging.
+
+---
+
+### Automatic Versioning & Tagging (`tag_and_bump_on_merge.yml`)
+
+When a pull request is merged into the `main` branch, this workflow:
+
+#### Steps:
+
+1. **Checkout Repository** – Ensures full commit history is available.
+2. **Set Up Python** – Installs Python 3.10.
+3. **Install bump2version** – A tool for managing semantic versioning.
+4. **Determine Version Bump Level** –
+    - Analyzes the number of code changes (`git diff HEAD^`).
+    - Determines whether to increment the **patch**, **minor**, or **major** version:
+        - **Patch:** Changes < 250 lines.
+        - **Minor:** Changes between 250–2000 lines.
+        - **Major:** Changes ≥ 2000 lines.
+5. **Bump Version** – Updates the version in the codebase accordingly.
+6. **Auto Commit Version Update** – Commits the version bump change.
+7. **Create a Git Tag** – Uses the updated version number as a tag (e.g., `v1.2.3`).
+8. **Push Tag to Repository** – Ensures the new version is officially recorded.
+
+🔹 *Why this matters:*
+
+- Maintains a structured versioning approach.
+- Allows easy tracking of changes over time.
+- Ensures new releases are properly tagged without manual intervention.
+
+---
+
+### Contribution Workflow with GitHub Actions
+
+1. **Create a Feature Branch**
+    - Make changes in a new branch based on `main`.
+
+2. **Submit a Pull Request**
+    - The **lint and test workflow** runs automatically.
+    - Any necessary fixes (linting, formatting) are auto-applied and committed.
+
+3. **Merge to Main**
+    - Once approved, merging triggers the **tag and version bump workflow**.
+    - The repository is updated with a new version number and Git tag.
+
+This automation ensures that every contribution is checked, formatted, and properly versioned before deployment.
+
+---
+
+### Notes for Contributors
+
+- Always pull the latest changes from `main` before starting a new feature.
+- If your pull request fails due to linting or formatting, let the workflow auto-correct it and push the changes.
+- The versioning system is automated—there’s no need to manually update version numbers.
+
+By following this workflow, contributions remain clean, consistent, and efficiently versioned. 🚀
 
 ## License
 
