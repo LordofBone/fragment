@@ -3,7 +3,7 @@ name: Create Tag and Bump Version on Merge to Main
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   bump-and-create-tag:
