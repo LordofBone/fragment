@@ -10,5 +10,5 @@ pytest==8.3.4
 pytest-html-reporter==0.2.9
 PyGLM==2.7.1
 ruff==0.9.5
-PyOpenGL==3.1.9
+PyOpenGL==3.1.6
 bump2version==1.0.1
