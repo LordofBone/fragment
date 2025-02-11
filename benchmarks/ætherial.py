@@ -98,6 +98,8 @@ def run_benchmark(
             },
         ],
         lighting_mode=lighting_mode,
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
         shadow_map_resolution=shadow_map_resolution,
         shadow_strength=1.0,
         anisotropy=anisotropy,
@@ -123,8 +125,6 @@ def run_benchmark(
             "fragment": "embm",
         },
         legacy_roughness=32,
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
         env_map_strength=0.45,
         texture_lod_bias=0.8,
         env_map_lod_bias=0.0,
@@ -139,7 +139,7 @@ def run_benchmark(
     )
 
     # Add the skybox and the pyramid to the scene
-    instance.add_renderer("skybox", "skybox", **skybox_config)
+    # instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("pyramid", "model", **pyramid_config)
 
     # Optionally enable autorotation for the pyramid
