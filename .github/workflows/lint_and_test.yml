@@ -4,19 +4,14 @@ on:
   pull_request:
 
 jobs:
-  lint-test-and-bump:
+  lint-format-and-test:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      PATCH_THRESHOLD: 250
-      MINOR_THRESHOLD: 2000
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Use full history so that git diff can compare
 
       - name: Set Git Config
         run: |

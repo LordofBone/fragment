@@ -1,4 +1,4 @@
-name: Bump Version and Create Tag on Merge to Main
+name: Create Tag and Bump Version on Merge to Main
 
 on:
   push:
@@ -6,16 +6,19 @@ on:
       - main
 
 jobs:
-  create-tag:
+  bump-and-create-tag:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      PATCH_THRESHOLD: 250
+      MINOR_THRESHOLD: 2000
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Ensure full history for tagging
+          fetch-depth: 0  # Ensure full history for accurate diff
 
       - name: Set Git Config
         run: |
@@ -28,7 +31,42 @@ jobs:
           python-version: "3.10"
 
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        run: pip install bump2version
+
+      - name: Determine Bump Level and Bump Version
+        id: bump_level
+        shell: bash
+        run: |
+          # Compare the current commit with its immediate predecessor.
+          DIFF_OUTPUT=$(git diff --shortstat HEAD^)
+          echo "Diff stats: $DIFF_OUTPUT"
+          
+          # Extract the number of insertions and deletions.
+          insertions=$(echo "$DIFF_OUTPUT" | grep -oP '\d+(?= insertion)' || echo 0)
+          deletions=$(echo "$DIFF_OUTPUT" | grep -oP '\d+(?= deletion)' || echo 0)
+          total=$((insertions + deletions))
+          echo "Total changes (insertions + deletions): $total"
+          
+          if [ "$total" -lt "$PATCH_THRESHOLD" ]; then
+            echo "Bump level: patch"
+            echo "level=patch" >> $GITHUB_OUTPUT
+          elif [ "$total" -ge "$PATCH_THRESHOLD" ] && [ "$total" -lt "$MINOR_THRESHOLD" ]; then
+            echo "Bump level: minor"
+            echo "level=minor" >> $GITHUB_OUTPUT
+          else
+            echo "Bump level: major"
+            echo "level=major" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump Version Accordingly
+        run: |
+          echo "Using bump level: ${{ steps.bump_level.outputs.level }}"
+          bump2version ${{ steps.bump_level.outputs.level }}
+
+      - name: Auto Commit Changes (Version)
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'Code version bumped'
 
       - name: Create Git Tag
         run: |
