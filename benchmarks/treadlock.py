@@ -51,6 +51,8 @@ def run_benchmark(
             }
         ],
         lighting_mode=lighting_mode,
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
         shadow_map_resolution=shadow_map_resolution,
         shadow_strength=7.0,
         anisotropy=anisotropy,

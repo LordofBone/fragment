@@ -73,6 +73,8 @@ def run_benchmark(
         near_plane=0.1,
         far_plane=5000,
         lighting_mode=lighting_mode,
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
         shadow_map_resolution=shadow_map_resolution,
         anisotropy=anisotropy,
         auto_camera=True,
