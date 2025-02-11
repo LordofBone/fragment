@@ -519,73 +519,102 @@ All **pull requests** are **automatically checked** before merging. 🚀
 
 ---
 
-### Automatic Versioning & Tagging (`tag_and_bump_on_merge.yml`)
+### 🔄 Automatic Versioning & Tagging (`tag_and_bump_on_merge.yml`)
 
-When a pull request is merged into the `main` branch, this workflow:
+When a **pull request** is merged into the **`main`** branch, this workflow automatically:
 
-#### Steps:
+- ✅ Bumps the **version number**
+- ✅ **Tags** the new release
+- ✅ Ensures a **structured versioning process**
 
-1. **Checkout Repository** – Ensures full commit history is available.
-2. **Set Up Python** – Installs Python 3.10.
-3. **Install bump2version** – A tool for managing semantic versioning.
-4. **Determine Version Bump Level** –
-    - Analyzes the number of code changes (`git diff HEAD^`).
-    - Determines whether to increment the **patch**, **minor**, or **major** version:
-        - **Patch:** Changes < 250 lines.
-        - **Minor:** Changes between 250–2000 lines.
-        - **Major:** Changes ≥ 2000 lines.
-5. **Bump Version** – Updates the version in the codebase accordingly.
-6. **Auto Commit Version Update** – Commits the version bump change.
-7. **Create a Git Tag** – Uses the updated version number as a tag (e.g., `v1.2.3`).
-8. **Push Tag to Repository** – Ensures the new version is officially recorded.
+---
+
+### 🔧 Steps:
+
+1️⃣ **Checkout Repository** – Ensures full commit history is available.  
+2️⃣ **Set Up Python** – Installs **Python 3.10**.  
+3️⃣ **Install bump2version** – A tool for managing **semantic versioning**.  
+4️⃣ **Determine Version Bump Level:**
+
+- 📊 Analyzes the number of **code changes (`git diff HEAD^`)**.
+- Determines whether to increment the **patch**, **minor**, or **major** version:
+    - 🟢 **Patch:** Changes **< 250 lines**.
+    - 🟡 **Minor:** Changes **between 250–2000 lines**.
+    - 🔴 **Major:** Changes **≥ 2000 lines**.  
+      5️⃣ **Bump Version** – Updates the **version number** in the codebase.  
+      6️⃣ **Auto Commit Version Update** – 📝 Commits the version bump change.  
+      7️⃣ **Create a Git Tag** – Uses the updated **version number** as a tag *(e.g., `v1.2.3`)*.  
+      8️⃣ **Push Tag to Repository** – Ensures the new **version is officially recorded**.
+
+---
 
 🔹 *Why this matters:*
 
-- Maintains a structured versioning approach.
-- Allows easy tracking of changes over time.
-- Ensures new releases are properly tagged without manual intervention.
+- 📌 Maintains a **structured versioning approach**.
+- 🏷️ Allows **easy tracking** of changes over time.
+- 🚀 Ensures **new releases** are properly tagged **without manual intervention**.
 
 ---
 
-### Contribution Workflow with GitHub Actions
+## 🔄 Contribution Workflow with GitHub Actions
 
-1. **Create a Feature Branch**
-    - Make changes in a new branch based on `main`.
-
-2. **Submit a Pull Request**
-    - The **lint and test workflow** runs automatically.
-    - Any necessary fixes (linting, formatting) are auto-applied and committed.
-
-3. **Merge to Main**
-    - Once approved, merging triggers the **tag and version bump workflow**.
-    - The repository is updated with a new version number and Git tag.
-
-This automation ensures that every contribution is checked, formatted, and properly versioned before deployment.
+This workflow ensures that **every contribution** is:  
+✅ **Checked** (linting, formatting, and tests)  
+✅ **Formatted automatically** (if needed)  
+✅ **Versioned properly** before deployment
 
 ---
 
-### Notes for Contributors
+### 🛠️ Steps to Contribute
 
-- Always pull the latest changes from `main` before starting a new feature.
-- If your pull request fails due to linting or formatting, let the workflow auto-correct it and push the changes.
-- The versioning system is automated—there’s no need to manually update version numbers.
+1️⃣ **Create a Feature Branch**
 
-By following this workflow, contributions remain clean, consistent, and efficiently versioned. 🚀
+- 🌱 Make changes in a **new branch** based on `main`.
 
-## License
+2️⃣ **Submit a Pull Request**
 
-Fragment is licensed under the GNU General Public License (GPL). See the [LICENSE](LICENSE) file for details.
+- 🔍 The **lint and test workflow** runs automatically.
+- 🛠️ Any necessary fixes (**linting, formatting**) are **auto-applied and committed**.
 
-## Acknowledgements
+3️⃣ **Merge to Main**
 
-Fragment is inspired by benchmarks like 3DMark and Unigine and is built using PyOpenGL, Pygame, Matplotlib, and other
-open-source libraries.
+- ✅ Once **approved**, merging triggers the **tag and version bump workflow**.
+- 🔄 The repository is **updated** with a **new version number** and **Git tag**.
 
-Additional useful tools and resources utilised during development include:
+---
 
-- **ChatGPT** – For assisting with the Python/GLSL codebase and generating textures.
-- **[Material-Map-Generator](https://github.com/joeyballentine/Material-Map-Generator)** – For generating normal,
-  roughness, and height maps for textures.
-- **[AudioLDM2](https://github.com/haoheliu/AudioLDM2)** – For generating the ambient music used in demo mode.
-- **[sphere2cube](https://pypi.org/project/sphere2cube/)** – For converting ChatGPT-generated images into cubemaps.
-- **[Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)** – For upscaling images to higher quality.
+🚀 This **automation** ensures that every contribution is **properly validated, formatted, and versioned** before
+deployment!
+
+---
+
+### 📌 Notes for Contributors
+
+- 🔄 **Always pull the latest changes** from `main` before starting a new feature.
+- 🛠️ **If your pull request fails** please see the output of the tests/linting and apply+push the changes.
+- 🔢 **The versioning system is automated** – no need to manually update version numbers.
+
+✅ By following this workflow, contributions remain **clean, consistent, and efficiently versioned.** 🚀
+
+---
+
+## 📜 License
+
+Fragment is licensed under the **GNU General Public License (GPL)**.  
+See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙌 Acknowledgements
+
+**Fragment** is inspired by benchmarks like **3DMark** and **Unigine** and is built using:  
+🖥️ **PyOpenGL, Pygame, Matplotlib, and other open-source libraries.**
+
+### 🔧 Additional tools and resources used during development:
+
+- 🤖 **ChatGPT** – Assisted with the **Python/GLSL codebase** and **texture generation**.
+- 🎨 **[Material-Map-Generator](https://github.com/joeyballentine/Material-Map-Generator)** – Used to generate **normal,
+  roughness, and height maps** for textures.
+- 🎵 **[AudioLDM2](https://github.com/haoheliu/AudioLDM2)** – Used for generating **ambient music** in demo mode.
+- 🖼️ **[sphere2cube](https://pypi.org/project/sphere2cube/)** – Converted **ChatGPT-generated images into cubemaps**.
+- 📷 **[Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)** – Used for **upscaling images** to higher quality.
