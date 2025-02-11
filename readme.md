@@ -191,100 +191,148 @@ implementing its logic.
 Create a new benchmark script `my_new_benchmark.py` inside `/benchmarks/`. The script should define a `run_benchmark`
 function, similar to the **Shimmer (Demo)** scenario:
 
+## Example Benchmark Script
+
+This example demonstrates how to create a new benchmark scenario using **Fragment**. The script sets up a **rotating
+pyramid model** with **ambient lighting, shadows, and background audio**.
+
 ```python  
 import os
 from components.renderer_config import RendererConfig
 from components.renderer_instancing import RenderingInstance
-from config.path_config import (diffuse_textures_dir, normal_textures_dir, displacement_textures_dir, models_dir,
-                                audio_dir)
+from config.path_config import (
+    diffuse_textures_dir,
+    normal_textures_dir,
+    displacement_textures_dir,
+    models_dir,
+    audio_dir,
+)
 
 
-def run_benchmark(stats_queue=None,
-                  stop_event=None,
-                  resolution=(800, 600),
-                  msaa_level=4,
-                  anisotropy=16,
-                  lighting_mode="pbr",
-                  shadow_map_resolution=2048,
-                  particle_render_mode="vertex",
-                  vsync_enabled=True,
-                  sound_enabled=True,
-                  fullscreen=False, ):
+def run_benchmark(
+        stats_queue=None,
+        stop_event=None,
+        resolution=(800, 600),
+        msaa_level=4,
+        anisotropy=16,
+        lighting_mode="pbr",
+        shadow_map_resolution=2048,
+        particle_render_mode="vertex",
+        vsync_enabled=True,
+        sound_enabled=True,
+        fullscreen=False,
+):
+    # Initialize base configuration for the renderer  
     base_config = RendererConfig(
-        window_title="New Benchmark",
-        window_size=resolution,
-        vsync_enabled=vsync_enabled,
-        fullscreen=fullscreen,
-        msaa_level=msaa_level,
-        duration=60,
+        window_title="New Benchmark",  # Sets the window title  
+        window_size=resolution,  # Defines the resolution (width, height) - passed in as a parameter from GUI
+        vsync_enabled=vsync_enabled,  # Enables or disables V-Sync - passed in as a parameter from GUI
+        fullscreen=fullscreen,  # Runs the benchmark in fullscreen mode if enabled - passed in as a parameter from GUI
+        msaa_level=msaa_level,  # Sets the anti-aliasing level (0, 2, 4, 8) - passed in as a parameter from GUI
+        duration=60,  # Benchmark runtime duration (seconds)  
+
+        # Camera configuration  
         camera_positions=[
             (4.5, 2.85, -1.4, 108.0, -24.0),
+            # (x, y, z, rotation_x, rotation_y), more positions can be added to create a camera path
         ],
-        lens_rotations=[
-            0.0,
-        ],
+        lens_rotations=[0.0],
+        # Adjusts lens roll angle at different keyframes, more rotations can be added to create a camera path
         auto_camera=True,
-        fov=90,
-        near_plane=0.1,
-        far_plane=1000,
-        ambient_lighting_strength=0.60,
-        ambient_lighting_color=(0.216, 0.871, 0.165),
+        # Enables automatic camera movement, which moves the camera through the defined positions from above
+        fov=90,  # Field of view (wider values show more of the scene)  
+        near_plane=0.1,  # Minimum rendering distance  
+        far_plane=1000,  # Maximum rendering distance  
+
+        # Global lighting settings  
+        ambient_lighting_strength=0.60,  # Adjusts scene-wide ambient lighting intensity  
+        ambient_lighting_color=(0.216, 0.871, 0.165),  # Greenish ambient lighting  
+
+        # Directional light (acts like a sun), multiples can be added; only the first one in the dict is used for shadow mapping
         lights=[
             {
-                "position": (50.0, 50.0, 50.0),
-                "color": (0.992, 1.0, 0.769),
-                "strength": 0.8,
-                "orth_left": -100.0,
+                "position": (50.0, 50.0, 50.0),  # Light source position in world space  
+                "color": (0.992, 1.0, 0.769),  # Warm light color (soft yellow)  
+                "strength": 0.8,  # Light intensity  
+                "orth_left": -100.0,  # Shadow projection bounds (used for shadow mapping)  
                 "orth_right": 100.0,
                 "orth_bottom": -100.0,
                 "orth_top": 100.0,
             },
         ],
-        lighting_mode=lighting_mode,
+
+        # Rendering settings  
+        lighting_mode=lighting_mode,  # "pbr", "phong", or "diffuse" shading models - passed in as a parameter from GUI
         shadow_map_resolution=shadow_map_resolution,
-        sound_enabled=sound_enabled,
-        background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
-        audio_delay=0.0,
-        audio_loop=True,
-        shadow_strength=1.0,
-        anisotropy=anisotropy,
-        move_speed=0.2,
-        culling=True,
+        # Shadow quality (higher = better) - passed in as a parameter from GUI
+        shadow_strength=1.0,  # Controls shadow darkness  
+        anisotropy=anisotropy,  # Anisotropic filtering for texture sharpness - passed in as a parameter from GUI
+        move_speed=0.2,  # Speed of camera movement in auto-camera mode  
+        culling=True,  # Enables back-face culling for performance improvement  
+
+        # Audio settings  
+        sound_enabled=sound_enabled,  # Enables or disables background audio - passed in as a parameter from GUI
+        background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),  # Path to background music  
+        audio_delay=0.0,  # Delays the start of the background audio  
+        audio_loop=True,  # Loops the background music continuously  
     )
 
+    # Define a 3D model (Pyramid)  
     model_config = base_config.add_model(
-        obj_path=os.path.join(models_dir, "pyramid.obj"),
+        obj_path=os.path.join(models_dir, "pyramid.obj"),  # Path to 3D model  
         texture_paths={
-            "diffuse": os.path.join(diffuse_textures_dir, "metal_1.png"),
-            "normal": os.path.join(normal_textures_dir, "metal_1.png"),
-            "displacement": os.path.join(displacement_textures_dir, "metal_1.png"),
+            "diffuse": os.path.join(diffuse_textures_dir, "metal_1.png"),  # Base color texture  
+            "normal": os.path.join(normal_textures_dir, "metal_1.png"),  # Normal map for surface details  
+            "displacement": os.path.join(displacement_textures_dir, "metal_1.png"),  # Height map for parallax effects  
         },
         shader_names={
-            "vertex": "standard",
-            "fragment": "embm",
+            "vertex": "standard",  # Vertex shader used for geometry transformation  
+            "fragment": "embm",  # Fragment shader used for lighting effects (EMBM = Environment-Mapped Bump Mapping)  
         },
     )
 
+    # Create a rendering instance  
     instance = RenderingInstance(base_config)
-
     instance.setup()
 
+    # Add the pyramid model to the scene  
     instance.add_renderer("main_model", "model", **model_config)
 
-    instance.scene_construct.translate_renderer("main_model", (0, 0, 0))  # Translate first model
-    instance.scene_construct.rotate_renderer("main_model", 45, (0, 1, 0))  # Rotate first model
-    instance.scene_construct.scale_renderer("main_model", (1.2, 1.2, 1.2))  # Scale first model
-    instance.scene_construct.set_auto_rotation("main_model", False, axis=(0, 1, 0), speed=2000.0)
+    # Scene transformations for the pyramid model  
+    instance.scene_construct.translate_renderer("main_model", (0, 0, 0))  # Moves model to (x, y, z)  
+    instance.scene_construct.rotate_renderer("main_model", 45,
+                                             (0, 1, 0))  # Rotates model around an axis (degrees, (x, y, z))
+    instance.scene_construct.scale_renderer("main_model", (1.2, 1.2, 1.2))  # Scales the model uniformly (x, y, z axis)
 
-    instance.run(stats_queue=stats_queue, stop_event=stop_event)
-``` 
+    # Enable automatic rotation for the model  
+    instance.scene_construct.set_auto_rotation("main_model", True, axis=(0, 1, 0), speed=2000.0)
+    # - `True` enables auto-rotation.  
+    # - `axis=(0, 1, 0)` means it rotates around the Y-axis.  
+    # - `speed=2000.0` determines rotation speed (higher values rotate faster).  
 
-✅ **Key Points:**
+    # Start the benchmark  
+    instance.run(stats_queue=stats_queue, stop_event=stop_event)  
+```  
 
-- Define `run_benchmark()` to handle rendering and logic.
-- Use `RendererConfig` to set up parameters (resolution, MSAA, lighting, etc.).
-- Use `.add_model()` to load objects, textures, and shaders.
-- Call `RenderingInstance` to initialize and run the benchmark.
+---
+
+✅ **Key Features Explained:**
+
+### **Rendering Configuration**
+
+- **Resolution & MSAA:** Defines the screen size and anti-aliasing level.
+- **Lighting & Shadows:** Uses ambient and directional lighting, with shadow quality adjustable.
+- **Audio Support:** Background music can be looped or disabled via settings.
+- **Automatic Camera:** Moves through predefined positions for cinematic views.
+
+### **Scene Manipulation**
+
+- **Translation (`translate_renderer`)** → Moves objects to a specific position.
+- **Rotation (`rotate_renderer`)** → Rotates an object around an axis.
+- **Scaling (`scale_renderer`)** → Enlarges or shrinks objects uniformly or non-uniformly.
+- **Auto-Rotation (`set_auto_rotation`)** → Makes an object continuously rotate.
+
+This guide ensures **clear understanding** of each parameter when adding new benchmarks. 🚀
 
 ---
 
