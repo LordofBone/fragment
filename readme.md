@@ -174,6 +174,200 @@ The generated HTML report provides a structured overview of test results for eas
 - **GUI Behavior (Raspberry Pi - Bookworm):** After running the demo, the GUI incorrectly navigates to the results
   screen instead of returning to the current tab.
 
+## Adding New Benchmarks
+
+Fragment allows users to create and integrate custom benchmark scenarios. This guide provides a quick overview of adding
+new benchmarks, configuring them, and ensuring they appear correctly in the GUI.
+
+---
+
+### 1. Creating a Benchmark Script
+
+All benchmarks are stored under the `/benchmarks/` directory. Each benchmark should have a separate Python script
+implementing its logic.
+
+#### Example Structure:
+
+Create a new benchmark script `my_new_benchmark.py` inside `/benchmarks/`. The script should define a `run_benchmark`
+function, similar to the **Shimmer (Demo)** scenario:
+
+```python  
+import os
+from components.renderer_config import RendererConfig
+from components.renderer_instancing import RenderingInstance
+from config.path_config import diffuse_textures_dir, normal_textures_dir, displacement_textures_dir, models_dir,
+    audio_dir
+
+
+def run_benchmark(stats_queue=None,
+                  stop_event=None,
+                  resolution=(800, 600),
+                  msaa_level=4,
+                  anisotropy=16,
+                  lighting_mode="pbr",
+                  shadow_map_resolution=2048,
+                  particle_render_mode="vertex",
+                  vsync_enabled=True,
+                  sound_enabled=True,
+                  fullscreen=False, ):
+    base_config = RendererConfig(
+        window_title="New Benchmark",
+        window_size=resolution,
+        vsync_enabled=vsync_enabled,
+        fullscreen=fullscreen,
+        msaa_level=msaa_level,
+        duration=60,
+        camera_positions=[
+            (4.5, 2.85, -1.4, 108.0, -24.0),
+        ],
+        lens_rotations=[
+            0.0,
+        ],
+        auto_camera=True,
+        fov=90,
+        near_plane=0.1,
+        far_plane=1000,
+        ambient_lighting_strength=0.60,
+        ambient_lighting_color=(0.216, 0.871, 0.165),
+        lights=[
+            {
+                "position": (50.0, 50.0, 50.0),
+                "color": (0.992, 1.0, 0.769),
+                "strength": 0.8,
+                "orth_left": -100.0,
+                "orth_right": 100.0,
+                "orth_bottom": -100.0,
+                "orth_top": 100.0,
+            },
+        ],
+        lighting_mode=lighting_mode,
+        shadow_map_resolution=shadow_map_resolution,
+        sound_enabled=sound_enabled,
+        background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),
+        audio_delay=0.0,
+        audio_loop=True,
+        shadow_strength=1.0,
+        anisotropy=anisotropy,
+        move_speed=0.2,
+        culling=True,
+    )
+
+    model_config = base_config.add_model(
+        obj_path=os.path.join(models_dir, "pyramid.obj"),
+        texture_paths={
+            "diffuse": os.path.join(diffuse_textures_dir, "metal_1.png"),
+            "normal": os.path.join(normal_textures_dir, "metal_1.png"),
+            "displacement": os.path.join(displacement_textures_dir, "metal_1.png"),
+        },
+        shader_names={
+            "vertex": "standard",
+            "fragment": "embm",
+        },
+    )
+
+    instance = RenderingInstance(base_config)
+
+    instance.setup()
+
+    instance.add_renderer("main_model", "model", **model_config)
+
+    instance.scene_construct.translate_renderer("main_model", (0, 0, 0))  # Translate first model
+    instance.scene_construct.rotate_renderer("main_model", 45, (0, 1, 0))  # Rotate first model
+    instance.scene_construct.scale_renderer("main_model", (1.2, 1.2, 1.2))  # Scale first model
+    instance.scene_construct.set_auto_rotation("main_model", False, axis=(0, 1, 0), speed=2000.0)
+
+    instance.run(stats_queue=stats_queue, stop_event=stop_event)
+``` 
+
+✅ **Key Points:**
+
+- Define `run_benchmark()` to handle rendering and logic.
+- Use `RendererConfig` to set up parameters (resolution, MSAA, lighting, etc.).
+- Use `.add_model()` to load objects, textures, and shaders.
+- Call `RenderingInstance` to initialize and run the benchmark.
+
+---
+
+### 2. Registering the Benchmark in the GUI
+
+To add the new benchmark to the menu, modify **`/gui/main_gui.py`** where benchmarks are registered:
+
+```python  
+from benchmarks.my_new_benchmark import run_benchmark as run_new_benchmark
+
+BENCHMARKS = {
+    "New Benchmark - Example Test": run_new_benchmark,
+}  
+``` 
+
+✅ **Key Points:**
+
+- Import the new benchmark function.
+- Add an entry to the `BENCHMARKS` dictionary.
+- Ensure the name is descriptive for clarity.
+
+---
+
+### 3. Adding a Preview Image
+
+To ensure the GUI displays a preview, place a reference image under:
+
+📂 **`/docs/images/`**
+
+- Name the image **exactly** as the benchmark title in the GUI BENCHMARKS dict.
+- Example: `"New Benchmark - Example Test.png"`
+
+✅ **Key Points:**
+
+- The image should match the exact benchmark title in the GUI).
+- The image is displayed when users hover over the benchmark in the GUI.
+- PNG format is preferred.
+
+---
+
+### 4. Running and Testing
+
+After adding the benchmark:
+
+1. **Run it via the GUI:**
+    - Start the application (`python main.py`).
+    - Navigate to the **Scenarios** tab.
+    - Select the new benchmark and run it.
+
+2. **Verify the results:**
+    - Ensure FPS, CPU, and GPU usage data are recorded.
+    - Check the preview image appears correctly.
+
+---
+
+### 5. Committing and Contributing
+
+If contributing to the main repository:
+
+- **Ensure code passes linting and tests:**
+  ```sh  
+  pytest --html=report/report.html  
+  ``` 
+
+- **Submit a Pull Request:**
+    - Fork the repository.
+    - Add your benchmark under `/benchmarks/`.
+    - Update the GUI and add a preview image.
+    - Open a PR with a description of the new benchmark.
+
+---
+
+### Summary
+
+✔️ Create a new benchmark script under `/benchmarks/`.  
+✔️ Configure rendering using `RendererConfig`.  
+✔️ Register the benchmark in `/main.py`.  
+✔️ Add a preview image under `/docs/images/`.  
+✔️ Test manually and via the GUI.  
+✔️ Ensure code follows standards before submitting a PR.
+
+This workflow ensures new benchmarks are properly integrated and accessible in the GUI for testing and comparison. 🚀
+
 ## GitHub Actions & Contribution Workflow
 
 Fragment uses GitHub Actions to automate linting, testing, and version management. These workflows ensure code quality
