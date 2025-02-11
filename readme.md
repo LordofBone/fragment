@@ -30,33 +30,37 @@
 6️⃣ **Baryon** – A **particle system benchmark** supporting **CPU, Transform Feedback, and Compute Shader modes**.  
    ![Baryon](docs/images/Baryon%20-%20Particle%20System%20Test.png)
 
-### User Interface
+## 🎨 User Interface
 
 ![Main Screen - Dark Mode](docs/images/main_screen_dark_mode.png)  
 ![Main Screen - Light Mode](docs/images/main_screen_light_mode.png)
 
-- Select benchmarks, configure settings, and preview scenarios.
-- Tune graphical settings, including MSAA, anisotropy, shading models, and resolution.
-- View performance results with clean matplotlib charts.
+- 🛠️ **Select benchmarks, configure settings, and preview scenarios.**
+- 🎛️ **Customize graphical settings**, including **MSAA, anisotropy, shading models, and resolution.**
+- 📊 **View performance results** with **clean, interactive matplotlib charts.**
 
 ![Benchmark Screen](docs/images/benchmark_screen.png)  
 ![Results Screen](docs/images/results_screen.png)  
 
-- Track FPS, CPU, and GPU usage in the window title bar in real-time.
+- 📡 **Track FPS, CPU, and GPU usage** in **real-time** via the window title bar.
 
 ![Results Screen](docs/images/benchmark_run_realtime_stats.png)
 
-### Rendering & Performance
+---
 
-- **Rendering:** Diffuse, Phong, and PBR shading; parallax and shadow mapping.
-- **Performance Tracking:** Real-time FPS, CPU, and GPU usage displayed in the window title bar.
-- **Graphical Settings:** Adjustable resolution, MSAA, anisotropic filtering, shading models, and shadow quality.
-- **Performance Score:** Aggregated FPS-based performance rating across benchmarks.
+## ⚡ Rendering & Performance
 
-### Architecture
+- 🎨 **Rendering:** Supports **Diffuse, Phong, and PBR shading**, as well as **parallax and shadow mapping.**
+- 📈 **Performance Tracking:** Displays **real-time FPS, CPU, and GPU usage** in the window title bar.
+- 🔧 **Graphical Settings:** Adjust **resolution, MSAA, anisotropic filtering, shading models, and shadow quality.**
+- 🏆 **Performance Score:** Calculates an **aggregated FPS-based rating** across benchmarks.
 
-- **Abstract Renderer:** Manages shaders, textures, cubemaps, camera controls, and lighting.
-- **Benchmark Construction:** Easily integrate model, surface, particle, and skybox-based benchmarks.
+---
+
+## 🏗️ Architecture
+
+- 🔄 **Abstract Renderer:** Manages **shaders, textures, cubemaps, camera controls, and lighting.**
+- 🏗️ **Benchmark Construction:** Easily integrate **model, surface, particle, and skybox-based benchmarks.**
 
 ## Installation
 
