@@ -139,7 +139,7 @@ def run_benchmark(
     )
 
     # Add the skybox and the pyramid to the scene
-    # instance.add_renderer("skybox", "skybox", **skybox_config)
+    instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("pyramid", "model", **pyramid_config)
 
     # Optionally enable autorotation for the pyramid
