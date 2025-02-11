@@ -107,53 +107,69 @@ chmod +x setup/rpi_bashrc_setup.sh && ./setup/rpi_bashrc_setup.sh
 💡 *In most cases, running `rpi_setup.sh` is enough. However, if you encounter issues, try running `rpi_bashrc_setup.sh`
 as well.*
 
-## Usage
+## 🚀 Usage
 
-**Caution:** Fragment can be quite heavy on systems like the Raspberry Pi and may cause excessive heat buildup,
-especially on the GPU. Ensure adequate cooling is in place, and use at your own risk.
+⚠️ **Caution:**  
+Fragment can be quite **heavy** on systems like the **Raspberry Pi** and may cause **excessive heat buildup**,
+especially on the GPU.  
+Ensure **adequate cooling** is in place before running, and use at your own risk.
+
+---
+
+### ▶️ Running the Benchmark
 
 Run the benchmark tool:
 
 ```sh  
 python main.py  
-```
+```  
 
-Within the GUI, you can:
+Within the **GUI**, you can:
 
-- Select and configure benchmark tests.
-- Adjust settings such as MSAA, anisotropy, shading models, and resolution.
-- Track live performance data and view overall results in Matplotlib charts.
+- 🎛️ **Select and configure benchmark tests.**
+- 🎨 **Adjust graphical settings**, such as **MSAA, anisotropy, shading models, and resolution.**
+- 📊 **Track live performance data** and **view results in Matplotlib charts.**
 
-**Note:** The results from Fragment should not be taken as totally accurate.  
-The performance score is more of a "finger in the air" number at the moment, based on:  
-`performance_score = overall_avg_fps * 10`.
+---
 
-Overall, Fragment is still a work-in-progress (WiP), so results may vary even  
-upon different runs of the same benchmarks.
+### 📌 Performance Score Disclaimer
 
-## Testing
+⚠️ **Note:**  
+Fragment's results should **not** be taken as totally accurate.  
+The performance score is currently a **rough estimate** and calculated as:
 
-Fragment includes a headless test suite using `unittest` and `pytest` to validate core functionality, including:
+`performance_score = overall_avg_fps * 10`
 
-- Configuration parsing and renderer operations.
-- Camera interpolation and performance data collection.
-- Benchmark execution, audio playback, and GUI logic.
+Since **Fragment is still a work-in-progress (WiP)**, results may **vary** between different runs of the same
+benchmarks.
 
-### Running Tests
+---
 
-To execute the test suite and generate an HTML report under the `/report` directory, run:
+## 🧪 Testing
+
+Fragment includes a **headless test suite** using `unittest` and `pytest` to validate core functionality, including:
+
+- ✅ **Configuration parsing** and **renderer operations.**
+- 🎥 **Camera interpolation** and **performance data collection.**
+- 🎵 **Benchmark execution**, **audio playback**, and **GUI logic.**
+
+---
+
+### 📂 Running Tests
+
+To execute the test suite and generate an **HTML report** under the `/report` directory, run:
 
 ```sh  
-pytest --html=report/report.html  
-```
+pytest --html-report/report.html  
+```  
 
-Alternatively, use `unittest` (no report generated):
+Alternatively, use **unittest** (without generating a report):
 
 ```sh  
 python -m unittest discover -s tests  
-```
+```  
 
-The generated HTML report provides a structured overview of test results for easier debugging.
+The generated **HTML report** provides a **structured overview** of test results for easier debugging.
 
 ## Known Issues
 
