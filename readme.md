@@ -207,6 +207,12 @@ The generated **HTML report** provides a **structured overview** of test results
 
 ---
 
+### 🔆 Shadow Mapping Issues
+
+- ⚠️ **Setting `far_plane` too high** can **break shadow mapping**, leading to rendering issues.
+
+---
+
 ### 🌈 Tone Mapping & Gamma Correction
 
 - These functions **currently do not work,** resulting in a **washed-out image**.
@@ -224,6 +230,14 @@ The generated **HTML report** provides a **structured overview** of test results
 
 - After running the **demo**, the GUI **incorrectly navigates** to the **results screen** instead of returning to the *
   *current tab**.
+- ⚠️ **GUI tests flash briefly on Linux (on Raspberry Pi), may also be what's causing them to be skipped on GitHub
+  Actions.**
+
+---
+
+### 📊 GPU Usage Measurement
+
+- 🔍 **Only NVIDIA GPU usage percentage can be measured** *(limitation of GPUtil).*
 
 ## 🏗️ Adding New Benchmarks
 
