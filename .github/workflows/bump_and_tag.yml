@@ -1,10 +1,12 @@
-name: Lint, Format, Test, and Conditional Version Bump
+name: Create Tag and Bump Version on Merge to Main
 
 on:
-  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
-  lint-test-and-bump:
+  bump-and-create-tag:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -16,50 +18,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Use full history so that git diff can compare
+          fetch-depth: 0  # Ensure full history for accurate diff
 
       - name: Set Git Config
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: Set up Python
+      - name: Install Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
       - name: Install Dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install bump2version
 
-      - name: Run Ruff Linting and Formatting
-        run: |
-          # Run Ruff to automatically fix issues (ignoring errors)
-          ruff check . --fix || true
-          # Run Ruff again to ensure formatting is correct
-          ruff format .
-
-      - name: Auto Commit Changes (Ruff)
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: 'Code linted by Ruff'
-
-      - name: Run Python Unit Tests
-        run: pytest --html-report=./report/report.html
-
-      - name: Determine Bump Level
+      - name: Determine Bump Level and Bump Version
         id: bump_level
         shell: bash
         run: |
-          # Compare the current commit with the previous commit.
+          # Compare the current commit with its immediate predecessor.
           DIFF_OUTPUT=$(git diff --shortstat HEAD^)
           echo "Diff stats: $DIFF_OUTPUT"
           
-          # Extract numbers for insertions and deletions.
+          # Extract the number of insertions and deletions.
           insertions=$(echo "$DIFF_OUTPUT" | grep -oP '\d+(?= insertion)' || echo 0)
           deletions=$(echo "$DIFF_OUTPUT" | grep -oP '\d+(?= deletion)' || echo 0)
           total=$((insertions + deletions))
           echo "Total changes (insertions + deletions): $total"
-
+          
           if [ "$total" -lt "$PATCH_THRESHOLD" ]; then
             echo "Bump level: patch"
             echo "level=patch" >> $GITHUB_OUTPUT
@@ -80,3 +67,12 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'Code version bumped'
+
+      - name: Create Git Tag
+        run: |
+          VERSION=$(python -c "from version import __version__; print(__version__)")
+          echo "Tagging version: $VERSION"
+          git tag -a "v$VERSION" -m "Version $VERSION"
+
+      - name: Push Git Tag
+        run: git push origin --tags
