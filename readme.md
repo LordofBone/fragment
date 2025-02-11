@@ -454,57 +454,68 @@ After adding the new benchmark, follow these steps:
 
 ---
 
-### 5. Committing and Contributing
+### 🔄 5. Committing and Contributing
 
-If contributing to the main repository:
+If contributing to the **main repository**:
 
-- **Ensure code passes linting and tests:**
+- ✅ **Ensure code passes linting and tests:**
+
   ```sh  
-  pytest --html=report/report.html  
-  ``` 
+  pytest --html-report/report.html  
+  ```  
 
-- **Submit a Pull Request:**
-    - Fork the repository.
-    - Add your benchmark under `/benchmarks/`.
-    - Update the GUI and add a preview image.
-    - Open a PR with a description of the new benchmark.
+- ✅ **Submit a Pull Request (PR):**
+    1. 🔀 **Fork the repository.**
+    2. 📂 **Add your benchmark** under **`/benchmarks/`**.
+    3. 🖼️ **Update the GUI** and **add a preview image**.
+    4. 🔧 **Open a PR** with a description of the new benchmark.
 
 ---
 
-### Summary
+### 📌 Summary
 
-✔️ Create a new benchmark script under `/benchmarks/`.  
-✔️ Configure rendering using `RendererConfig`.  
-✔️ Register the benchmark in `/main.py`.  
-✔️ Add a preview image under `/docs/images/`.  
-✔️ Test manually and via the GUI.  
-✔️ Ensure code follows standards before submitting a PR.
+✔️ **Create a new benchmark script** under **`/benchmarks/`**.  
+✔️ **Configure rendering** using **`RendererConfig`**.  
+✔️ **Register the benchmark** in **`/main.py`**.  
+✔️ **Add a preview image** under **`/docs/images/`**.  
+✔️ **Test manually and via the GUI**.  
+✔️ **Ensure code follows standards** before submitting a PR.
 
-This workflow ensures new benchmarks are properly integrated and accessible in the GUI for testing and comparison. 🚀
+📌 This workflow ensures **new benchmarks** are properly **integrated** and **accessible in the GUI** for testing and
+comparison. 🚀
 
-## GitHub Actions & Contribution Workflow
+---
 
-Fragment uses GitHub Actions to automate linting, testing, and version management. These workflows ensure code quality
-and maintain a structured versioning system.
+## ⚙️ GitHub Actions & Contribution Workflow
 
-### Linting, Formatting, and Testing (`lint_and_test.yml`)
+Fragment uses **GitHub Actions** to automate **linting, testing, and version management**.  
+These workflows help maintain **code quality** and ensure a **structured versioning system**.
 
-This workflow runs on **every pull request**, ensuring that contributions meet coding standards and pass all tests
-before merging.
+---
 
-#### Steps:
+### 🛠️ Linting, Formatting, and Testing (`lint_and_test.yml`)
 
-1. **Checkout Repository** – Fetches the latest code.
-2. **Set Up Python** – Installs Python 3.10.
-3. **Install Dependencies** – Installs required development dependencies.
-4. **Run Ruff Linting & Formatting** –
-    - Lints the code with Ruff and auto-fixes issues.
-    - Ensures formatting is correct.
-5. **Auto Commit Linting Fixes** – Automatically commits any formatting fixes.
-6. **Run Unit Tests** – Executes tests using `pytest` and generates an HTML report (not availabe on GH pages yet).
+This workflow runs on **every pull request**, ensuring that contributions **meet coding standards** and **pass all tests
+** before merging.
 
-🔹 *Why this matters:* Contributors must follow consistent coding practices, and all pull requests are automatically
-checked before merging.
+#### 🔄 Steps:
+
+1️⃣ **Checkout Repository** – Fetches the latest code.  
+2️⃣ **Set Up Python** – Installs **Python 3.10**.  
+3️⃣ **Install Dependencies** – Installs **required development dependencies**.  
+4️⃣ **Run Ruff Linting & Formatting** –
+
+- 📏 **Lints the code** with **Ruff** and **auto-fixes issues**.
+- ✅ **Ensures formatting is correct**.  
+  5️⃣ **Auto Commit Linting Fixes** – 📝 Automatically commits any formatting fixes.  
+  6️⃣ **Run Unit Tests** – Executes tests using **pytest** and generates an HTML report *(not available on GitHub Pages
+  yet)*.
+
+---
+
+🔹 *Why this matters:*  
+Ensuring that **contributors follow consistent coding practices** helps maintain project quality.  
+All **pull requests** are **automatically checked** before merging. 🚀
 
 ---
 
