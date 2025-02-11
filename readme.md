@@ -237,7 +237,8 @@ The generated **HTML report** provides a **structured overview** of test results
 
 ### 📊 GPU Usage Measurement
 
-- 🔍 **Only NVIDIA GPU usage percentage can be measured** *(limitation of GPUtil).*
+- 🔍 **Only NVIDIA GPU usage percentage can be measured** *(limitation of GPUtil, will look into ways of measuring
+  AMD/ARM GPU's in future).*
 
 ## 🏗️ Adding New Benchmarks
 
