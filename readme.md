@@ -335,6 +335,8 @@ def run_benchmark(
 
         # Rendering settings  
         lighting_mode=lighting_mode,  # "pbr", "phong", or "diffuse" shading  
+      apply_tone_mapping=False,  # Applies tone mapping for HDR rendering (currently does not work)
+      apply_gamma_correction=False,  # Applies gamma correction for color accuracy (currently does not work)
         shadow_map_resolution=shadow_map_resolution,
         shadow_strength=1.0,  # Controls shadow darkness  
         anisotropy=anisotropy,  # Anisotropic filtering  
@@ -343,7 +345,7 @@ def run_benchmark(
 
         # Audio settings  
         sound_enabled=sound_enabled,  # Enables or disables background audio  
-        background_audio=os.path.join(audio_dir, "music/water_pyramid.wav"),  # Background music path  
+      background_audio=os.path.join(audio_dir, "music/test.wav"),  # Background music path  
         audio_delay=0.0,  # Delays background audio start  
         audio_loop=True,  # Loops background music  
     )

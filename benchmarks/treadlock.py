@@ -51,6 +51,8 @@ def run_benchmark(
             }
         ],
         lighting_mode=lighting_mode,
+        apply_tone_mapping=False,
+        apply_gamma_correction=False,
         shadow_map_resolution=shadow_map_resolution,
         shadow_strength=7.0,
         anisotropy=anisotropy,
@@ -76,8 +78,6 @@ def run_benchmark(
             "vertex": "parallax_mapping",
             "fragment": "parallax_mapping",
         },
-        apply_tone_mapping=False,
-        apply_gamma_correction=False,
         legacy_roughness=32,
         invert_displacement_map=True,
         pom_height_scale=0.016,
