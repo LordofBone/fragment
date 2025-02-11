@@ -911,7 +911,7 @@ class AbstractRenderer(ABC):
         )
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "applyGammaCorrection"),
-            int(self.apply_gamma_correction)
+            int(self.apply_gamma_correction),
         )
 
     def set_shader_uniforms(self):
