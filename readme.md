@@ -372,29 +372,31 @@ def run_benchmark(
 
 ---
 
-✅ **Key Features Explained:**
+## ✅ Key Features Explained
 
-### **Rendering Configuration**
+### 🎨 Rendering Configuration
 
-- **Resolution & MSAA:** Defines the screen size and anti-aliasing level.
-- **Lighting & Shadows:** Uses ambient and directional lighting, with shadow quality adjustable.
-- **Audio Support:** Background music can be looped or disabled via settings.
-- **Automatic Camera:** Moves through predefined positions for cinematic views.
-
-### **Scene Manipulation**
-
-- **Translation (`translate_renderer`)** → Moves objects to a specific position.
-- **Rotation (`rotate_renderer`)** → Rotates an object around an axis.
-- **Scaling (`scale_renderer`)** → Enlarges or shrinks objects uniformly or non-uniformly.
-- **Auto-Rotation (`set_auto_rotation`)** → Makes an object continuously rotate.
-
-This guide ensures **clear understanding** of each parameter when adding new benchmarks. 🚀
+- 🖥️ **Resolution & MSAA:** Defines the **screen size** and **anti-aliasing level**.
+- 💡 **Lighting & Shadows:** Uses **ambient and directional lighting**, with **adjustable shadow quality**.
+- 🎵 **Audio Support:** Background music can be **looped or disabled** via settings.
+- 🎥 **Automatic Camera:** Moves through **predefined positions** for cinematic views.
 
 ---
 
-### 2. Registering the Benchmark in the GUI
+### 🛠️ Scene Manipulation
 
-To add the new benchmark to the menu, modify **`/gui/main_gui.py`** where benchmarks are registered:
+- 🔀 **Translation (`translate_renderer`)** → Moves objects to a specific **position**.
+- 🔄 **Rotation (`rotate_renderer`)** → Rotates an object **around an axis**.
+- 📏 **Scaling (`scale_renderer`)** → Enlarges or shrinks objects **uniformly or non-uniformly**.
+- 🔃 **Auto-Rotation (`set_auto_rotation`)** → Makes an object **continuously rotate**.
+
+📌 This guide ensures a **clear understanding** of each parameter when adding new benchmarks. 🚀
+
+---
+
+## 2️⃣ Registering the Benchmark in the GUI
+
+To add the **new benchmark** to the **menu**, modify **`/gui/main_gui.py`**, where benchmarks are registered:
 
 ```python  
 from benchmarks.my_new_benchmark import run_benchmark as run_new_benchmark
@@ -402,45 +404,53 @@ from benchmarks.my_new_benchmark import run_benchmark as run_new_benchmark
 BENCHMARKS = {
     "New Benchmark - Example Test": run_new_benchmark,
 }  
-``` 
+```  
 
 ✅ **Key Points:**
 
-- Import the new benchmark function.
-- Add an entry to the `BENCHMARKS` dictionary.
-- Ensure the name is descriptive for clarity.
+- 📥 **Import** the new benchmark function.
+- 📌 **Add an entry** to the `BENCHMARKS` dictionary.
+- 🏷️ **Ensure the name is descriptive** for clarity in the UI.
 
 ---
 
-### 3. Adding a Preview Image
+### 🖼️ 3. Adding a Preview Image
 
-To ensure the GUI displays a preview, place a reference image under:
+To ensure the **GUI displays a preview**, place a **reference image** in:
 
 📂 **`/docs/images/`**
 
-- Name the image **exactly** as the benchmark title in the GUI BENCHMARKS dict.
-- Example: `"New Benchmark - Example Test.png"`
+- 🏷️ **Name the image exactly** as the benchmark title in the **GUI `BENCHMARKS` dictionary**.
+- 📌 **Example:** If the benchmark is named `"New Benchmark - Example Test"`, the image should be:  
+  **`New Benchmark - Example Test.png`**
 
 ✅ **Key Points:**
 
-- The image should match the exact benchmark title in the GUI).
-- The image is displayed when users hover over the benchmark in the GUI.
-- PNG format is preferred.
+- 📝 The **image filename must match the benchmark title** in the GUI.
+- 🖼️ The **image appears when users hover** over the benchmark in the GUI.
+- 🔳 **PNG format is preferred** for consistency.
 
 ---
 
-### 4. Running and Testing
+### 🏃‍♂️ 4. Running and Testing
 
-After adding the benchmark:
+After adding the new benchmark, follow these steps:
 
-1. **Run it via the GUI:**
-    - Start the application (`python main.py`).
-    - Navigate to the **Scenarios** tab.
-    - Select the new benchmark and run it.
+1️⃣ **Run it via the GUI:**
 
-2. **Verify the results:**
-    - Ensure FPS, CPU, and GPU usage data are recorded.
-    - Check the preview image appears correctly.
+- ▶️ Start the application:
+
+  ```sh  
+  python main.py  
+  ```  
+
+- 🖥️ Navigate to the **Scenarios** tab.
+- 🏆 Select the **new benchmark** and run it.
+
+2️⃣ **Verify the results:**
+
+- 📊 Ensure **FPS, CPU, and GPU usage data** are recorded.
+- 🖼️ Check that the **preview image appears correctly**.
 
 ---
 
