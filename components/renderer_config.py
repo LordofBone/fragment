@@ -16,6 +16,8 @@ class RendererConfig:
         fov=40,
         near_plane=0.1,
         far_plane=1000,
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
         lights=None,
         anisotropy=16.0,
         auto_camera=False,
@@ -82,6 +84,8 @@ class RendererConfig:
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
+        self.apply_tone_mapping = apply_tone_mapping
+        self.apply_gamma_correction = apply_gamma_correction
         self.lights = lights
         self.anisotropy = anisotropy
         self.auto_camera = auto_camera
@@ -495,6 +499,8 @@ class RendererConfig:
         ambient_lighting_color=None,
         legacy_roughness=None,
         depth_testing=None,
+            apply_tone_mapping=False,
+            apply_gamma_correction=False,
         culling=None,
         particle_generator=False,
         generator_delay=0.0,
@@ -552,6 +558,8 @@ class RendererConfig:
             "ambient_lighting_color": ambient_lighting_color,
             "legacy_roughness": legacy_roughness,
             "depth_testing": depth_testing,
+            "apply_tone_mapping": apply_tone_mapping,
+            "apply_gamma_correction": apply_gamma_correction,
             "culling": culling,
             "particle_generator": particle_generator,
             "generator_delay": generator_delay,
