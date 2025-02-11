@@ -1,33 +1,33 @@
-# Fragment
+# 🖥️ Fragment
 
-Fragment is an advanced 3D rendering benchmark tool (inspired by 3DMark) for PCs and Raspberry Pi (4 and above on
-Bookworm working during my testing). It leverages OpenGL (
-via PyOpenGL and Pygame) to stress-test hardware performance, with a clean graphical interface and multiple benchmark
-modes.
+**Fragment** is a **3D rendering benchmark tool** (inspired by *3DMark*) for PCs and **Raspberry Pi 4+** (tested on
+*Bookworm*). It utilizes **OpenGL** (via *PyOpenGL* and *Pygame*) to stress-test hardware performance, featuring a *
+*clean graphical interface** and multiple **benchmark modes**.
 
-View the full write-up on [Hackster](https://www.hackster.io/314reactor/fragment)
-and [Electromaker](https://www.electromaker.io/project/view/fragment)
+📖 *Read the full write-up on:*  
+🔗 [Hackster](https://www.hackster.io/314reactor/fragment) |
+🔗 [Electromaker](https://www.electromaker.io/project/view/fragment)
 
-## Features
+## 🚀 Features
 
-### Benchmark Modes
+### 🎮 Benchmark Modes
 
-1. **Shimmer** – A demo combining multiple features, including particle effects and ambient audio.  
-   ![Shimmer](docs/images/Shimmer%20-%20Demo.png)
+1️⃣ **Shimmer** – A demo combining multiple features, including **particle effects** and **ambient audio**.  
+![Shimmer](docs/images/Shimmer%20-%20Demo.png)
 
-2. **Ætherial** – EMBM shader test using a pyramid model.  
-   ![Ætherial](docs/images/Ætherial%20-%20EMBM%20Test.png)
+2️⃣ **Ætherial** – **EMBM shader test** using a **pyramid model**.  
+![Ætherial](docs/images/Ætherial%20-%20EMBM%20Test.png)
 
-3. **Eidolon** – Transparency and planar camera via EMBM shaders on spherical models.  
-   ![Eidolon](docs/images/Eidolon%20-%20Transparency%20Shader%20Test.png)
+3️⃣ **Eidolon** – Tests **transparency** and **planar camera effects** using **EMBM shaders** on spherical models.  
+![Eidolon](docs/images/Eidolon%20-%20Transparency%20Shader%20Test.png)
 
-4. **Treadlock** – Parallax mapping test with a spotlight on a detailed tire model.  
-   ![Treadlock](docs/images/Treadlock%20-%20Parallax%20Shader%20Test.png)
+4️⃣ **Treadlock** – **Parallax mapping test** with a **spotlight** on a detailed **tire model**.  
+![Treadlock](docs/images/Treadlock%20-%20Parallax%20Shader%20Test.png)
 
-5. **Gelidus** – Reflection test using cubemap-reflective water surfaces.  
-   ![Gelidus](docs/images/Gelidus%20-%20Reflection%20Test.png)
+5️⃣ **Gelidus** – **Reflection test** using **cubemap-reflective water surfaces**.  
+![Gelidus](docs/images/Gelidus%20-%20Reflection%20Test.png)
 
-6. **Baryon** – Particle system benchmark supporting CPU, Transform Feedback, and Compute Shader modes.  
+6️⃣ **Baryon** – A **particle system benchmark** supporting **CPU, Transform Feedback, and Compute Shader modes**.  
    ![Baryon](docs/images/Baryon%20-%20Particle%20System%20Test.png)
 
 ### User Interface
