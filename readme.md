@@ -160,7 +160,7 @@ Fragment includes a **headless test suite** using `unittest` and `pytest` to val
 To execute the test suite and generate an **HTML report** under the `/report` directory, run:
 
 ```sh  
-pytest --html-report/report.html  
+pytest --html-report=./report/report.html
 ```  
 
 Alternatively, use **unittest** (without generating a report):
@@ -475,7 +475,7 @@ If contributing to the **main repository**:
 - ✅ **Ensure code passes linting and tests:**
 
   ```sh  
-  pytest --html-report/report.html  
+  pytest --html-report=./report/report.html  
   ```  
 
 - ✅ **Submit a Pull Request (PR):**
