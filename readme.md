@@ -62,41 +62,50 @@
 - 🔄 **Abstract Renderer:** Manages **shaders, textures, cubemaps, camera controls, and lighting.**
 - 🏗️ **Benchmark Construction:** Easily integrate **model, surface, particle, and skybox-based benchmarks.**
 
-## Installation
+## ⚙️ Installation
 
-### Prerequisites
+### 🔧 Prerequisites
 
-- Python 3.10+
-- Dependencies: PyOpenGL, Pygame, Matplotlib, NumPy, Pillow, psutil, GPUtil, CustomTkinter
-- **Note:** `PyOpenGL-accelerate` is excluded on ARM systems due to Raspberry Pi compatibility:
+- 🐍 **Python 3.10+**
+- 📦 **Required Dependencies:**  
+  `PyOpenGL, Pygame, Matplotlib, NumPy, Pillow, psutil, GPUtil, CustomTkinter`
+- ⚠️ **Note:** `PyOpenGL-accelerate` is excluded on ARM systems for Raspberry Pi compatibility:
+
   ```sh  
   PyOpenGL-accelerate==3.1.7; "arm" not in platform_machine and "aarch" not in platform_machine  
-  ```
+  ```  
 
-### Setup
+---
 
-Clone and install dependencies:
+### 🚀 Setup
+
+Clone the repository and install dependencies:
 
 ```sh  
 git clone https://github.com/LordofBone/fragment.git  
 cd fragment  
 pip install -r requirements.txt  
-```
+```  
 
-#### Raspberry Pi Configuration
+---
+
+### 🍓 Raspberry Pi Configuration
+
+Run the following scripts to configure Fragment on Raspberry Pi:
 
 ```sh  
 chmod +x setup/rpi_setup.sh && ./setup/rpi_setup.sh  
 chmod +x setup/rpi_bashrc_setup.sh && ./setup/rpi_bashrc_setup.sh  
-```
+```  
 
-`rpi_setup.sh` installs libosmesa6 and configures the PYOPENGL_PLATFORM and MESA_GL_VERSION_OVERRIDE envvars for
-Fragment to work on the Raspberry Pi.
+📌 **What these scripts do:**
 
-`rpi_bashrc_setup.sh` adds the necessary environment variables to the `.bashrc` file for Fragment to work on the
-Raspberry Pi.
+- `rpi_setup.sh` installs **libosmesa6** and sets up the required environment variables (**PYOPENGL_PLATFORM** and *
+  *MESA_GL_VERSION_OVERRIDE**) for Fragment to run on Raspberry Pi.
+- `rpi_bashrc_setup.sh` adds the necessary environment variables to **.bashrc**, ensuring they persist across sessions.
 
-Sometimes just running rpi_setup.sh is enough, but if you're having trouble, try running rpi_bashrc_setup.sh as well.
+💡 *In most cases, running `rpi_setup.sh` is enough. However, if you encounter issues, try running `rpi_bashrc_setup.sh`
+as well.*
 
 ## Usage
 
