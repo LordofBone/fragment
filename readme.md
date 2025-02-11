@@ -171,37 +171,59 @@ python -m unittest discover -s tests
 
 The generated **HTML report** provides a **structured overview** of test results for easier debugging.
 
-## Known Issues
+## ⚠️ Known Issues
 
-- **Raspberry Pi Compatibility:** Fragment may not work on all Raspberry Pi models or OS versions due to OpenGL
-  limitations, as mentioned it works on RPi 4 and above on Bookworm.  
-  Use the provided setup scripts to ensure compatibility with Raspberry Pi (Bookworm).
+### 🖥️ Raspberry Pi Compatibility
 
-- **Memory Leaks:** There may be memory leaks, particularly on Raspberry Pi.  
-  Running benchmarks repeatedly (especially the demo) can cause out-of-memory issues.  
-  These will be investigated and addressed over time.
+- Fragment **may not work** on all **Raspberry Pi models** or **OS versions** due to OpenGL limitations.
+    - ✅ **Tested on:** **Raspberry Pi 4+ (Bookworm)**
+    - 🔧 Use the provided **setup scripts** to ensure compatibility with Raspberry Pi (Bookworm).
 
-- **Particle System:**
-   - Particles are locked to the camera position, causing them to move with it.
-   - In CPU mode, particles spawn in a different location compared to other modes.
-   - Ground plane rotation for particles does not always work as expected.
-   - **Raspberry Pi (Bookworm):** Particles do not render identically to the PC version and appear visually different.
-   - **Raspberry Pi (Bookworm):** Only `GL_POINTS` works for particle rendering; other primitive types fail under
-     `glDrawArrays`.
+---
 
-- **Graphics Limitations (Raspberry Pi):**
-   - 8× MSAA is unsupported due to GPU limitations.
-   - Compute Shader mode does not function on Raspberry Pi.
+### 🛑 Memory Leaks
 
-- **Tone Mapping & Gamma Correction:**  
-  These functions currently do not work, resulting in a washed-out image.  
-  All lighting is currently rendered in SDR.
+- 🚨 **Memory leaks may occur, especially on Raspberry Pi.**
+- 🔄 Running benchmarks repeatedly (**especially the demo**) may cause **out-of-memory issues.**
+- 🛠️ These issues are under investigation and will be addressed over time.
 
-- **Performance Score:** The calculated performance score is an approximation and may not accurately represent system
-  performance.
+---
 
-- **GUI Behavior (Raspberry Pi - Bookworm):** After running the demo, the GUI incorrectly navigates to the results
-  screen instead of returning to the current tab.
+### 💨 Particle System Issues
+
+- 🎥 **Particles are locked to the camera position,** causing them to move with it.
+- 🎮 **CPU Mode:** Particles **spawn in a different location** compared to other modes.
+- 🔄 **Ground plane rotation** for particles **does not always work as expected.**
+- 🍓 **Raspberry Pi (Bookworm) Specific Issues:**
+    - Particles **do not render identically** to the PC version and appear visually different.
+    - Only **`GL_POINTS`** works for particle rendering; other primitive types **fail under `glDrawArrays`**.
+
+---
+
+### 🎨 Graphics Limitations (Raspberry Pi)
+
+- ❌ **8× MSAA is unsupported** due to GPU limitations.
+- ❌ **Compute Shader mode does not function** on Raspberry Pi.
+
+---
+
+### 🌈 Tone Mapping & Gamma Correction
+
+- These functions **currently do not work,** resulting in a **washed-out image**.
+- ⚠️ **All lighting is currently rendered in SDR.**
+
+---
+
+### 🏆 Performance Score
+
+- The **calculated performance score is an approximation** and may **not accurately reflect** system performance.
+
+---
+
+### 🖥️ GUI Behavior (Raspberry Pi - Bookworm)
+
+- After running the **demo**, the GUI **incorrectly navigates** to the **results screen** instead of returning to the *
+  *current tab**.
 
 ## Adding New Benchmarks
 
