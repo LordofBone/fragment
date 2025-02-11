@@ -1,0 +1,47 @@
+name: Lint, Format and Test on Pull Request
+
+on:
+  pull_request:
+
+jobs:
+  lint-test-and-bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PATCH_THRESHOLD: 250
+      MINOR_THRESHOLD: 2000
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Use full history so that git diff can compare
+
+      - name: Set Git Config
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run Ruff Linting and Formatting
+        run: |
+          # Run Ruff to automatically fix issues (ignoring errors)
+          ruff check . --fix || true
+          # Run Ruff again to ensure formatting is correct
+          ruff format .
+
+      - name: Auto Commit Changes (Ruff)
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'Code linted by Ruff'
+
+      - name: Run Python Unit Tests
+        run: pytest --html-report=./report/report.html
