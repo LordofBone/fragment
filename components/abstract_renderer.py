@@ -907,10 +907,11 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
         # Re-added tone mapping and gamma correction flags:
         glUniform1i(
-            glGetUniformLocation(self.shader_engine.shader_program, "applyToneMapping"), self.apply_tone_mapping
+            glGetUniformLocation(self.shader_engine.shader_program, "applyToneMapping"), int(self.apply_tone_mapping)
         )
         glUniform1i(
-            glGetUniformLocation(self.shader_engine.shader_program, "applyGammaCorrection"), self.apply_gamma_correction
+            glGetUniformLocation(self.shader_engine.shader_program, "applyGammaCorrection"),
+            int(self.apply_gamma_correction)
         )
 
     def set_shader_uniforms(self):
