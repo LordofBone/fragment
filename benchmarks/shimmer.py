@@ -25,7 +25,12 @@ def run_benchmark(
     sound_enabled=True,
     fullscreen=False,
 ):
-    # Initialize the base configuration for the renderer
+    """
+    Run the benchmark for the Shimmer configuration.
+    """
+    # ------------------------------------------------------------------------------
+    # Initialize the base renderer configuration
+    # ------------------------------------------------------------------------------
     base_config = RendererConfig(
         window_title="Shimmer",
         window_size=resolution,
@@ -33,6 +38,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=82,
         cubemap_folder=os.path.join(cubemaps_dir, "night_sky_egypt/"),
+        # Define multiple camera positions (x, y, z, yaw, pitch)
         camera_positions=[
             (10.0, 10.0, 10.0, 5.0, -10.0),
             (8.0, 8.0, 8.0, 10.0, -10.0),
@@ -46,8 +52,7 @@ def run_benchmark(
             (10.0, 10.0, 10.0, 30.0, 6.0),
             (15.0, 5.0, 8.0, 50.0, 6.0),
         ],
-        # Matching lens rotations, same length.
-        # This will cause the camera to “roll” at different keyframes.
+        # Lens rotations corresponding to each camera keyframe
         lens_rotations=[
             0.0,
             2.0,
@@ -95,11 +100,15 @@ def run_benchmark(
         audio_loop=True,
     )
 
-    # Create the rendering instance with the base configuration
+    # ------------------------------------------------------------------------------
+    # Create and set up the rendering instance
+    # ------------------------------------------------------------------------------
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    # Define the configuration for the stretched pyramid model
+    # ------------------------------------------------------------------------------
+    # Define the stretched pyramid model configuration
+    # ------------------------------------------------------------------------------
     stretched_pyramid_config = base_config.add_model(
         obj_path=os.path.join(models_dir, "pyramid.obj"),
         texture_paths={
@@ -132,7 +141,9 @@ def run_benchmark(
         },
     )
 
-    # Define the configuration for the opaque pyramid model
+    # ------------------------------------------------------------------------------
+    # Define the opaque pyramid model configuration
+    # ------------------------------------------------------------------------------
     opaque_pyramid_config = base_config.add_model(
         obj_path=os.path.join(models_dir, "pyramid.obj"),
         cubemap_folder="textures/cube/mountain_lake/",
@@ -166,7 +177,9 @@ def run_benchmark(
         },
     )
 
-    # Define the configuration for the rotating pyramid model
+    # ------------------------------------------------------------------------------
+    # Define the rotating pyramid model configuration
+    # ------------------------------------------------------------------------------
     rotating_pyramid_config = base_config.add_model(
         obj_path=os.path.join(models_dir, "pyramid.obj"),
         texture_paths={
@@ -191,10 +204,11 @@ def run_benchmark(
         env_map_lod_bias=1.5,
     )
 
-    # Define the configuration for the particle renderer
+    # ------------------------------------------------------------------------------
+    # Define the particle renderer configuration
+    # ------------------------------------------------------------------------------
     particle_config = base_config.add_particle_renderer(
         particle_render_mode=particle_render_mode,
-        # overriding max_particles_map to reduce lag (default values are too high when other things are being rendered)
         max_particles_map={"cpu": 200, "transform_feedback": 50000, "compute_shader": 4000000},
         particles_max=4000000,
         particle_batch_size=600000,
@@ -209,10 +223,10 @@ def run_benchmark(
         max_initial_velocity_y=35.0,
         min_initial_velocity_z=-3.0,
         max_initial_velocity_z=0.0,
-        particle_max_velocity=35.0,  # Set max velocity to a realistic value
-        particle_max_lifetime=2.0,  # Set max lifetime to a realistic value
-        particle_max_weight=1.5,  # Set max weight to a realistic value
-        particle_min_weight=0.1,  # Set min weight to a realistic value
+        particle_max_velocity=35.0,
+        particle_max_lifetime=2.0,
+        particle_max_weight=1.5,
+        particle_min_weight=0.1,
         particle_smooth_edges=True,
         particle_color=(0.18, 0.698, 1.0),
         particle_fade_to_color=False,
@@ -220,24 +234,26 @@ def run_benchmark(
         legacy_opacity=0.85,
         legacy_roughness=32,
         particle_gravity=(-8.5, -9.81, 5),
-        particle_bounce_factor=0.28,  # Standard bounce factor
-        particle_ground_plane_normal=(0.0, 1.0, 0.0),  # Corrected normal for ground plane
+        particle_bounce_factor=0.28,
+        particle_ground_plane_normal=(0.0, 1.0, 0.0),
         particle_ground_plane_angle=(0.0, 0.0),
-        particle_ground_plane_height=1.0,  # Height of the ground plane relative to the ground planes normal set above
-        fluid_simulation=True,  # Enable fluid simulation
-        fluid_pressure=0.95,  # Pressure factor for the particles
-        fluid_viscosity=0.65,  # Viscosity factor for the particles
-        particle_spawn_time_jitter=True,  # Jitter for spawn time
-        particle_max_spawn_time_jitter=2.5,  # Max jitter for spawn time
-        min_width=-25.0,  # Adjusted for a realistic spread along X and Z-axes
-        min_height=8.0,  # Adjusted for a realistic spread along Y-axis
-        min_depth=-25.0,  # Adjusted for a realistic spread along X and Z-axes
-        max_width=25.0,  # Adjusted for a realistic spread along X and Z-axes
-        max_height=45.0,  # Adjusted for a realistic spread along Y-axis
-        max_depth=25.0,  # Adjusted for a realistic spread along X and Z-axes
+        particle_ground_plane_height=1.0,
+        fluid_simulation=True,
+        fluid_pressure=0.95,
+        fluid_viscosity=0.65,
+        particle_spawn_time_jitter=True,
+        particle_max_spawn_time_jitter=2.5,
+        min_width=-25.0,
+        min_height=8.0,
+        min_depth=-25.0,
+        max_width=25.0,
+        max_height=45.0,
+        max_depth=25.0,
     )
 
-    # Define the configuration for the water surface
+    # ------------------------------------------------------------------------------
+    # Define the water surface configuration
+    # ------------------------------------------------------------------------------
     water_config = base_config.add_surface(
         shader_names={
             "vertex": "parallax_mapping",
@@ -268,7 +284,9 @@ def run_benchmark(
         env_map_lod_bias=1.5,
     )
 
-    # Add a skybox renderer
+    # ------------------------------------------------------------------------------
+    # Define the skybox configuration
+    # ------------------------------------------------------------------------------
     skybox_config = base_config.add_skybox(
         shader_names={
             "vertex": "skybox",
@@ -276,29 +294,28 @@ def run_benchmark(
         },
     )
 
-    # Add the renderers to the instance
+    # ------------------------------------------------------------------------------
+    # Add renderers and apply scene transformations
+    # ------------------------------------------------------------------------------
     instance.add_renderer("skybox", "skybox", **skybox_config)
-
     instance.add_renderer("water_surface", "surface", **water_config)
-
     instance.add_renderer("model_stretched", "model", **stretched_pyramid_config)
     instance.add_renderer("model_rotating", "model", **rotating_pyramid_config)
     instance.add_renderer("model_opaque", "model", **opaque_pyramid_config)
-
     instance.add_renderer("rain", "particle", **particle_config)
-    instance.scene_construct.translate_renderer("rain", (0, 0, 0))  # Translate first model
 
-    # Example transformations
-    instance.scene_construct.translate_renderer("model_rotating", (0, 2.5, -5))  # Translate first model
-    instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))  # Rotate first model
-    instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))  # Scale first model
+    # Apply example scene transformations
+    instance.scene_construct.translate_renderer("rain", (0, 0, 0))
+    instance.scene_construct.translate_renderer("model_rotating", (0, 2.5, -5))
+    instance.scene_construct.rotate_renderer("model_rotating", 45, (0, 1, 0))
+    instance.scene_construct.scale_renderer("model_rotating", (1.5, 2.5, 1.5))
     instance.scene_construct.set_auto_rotation("model_rotating", True, axis=(0, 1, 0), speed=2000.0)
+    instance.scene_construct.translate_renderer("model_stretched", (2, 2.5, 0))
+    instance.scene_construct.scale_renderer("model_stretched", (1.2, 1.2, 1.2))
+    instance.scene_construct.translate_renderer("model_opaque", (6, 2.5, -6))
+    instance.scene_construct.scale_renderer("model_opaque", (1.3, 1.3, 1.3))
 
-    instance.scene_construct.translate_renderer("model_stretched", (2, 2.5, 0))  # Translate second model
-    instance.scene_construct.scale_renderer("model_stretched", (1.2, 1.2, 1.2))  # Scale second model
-
-    instance.scene_construct.translate_renderer("model_opaque", (6, 2.5, -6))  # Translate second model
-    instance.scene_construct.scale_renderer("model_opaque", (1.3, 1.3, 1.3))  # Scale second model
-
+    # ------------------------------------------------------------------------------
     # Run the rendering instance
+    # ------------------------------------------------------------------------------
     instance.run(stats_queue=stats_queue, stop_event=stop_event)

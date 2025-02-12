@@ -18,7 +18,12 @@ def run_benchmark(
     sound_enabled=True,
     fullscreen=False,
 ):
-    # Initialize the base configuration for the renderer
+    """
+    Run the benchmark for the Gelidus configuration.
+    """
+    # ------------------------------------------------------------------------------
+    # Initialize the base renderer configuration
+    # ------------------------------------------------------------------------------
     base_config = RendererConfig(
         window_title="Gelidus",
         window_size=resolution,
@@ -26,7 +31,9 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "glacier/"),
+        # Single camera position (x, y, z, yaw, pitch)
         camera_positions=[(4.2, 150, 4.2, 45.0, -10.0)],
+        # Lens rotations for the keyframes
         lens_rotations=[
             0.0,
             0.4,
@@ -67,11 +74,15 @@ def run_benchmark(
         culling=True,
     )
 
-    # Create the rendering instance with the base configuration
+    # ------------------------------------------------------------------------------
+    # Create and set up the rendering instance
+    # ------------------------------------------------------------------------------
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    # Define the configuration for the water surface
+    # ------------------------------------------------------------------------------
+    # Define the water surface configuration
+    # ------------------------------------------------------------------------------
     water_config = base_config.add_surface(
         shader_names={
             "vertex": "standard",
@@ -89,7 +100,9 @@ def run_benchmark(
         env_map_strength=0.65,
     )
 
-    # Define the configuration for the skybox
+    # ------------------------------------------------------------------------------
+    # Define the skybox configuration
+    # ------------------------------------------------------------------------------
     skybox_config = base_config.add_skybox(
         shader_names={
             "vertex": "skybox",
@@ -97,10 +110,13 @@ def run_benchmark(
         },
     )
 
+    # ------------------------------------------------------------------------------
+    # Add renderers to the instance
+    # ------------------------------------------------------------------------------
     instance.add_renderer("skybox", "skybox", **skybox_config)
-
-    # Add the water surface renderer to the instance with a specific name
     instance.add_renderer("water_surface", "surface", **water_config)
 
+    # ------------------------------------------------------------------------------
     # Run the rendering instance
+    # ------------------------------------------------------------------------------
     instance.run(stats_queue=stats_queue, stop_event=stop_event)
