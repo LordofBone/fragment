@@ -230,8 +230,11 @@ The generated **HTML report** provides a **structured overview** of test results
 
 - After running the **demo**, the GUI **incorrectly navigates** to the **results screen** instead of returning to the *
   *current tab**.
-- ⚠️ **GUI tests flash briefly on Linux (on Raspberry Pi), may also be what's causing them to be skipped on GitHub
+- ⚠️ **GUI tests flash briefly on Linux (on Raspberry Pi), which may also be causing them to be skipped on GitHub
   Actions.**
+- ❌ **Application may not exit properly** when clicking the **X button** in the window bar.
+  - 🖥️ **Affects:** Windows & Raspberry Pi (Bookworm).
+  - 🔧 **Workaround:** Press **`Ctrl + C`** in the terminal to force exit.
 
 ---
 
@@ -349,6 +352,7 @@ def run_benchmark(
       background_audio=os.path.join(audio_dir, "music/test.wav"),  # Background music path  
         audio_delay=0.0,  # Delays background audio start  
         audio_loop=True,  # Loops background music  
+      debug_mode=False,  # Enables debug mode for additional console output and screenshots of planars and depth maps
     )
 
     # Define a 3D model (Pyramid)  
@@ -408,6 +412,36 @@ def run_benchmark(
 - 🔃 **Auto-Rotation (`set_auto_rotation`)** → Makes an object **continuously rotate**.
 
 📌 This guide ensures a **clear understanding** of each parameter when adding new benchmarks. 🚀
+
+---
+
+## 🐛 Debug Mode
+
+Fragment includes a **debug mode** to assist with troubleshooting.  
+By enabling `debug_mode`, you can access **additional console output** and **automated screenshots** of **planar cameras
+** and **depth maps**.
+
+### 🔧 Enabling Debug Mode
+
+To enable debug mode in a **benchmark script**, modify its **`base_config`**:
+
+```python  
+base_config = RendererConfig(
+  window_title="New Benchmark",
+  resolution=(800, 600),
+  debug_mode=True,  # Enables additional debug output and screenshot captures  
+)  
+```
+
+### 🛠️ Debug Mode Features
+
+- 📝 **Additional console output** – Logs rendering details and potential issues.
+- 📷 **Screenshots saved to** `/screenshots/`:
+  - **Planar camera captures** – Useful for debugging camera perspectives.
+  - **Depth maps** – Helps visualize shadow and occlusion data.
+
+✅ **Why use it?**  
+Debug mode helps **view logs**, **analyze rendering issues**, and **verify depth mapping & planar camera outputs**.
 
 ---
 
