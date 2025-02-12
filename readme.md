@@ -230,8 +230,11 @@ The generated **HTML report** provides a **structured overview** of test results
 
 - After running the **demo**, the GUI **incorrectly navigates** to the **results screen** instead of returning to the *
   *current tab**.
-- ⚠️ **GUI tests flash briefly on Linux (on Raspberry Pi), may also be what's causing them to be skipped on GitHub
+- ⚠️ **GUI tests flash briefly on Linux (on Raspberry Pi), which may also be causing them to be skipped on GitHub
   Actions.**
+- ❌ **Application may not exit properly** when clicking the **X button** in the window bar.
+  - 🖥️ **Affects:** Windows & Raspberry Pi (Bookworm).
+  - 🔧 **Workaround:** Press **`Ctrl + C`** in the terminal to force exit.
 
 ---
 
