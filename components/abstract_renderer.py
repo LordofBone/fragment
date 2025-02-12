@@ -10,6 +10,9 @@ tone mapping, gamma correction, etc).
 The module also includes helper functions and decorators used by the renderer.
 """
 
+# ------------------------------------------------------------------------------
+# Imports
+# ------------------------------------------------------------------------------
 import functools
 import os
 import time
@@ -29,11 +32,16 @@ from components.texture_manager import TextureManager
 from config.path_config import screenshots_dir
 from utils.image_saver import ImageSaver
 
-# Global managers
+# ------------------------------------------------------------------------------
+# Global Managers
+# ------------------------------------------------------------------------------
 texture_manager = TextureManager()
 image_saver = ImageSaver(screenshots_dir="screenshots")
 
 
+# ------------------------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------------------------
 def check_gl_error(context: str, debug_mode: bool):
     """
     Check for OpenGL errors if debug_mode is enabled.
@@ -47,12 +55,14 @@ def check_gl_error(context: str, debug_mode: bool):
             raise RuntimeError(f"OpenGL error in {context}: {gl_error}")
 
 
+# ------------------------------------------------------------------------------
+# Decorators
+# ------------------------------------------------------------------------------
 def with_gl_render_state(func):
     """
     Decorator to set up common OpenGL state, apply transformations,
     set uniforms, and reset state after a render function call.
     """
-
     @functools.wraps(func)
     def render_config(self, *args, **kwargs):
         # Use the main shader program.
@@ -90,11 +100,11 @@ def with_gl_render_state(func):
             glDisable(GL_CULL_FACE)
         check_gl_error("Culling setup", self.debug_mode)
 
-        # --- Apply model transformations ---
+        # --- Apply Model Transformations ---
         self.apply_transformations()
         check_gl_error("apply_transformations", self.debug_mode)
 
-        # --- Set lighting and other uniforms ---
+        # --- Set Lighting and Other Uniforms ---
         if self.lights_enabled:
             self.set_light_uniforms(self.shader_engine.shader_program)
         check_gl_error("set_light_uniforms", self.debug_mode)
@@ -105,11 +115,11 @@ def with_gl_render_state(func):
         self.set_shadow_shader_uniforms()
         check_gl_error("set_shadow_shader_uniforms", self.debug_mode)
 
-        # --- Call the decorated render function ---
+        # --- Call the Decorated Render Function ---
         result = func(self, *args, **kwargs)
         check_gl_error("render function", self.debug_mode)
 
-        # --- Unbind textures and reset state ---
+        # --- Unbind Textures and Reset State ---
         glBindTexture(GL_TEXTURE_2D, 0)
         check_gl_error("Unbind textures", self.debug_mode)
 
@@ -127,13 +137,15 @@ def with_gl_render_state(func):
     return render_config
 
 
+# ------------------------------------------------------------------------------
+# AbstractRenderer Class
+# ------------------------------------------------------------------------------
 class AbstractRenderer(ABC):
     """
     AbstractRenderer provides a base class for renderers that set up shaders,
     load textures, manage shadow mapping and camera control, and render the
     scene. Concrete subclasses must implement create_buffers() and render().
     """
-
     def __init__(
         self,
         renderer_name,
@@ -197,13 +209,17 @@ class AbstractRenderer(ABC):
         debug_mode=False,
         **kwargs,
     ):
-        # Identification and basic settings
+        # --------------------------------------------------------------------------
+        # Identification and Basic Settings
+        # --------------------------------------------------------------------------
         self.renderer_name = renderer_name
         self.debug_mode = debug_mode
         self.dynamic_attrs = kwargs
-        self.identifier = self  # Identifier for texture manager keys
+        self.identifier = self  # Used for texture manager keys
 
-        # Planar rendering attributes
+        # --------------------------------------------------------------------------
+        # Planar Rendering Attributes
+        # --------------------------------------------------------------------------
         self.flip_planar_horizontally = flip_planar_horizontally
         self.flip_planar_vertically = flip_planar_vertically
         self.use_planar_normal_distortion = use_planar_normal_distortion
@@ -215,26 +231,36 @@ class AbstractRenderer(ABC):
         self.planar_view = None
         self.planar_projection = None
 
-        # Environment mapping
+        # --------------------------------------------------------------------------
+        # Environment Mapping
+        # --------------------------------------------------------------------------
         self.environmentMap = None
 
-        # View and projection matrices
+        # --------------------------------------------------------------------------
+        # View and Projection Matrices
+        # --------------------------------------------------------------------------
         self.view = None
         self.projection = None
 
-        # Shader and texture configurations
+        # --------------------------------------------------------------------------
+        # Shader and Texture Configurations
+        # --------------------------------------------------------------------------
         self.shader_names = shader_names
         self.shaders = shaders or {}
         self.texture_paths = texture_paths or {}
         self.cubemap_folder = cubemap_folder
 
-        # Camera settings
+        # --------------------------------------------------------------------------
+        # Camera Settings
+        # --------------------------------------------------------------------------
         self.camera_positions = camera_positions or [(0, 0, 0, 0, 0)]
         self.fov = fov
         self.near_plane = near_plane
         self.far_plane = far_plane
 
-        # Transformations
+        # --------------------------------------------------------------------------
+        # Transformations and Model Matrix
+        # --------------------------------------------------------------------------
         self.translation = glm.vec3(0.0)
         self.rotation = glm.vec3(0.0)
         self.scaling = glm.vec3(1.0)
@@ -244,25 +270,33 @@ class AbstractRenderer(ABC):
         self.rotation_axis = glm.vec3(0, 0, 0)
         self.rotation_speed = 0.0
 
-        # Texture and environment mapping LOD/bias settings
+        # --------------------------------------------------------------------------
+        # Texture and Environment Mapping LOD/Bias Settings
+        # --------------------------------------------------------------------------
         self.texture_lod_bias = texture_lod_bias
         self.env_map_lod_bias = env_map_lod_bias
 
-        # Render options
+        # --------------------------------------------------------------------------
+        # Rendering Options
+        # --------------------------------------------------------------------------
         self.alpha_blending = alpha_blending
         self.depth_testing = depth_testing
         self.culling = culling
         self.msaa_level = msaa_level
         self.anisotropy = anisotropy
 
-        # Auto-camera settings
+        # --------------------------------------------------------------------------
+        # Auto-Camera Settings
+        # --------------------------------------------------------------------------
         self.auto_camera = auto_camera
         self.move_speed = move_speed
         self.loop = loop
         self.front_face_winding = self.get_winding_constant(front_face_winding)
         self.window_size = window_size
 
-        # Parallax/Displacement mapping settings
+        # --------------------------------------------------------------------------
+        # Parallax/Displacement Mapping Settings
+        # --------------------------------------------------------------------------
         self.invert_displacement_map = invert_displacement_map
         self.pom_height_scale = pom_height_scale
         self.pom_min_steps = pom_min_steps
@@ -272,17 +306,23 @@ class AbstractRenderer(ABC):
         self.pom_max_forward_offset = pom_max_forward_offset
         self.pom_enable_frag_depth_adjustment = pom_enable_frag_depth_adjustment
 
-        # Legacy material properties and environment map strength
+        # --------------------------------------------------------------------------
+        # Material and Environment Map Properties
+        # --------------------------------------------------------------------------
         self.legacy_opacity = legacy_opacity
         self.legacy_roughness = legacy_roughness
         self.env_map_strength = env_map_strength
 
-        # Distortion and refraction
+        # --------------------------------------------------------------------------
+        # Distortion and Refraction Settings
+        # --------------------------------------------------------------------------
         self.distortion_strength = distortion_strength
         self.refraction_strength = refraction_strength
         self.distortion_warped = distortion_warped
 
-        # Planar camera options
+        # --------------------------------------------------------------------------
+        # Planar Camera Options
+        # --------------------------------------------------------------------------
         self.screen_texture = screen_texture
         self.planar_resolution = planar_resolution
         self.planar_fov = planar_fov
@@ -297,17 +337,17 @@ class AbstractRenderer(ABC):
         self.screen_facing_planar_screenshotted = False
         self.screen_depth_map_screenshotted = False
 
-        # Size of a float in bytes
+        # --------------------------------------------------------------------------
+        # Buffer and Shader Engine Setup
+        # --------------------------------------------------------------------------
         self.float_size = 4
-
-        # Buffers
         self.vbos = []
         self.vaos = []
-
-        # Shader engine placeholder
         self.shader_engine = None
 
-        # Shadow mapping setup
+        # --------------------------------------------------------------------------
+        # Shadow Mapping Setup
+        # --------------------------------------------------------------------------
         if shadow_map_resolution > 0:
             self.shadowing_enabled = True
             self.shadow_width = self.shadow_height = shadow_map_resolution
@@ -317,20 +357,28 @@ class AbstractRenderer(ABC):
             self.shadow_map_manager = None
         self.shadow_strength = shadow_strength
 
-        # Ambient lighting
+        # --------------------------------------------------------------------------
+        # Ambient Lighting
+        # --------------------------------------------------------------------------
         self.ambient_lighting_strength = ambient_lighting_strength
         self.ambient_lighting_color = glm.vec3(*ambient_lighting_color)
 
-        # Additional colors and dynamic attributes
+        # --------------------------------------------------------------------------
+        # Additional Colors and Dynamic Attributes
+        # --------------------------------------------------------------------------
         self.water_base_color = glm.vec3(self.dynamic_attrs.get("water_base_color", (0.0, 0.0, 0.0)))
         self.lava_base_color = glm.vec3(self.dynamic_attrs.get("lava_base_color", (0.0, 0.0, 0.0)))
         self.lava_bright_color = glm.vec3(self.dynamic_attrs.get("lava_bright_color", (0.0, 0.0, 0.0)))
         self.dynamic_attrs.get("randomness", 0.8)
 
-        # Lighting mode: map string to integer code.
+        # --------------------------------------------------------------------------
+        # Lighting Mode (Mapping string to integer code)
+        # --------------------------------------------------------------------------
         self.lighting_mode = {"diffuse": 0, "phong": 1, "pbr": 2}.get(lighting_mode, 0)
 
-        # Light sources
+        # --------------------------------------------------------------------------
+        # Light Sources
+        # --------------------------------------------------------------------------
         self.lights_enabled = lights is not None
         if self.lights_enabled:
             self.lights = [
@@ -348,7 +396,9 @@ class AbstractRenderer(ABC):
         else:
             self.lights = []
 
-        # Camera controller
+        # --------------------------------------------------------------------------
+        # Camera Controller Initialization
+        # --------------------------------------------------------------------------
         if self.auto_camera:
             self.camera_controller = CameraController(
                 self.camera_positions,
@@ -368,15 +418,20 @@ class AbstractRenderer(ABC):
         if self.planar_camera:
             self.setup_planar_camera()
 
-        # Store tone mapping and gamma correction flags (re-added)
+        # --------------------------------------------------------------------------
+        # Tone Mapping and Gamma Correction
+        # --------------------------------------------------------------------------
         self.apply_tone_mapping = apply_tone_mapping
         self.apply_gamma_correction = apply_gamma_correction
 
-        # Initialize the list of auto-rotations.
-        # Each element is a tuple: (axis, speed)
-        # For example: [((0.0, 1.0, 0.0), 4000.0), ((1.0, 0.0, 0.0), 2000.0)]
+        # --------------------------------------------------------------------------
+        # Auto-Rotation Initialization
+        # --------------------------------------------------------------------------
         self.auto_rotations = []
 
+    # --------------------------------------------------------------------------
+    # Utility Methods
+    # --------------------------------------------------------------------------
     def get_winding_constant(self, winding: str):
         """
         Return the OpenGL constant corresponding to the front face winding.
@@ -392,6 +447,9 @@ class AbstractRenderer(ABC):
         """
         return self.shadowing_enabled
 
+    # --------------------------------------------------------------------------
+    # Setup and Initialization Methods
+    # --------------------------------------------------------------------------
     def setup(self):
         """
         Initialize shaders, buffers, textures, camera, and constant uniforms.
@@ -491,6 +549,9 @@ class AbstractRenderer(ABC):
         glBindTexture(GL_TEXTURE_2D, self.screen_texture)
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
+    # --------------------------------------------------------------------------
+    # Rendering Methods
+    # --------------------------------------------------------------------------
     def render_shadow_map(self, scene_renderers):
         """
         Render the scene from the light's perspective to build a shadow map.
@@ -519,7 +580,7 @@ class AbstractRenderer(ABC):
     def render_planar_view(self, scene_renderers):
         """
         Render the scene from a planar camera perspective.
-        If `planar_relative_to_camera` is True, the planar camera position is
+        If 'planar_relative_to_camera' is True, the planar camera position is
         computed relative to the main camera's orientation.
         """
         if not self.planar_camera:
@@ -647,6 +708,9 @@ class AbstractRenderer(ABC):
         if self.debug_mode:
             self.render_shadow_map_visualization()
 
+    # --------------------------------------------------------------------------
+    # Shader and Texture Loading Methods
+    # --------------------------------------------------------------------------
     def init_shaders(self):
         """
         Initialize the main and shadow mapping shader programs.
@@ -748,6 +812,9 @@ class AbstractRenderer(ABC):
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP)
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
 
+    # --------------------------------------------------------------------------
+    # Camera Setup Methods
+    # --------------------------------------------------------------------------
     def setup_camera(self):
         """
         Setup the main camera. If auto_camera is enabled, use the CameraController
@@ -806,6 +873,9 @@ class AbstractRenderer(ABC):
             glUniform1f(glGetUniformLocation(shader_program, f"lightOrthoTop[{i}]"), light["orth_top"])
         glUniform1i(glGetUniformLocation(shader_program, "lightingMode"), self.lighting_mode)
 
+    # --------------------------------------------------------------------------
+    # Transformation Methods
+    # --------------------------------------------------------------------------
     def set_model_matrix(self, matrix):
         """
         Set the object's model matrix.
@@ -860,16 +930,12 @@ class AbstractRenderer(ABC):
 
     def apply_transformations(self):
         """
-        Apply manual transformations (translation, initial rotation, scaling)
-        and then apply any auto-rotations. The auto-rotations are applied in sequence
-        (the order of rotations in the list matters).
+        Apply manual transformations (translation, rotation, scaling) and then
+        apply any auto-rotations in sequence.
         """
-        # self.manual_transformations was computed by update_model_matrix()
         if self.auto_rotations:
             auto_matrix = glm.mat4(1.0)
-            # For each auto rotation, compute an incremental rotation matrix and multiply them
             for axis, speed in self.auto_rotations:
-                # Here, we compute an angle based on time (you might wish to adjust the divisor)
                 angle = pygame.time.get_ticks() / speed
                 auto_matrix = auto_matrix * glm.rotate(glm.mat4(1.0), angle, glm.vec3(*axis))
             self.model_matrix = self.manual_transformations * auto_matrix
@@ -885,10 +951,10 @@ class AbstractRenderer(ABC):
         If none of these conditions are met, auto-rotation is disabled.
 
         Example usage:
-          # For a single auto rotation:
+          # Single auto rotation:
           r.enable_auto_rotation(enabled=True, axis=(0.0, 1.0, 0.0), speed=4000.0)
 
-          # For multiple auto rotations:
+          # Multiple auto rotations:
           r.enable_auto_rotation(rotations=[((0.0, 1.0, 0.0), 4000.0), ((1.0, 0.0, 0.0), 2000.0)])
         """
         if rotations is not None:
@@ -898,6 +964,9 @@ class AbstractRenderer(ABC):
         else:
             self.auto_rotations = []
 
+    # --------------------------------------------------------------------------
+    # Uniform Setup Methods
+    # --------------------------------------------------------------------------
     def set_constant_uniforms(self):
         """
         Set uniforms that remain constant for the shader program.
@@ -905,7 +974,6 @@ class AbstractRenderer(ABC):
         self.shader_engine.use_shader_program()
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "textureLodLevel"), self.texture_lod_bias)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "envMapLodLevel"), self.env_map_lod_bias)
-        # Re-added tone mapping and gamma correction flags:
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "applyToneMapping"), int(self.apply_tone_mapping)
         )
@@ -921,7 +989,6 @@ class AbstractRenderer(ABC):
         """
         self.shader_engine.use_shader_program()
 
-        # --- Model, View, Projection ---
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_engine.shader_program, "model"),
             1,
@@ -940,7 +1007,6 @@ class AbstractRenderer(ABC):
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "nearPlane"), self.near_plane)
         glUniform1f(glGetUniformLocation(self.shader_engine.shader_program, "farPlane"), self.far_plane)
 
-        # --- Shadow Mapping ---
         if self.shadow_map_manager and self.shadowing_enabled and self.lights_enabled:
             glUniformMatrix4fv(
                 glGetUniformLocation(self.shader_engine.shader_program, "lightSpaceMatrix"),
@@ -952,7 +1018,6 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_engine.shader_program, "shadowingEnabled"), int(self.shadowing_enabled)
         )
 
-        # --- Parallax Mapping ---
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "invertDisplacementMap"),
             int(self.invert_displacement_map),
@@ -974,7 +1039,6 @@ class AbstractRenderer(ABC):
             int(self.pom_enable_frag_depth_adjustment),
         )
 
-        # --- Ambient and Material ---
         glUniform1f(
             glGetUniformLocation(self.shader_engine.shader_program, "ambientStrength"), self.ambient_lighting_strength
         )
@@ -995,7 +1059,6 @@ class AbstractRenderer(ABC):
             glGetUniformLocation(self.shader_engine.shader_program, "refractionStrength"), self.refraction_strength
         )
 
-        # --- Screen and Planar Texture ---
         glUniform2f(
             glGetUniformLocation(self.shader_engine.shader_program, "screenResolution"),
             self.window_size[0],
@@ -1028,7 +1091,6 @@ class AbstractRenderer(ABC):
             int(self.screen_facing_planar_texture),
         )
 
-        # --- Dynamic Material and Effects ---
         glUniform1i(
             glGetUniformLocation(self.shader_engine.shader_program, "useCheckerPattern"),
             int(self.dynamic_attrs.get("use_checker_pattern", 1)),
@@ -1121,6 +1183,9 @@ class AbstractRenderer(ABC):
             dummy_texture = texture_manager.get_dummy_texture()
             glBindTexture(GL_TEXTURE_2D, dummy_texture)
 
+    # --------------------------------------------------------------------------
+    # Camera Update and Shutdown Methods
+    # --------------------------------------------------------------------------
     def update_camera(self, delta_time):
         """
         Update the camera based on delta time using the CameraController.
@@ -1144,6 +1209,9 @@ class AbstractRenderer(ABC):
             glDeleteBuffers(len(self.vbos), self.vbos)
         self.shader_engine.delete_shader_programs()
 
+    # --------------------------------------------------------------------------
+    # Abstract Methods (to be implemented by subclasses)
+    # --------------------------------------------------------------------------
     @abstractmethod
     def create_buffers(self):
         """
