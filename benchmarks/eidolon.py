@@ -24,7 +24,12 @@ def run_benchmark(
     sound_enabled=True,
     fullscreen=False,
 ):
-    # Initialize the base configuration for the renderer
+    """
+    Run the benchmark for the Eidolon configuration.
+    """
+    # ------------------------------------------------------------------------------
+    # Initialize the base renderer configuration
+    # ------------------------------------------------------------------------------
     base_config = RendererConfig(
         window_title="Eidolon",
         window_size=resolution,
@@ -32,24 +37,26 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "mountain_lake/"),
+        # Camera positions (x, y, z, yaw, pitch)
         camera_positions=[
             (60.4, 60.4, 60.4, 35.0, -50.0),  # Starting position
             (50.0, 70.0, 50.0, 36.0, -45.0),  # Move up and to the side
             (40.0, 60.0, 70.0, 36.0, -45.0),  # Move further around, maintaining view
-            (30.0, 50.0, 80.0, 36.0, -45.0),  # Continue to rotate around, higher
-            (20.0, 40.0, 70.0, 36.0, -45.0),  # Move down, still rotating
+            (30.0, 50.0, 80.0, 36.0, -45.0),  # Rotate around, higher
+            (20.0, 40.0, 70.0, 36.0, -45.0),  # Move down while rotating
             (10.0, 30.0, 60.0, 45.0, -60.0),  # Rotate towards the back
-            (0.0, 20.0, 50.0, -30.0, -45.0),  # Directly behind, looking at the object
+            (0.0, 20.0, 50.0, -30.0, -45.0),  # Directly behind, looking at object
             (-10.0, 30.0, 40.0, -30.0, -40.0),  # Rotate back around
             (-20.0, 40.0, 30.0, -23.0, -38.0),  # Continue moving down
-            (-30.0, 50.0, 20.0, -29.0, -45.0),  # Directly opposite the starting point
+            (-30.0, 50.0, 20.0, -29.0, -45.0),  # Opposite starting point
             (-40.0, 60.0, 30.0, -23.0, -47.0),  # Rotate around to the side
-            (-50.0, 70.0, 40.0, -25.0, -48.0),  # Move back around towards the front
-            (-60.4, 60.4, 60.4, -25.0, -48.0),  # Return to symmetrical position opposite start
+            (-50.0, 70.0, 40.0, -25.0, -48.0),  # Move back toward the front
+            (-60.4, 60.4, 60.4, -25.0, -48.0),  # Return to symmetrical position
             (60.4, 60.4, 60.4, 36.0, -45.0),  # Return to starting position
         ],
+        # Lens rotations for corresponding keyframes
         lens_rotations=[
-            0.0,  # Start with no roll
+            0.0,  # No roll at start
             3.0,
             7.0,
             10.0,
@@ -62,7 +69,7 @@ def run_benchmark(
             -5.0,
             -2.0,
             0.0,
-            0.0,  # End with no roll, back at start
+            0.0,  # End with no roll
         ],
         auto_camera=True,
         fov=90,
@@ -92,11 +99,15 @@ def run_benchmark(
         culling=True,
     )
 
-    # Create the rendering instance with the base configuration
+    # ------------------------------------------------------------------------------
+    # Create and set up the rendering instance
+    # ------------------------------------------------------------------------------
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    # Define the configuration for the sphere model
+    # ------------------------------------------------------------------------------
+    # Define the sphere model configuration
+    # ------------------------------------------------------------------------------
     sphere_config = base_config.add_model(
         obj_path=os.path.join(models_dir, "sphere.obj"),
         texture_paths={
@@ -127,7 +138,9 @@ def run_benchmark(
         env_map_lod_bias=2.0,
     )
 
-    # Define the configuration for the skybox
+    # ------------------------------------------------------------------------------
+    # Define the skybox configuration
+    # ------------------------------------------------------------------------------
     skybox_config = base_config.add_skybox(
         shader_names={
             "vertex": "skybox",
@@ -135,9 +148,13 @@ def run_benchmark(
         },
     )
 
-    # Add the renderers to the instance with specific names
+    # ------------------------------------------------------------------------------
+    # Add renderers to the instance
+    # ------------------------------------------------------------------------------
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("sphere", "model", **sphere_config)
 
+    # ------------------------------------------------------------------------------
     # Run the rendering instance
+    # ------------------------------------------------------------------------------
     instance.run(stats_queue=stats_queue, stop_event=stop_event)

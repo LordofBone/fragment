@@ -1,3 +1,6 @@
+# ------------------------------------------------------------------------------
+# Imports
+# ------------------------------------------------------------------------------
 import os
 
 import numpy as np
@@ -7,9 +10,15 @@ from OpenGL.GL import *
 from components.abstract_renderer import AbstractRenderer, with_gl_render_state
 from components.texture_manager import TextureManager
 
+# ------------------------------------------------------------------------------
+# Global Variables / Managers
+# ------------------------------------------------------------------------------
 texture_manager = TextureManager()
 
 
+# ------------------------------------------------------------------------------
+# Helper Functions: PBR Extensions Parsing
+# ------------------------------------------------------------------------------
 def parse_pbr_extensions_from_mtl(mtl_path):
     """
     Parse extra PBR lines in a .mtl file, returning a dict of dicts:
@@ -28,14 +37,13 @@ def parse_pbr_extensions_from_mtl(mtl_path):
             },
             'AnotherMaterial': { ... }
         }
-
     It looks specifically for tokens like Pr, Pm, Ps, Pc, Pcr, aniso, anisor, Tf, etc.
     If the file or lines are missing, it returns an empty dict or partial data.
     """
     pbr_data_by_material = {}
     current_mat_name = None
 
-    # Define tokens and their expected types.
+    # Tokens to expect
     single_float_tokens = {"Pr", "Pm", "Ps", "Pc", "Pcr", "aniso", "anisor", "Pfe"}
     triple_float_tokens = {"Tf"}
 
@@ -77,6 +85,9 @@ def parse_pbr_extensions_from_mtl(mtl_path):
     return pbr_data_by_material
 
 
+# ------------------------------------------------------------------------------
+# Helper Functions: Upload Material Uniforms
+# ------------------------------------------------------------------------------
 def upload_material_uniforms(shader_program, material, fallback_pbr):
     """
     Upload material uniforms to the GPU. If any expected uniform is not found,
@@ -101,6 +112,7 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
         "material.fresnelExponent": "fresnel_exponent",
     }
 
+    # Retrieve standard material properties from the material (with defaults)
     ambient = getattr(material, "ambient", [0.2, 0.2, 0.2, 1.0])[:3]
     diffuse = getattr(material, "diffuse", [0.8, 0.8, 0.8, 1.0])[:3]
     specular = getattr(material, "specular", [0.5, 0.5, 0.5, 1.0])[:3]
@@ -109,6 +121,7 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     illumination_model = getattr(material, "illumination_model", 2)
     transparency = getattr(material, "transparency", 1.0)
 
+    # Merge fallback PBR parameters with any extra PBR data from the material
     local_pbr = dict(fallback_pbr)
     mat_pbr = getattr(material, "pbr_extensions", {})
     if "Pr" in mat_pbr:
@@ -182,19 +195,28 @@ def upload_material_uniforms(shader_program, material, fallback_pbr):
     glUniform1f(uniform_locations["material.fresnelExponent"], material_values["fresnel_exponent"])
 
 
+# ------------------------------------------------------------------------------
+# ModelRenderer Class
+# ------------------------------------------------------------------------------
 class ModelRenderer(AbstractRenderer):
     def __init__(self, renderer_name, obj_path, **kwargs):
+        """
+        Initialize the ModelRenderer.
+
+        Loads the .obj file (with materials and faces), parses any extra PBR data
+        from the corresponding .mtl file, and applies user-provided PBR overrides.
+        """
         super().__init__(renderer_name=renderer_name, **kwargs)
         self.obj_path = obj_path
 
-        # Load the .obj with materials and face data.
+        # Load the .obj file with materials and face data
         self.object = pywavefront.Wavefront(self.obj_path, create_materials=True, collect_faces=True)
 
-        # Attempt to parse the same .mtl for any PBR extensions.
+        # Attempt to parse the corresponding .mtl for extra PBR extensions
         mtl_path = self.obj_path.replace(".obj", ".mtl")
         extra_pbr_data = parse_pbr_extensions_from_mtl(mtl_path)
 
-        # Attach extra PBR data (if any) to each material.
+        # Attach extra PBR data to each material
         for mesh in self.object.mesh_list:
             for mat in mesh.materials:
                 mat_name = getattr(mat, "name", None)
@@ -203,9 +225,8 @@ class ModelRenderer(AbstractRenderer):
                 else:
                     mat.pbr_extensions = {}
 
-        # Grab user overrides; if None or missing, default to empty dict.
+        # Process user override PBR parameters
         override_pbr = kwargs.get("pbr_extension_overrides") or {}
-        # Map from friendly names to .mtl tokens.
         friendly_to_token = {
             "roughness": "Pr",
             "metallic": "Pm",
@@ -217,7 +238,6 @@ class ModelRenderer(AbstractRenderer):
             "transmission": "Tf",
             "fresnel_exponent": "Pfe",
         }
-        # Check that override keys are valid.
         allowed_keys = set(friendly_to_token.keys())
         invalid_keys = [key for key in override_pbr if key not in allowed_keys]
         if invalid_keys:
@@ -227,14 +247,13 @@ class ModelRenderer(AbstractRenderer):
                 + "; available pbr overrides are: "
                 + ", ".join(sorted(allowed_keys))
             )
-        # For each material, apply the valid user override values.
         for mesh in self.object.mesh_list:
             for mat in mesh.materials:
                 for friendly, token in friendly_to_token.items():
                     if friendly in override_pbr:
                         mat.pbr_extensions[token] = override_pbr[friendly]
 
-        # Create a default dict of fallback PBR parameters.
+        # Create fallback PBR parameters
         default_pbr = {
             "roughness": 0.5,
             "metallic": 0.0,
@@ -246,16 +265,21 @@ class ModelRenderer(AbstractRenderer):
             "transmission": (0.0, 0.0, 0.0),
             "fresnel_exponent": 0.5,
         }
-        # Merge user-provided overrides into default.
         default_pbr.update(override_pbr)
         self.pbr_extension_overrides = default_pbr
 
+    # --------------------------------------------------------------------------
+    # Shadow Mapping Support
+    # --------------------------------------------------------------------------
     def supports_shadow_mapping(self):
         return True
 
+    # --------------------------------------------------------------------------
+    # Buffer Creation
+    # --------------------------------------------------------------------------
     def create_buffers(self):
         """
-        Create buffers for each mesh material in the object's mesh list.
+        Create buffers (VBOs and VAOs) for each material in every mesh.
         """
         self.vaos = []
         self.vbos = []
@@ -269,6 +293,9 @@ class ModelRenderer(AbstractRenderer):
                     continue
 
                 vertices_array = np.array(vertices, dtype=np.float32).reshape(-1, 8)
+                # Reorder the vertex components:
+                #   [x, y, z, nx, ny, nz, u, v] -> [x, y, z, nx, ny, nz, u, v]
+                # But here, reordering is performed as follows:
                 reordered = np.column_stack(
                     (
                         vertices_array[:, 5],  # x
@@ -281,6 +308,7 @@ class ModelRenderer(AbstractRenderer):
                         vertices_array[:, 1],  # v
                     )
                 )
+                # Compute tangent and bitangent vectors and append them
                 reordered = self.compute_tangents_and_bitangents(reordered)
                 vbo = self.create_vbo(reordered)
                 vao = self.create_vao(with_tangents=True)
@@ -291,7 +319,7 @@ class ModelRenderer(AbstractRenderer):
     def compute_tangents_and_bitangents(self, verts):
         """
         Compute tangent and bitangent vectors for an N x 8 array of vertices.
-        Returns an N x 14 array (appending tangent and bitangent).
+        Returns an N x 14 array with appended tangent and bitangent vectors.
         """
         tangent = np.zeros((verts.shape[0], 3), dtype=np.float32)
         bitangent = np.zeros((verts.shape[0], 3), dtype=np.float32)
@@ -353,17 +381,21 @@ class ModelRenderer(AbstractRenderer):
         return final_array
 
     def create_vbo(self, vertices_array):
+        """
+        Create and bind a Vertex Buffer Object (VBO) for the given vertex array.
+        """
         vbo = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, vbo)
         glBufferData(GL_ARRAY_BUFFER, vertices_array.nbytes, vertices_array, GL_STATIC_DRAW)
         return vbo
 
     def create_vao(self, with_tangents=False):
+        """
+        Create and set up a Vertex Array Object (VAO) with optional tangent/bitangent attributes.
+        """
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
         vertex_stride = 14 * self.float_size if with_tangents else 8 * self.float_size
-        vao = glGenVertexArrays(1)
-        glBindVertexArray(vao)
 
         position_loc = glGetAttribLocation(self.shader_engine.shader_program, "position")
         normal_loc = glGetAttribLocation(self.shader_engine.shader_program, "normal")
@@ -388,20 +420,29 @@ class ModelRenderer(AbstractRenderer):
         return vao
 
     def get_vertex_stride(self, vertex_format):
+        """
+        Compute the vertex stride (number of components) from the vertex format string.
+        """
         count = 0
         for part in vertex_format.split("_"):
             count += int(part[1])
         return count
 
     def enable_vertex_attrib(self, location, size, stride, pointer_offset):
+        """
+        Enable and set the vertex attribute pointer.
+        """
         if location >= 0:
             glEnableVertexAttribArray(location)
             glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(pointer_offset))
 
+    # --------------------------------------------------------------------------
+    # Rendering Methods
+    # --------------------------------------------------------------------------
     @with_gl_render_state
     def render(self):
         """
-        Render all meshes of the object with their corresponding materials.
+        Render all meshes of the object using their corresponding materials.
         """
         vao_counter = 0
         for mesh_index, mesh in enumerate(self.object.mesh_list):
@@ -417,18 +458,25 @@ class ModelRenderer(AbstractRenderer):
     def apply_material(self, material):
         """
         Upload the material uniforms to the GPU.
-        This function sets all extended material uniforms (including PBR parameters)
-        using the helper function upload_material_uniforms.
         """
         glUseProgram(self.shader_engine.shader_program)
         upload_material_uniforms(self.shader_engine.shader_program, material, self.pbr_extension_overrides)
 
     def bind_and_draw_vao(self, vao_index, count):
+        """
+        Bind the VAO at the given index and issue the draw call.
+        """
         glBindVertexArray(self.vaos[vao_index])
         glDrawArrays(GL_TRIANGLES, 0, count)
         glBindVertexArray(0)
 
+    # --------------------------------------------------------------------------
+    # Shutdown and Resource Cleanup
+    # --------------------------------------------------------------------------
     def shutdown(self):
+        """
+        Clean up allocated OpenGL resources.
+        """
         if hasattr(self, "vaos") and self.vaos:
             glDeleteVertexArrays(len(self.vaos), self.vaos)
         if hasattr(self, "vbos") and self.vbos:

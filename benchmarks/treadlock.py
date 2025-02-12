@@ -24,7 +24,12 @@ def run_benchmark(
     sound_enabled=True,
     fullscreen=False,
 ):
-    # Initialize the base configuration for the renderer
+    """
+    Run the benchmark for the Treadlock configuration.
+    """
+    # ------------------------------------------------------------------------------
+    # Initialize the base renderer configuration
+    # ------------------------------------------------------------------------------
     base_config = RendererConfig(
         window_title="Treadlock",
         window_size=resolution,
@@ -32,6 +37,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "garage_2/"),
+        # Single camera position (x, y, z, yaw, pitch)
         camera_positions=[(6.4, 0.0, 6.4, -270.0, 0.0)],
         lens_rotations=[0.0],
         fov=40,
@@ -61,12 +67,16 @@ def run_benchmark(
         culling=True,
     )
 
-    # Create the rendering instance with the base configuration
+    # ------------------------------------------------------------------------------
+    # Create and set up the rendering instance
+    # ------------------------------------------------------------------------------
     instance = RenderingInstance(base_config)
     instance.setup()
-    instance.base_config = base_config  # Attribute defined outside __init__
+    instance.base_config = base_config  # Set attribute outside __init__
 
-    # Define the configuration for the tyre model
+    # ------------------------------------------------------------------------------
+    # Define the tyre model configuration
+    # ------------------------------------------------------------------------------
     tyre_config = base_config.add_model(
         obj_path=os.path.join(models_dir, "tyre.obj"),
         texture_paths={
@@ -92,7 +102,9 @@ def run_benchmark(
         env_map_strength=0.025,
     )
 
-    # Define the configuration for the skybox
+    # ------------------------------------------------------------------------------
+    # Define the skybox configuration
+    # ------------------------------------------------------------------------------
     skybox_config = base_config.add_skybox(
         shader_names={
             "vertex": "skybox",
@@ -100,19 +112,19 @@ def run_benchmark(
         },
     )
 
-    # Add the tyre renderer to the instance with a specific name
+    # ------------------------------------------------------------------------------
+    # Add renderers to the instance and configure scene transforms
+    # ------------------------------------------------------------------------------
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("tyre", "model", **tyre_config)
-
-    # Translate the tyre model to a specific position, to get best view of skybox
     instance.scene_construct.translate_renderer("tyre", (-5.0, 0.0, 6.5))
-
-    # First, tilt the tyre by 45° about the X‐axis (manual/initial rotation)
+    # Apply manual rotation (tilt) followed by auto-rotations on multiple axes.
     instance.scene_construct.rotate_renderer_euler("tyre", (0.0, 0.0, 0.0))
-
-    # Then, enable auto-rotation on multiple axes (for example, spin about the Y axis and also roll about the X axis)
     instance.scene_construct.set_auto_rotations(
         "tyre", rotations=[((0.0, 1.0, 0.0), 14000.0), ((0.0, 0.0, 1.0), 8000.0)]
     )
+
+    # ------------------------------------------------------------------------------
     # Run the rendering instance
+    # ------------------------------------------------------------------------------
     instance.run(stats_queue=stats_queue, stop_event=stop_event)

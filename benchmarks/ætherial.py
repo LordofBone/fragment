@@ -24,7 +24,12 @@ def run_benchmark(
     sound_enabled=True,
     fullscreen=False,
 ):
-    # Initialize the base configuration for the renderer
+    """
+    Run the benchmark for the Ætherial configuration.
+    """
+    # ------------------------------------------------------------------------------
+    # Initialize the base renderer configuration
+    # ------------------------------------------------------------------------------
     base_config = RendererConfig(
         window_title="Ætherial",
         window_size=resolution,
@@ -32,6 +37,7 @@ def run_benchmark(
         fullscreen=fullscreen,
         duration=60,
         cubemap_folder=os.path.join(cubemaps_dir, "magick_dome/"),
+        # Single camera position (x, y, z, yaw, pitch)
         camera_positions=[
             (4.5, 2.85, -1.4, 108.0, -24.0),
         ],
@@ -108,11 +114,15 @@ def run_benchmark(
         culling=True,
     )
 
-    # Create the rendering instance with the base configuration
+    # ------------------------------------------------------------------------------
+    # Create and set up the rendering instance
+    # ------------------------------------------------------------------------------
     instance = RenderingInstance(base_config)
     instance.setup()
 
-    # Define the configuration for the pyramid model
+    # ------------------------------------------------------------------------------
+    # Define the pyramid model configuration
+    # ------------------------------------------------------------------------------
     pyramid_config = base_config.add_model(
         obj_path=os.path.join(models_dir, "pyramid.obj"),
         texture_paths={
@@ -130,7 +140,9 @@ def run_benchmark(
         env_map_lod_bias=0.0,
     )
 
-    # Define the configuration for the skybox
+    # ------------------------------------------------------------------------------
+    # Define the skybox configuration
+    # ------------------------------------------------------------------------------
     skybox_config = base_config.add_skybox(
         shader_names={
             "vertex": "skybox",
@@ -138,12 +150,14 @@ def run_benchmark(
         },
     )
 
-    # Add the skybox and the pyramid to the scene
+    # ------------------------------------------------------------------------------
+    # Add renderers to the instance and configure optional autorotation
+    # ------------------------------------------------------------------------------
     instance.add_renderer("skybox", "skybox", **skybox_config)
     instance.add_renderer("pyramid", "model", **pyramid_config)
-
-    # Optionally enable autorotation for the pyramid
     instance.scene_construct.set_auto_rotation("pyramid", True, axis=(0, 1, 0), speed=5000.0)
 
+    # ------------------------------------------------------------------------------
     # Run the rendering instance
+    # ------------------------------------------------------------------------------
     instance.run(stats_queue=stats_queue, stop_event=stop_event)

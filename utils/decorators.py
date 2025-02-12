@@ -1,6 +1,14 @@
 def singleton(cls):
     """
-    Decorator to make a class a singleton.
+    A decorator to enforce the singleton pattern on a class.
+
+    Ensures that only one instance of the decorated class exists during
+    the lifetime of the application.
+
+    Usage:
+        @singleton
+        class MyClass:
+            pass
     """
     instances = {}
 
