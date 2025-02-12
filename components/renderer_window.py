@@ -16,14 +16,7 @@ class RendererWindow:
     - Background thread to monitor CPU/GPU usage
     """
 
-    def __init__(
-            self,
-            window_size=(800, 600),
-            title="Renderer",
-            msaa_level=4,
-            vsync_enabled=True,
-            fullscreen=False
-    ):
+    def __init__(self, window_size=(800, 600), title="Renderer", msaa_level=4, vsync_enabled=True, fullscreen=False):
         """
         Initialize the window parameters, prepare Pygame, and start the system usage monitoring thread.
 
@@ -67,10 +60,7 @@ class RendererWindow:
         # ----------------------------------------------------------------------
         # Start Background Monitoring Thread
         # ----------------------------------------------------------------------
-        self.monitoring_thread = threading.Thread(
-            target=self.monitor_system_usage,
-            daemon=True
-        )
+        self.monitoring_thread = threading.Thread(target=self.monitor_system_usage, daemon=True)
         self.monitoring_thread.start()
 
     # --------------------------------------------------------------------------
@@ -94,11 +84,7 @@ class RendererWindow:
 
         # Attempt to set vsync if supported
         try:
-            pygame.display.set_mode(
-                self.window_size,
-                display_flags,
-                vsync=1 if self.vsync_enabled else 0
-            )
+            pygame.display.set_mode(self.window_size, display_flags, vsync=1 if self.vsync_enabled else 0)
         except TypeError:
             # For older Pygame versions that do not support vsync argument
             pygame.display.set_mode(self.window_size, display_flags)

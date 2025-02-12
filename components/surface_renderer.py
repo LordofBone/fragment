@@ -10,6 +10,7 @@ class Mesh:
     Simple container for vertices and faces.
     Faces are typically tuples of (i1, i2, i3) indexes into the vertices array.
     """
+
     def __init__(self, vertices, faces):
         self.vertices = vertices
         self.faces = faces
@@ -19,6 +20,7 @@ class SceneObject:
     """
     Wraps a list of Mesh objects to represent a single object in the scene.
     """
+
     def __init__(self, mesh_list):
         self.mesh_list = mesh_list
 
@@ -28,6 +30,7 @@ class SurfaceRenderer(AbstractRenderer):
     Renders a flat surface (plane) in the scene. The surface can be assigned
     normals, tangents, and bitangents for shading or parallax effects.
     """
+
     def __init__(self, renderer_name, **kwargs):
         super().__init__(renderer_name=renderer_name, **kwargs)
         self.vaos = []
@@ -60,13 +63,24 @@ class SurfaceRenderer(AbstractRenderer):
 
         for v in verts:
             x, y, z, u, vtex = v
-            expanded.append([
-                x, y, z,  # position
-                normal[0], normal[1], normal[2],
-                u, vtex,  # texCoords
-                tangent[0], tangent[1], tangent[2],
-                bitangent[0], bitangent[1], bitangent[2],
-            ])
+            expanded.append(
+                [
+                    x,
+                    y,
+                    z,  # position
+                    normal[0],
+                    normal[1],
+                    normal[2],
+                    u,
+                    vtex,  # texCoords
+                    tangent[0],
+                    tangent[1],
+                    tangent[2],
+                    bitangent[0],
+                    bitangent[1],
+                    bitangent[2],
+                ]
+            )
 
         expanded = np.array(expanded, dtype=np.float32)
 
@@ -106,13 +120,37 @@ class SurfaceRenderer(AbstractRenderer):
         # Create two triangles forming a plane
         vertices = [
             # Triangle 1
-            -half_width, 0.0, half_height, 0.0, 1.0,
-            half_width, 0.0, half_height, 1.0, 1.0,
-            half_width, 0.0, -half_height, 1.0, 0.0,
+            -half_width,
+            0.0,
+            half_height,
+            0.0,
+            1.0,
+            half_width,
+            0.0,
+            half_height,
+            1.0,
+            1.0,
+            half_width,
+            0.0,
+            -half_height,
+            1.0,
+            0.0,
             # Triangle 2
-            half_width, 0.0, -half_height, 1.0, 0.0,
-            -half_width, 0.0, -half_height, 0.0, 0.0,
-            -half_width, 0.0, half_height, 0.0, 1.0,
+            half_width,
+            0.0,
+            -half_height,
+            1.0,
+            0.0,
+            -half_width,
+            0.0,
+            -half_height,
+            0.0,
+            0.0,
+            -half_width,
+            0.0,
+            half_height,
+            0.0,
+            1.0,
         ]
         faces = [(0, 1, 2), (3, 4, 5)]
         return vertices, faces

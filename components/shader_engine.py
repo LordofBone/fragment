@@ -11,6 +11,7 @@ class ShaderEngine:
     - Shadow-mapping shaders
     It also handles #include directives, referencing a 'common' GLSL include directory.
     """
+
     def __init__(
         self,
         vertex_shader_path,
@@ -19,7 +20,7 @@ class ShaderEngine:
         shadow_vertex_shader_path=None,
         shadow_fragment_shader_path=None,
         shader_base_dir="shaders",
-            common_dir_name="common",
+        common_dir_name="common",
     ):
         """
         Initialize the ShaderEngine.
@@ -50,8 +51,7 @@ class ShaderEngine:
         self.shadow_shader_program = None
         if shadow_vertex_shader_path or shadow_fragment_shader_path:
             self.shadow_shader_program = self.create_shader_program(
-                shadow_vertex_shader_path,
-                shadow_fragment_shader_path
+                shadow_vertex_shader_path, shadow_fragment_shader_path
             )
 
     # --------------------------------------------------------------------------
@@ -170,7 +170,7 @@ class ShaderEngine:
                 if start_idx == -1 or end_idx == -1:
                     raise RuntimeError('Malformed #include directive. Must be #include "filename"')
 
-                include_filename = line_stripped[start_idx + 1:end_idx]
+                include_filename = line_stripped[start_idx + 1 : end_idx]
 
                 # Check local directory first
                 include_path_local = os.path.join(current_dir, include_filename)

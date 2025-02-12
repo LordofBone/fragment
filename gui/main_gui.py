@@ -1,3 +1,4 @@
+import _tkinter
 import io
 import multiprocessing
 import os
@@ -7,16 +8,15 @@ import tkinter
 import tkinter.messagebox
 import webbrowser
 
-import GPUtil
-import _tkinter
 import customtkinter
+import GPUtil
 import matplotlib.pyplot as plt
 import matplotlib.style as plot_style
 import numpy as np
 import psutil
 import pygame
-from PIL import Image, ImageFilter, ImageTk
 from customtkinter import CTkImage
+from PIL import Image, ImageFilter, ImageTk
 from scipy.interpolate import make_interp_spline
 
 from benchmarks.baryon import run_benchmark as run_particle_benchmark
@@ -61,6 +61,7 @@ class App(customtkinter.CTk):
     - Running and collecting results
     - Displaying performance stats and charts
     """
+
     def __init__(self):
         """
         Initialize the app window, UI elements, and default states.
@@ -140,22 +141,16 @@ class App(customtkinter.CTk):
         )
         self.benchmark_button.grid(row=1, column=0, padx=20, pady=10)
 
-        self.demo_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="Shimmer (Demo)", command=self.demo_mode
-        )
+        self.demo_button = customtkinter.CTkButton(self.sidebar_frame, text="Shimmer (Demo)", command=self.demo_mode)
         self.demo_button.grid(row=2, column=0, padx=20, pady=10)
         self.demo_button.bind("<Enter>", self.on_demo_hover)
         self.demo_button.bind("<Leave>", self.on_demo_leave)
 
-        self.about_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="About", command=self.show_about_info
-        )
+        self.about_button = customtkinter.CTkButton(self.sidebar_frame, text="About", command=self.show_about_info)
         self.about_button.grid(row=3, column=0, padx=20, pady=10)
 
         # Appearance mode
-        self.appearance_mode_label = customtkinter.CTkLabel(
-            self.sidebar_frame, text="Appearance Mode:", anchor="w"
-        )
+        self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
         self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
 
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(
@@ -167,9 +162,7 @@ class App(customtkinter.CTk):
 
         # UI scaling
         self.current_scaling = 1.0
-        self.scaling_label = customtkinter.CTkLabel(
-            self.sidebar_frame, text="UI Scaling:", anchor="w"
-        )
+        self.scaling_label = customtkinter.CTkLabel(self.sidebar_frame, text="UI Scaling:", anchor="w")
         self.scaling_label.grid(row=7, column=0, padx=20, pady=(10, 0))
         self.scaling_optionemenu = customtkinter.CTkOptionMenu(
             self.sidebar_frame,
@@ -178,9 +171,7 @@ class App(customtkinter.CTk):
         )
         self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
 
-        self.exit_button = customtkinter.CTkButton(
-            self.sidebar_frame, text="Exit", command=self.exit_app
-        )
+        self.exit_button = customtkinter.CTkButton(self.sidebar_frame, text="Exit", command=self.exit_app)
         self.exit_button.grid(row=9, column=0, padx=20, pady=10)
 
         # ----------------------------------------------------------------------
@@ -188,8 +179,7 @@ class App(customtkinter.CTk):
         # ----------------------------------------------------------------------
         self.main_content_frame = customtkinter.CTkFrame(self)
         self.main_content_frame.grid(
-            row=0, column=1, columnspan=4, rowspan=4,
-            padx=(20, 20), pady=(20, 20), sticky="nsew"
+            row=0, column=1, columnspan=4, rowspan=4, padx=(20, 20), pady=(20, 20), sticky="nsew"
         )
         self.main_content_frame.grid_rowconfigure(0, weight=1)
         self.main_content_frame.grid_columnconfigure(0, weight=1)
@@ -331,17 +321,13 @@ class App(customtkinter.CTk):
         # Row 2: Anisotropy
         self.anisotropy_label = customtkinter.CTkLabel(settings_tab, text="Anisotropy Level:")
         self.anisotropy_label.grid(row=2, column=0, padx=common_padx, pady=common_pady)
-        self.anisotropy_optionmenu = customtkinter.CTkOptionMenu(
-            settings_tab, values=["1", "2", "4", "8", "16"]
-        )
+        self.anisotropy_optionmenu = customtkinter.CTkOptionMenu(settings_tab, values=["1", "2", "4", "8", "16"])
         self.anisotropy_optionmenu.grid(row=2, column=1, padx=common_padx, pady=common_pady)
 
         # Row 3: Shading Model
         self.shading_model_label = customtkinter.CTkLabel(settings_tab, text="Shading Model:")
         self.shading_model_label.grid(row=3, column=0, padx=common_padx, pady=common_pady)
-        self.shading_model_optionmenu = customtkinter.CTkOptionMenu(
-            settings_tab, values=["Diffuse", "Phong", "PBR"]
-        )
+        self.shading_model_optionmenu = customtkinter.CTkOptionMenu(settings_tab, values=["Diffuse", "Phong", "PBR"])
         self.shading_model_optionmenu.grid(row=3, column=1, padx=common_padx, pady=common_pady)
 
         # Row 4: Shadow Quality
@@ -353,9 +339,7 @@ class App(customtkinter.CTk):
         self.shadow_quality_optionmenu.grid(row=4, column=1, padx=common_padx, pady=common_pady)
 
         # Row 5: Particle Render Mode
-        self.particle_render_mode_label = customtkinter.CTkLabel(
-            settings_tab, text="Particle Render Mode:"
-        )
+        self.particle_render_mode_label = customtkinter.CTkLabel(settings_tab, text="Particle Render Mode:")
         self.particle_render_mode_label.grid(row=5, column=0, padx=common_padx, pady=common_pady)
         self.particle_render_mode_optionmenu = customtkinter.CTkOptionMenu(
             settings_tab, values=["CPU", "Transform Feedback", "Compute Shader"]
@@ -383,9 +367,7 @@ class App(customtkinter.CTk):
         common_pady = (20, 10)
 
         # Label
-        self.benchmark_list_label = customtkinter.CTkLabel(
-            scenarios_tab, text="Select Benchmark Tests:"
-        )
+        self.benchmark_list_label = customtkinter.CTkLabel(scenarios_tab, text="Select Benchmark Tests:")
         self.benchmark_list_label.grid(row=0, column=0, padx=common_padx, pady=common_pady, sticky="w")
 
         # Image area (label)
@@ -480,9 +462,7 @@ class App(customtkinter.CTk):
         close_button.pack(pady=(10, 10))
 
         if self.window_icon_active:
-            about_window.after(
-                250, lambda: about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
-            )
+            about_window.after(250, lambda: about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico")))
 
     # --------------------------------------------------------------------------
     # Display & Image
@@ -598,7 +578,7 @@ class App(customtkinter.CTk):
 
     def get_ram_info(self):
         ram_bytes = psutil.virtual_memory().total
-        ram_gb = ram_bytes / (1024 ** 3)
+        ram_gb = ram_bytes / (1024**3)
         return f"{ram_gb:.1f} GB"
 
     # --------------------------------------------------------------------------
@@ -778,8 +758,9 @@ class App(customtkinter.CTk):
             self.after(0, lambda: tkinter.messagebox.showinfo("Benchmark Stopped", "Benchmark stopped by user."))
         else:
             if self.is_demo_mode:
-                self.after(0, lambda: tkinter.messagebox.showinfo("Demo Completed",
-                                                                  "Thanks for running the Fragment demo!"))
+                self.after(
+                    0, lambda: tkinter.messagebox.showinfo("Demo Completed", "Thanks for running the Fragment demo!")
+                )
             else:
                 self.benchmark_results = self.benchmark_manager.get_results()
                 self.after(0, self.generate_and_display_results)
@@ -933,14 +914,16 @@ class App(customtkinter.CTk):
             scaled_title_size = max(12 * widget_scaling, min_font_size)
             scaled_label_size = max(11 * widget_scaling, min_font_size)
 
-            plt.rcParams.update({
-                "font.size": scaled_font_size,
-                "axes.titlesize": scaled_title_size,
-                "axes.labelsize": scaled_label_size,
-                "xtick.labelsize": scaled_font_size,
-                "ytick.labelsize": scaled_font_size,
-                "legend.fontsize": scaled_font_size,
-            })
+            plt.rcParams.update(
+                {
+                    "font.size": scaled_font_size,
+                    "axes.titlesize": scaled_title_size,
+                    "axes.labelsize": scaled_label_size,
+                    "xtick.labelsize": scaled_font_size,
+                    "ytick.labelsize": scaled_font_size,
+                    "legend.fontsize": scaled_font_size,
+                }
+            )
 
             self.results_textbox.delete("1.0", tkinter.END)
             self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
@@ -999,8 +982,9 @@ class App(customtkinter.CTk):
                 if len(fps_data_sampled) > 3:
                     try:
                         fps_spline = make_interp_spline(time_data_sampled, fps_data_sampled, k=3)
-                        time_data_fine = np.linspace(time_data_sampled.min(), time_data_sampled.max(),
-                                                     len(time_data_sampled) * 10)
+                        time_data_fine = np.linspace(
+                            time_data_sampled.min(), time_data_sampled.max(), len(time_data_sampled) * 10
+                        )
                         fps_smooth = fps_spline(time_data_fine)
                     except Exception as e:
                         print(f"Could not interpolate FPS data for {benchmark_name}: {e}")
@@ -1056,7 +1040,8 @@ class App(customtkinter.CTk):
                 ax_title = fig.add_subplot(gs[0, :])
                 ax_title.axis("off")
                 ax_title.text(
-                    0.5, 0.5,
+                    0.5,
+                    0.5,
                     benchmark_name,
                     ha="center",
                     va="center",

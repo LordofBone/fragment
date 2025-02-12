@@ -11,6 +11,7 @@ class SkyboxRenderer(AbstractRenderer):
     The shader transforms the vertices in a way that achieves the illusion
     of a surrounding environment.
     """
+
     def __init__(self, renderer_name, **kwargs):
         """
         Initialize the skybox renderer with a name and possible additional kwargs.
@@ -45,47 +46,114 @@ class SkyboxRenderer(AbstractRenderer):
         """
         return [
             # Positions of each triangle forming a cube around the origin
-            -1.0, 1.0, -1.0,
-            -1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            1.0, 1.0, -1.0,
-            -1.0, 1.0, -1.0,
-
-            -1.0, -1.0, 1.0,
-            -1.0, -1.0, -1.0,
-            -1.0, 1.0, -1.0,
-            -1.0, 1.0, -1.0,
-            -1.0, 1.0, 1.0,
-            -1.0, -1.0, 1.0,
-
-            1.0, -1.0, -1.0,
-            1.0, -1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, -1.0,
-            1.0, -1.0, -1.0,
-
-            -1.0, -1.0, 1.0,
-            -1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, -1.0, 1.0,
-            -1.0, -1.0, 1.0,
-
-            -1.0, 1.0, -1.0,
-            1.0, 1.0, -1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            -1.0, 1.0, 1.0,
-            -1.0, 1.0, -1.0,
-
-            -1.0, -1.0, -1.0,
-            -1.0, -1.0, 1.0,
-            1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            -1.0, -1.0, 1.0,
-            1.0, -1.0, 1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            -1.0,
+            1.0,
         ]
 
     def _setup_vertex_buffer(self, vertices_array):
@@ -102,7 +170,7 @@ class SkyboxRenderer(AbstractRenderer):
             GL_FLOAT,  # data type
             GL_FALSE,  # normalize?
             3 * vertices_array.itemsize,  # stride
-            ctypes.c_void_p(0)
+            ctypes.c_void_p(0),
         )
 
     @with_gl_render_state
@@ -136,16 +204,13 @@ class SkyboxRenderer(AbstractRenderer):
 
         # Update the shader uniforms
         glUniformMatrix4fv(
-            glGetUniformLocation(self.shader_engine.shader_program, "view"),
-            1,
-            GL_FALSE,
-            glm.value_ptr(view_matrix)
+            glGetUniformLocation(self.shader_engine.shader_program, "view"), 1, GL_FALSE, glm.value_ptr(view_matrix)
         )
         glUniformMatrix4fv(
             glGetUniformLocation(self.shader_engine.shader_program, "projection"),
             1,
             GL_FALSE,
-            glm.value_ptr(projection_matrix)
+            glm.value_ptr(projection_matrix),
         )
 
         # Additional custom uniforms for up-scaling or post-effects

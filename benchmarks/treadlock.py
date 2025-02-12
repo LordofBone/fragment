@@ -121,8 +121,7 @@ def run_benchmark(
     # Apply manual rotation (tilt) followed by auto-rotations on multiple axes.
     instance.scene_construct.rotate_renderer_euler("tyre", (0.0, 0.0, 0.0))
     instance.scene_construct.set_auto_rotations(
-        "tyre",
-        rotations=[((0.0, 1.0, 0.0), 14000.0), ((0.0, 0.0, 1.0), 8000.0)]
+        "tyre", rotations=[((0.0, 1.0, 0.0), 14000.0), ((0.0, 0.0, 1.0), 8000.0)]
     )
 
     # ------------------------------------------------------------------------------

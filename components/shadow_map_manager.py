@@ -82,16 +82,11 @@ class ShadowMapManager:
             far_plane (float): Far clipping distance for ortho frustum.
         """
         light_projection = glm.ortho(
-            light["orth_left"],
-            light["orth_right"],
-            light["orth_bottom"],
-            light["orth_top"],
-            near_plane,
-            far_plane
+            light["orth_left"], light["orth_right"], light["orth_bottom"], light["orth_top"], near_plane, far_plane
         )
         light_view = glm.lookAt(
             light["position"],
             glm.vec3(0.0, 0.0, 0.0),  # Look at origin or relevant scene center
-            glm.vec3(0.0, 1.0, 0.0)  # Up vector
+            glm.vec3(0.0, 1.0, 0.0),  # Up vector
         )
         self.light_space_matrix = light_projection * light_view

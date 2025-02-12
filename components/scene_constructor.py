@@ -8,6 +8,7 @@ class SceneConstructor:
     It provides methods to add new renderers, apply transformations
     (translate, rotate, scale, etc.), and render either all or a specific renderer.
     """
+
     def __init__(self):
         """
         Initialize the scene with an empty dictionary of named renderers.
@@ -74,8 +75,10 @@ class SceneConstructor:
             name (str): Renderer name.
             angles (tuple): (xDeg, yDeg, zDeg).
         """
+
         def do_rotation(r):
             r.rotate_euler(angles)
+
         self._apply_to_renderer(name, do_rotation)
 
     def scale_renderer(self, name, scale):
@@ -98,8 +101,10 @@ class SceneConstructor:
             axis (tuple): Rotation axis (x, y, z).
             speed (float): Speed factor for the rotation.
         """
+
         def do_autorot(r):
             r.enable_auto_rotation(enabled, axis=axis, speed=speed)
+
         self._apply_to_renderer(name, do_autorot)
 
     def set_auto_rotations(self, name, rotations):

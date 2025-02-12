@@ -32,18 +32,18 @@ class BenchmarkManager:
     # Benchmark Registration
     # --------------------------------------------------------------------------
     def add_benchmark(
-            self,
-            name,
-            run_function,
-            resolution,
-            msaa_level=4,
-            anisotropy=16,
-            shading_model="pbr",
-            shadow_map_resolution=2048,
-            particle_render_mode="vertex",
-            vsync_enabled=True,
-            sound_enabled=True,
-            fullscreen=False,
+        self,
+        name,
+        run_function,
+        resolution,
+        msaa_level=4,
+        anisotropy=16,
+        shading_model="pbr",
+        shadow_map_resolution=2048,
+        particle_render_mode="vertex",
+        vsync_enabled=True,
+        sound_enabled=True,
+        fullscreen=False,
     ):
         """
         Add a benchmark configuration to the list.
@@ -61,19 +61,21 @@ class BenchmarkManager:
             sound_enabled (bool): Sound enabled flag.
             fullscreen (bool): Fullscreen mode flag.
         """
-        self.benchmarks.append({
-            "name": name,
-            "run_function": run_function,
-            "resolution": resolution,
-            "msaa_level": msaa_level,
-            "anisotropy": anisotropy,
-            "shading_model": shading_model,
-            "shadow_map_resolution": shadow_map_resolution,
-            "particle_render_mode": particle_render_mode,
-            "vsync_enabled": vsync_enabled,
-            "sound_enabled": sound_enabled,
-            "fullscreen": fullscreen,
-        })
+        self.benchmarks.append(
+            {
+                "name": name,
+                "run_function": run_function,
+                "resolution": resolution,
+                "msaa_level": msaa_level,
+                "anisotropy": anisotropy,
+                "shading_model": shading_model,
+                "shadow_map_resolution": shadow_map_resolution,
+                "particle_render_mode": particle_render_mode,
+                "vsync_enabled": vsync_enabled,
+                "sound_enabled": sound_enabled,
+                "fullscreen": fullscreen,
+            }
+        )
 
     # --------------------------------------------------------------------------
     # Running Benchmarks
@@ -104,17 +106,17 @@ class BenchmarkManager:
                 break
 
     def run_benchmark(
-            self,
-            run_function,
-            resolution,
-            msaa_level,
-            anisotropy,
-            shading_model,
-            shadow_map_resolution,
-            particle_render_mode,
-            vsync_enabled,
-            sound_enabled,
-            fullscreen,
+        self,
+        run_function,
+        resolution,
+        msaa_level,
+        anisotropy,
+        shading_model,
+        shadow_map_resolution,
+        particle_render_mode,
+        vsync_enabled,
+        sound_enabled,
+        fullscreen,
     ):
         """
         Run a single benchmark in a separate process and collect statistics.

@@ -63,6 +63,7 @@ def with_gl_render_state(func):
     Decorator to set up common OpenGL state, apply transformations,
     set uniforms, and reset state after a render function call.
     """
+
     @functools.wraps(func)
     def render_config(self, *args, **kwargs):
         # Use the main shader program.
@@ -146,6 +147,7 @@ class AbstractRenderer(ABC):
     load textures, manage shadow mapping and camera control, and render the
     scene. Concrete subclasses must implement create_buffers() and render().
     """
+
     def __init__(
         self,
         renderer_name,

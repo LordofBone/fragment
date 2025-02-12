@@ -242,10 +242,10 @@ class ModelRenderer(AbstractRenderer):
         invalid_keys = [key for key in override_pbr if key not in allowed_keys]
         if invalid_keys:
             raise ValueError(
-                "No such material property: " +
-                ", ".join(invalid_keys) +
-                "; available pbr overrides are: " +
-                ", ".join(sorted(allowed_keys))
+                "No such material property: "
+                + ", ".join(invalid_keys)
+                + "; available pbr overrides are: "
+                + ", ".join(sorted(allowed_keys))
             )
         for mesh in self.object.mesh_list:
             for mat in mesh.materials:
@@ -296,16 +296,18 @@ class ModelRenderer(AbstractRenderer):
                 # Reorder the vertex components:
                 #   [x, y, z, nx, ny, nz, u, v] -> [x, y, z, nx, ny, nz, u, v]
                 # But here, reordering is performed as follows:
-                reordered = np.column_stack((
-                    vertices_array[:, 5],  # x
-                    vertices_array[:, 6],  # y
-                    vertices_array[:, 7],  # z
-                    vertices_array[:, 2],  # nx
-                    vertices_array[:, 3],  # ny
-                    vertices_array[:, 4],  # nz
-                    vertices_array[:, 0],  # u
-                    vertices_array[:, 1],  # v
-                ))
+                reordered = np.column_stack(
+                    (
+                        vertices_array[:, 5],  # x
+                        vertices_array[:, 6],  # y
+                        vertices_array[:, 7],  # z
+                        vertices_array[:, 2],  # nx
+                        vertices_array[:, 3],  # ny
+                        vertices_array[:, 4],  # nz
+                        vertices_array[:, 0],  # u
+                        vertices_array[:, 1],  # v
+                    )
+                )
                 # Compute tangent and bitangent vectors and append them
                 reordered = self.compute_tangents_and_bitangents(reordered)
                 vbo = self.create_vbo(reordered)

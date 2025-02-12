@@ -13,6 +13,7 @@ class TextureManager:
       - A mapping from (object identifier, texture type) -> unique texture unit
       - A dummy texture used when no valid texture is available.
     """
+
     def __init__(self):
         """
         Initialize the TextureManager and reset internal mappings.
@@ -77,13 +78,7 @@ class TextureManager:
         glBindTexture(GL_TEXTURE_2D, dummy_texture)
 
         data = np.array([1.0], dtype=np.float32)  # single-pixel float depth=1.0
-        glTexImage2D(
-            GL_TEXTURE_2D, 0,
-            GL_DEPTH_COMPONENT,
-            1, 1,
-            0, GL_DEPTH_COMPONENT,
-            GL_FLOAT, data
-        )
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, data)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glBindTexture(GL_TEXTURE_2D, 0)

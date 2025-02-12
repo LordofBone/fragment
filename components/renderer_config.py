@@ -16,64 +16,58 @@ class RendererConfig:
 
     def __init__(
         self,
-            # ------------------------------------------------------------------------------
-            # Window/Runtime Settings
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Window/Runtime Settings
+        # ------------------------------------------------------------------------------
         window_title="Renderer",
         window_size=(800, 600),
         vsync_enabled=True,
         fullscreen=False,
         duration=60,
-
-            # ------------------------------------------------------------------------------
-            # Texture and Cubemap
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Texture and Cubemap
+        # ------------------------------------------------------------------------------
         texture_paths=None,
         cubemap_folder=None,
-
-            # ------------------------------------------------------------------------------
-            # Camera Settings
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Camera Settings
+        # ------------------------------------------------------------------------------
         camera_positions=None,
-            lens_rotations=None,
+        lens_rotations=None,
         fov=40,
         near_plane=0.1,
         far_plane=1000,
-            auto_camera=False,
-            move_speed=1.0,
-            loop=True,
-
-            # ------------------------------------------------------------------------------
-            # Core Rendering Options
-            # ------------------------------------------------------------------------------
+        auto_camera=False,
+        move_speed=1.0,
+        loop=True,
+        # ------------------------------------------------------------------------------
+        # Core Rendering Options
+        # ------------------------------------------------------------------------------
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         anisotropy=16.0,
         msaa_level=8,
         alpha_blending=False,
         depth_testing=True,
-            culling=True,
-
-            # ------------------------------------------------------------------------------
-            # Lighting and Shadow Mapping
-            # ------------------------------------------------------------------------------
-            lighting_mode="diffuse",
-            lights=None,
-            ambient_lighting_strength=0.0,
-            ambient_lighting_color=(0.0, 0.0, 0.0),
+        culling=True,
+        # ------------------------------------------------------------------------------
+        # Lighting and Shadow Mapping
+        # ------------------------------------------------------------------------------
+        lighting_mode="diffuse",
+        lights=None,
+        ambient_lighting_strength=0.0,
+        ambient_lighting_color=(0.0, 0.0, 0.0),
         shadow_map_resolution=2048,
         shadow_strength=1.0,
-
-            # ------------------------------------------------------------------------------
-            # Environment Mapping
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Environment Mapping
+        # ------------------------------------------------------------------------------
         texture_lod_bias=0.0,
         env_map_lod_bias=0.0,
         env_map_strength=0.5,
-
-            # ------------------------------------------------------------------------------
-            # Parallax / Displacement Mapping
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Parallax / Displacement Mapping
+        # ------------------------------------------------------------------------------
         invert_displacement_map=False,
         pom_height_scale=0.016,
         pom_min_steps=8,
@@ -82,17 +76,15 @@ class RendererConfig:
         pom_max_depth_clamp=0.99,
         pom_max_forward_offset=1.0,
         pom_enable_frag_depth_adjustment=False,
-
-            # ------------------------------------------------------------------------------
-            # Front Face Winding, Legacy Material
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Front Face Winding, Legacy Material
+        # ------------------------------------------------------------------------------
         front_face_winding="CCW",
         legacy_opacity=1.0,
         legacy_roughness=32,
-
-            # ------------------------------------------------------------------------------
-            # Planar (Secondary) Camera
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Planar (Secondary) Camera
+        # ------------------------------------------------------------------------------
         planar_camera=False,
         planar_fov=45,
         planar_near_plane=0.1,
@@ -108,23 +100,20 @@ class RendererConfig:
         planar_fragment_view_threshold=0.0,
         distortion_strength=0.3,
         refraction_strength=0.3,
-
-            # ------------------------------------------------------------------------------
-            # PBR Extension Overrides
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # PBR Extension Overrides
+        # ------------------------------------------------------------------------------
         pbr_extension_overrides=None,
-
-            # ------------------------------------------------------------------------------
-            # Audio Settings
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Audio Settings
+        # ------------------------------------------------------------------------------
         sound_enabled=True,
-            background_audio=None,
+        background_audio=None,
         audio_delay=0.0,
         audio_loop=False,
-
-            # ------------------------------------------------------------------------------
-            # Debug Mode
-            # ------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
+        # Debug Mode
+        # ------------------------------------------------------------------------------
         debug_mode=None,
     ):
         """
@@ -309,25 +298,27 @@ class RendererConfig:
             pmode = config["particle_render_mode"]
             valid_modes = ("cpu", "transform_feedback", "compute_shader")
             if pmode not in valid_modes:
-                raise ValueError(
-                    "Invalid particle render mode option. "
-                    f"Use one of: {', '.join(valid_modes)}."
-                )
+                raise ValueError(f"Invalid particle render mode option. Use one of: {', '.join(valid_modes)}.")
 
         # Validate particle_type if present
         if "particle_type" in config:
             ptype = config["particle_type"]
             valid_types = (
-                "points", "lines", "line_strip", "line_loop",
-                "lines_adjacency", "line_strip_adjacency",
-                "triangles", "triangle_strip", "triangle_fan",
-                "triangles_adjacency", "triangle_strip_adjacency",
+                "points",
+                "lines",
+                "line_strip",
+                "line_loop",
+                "lines_adjacency",
+                "line_strip_adjacency",
+                "triangles",
+                "triangle_strip",
+                "triangle_fan",
+                "triangles_adjacency",
+                "triangle_strip_adjacency",
                 "patches",
             )
             if ptype not in valid_types:
-                raise ValueError(
-                    "Invalid particle type option. Use one of: " + ", ".join(valid_types) + "."
-                )
+                raise ValueError("Invalid particle type option. Use one of: " + ", ".join(valid_types) + ".")
 
     # ------------------------------------------------------------------------------
     # Methods to produce specialized configurations
@@ -480,7 +471,7 @@ class RendererConfig:
 
     def add_surface(
         self,
-            # Basic overrides
+        # Basic overrides
         shader_names=("standard", "default"),
         apply_tone_mapping=False,
         apply_gamma_correction=False,
@@ -490,8 +481,7 @@ class RendererConfig:
         depth_testing=None,
         culling=None,
         cubemap_folder=None,
-
-            # Lighting / Material
+        # Lighting / Material
         lighting_mode=None,
         legacy_opacity=None,
         ambient_lighting_strength=None,
@@ -502,8 +492,7 @@ class RendererConfig:
         env_map_strength=None,
         shadow_map_resolution=None,
         shadow_strength=None,
-
-            # Parallax
+        # Parallax
         invert_displacement_map=None,
         pom_height_scale=None,
         pom_min_steps=None,
@@ -512,8 +501,7 @@ class RendererConfig:
         pom_max_depth_clamp=None,
         pom_max_forward_offset=None,
         pom_enable_frag_depth_adjustment=None,
-
-            # Planar
+        # Planar
         planar_camera=None,
         planar_fov=None,
         planar_near_plane=None,
@@ -530,8 +518,7 @@ class RendererConfig:
         distortion_strength=None,
         refraction_strength=None,
         lens_rotations=None,
-
-            # Debug
+        # Debug
         debug_mode=None,
         **kwargs,
     ):
@@ -551,7 +538,6 @@ class RendererConfig:
             "depth_testing": depth_testing,
             "culling": culling,
             "cubemap_folder": cubemap_folder,
-
             "lighting_mode": lighting_mode,
             "legacy_opacity": legacy_opacity,
             "ambient_lighting_strength": ambient_lighting_strength,
@@ -562,7 +548,6 @@ class RendererConfig:
             "env_map_strength": env_map_strength,
             "shadow_map_resolution": shadow_map_resolution,
             "shadow_strength": shadow_strength,
-
             "invert_displacement_map": invert_displacement_map,
             "pom_height_scale": pom_height_scale,
             "pom_min_steps": pom_min_steps,
@@ -571,7 +556,6 @@ class RendererConfig:
             "pom_max_depth_clamp": pom_max_depth_clamp,
             "pom_max_forward_offset": pom_max_forward_offset,
             "pom_enable_frag_depth_adjustment": pom_enable_frag_depth_adjustment,
-
             "planar_camera": planar_camera,
             "planar_fov": planar_fov,
             "planar_near_plane": planar_near_plane,
@@ -601,12 +585,7 @@ class RendererConfig:
         self._validate_config(surface_config)
         return surface_config
 
-    def add_skybox(
-            self,
-            cubemap_folder=None,
-            shader_names=("skybox_vertex", "skybox_fragment"),
-            **kwargs
-    ):
+    def add_skybox(self, cubemap_folder=None, shader_names=("skybox_vertex", "skybox_fragment"), **kwargs):
         """
         Create and return a config dict for a skybox within this renderer configuration.
         The returned dict is a copy of the base config with skybox-specific overrides.
@@ -629,13 +608,12 @@ class RendererConfig:
 
     def add_particle_renderer(
         self,
-            # Particle mode and shader
+        # Particle mode and shader
         particle_render_mode="transform_feedback",
         shader_names=("particle_vertex", "particle_fragment"),
         particle_shader_override=False,
         compute_shader_program=None,
-
-            # Basic render toggles
+        # Basic render toggles
         alpha_blending=None,
         lighting_mode=None,
         legacy_opacity=None,
@@ -648,22 +626,18 @@ class RendererConfig:
         apply_tone_mapping=False,
         apply_gamma_correction=False,
         culling=None,
-
-            # Generator
+        # Generator
         particle_generator=False,
         generator_delay=0.0,
-
-            # Particle counts
+        # Particle counts
         max_particles_map=None,
         particles_max=100,
         particle_batch_size=1,
-
-            # Particle type and shape
+        # Particle type and shape
         particle_type="points",
         particle_size=1.0,
         particle_smooth_edges=False,
-
-            # Initial velocity ranges
+        # Initial velocity ranges
         min_initial_velocity_x=-0.0,
         max_initial_velocity_x=0.0,
         min_initial_velocity_y=-0.0,
@@ -671,43 +645,37 @@ class RendererConfig:
         min_initial_velocity_z=-0.0,
         max_initial_velocity_z=0.0,
         particle_max_velocity=1.0,
-
-            # Colors
+        # Colors
         particle_color=(1.0, 0.0, 0.0),
         particle_fade_to_color=False,
         particle_fade_color=(0.0, 1.0, 0.0),
-
-            # Gravity/Collision
+        # Gravity/Collision
         particle_gravity=(0.0, -9.81, 0.0),
         particle_bounce_factor=0.5,
         particle_ground_plane_normal=(0.0, 1.0, 0.0),
         particle_ground_plane_angle=(0.0, 0.0),
         particle_ground_plane_height=0.0,
-
-            # Lifetimes/Weights
+        # Lifetimes/Weights
         particle_max_lifetime=5.0,
         particle_max_weight=1.0,
         particle_min_weight=0.1,
         particle_spawn_time_jitter=False,
         particle_max_spawn_time_jitter=5,
-
-            # Placement area
+        # Placement area
         min_width=-0.5,
         min_height=8.1,
         min_depth=-0.5,
         max_width=0.5,
         max_height=10.1,
         max_depth=0.5,
-
-            # Fluid
+        # Fluid
         fluid_simulation=False,
         fluid_pressure=0.0,
         fluid_viscosity=0.0,
         fluid_force_multiplier=1.0,
-
-            # Debug
+        # Debug
         debug_mode=None,
-            **kwargs
+        **kwargs,
     ):
         """
         Create and return a config dict for a particle renderer within this configuration.
@@ -731,18 +699,14 @@ class RendererConfig:
             "apply_tone_mapping": apply_tone_mapping,
             "apply_gamma_correction": apply_gamma_correction,
             "culling": culling,
-
             "particle_generator": particle_generator,
             "generator_delay": generator_delay,
-
             "max_particles_map": max_particles_map,
             "particles_max": particles_max,
             "particle_batch_size": particle_batch_size,
-
             "particle_type": particle_type,
             "particle_size": particle_size,
             "particle_smooth_edges": particle_smooth_edges,
-
             "min_initial_velocity_x": min_initial_velocity_x,
             "max_initial_velocity_x": max_initial_velocity_x,
             "min_initial_velocity_y": min_initial_velocity_y,
@@ -750,35 +714,29 @@ class RendererConfig:
             "min_initial_velocity_z": min_initial_velocity_z,
             "max_initial_velocity_z": max_initial_velocity_z,
             "particle_max_velocity": particle_max_velocity,
-
             "particle_color": particle_color,
             "particle_fade_to_color": particle_fade_to_color,
             "particle_fade_color": particle_fade_color,
-
             "particle_gravity": particle_gravity,
             "particle_bounce_factor": particle_bounce_factor,
             "particle_ground_plane_normal": particle_ground_plane_normal,
             "particle_ground_plane_angle": particle_ground_plane_angle,
             "particle_ground_plane_height": particle_ground_plane_height,
-
             "particle_max_lifetime": particle_max_lifetime,
             "particle_max_weight": particle_max_weight,
             "particle_min_weight": particle_min_weight,
             "particle_spawn_time_jitter": particle_spawn_time_jitter,
             "particle_max_spawn_time_jitter": particle_max_spawn_time_jitter,
-
             "min_width": min_width,
             "min_height": min_height,
             "min_depth": min_depth,
             "max_width": max_width,
             "max_height": max_height,
             "max_depth": max_depth,
-
             "fluid_simulation": fluid_simulation,
             "fluid_pressure": fluid_pressure,
             "fluid_viscosity": fluid_viscosity,
             "fluid_force_multiplier": fluid_force_multiplier,
-
             "shader_names": shader_names,
             "debug_mode": debug_mode,
         }

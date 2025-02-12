@@ -9,6 +9,7 @@ class StatsCollector:
     """
     Collects benchmark statistics such as FPS, CPU usage, and GPU usage in background.
     """
+
     def __init__(self):
         """
         Initialize data structures and start the system usage monitoring thread.
@@ -31,10 +32,7 @@ class StatsCollector:
         self.usage_lock = threading.Lock()
 
         self.monitoring_event = threading.Event()
-        self.monitoring_thread = threading.Thread(
-            target=self.monitor_system_usage,
-            daemon=True
-        )
+        self.monitoring_thread = threading.Thread(target=self.monitor_system_usage, daemon=True)
         self.monitoring_thread.start()
 
     # --------------------------------------------------------------------------

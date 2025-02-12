@@ -79,10 +79,7 @@ class RenderingInstance:
             renderer.setup()
 
         # 4) Initialize framebuffers
-        self.initialize_framebuffers(
-            self.config.window_size[0],
-            self.config.window_size[1]
-        )
+        self.initialize_framebuffers(self.config.window_size[0], self.config.window_size[1])
 
     def run(self, stats_queue=None, stop_event=None):
         """
