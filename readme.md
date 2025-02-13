@@ -1,6 +1,7 @@
 # 🖥️ Fragment
 
-**Fragment** is a **3D rendering benchmark tool** (inspired by *3DMark*) for PCs and **Raspberry Pi 4+** (tested on
+**Fragment** is a **3D rendering benchmark tool** (inspired by *3DMark*) for **PCs** (Windows 11, reasonably new CPU,
+OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
 *Bookworm*). It utilizes **OpenGL** (via *PyOpenGL* and *Pygame*) to stress-test hardware performance, featuring a *
 *clean graphical interface** and multiple **benchmark modes**.
 
@@ -663,7 +664,7 @@ See the [LICENSE](LICENSE) file for details.
 
 ### 🔧 Additional tools and resources used during development:
 
-- 🤖 **ChatGPT** – Assisted with the **Python/GLSL codebase** and **texture generation**.
+- 🤖 **ChatGPT** – Assisted with the **Python/GLSL codebase**, **object** and **texture generation**.
 - 🎨 **[Material-Map-Generator](https://github.com/joeyballentine/Material-Map-Generator)** – Used to generate **normal,
   roughness, and height maps** for textures.
 - 🎵 **[AudioLDM2](https://github.com/haoheliu/AudioLDM2)** – Used for generating **ambient music** in demo mode.
