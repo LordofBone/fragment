@@ -6,8 +6,8 @@ OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
 *clean graphical interface** and multiple **benchmark modes**.
 
 📖 *Read the full write-up on:*  
-🔗 [Hackster](https://www.hackster.io/314reactor/fragment) |
-🔗 [Electromaker](https://www.electromaker.io/project/view/fragment)
+🔗 [Hackster](https://www.hackster.io/314reactor/fragment-opengl-benchmark-for-pc-pi-f877b8) |
+🔗 [Electromaker](https://www.electromaker.io/profile/314Reactor)
 
 ## 🚀 Features
 
@@ -80,11 +80,13 @@ OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
 
 ### 🚀 Setup
 
-Clone the repository and install dependencies:
+Clone the repository and install dependencies within a Python Virtual Environment:
 
 ```sh  
 git clone https://github.com/LordofBone/fragment.git  
 cd fragment  
+virtualenv venv
+source venv/bin/activate
 pip install -r requirements.txt  
 ```  
 
@@ -110,10 +112,11 @@ as well.*
 
 ## 🚀 Usage
 
-⚠️ **Caution:**  
-Fragment can be quite **heavy** on systems like the **Raspberry Pi** and may cause **excessive heat buildup**,
-especially on the GPU.  
-Ensure **adequate cooling** is in place before running, and use at your own risk.
+> ⚠️ **Caution:**  
+> Fragment is resource-intensive and may put a significant load on your hardware—especially on systems like the
+> Raspberry Pi—leading to **excessive heat buildup** (particularly on the GPU).  
+> Please ensure **adequate cooling** is in place before running Fragment, and use the software at your own risk.  
+> Note that Fragment is still in development and may exhibit memory leaks or other bugs, so proceed with caution.
 
 ---
 
