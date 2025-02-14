@@ -2,7 +2,8 @@
 
 **Fragment** is a **3D rendering benchmark tool** (inspired by *3DMark*) for **PCs** (Windows 11, reasonably new CPU,
 OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
-*Bookworm*). It utilizes **OpenGL** (via *PyOpenGL* and *Pygame*) to stress-test hardware performance, featuring a *
+*Bookworm*/*Bullseye*). It utilizes **OpenGL** (via *PyOpenGL* and *Pygame*) to stress-test hardware performance,
+featuring a *
 *clean graphical interface** and multiple **benchmark modes**.
 
 📖 *Read the full write-up on:*  
@@ -180,8 +181,8 @@ The generated **HTML report** provides a **structured overview** of test results
 ### 🖥️ Raspberry Pi Compatibility
 
 - Fragment **may not work** on all **Raspberry Pi models** or **OS versions** due to OpenGL limitations.
-    - ✅ **Tested on:** **Raspberry Pi 4+ (Bookworm)**
-    - 🔧 Use the provided **setup scripts** to ensure compatibility with Raspberry Pi (Bookworm).
+  - ✅ **Tested on:** **Raspberry Pi 4+ (Bookworm/Bullseye)**
+  - 🔧 Use the provided **setup scripts** to ensure compatibility with Raspberry Pi (Bookworm/Bullseye).
 
 ---
 
@@ -198,7 +199,7 @@ The generated **HTML report** provides a **structured overview** of test results
 - 🎥 **Particles are locked to the camera position,** causing them to move with it.
 - 🎮 **CPU Mode:** Particles **spawn in a different location** compared to other modes.
 - 🔄 **Ground plane rotation** for particles **does not always work as expected.**
-- 🍓 **Raspberry Pi (Bookworm) Specific Issues:**
+- 🍓 **Raspberry Pi (Bookworm/Bullseye) Specific Issues:**
     - Particles **do not render identically** to the PC version and appear visually different.
     - Only **`GL_POINTS`** works for particle rendering; other primitive types **fail under `glDrawArrays`**.
 
@@ -230,14 +231,14 @@ The generated **HTML report** provides a **structured overview** of test results
 
 ---
 
-### 🖥️ GUI Behavior (Raspberry Pi - Bookworm)
+### 🖥️ GUI Behavior (Raspberry Pi - Bookworm/Bullseye)
 
 - After running the **demo**, the GUI **incorrectly navigates** to the **results screen** instead of returning to the *
   *current tab**.
 - ⚠️ **GUI tests flash briefly on Linux (on Raspberry Pi), which may also be causing them to be skipped on GitHub
   Actions.**
 - ❌ **Application may not exit properly** when clicking the **X button** in the window bar.
-  - 🖥️ **Affects:** Windows & Raspberry Pi (Bookworm).
+  - 🖥️ **Affects:** Windows & Raspberry Pi (Bookworm/Bullseye).
   - 🔧 **Workaround:** Press **`Ctrl + C`** in the terminal to force exit.
 
 ---
