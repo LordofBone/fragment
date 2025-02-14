@@ -1119,12 +1119,12 @@ class App(customtkinter.CTk):
                 self.plot_labels.append(plot_label)
 
                 self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} Avg. FPS\n")
-                self.results_textbox.configure(state="disabled")
 
             self.results_frame.configure(fg_color=self.chart_bg_color)
             self.after(0, self.adjust_image_sizes)
         finally:
             self.hide_loading_bar()
+            self.results_textbox.configure(state="disabled")
 
     def adjust_image_sizes(self):
         """
