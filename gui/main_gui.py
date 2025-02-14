@@ -216,6 +216,7 @@ class App(customtkinter.CTk):
             self.results_textbox_frame, width=400, height=100, font=customtkinter.CTkFont(size=10)
         )
         self.results_textbox.pack(anchor="center", fill="both", expand=True)
+        self.results_textbox.configure(state="disabled")
 
         self.performance_score_label = customtkinter.CTkLabel(
             self.tabview.tab("Results"),
@@ -941,6 +942,7 @@ class App(customtkinter.CTk):
                 }
             )
 
+            self.results_textbox.configure(state="normal")
             self.results_textbox.delete("1.0", tkinter.END)
             self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
 
@@ -1117,6 +1119,7 @@ class App(customtkinter.CTk):
                 self.plot_labels.append(plot_label)
 
                 self.results_textbox.insert(tkinter.END, f"- {benchmark_name}: {avg_fps:.2f} Avg. FPS\n")
+                self.results_textbox.configure(state="disabled")
 
             self.results_frame.configure(fg_color=self.chart_bg_color)
             self.after(0, self.adjust_image_sizes)
