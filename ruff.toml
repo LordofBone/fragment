@@ -6,5 +6,8 @@ ignore = ["E203"]
 fixable = ["ALL"]
 unfixable = []
 
-# restrict Line length to 120
+# Restrict line length to 120
 line-length = 120
+
+# Exclude specific files from linting
+exclude = ["readme.md"]

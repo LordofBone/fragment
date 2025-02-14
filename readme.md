@@ -1,13 +1,18 @@
 # 🖥️ Fragment
 
 **Fragment** is a **3D rendering benchmark tool** (inspired by *3DMark*) for **PCs** (Windows 11, reasonably new CPU,
-OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
-*Bookworm*). It utilizes **OpenGL** (via *PyOpenGL* and *Pygame*) to stress-test hardware performance, featuring a *
-*clean graphical interface** and multiple **benchmark modes**.
+OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4 and above** (tested on
+*Bookworm*/*Bullseye*). It utilizes **OpenGL** (via *PyOpenGL* and *Pygame*) to stress-test hardware performance,
+featuring a **clean graphical interface** and multiple **benchmark modes**.
 
 📖 *Read the full write-up on:*  
-🔗 [Hackster](https://www.hackster.io/314reactor/fragment) |
-🔗 [Electromaker](https://www.electromaker.io/project/view/fragment)
+🔗 [Hackster](https://www.hackster.io/314reactor/fragment-opengl-benchmark-for-pc-pi-f877b8) |
+🔗 [Electromaker](https://www.electromaker.io/profile/314Reactor)
+
+## 🎥 See Fragment in Action!
+
+📺 *Watch the demo video on my YouTube channel:*  
+🔗 [Fragment - My Custom 3D Benchmark in Action](https://youtu.be/DVsq8HSjJSc)
 
 ## 🚀 Features
 
@@ -29,7 +34,7 @@ OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
 ![Gelidus](docs/images/Gelidus%20-%20Reflection%20Test.png)
 
 6️⃣ **Baryon** – A **particle system benchmark** supporting **CPU, Transform Feedback, and Compute Shader modes**.  
-   ![Baryon](docs/images/Baryon%20-%20Particle%20System%20Test.png)
+![Baryon](docs/images/Baryon%20-%20Particle%20System%20Test.png)
 
 ## 🎨 User Interface
 
@@ -41,7 +46,7 @@ OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
 - 📊 **View performance results** with **clean, interactive matplotlib charts.**
 
 ![Benchmark Screen](docs/images/benchmark_screen.png)  
-![Results Screen](docs/images/results_screen.png)  
+![Results Screen](docs/images/results_screen.png)
 
 - 📡 **Track FPS, CPU, and GPU usage** in **real-time** via the window title bar.
 
@@ -69,7 +74,7 @@ OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
 
 - 🐍 **Python 3.10+**
 - 📦 **Required Dependencies:**  
-  `PyOpenGL, Pygame, Matplotlib, NumPy, Pillow, psutil, GPUtil, CustomTkinter`
+  `PyOpenGL, Pygame, Matplotlib, NumPy, Pillow, psutil, GPUtil, CustomTkinter` - Full list in `requirements.txt`
 - ⚠️ **Note:** `PyOpenGL-accelerate` is excluded on ARM systems for Raspberry Pi compatibility:
 
   ```sh  
@@ -80,11 +85,13 @@ OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4+** (tested on
 
 ### 🚀 Setup
 
-Clone the repository and install dependencies:
+Clone the repository and install dependencies within a Python Virtual Environment:
 
 ```sh  
 git clone https://github.com/LordofBone/fragment.git  
 cd fragment  
+virtualenv venv
+source venv/bin/activate
 pip install -r requirements.txt  
 ```  
 
@@ -101,19 +108,20 @@ chmod +x setup/rpi_bashrc_setup.sh && ./setup/rpi_bashrc_setup.sh
 
 📌 **What these scripts do:**
 
-- `rpi_setup.sh` installs **libosmesa6** and sets up the required environment variables (**PYOPENGL_PLATFORM** and *
-  *MESA_GL_VERSION_OVERRIDE**) for Fragment to run on Raspberry Pi.
+- `rpi_setup.sh` installs **libosmesa6** and sets up the required environment variables (**PYOPENGL_PLATFORM** and
+  **MESA_GL_VERSION_OVERRIDE**) for Fragment to run on Raspberry Pi.
 - `rpi_bashrc_setup.sh` adds the necessary environment variables to **.bashrc**, ensuring they persist across sessions.
 
 💡 *In most cases, running `rpi_setup.sh` is enough. However, if you encounter issues, try running `rpi_bashrc_setup.sh`
-as well.*
+as well. (May need a reboot).*
 
 ## 🚀 Usage
 
-⚠️ **Caution:**  
-Fragment can be quite **heavy** on systems like the **Raspberry Pi** and may cause **excessive heat buildup**,
-especially on the GPU.  
-Ensure **adequate cooling** is in place before running, and use at your own risk.
+> ⚠️ **Caution:**  
+> Fragment is resource-intensive and may put a significant load on your hardware—especially on systems like the
+> Raspberry Pi—leading to **excessive heat buildup** (particularly on the GPU).  
+> Please ensure **adequate cooling** is in place before running Fragment, and use the software at your own risk.  
+> Note that Fragment is still in development and may exhibit memory leaks or other bugs, so proceed with caution.
 
 ---
 
@@ -136,7 +144,7 @@ Within the **GUI**, you can:
 ### 📌 Performance Score Disclaimer
 
 ⚠️ **Note:**  
-Fragment's results should **not** be taken as totally accurate.  
+Fragment's results should **not** be taken as totally accurate as a comparison between systems/configurations.  
 The performance score is currently a **rough estimate** and calculated as:
 
 `performance_score = overall_avg_fps * 10`
@@ -177,8 +185,8 @@ The generated **HTML report** provides a **structured overview** of test results
 ### 🖥️ Raspberry Pi Compatibility
 
 - Fragment **may not work** on all **Raspberry Pi models** or **OS versions** due to OpenGL limitations.
-    - ✅ **Tested on:** **Raspberry Pi 4+ (Bookworm)**
-    - 🔧 Use the provided **setup scripts** to ensure compatibility with Raspberry Pi (Bookworm).
+  - ✅ **Tested on:** **Raspberry Pi 4 and above (Bookworm/Bullseye)**
+  - 🔧 Use the provided **setup scripts** to ensure compatibility with Raspberry Pi (Bookworm/Bullseye).
 
 ---
 
@@ -195,7 +203,7 @@ The generated **HTML report** provides a **structured overview** of test results
 - 🎥 **Particles are locked to the camera position,** causing them to move with it.
 - 🎮 **CPU Mode:** Particles **spawn in a different location** compared to other modes.
 - 🔄 **Ground plane rotation** for particles **does not always work as expected.**
-- 🍓 **Raspberry Pi (Bookworm) Specific Issues:**
+- 🍓 **Raspberry Pi (Bookworm/Bullseye) Specific Issues:**
     - Particles **do not render identically** to the PC version and appear visually different.
     - Only **`GL_POINTS`** works for particle rendering; other primitive types **fail under `glDrawArrays`**.
 
@@ -227,14 +235,14 @@ The generated **HTML report** provides a **structured overview** of test results
 
 ---
 
-### 🖥️ GUI Behavior (Raspberry Pi - Bookworm)
+### 🖥️ GUI Behavior (Raspberry Pi - Bookworm/Bullseye)
 
-- After running the **demo**, the GUI **incorrectly navigates** to the **results screen** instead of returning to the *
-  *current tab**.
+- After running the **demo**, the GUI **incorrectly navigates** to the **results screen** instead of returning to the
+  **current tab**.
 - ⚠️ **GUI tests flash briefly on Linux (on Raspberry Pi), which may also be causing them to be skipped on GitHub
   Actions.**
 - ❌ **Application may not exit properly** when clicking the **X button** in the window bar.
-  - 🖥️ **Affects:** Windows & Raspberry Pi (Bookworm).
+  - 🖥️ **Affects:** Windows & Raspberry Pi (Bookworm/Bullseye).
   - 🔧 **Workaround:** Press **`Ctrl + C`** in the terminal to force exit.
 
 ---
@@ -256,8 +264,8 @@ Fragment allows users to **create and integrate custom benchmark scenarios**. Th
 
 ### 1️⃣ Creating a Benchmark Script
 
-All benchmarks are stored under the **`/benchmarks/`** directory. Each benchmark should have a **separate Python script
-** implementing its logic.
+All benchmarks are stored under the **`/benchmarks/`** directory. Each benchmark should have a
+**separate Python script** implementing its logic.
 
 #### 📂 Example Structure:
 
@@ -419,8 +427,8 @@ def run_benchmark(
 ## 🐛 Debug Mode
 
 Fragment includes a **debug mode** to assist with troubleshooting.  
-By enabling `debug_mode`, you can access **additional console output** and **automated screenshots** of **planar cameras
-** and **depth maps**.
+By enabling `debug_mode`, you can access **additional console output** and **automated screenshots** of
+**planar camera views** and **depth maps**.
 
 ### 🔧 Enabling Debug Mode
 
@@ -547,8 +555,8 @@ These workflows help maintain **code quality** and ensure a **structured version
 
 ### 🛠️ Linting, Formatting, and Testing (`lint_and_test.yml`)
 
-This workflow runs on **every pull request**, ensuring that contributions **meet coding standards** and **pass all tests
-** before merging.
+This workflow runs on **every pull request**, ensuring that contributions **meet coding standards** and
+**pass all tests** before merging.
 
 #### 🔄 Steps:
 
@@ -660,7 +668,7 @@ See the [LICENSE](LICENSE) file for details.
 ## 🙌 Acknowledgements
 
 **Fragment** is inspired by benchmarks like **3DMark** and **Unigine** and is built using:  
-🖥️ **PyOpenGL, Pygame, Matplotlib, and other open-source libraries.**
+🖥️ **PyOpenGL, Pygame, Matplotlib, and other Python libraries via PIP.**
 
 ### 🔧 Additional tools and resources used during development:
 

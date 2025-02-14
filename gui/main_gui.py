@@ -216,6 +216,7 @@ class App(customtkinter.CTk):
             self.results_textbox_frame, width=400, height=100, font=customtkinter.CTkFont(size=10)
         )
         self.results_textbox.pack(anchor="center", fill="both", expand=True)
+        self.results_textbox.configure(state="disabled")
 
         self.performance_score_label = customtkinter.CTkLabel(
             self.tabview.tab("Results"),
@@ -418,7 +419,8 @@ class App(customtkinter.CTk):
         if self.window_icon_active:
             about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico"))
         about_window.title("About")
-        about_window.geometry("400x250")
+        # Increase height to accommodate caution text
+        about_window.geometry("400x350")
         about_window.resizable(False, False)
 
         self.center_window(about_window)
@@ -443,7 +445,7 @@ class App(customtkinter.CTk):
         version_label = customtkinter.CTkLabel(about_window, text=f"Version {__version__}", font=("Arial", 12))
         version_label.pack(pady=(0, 5))
 
-        developed_label = customtkinter.CTkLabel(about_window, text="Developed by 314reactor", font=("Arial", 12))
+        developed_label = customtkinter.CTkLabel(about_window, text="Developed by 314Reactor", font=("Arial", 12))
         developed_label.pack(pady=(0, 10))
 
         links = [
@@ -457,6 +459,21 @@ class App(customtkinter.CTk):
             )
             link_label.pack()
             link_label.bind("<Button-1>", lambda e, url=url: webbrowser.open_new(url))
+
+        # ---------------------------------------------------
+        # Add Caution Message
+        # ---------------------------------------------------
+        caution_text = (
+            "⚠️ Caution:\n"
+            "Fragment is resource-intensive and may put a significant load on your hardware, "
+            "especially on systems like the Raspberry Pi. This can lead to excessive heat buildup, "
+            "particularly on the GPU. Please ensure adequate cooling is in place before running Fragment. "
+            "Use at your own risk as this software is still in development and may exhibit memory leaks or other bugs."
+        )
+        caution_label = customtkinter.CTkLabel(
+            about_window, text=caution_text, font=("Arial", 10), text_color="red", wraplength=380, justify="center"
+        )
+        caution_label.pack(pady=(10, 10))
 
         close_button = customtkinter.CTkButton(about_window, text="Close", command=about_window.destroy)
         close_button.pack(pady=(10, 10))
@@ -925,6 +942,7 @@ class App(customtkinter.CTk):
                 }
             )
 
+            self.results_textbox.configure(state="normal")
             self.results_textbox.delete("1.0", tkinter.END)
             self.results_textbox.insert(tkinter.END, "Benchmark Results:\n\n")
 
@@ -1106,6 +1124,7 @@ class App(customtkinter.CTk):
             self.after(0, self.adjust_image_sizes)
         finally:
             self.hide_loading_bar()
+            self.results_textbox.configure(state="disabled")
 
     def adjust_image_sizes(self):
         """
