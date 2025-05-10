@@ -85,6 +85,10 @@ featuring a **clean graphical interface** and multiple **benchmark modes**.
 
 ### 🚀 Setup
 
+On Windows for some dependencies, you may need to install the **Microsoft Visual C++ Redistributable**:
+
+🔗 [Follow the instructions here to install](https://www.scivision.dev/python-windows-visual-c-14-required/)
+
 Clone the repository and install dependencies within a Python Virtual Environment:
 
 ```sh  
