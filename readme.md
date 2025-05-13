@@ -10,7 +10,7 @@ using **ChatGPT** and other AI/ML tools for **code assistance** and **asset gene
 
 📖 *Read the full write-up on:*  
 🔗 [Hackster](https://www.hackster.io/314reactor/fragment-opengl-benchmark-for-pc-pi-f877b8) |
-🔗 [Electromaker](https://www.electromaker.io/profile/314Reactor)
+🔗 [Electromaker](https://www.electromaker.io/project/view/fragment-opengl-benchmark-for-pc-amp-pi)
 
 ## 🎥 See Fragment in Action!
 
