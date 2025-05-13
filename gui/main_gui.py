@@ -55,40 +55,57 @@ BENCHMARKS = {
 class App(customtkinter.CTk):
     """
     Main application window for the Fragment benchmarking tool, built with customtkinter.
-    Allows:
-    - Benchmark selection
-    - Configuration of render/visual settings
-    - Running and collecting results
-    - Displaying performance stats and charts
+    Ensures that preview and result images respect the user's OS‑level DPI scaling so that
+    they remain within reasonable bounds even on very high‑resolution, high‑scaling
+    displays (e.g. 4 K with Windows set to 250 % interface scaling).
     """
 
+    # ----------------------------------------------------------------------
+    # Helper – current OS DPI scaling factor as reported by CustomTkinter/Tk
+    # ----------------------------------------------------------------------
+    @staticmethod
+    def _dpi_scaling_factor() -> float:
+        """Return the window‑scaling factor (1.0 = 100 %)."""
+        try:
+            return customtkinter.get_window_scaling()
+        except Exception:
+            # Fallback: Tk returns a scaling value via the tk "scaling" command.
+            # We cast to float and default to 1.0 if anything goes wrong.
+            try:
+                return float(customtkinter._get_tk_root().tk.call("tk", "scaling"))
+            except Exception:
+                return 1.0
+
+    # ----------------------------------------------------------------------
+    # Constructor
+    # ----------------------------------------------------------------------
     def __init__(self):
         """
         Initialize the app window, UI elements, and default states.
         """
         super().__init__()
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Demo Mode Flag
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.is_demo_mode = False
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Desktop Resolution
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         pygame.init()
         self.desktop_info = pygame.display.Info()
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Benchmark Manager & Data
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.benchmark_manager = None
         self.benchmark_results = {}
         self.stop_event = multiprocessing.Event()
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # UI State for Images and Charts
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.image_area = None
         self.displayed_image = None
         self.image_folder = images_dir
@@ -104,9 +121,9 @@ class App(customtkinter.CTk):
             print("Icon file not found or OS doesn't support .ico. Skipping icon setup.")
             self.window_icon_active = False
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Configure Window
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.title("Fragment")
         self.geometry("1200x700")
 
@@ -117,9 +134,9 @@ class App(customtkinter.CTk):
         self.grid_rowconfigure(4, minsize=25)
         self.grid_rowconfigure(5, weight=0)
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Sidebar Setup
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.sidebar_frame = customtkinter.CTkFrame(self, width=200, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=6, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
@@ -174,9 +191,9 @@ class App(customtkinter.CTk):
         self.exit_button = customtkinter.CTkButton(self.sidebar_frame, text="Exit", command=self.exit_app)
         self.exit_button.grid(row=9, column=0, padx=20, pady=10)
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Main Content Frame
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.main_content_frame = customtkinter.CTkFrame(self)
         self.main_content_frame.grid(
             row=0, column=1, columnspan=4, rowspan=4, padx=(20, 20), pady=(20, 20), sticky="nsew"
@@ -205,9 +222,9 @@ class App(customtkinter.CTk):
         # Scenarios Tab
         self.setup_scenarios_tab()
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Results Tab Setup
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.results_textbox_frame = customtkinter.CTkFrame(self.tabview.tab("Results"))
         self.results_textbox_frame.grid(row=0, column=0, sticky="nsew")
         self.results_textbox_frame.grid_columnconfigure(0, weight=1)
@@ -246,21 +263,21 @@ class App(customtkinter.CTk):
         self.fig = None
         self.axs = None
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Window Close Event
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Loading Progress Bar
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.loading_progress_bar = customtkinter.CTkProgressBar(self, mode="indeterminate")
         self.loading_progress_bar.grid(row=4, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew")
         self.loading_progress_bar.grid_remove()
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # System Specs Frame
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.system_specs_frame = customtkinter.CTkFrame(self)
         self.system_specs_frame.grid(row=5, column=1, columnspan=4, padx=(20, 20), pady=(0, 10), sticky="ew")
         self.system_specs_frame.grid_columnconfigure(0, weight=1)
@@ -276,9 +293,9 @@ class App(customtkinter.CTk):
         self.system_specs_label.grid(row=0, column=0, padx=20, pady=5, sticky="ew")
         self.system_specs_label.configure(anchor="center")
 
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         # Resizing Variables
-        # ----------------------------------------------------------------------
+        # ------------------------------------------------------------------
         self.is_resizing = False
         self.resize_after_id = None
         self.shadow_quality_mapping = {
@@ -481,6 +498,19 @@ class App(customtkinter.CTk):
         if self.window_icon_active:
             about_window.after(250, lambda: about_window.iconbitmap(os.path.join(self.image_folder, "small_icon.ico")))
 
+    # ----------------------------------------------------------------------
+    # Display & Image – PREVIEW (fixed to respect OS scaling and hard caps)
+    # ----------------------------------------------------------------------
+    def _prepare_preview_geometry(self):
+        """Return maximum preview width & height (logical pixels, *after* DPI scaling)."""
+        # Work in logical units to keep the mathematics simple, then apply hard caps.
+        scale = self._dpi_scaling_factor()
+        window_width = max(self.winfo_width(), 1) / scale
+        window_height = max(self.winfo_height(), 1) / scale
+        max_w = min(int(window_width * 0.40), 600)  # never wider than 600 px logical
+        max_h = min(int(window_height * 0.50), 450)  # never taller than 450 px logical
+        return max_w, max_h
+
     # --------------------------------------------------------------------------
     # Display & Image
     # --------------------------------------------------------------------------
@@ -496,18 +526,11 @@ class App(customtkinter.CTk):
             img = Image.open(image_path)
             img_with_shadow = self.add_drop_shadow(img)
 
-            img_original_width, img_original_height = img_with_shadow.width, img_with_shadow.height
-            window_width = self.winfo_width()
-            window_height = self.winfo_height()
-            available_width = int(window_width * 0.4)
-            available_height = int(window_height * 0.5)
+            max_w, max_h = self._prepare_preview_geometry()
 
-            width_scale = available_width / img_original_width
-            height_scale = available_height / img_original_height
-            scale_factor = min(width_scale, height_scale)
-
-            image_area_width = int(img_original_width * scale_factor)
-            image_area_height = int(img_original_height * scale_factor)
+            scale_factor = min(max_w / img_with_shadow.width, max_h / img_with_shadow.height, 1.0)
+            image_area_width = int(img_with_shadow.width * scale_factor)
+            image_area_height = int(img_with_shadow.height * scale_factor)
 
             img_resized = img_with_shadow.resize((image_area_width, image_area_height), Image.LANCZOS)
             self.displayed_image = CTkImage(
@@ -539,18 +562,10 @@ class App(customtkinter.CTk):
             img = Image.open(image_path)
             img_with_shadow = self.add_drop_shadow(img)
 
-            img_original_width, img_original_height = img_with_shadow.width, img_with_shadow.height
-            window_width = self.winfo_width()
-            window_height = self.winfo_height()
-            available_width = int(window_width * 0.4)
-            available_height = int(window_height * 0.5)
-
-            width_scale = available_width / img_original_width
-            height_scale = available_height / img_original_height
-            scale_factor = min(width_scale, height_scale)
-
-            image_area_width = int(img_original_width * scale_factor)
-            image_area_height = int(img_original_height * scale_factor)
+            max_w, max_h = self._prepare_preview_geometry()
+            scale_factor = min(max_w / img_with_shadow.width, max_h / img_with_shadow.height, 1.0)
+            image_area_width = int(img_with_shadow.width * scale_factor)
+            image_area_height = int(img_with_shadow.height * scale_factor)
 
             img_resized = img_with_shadow.resize((image_area_width, image_area_height), Image.LANCZOS)
             self.displayed_image = CTkImage(
@@ -641,6 +656,11 @@ class App(customtkinter.CTk):
         Called after the short delay to resize any scenario image.
         """
         if self.currently_selected_benchmark_name:
+            if self.currently_selected_benchmark_name == "Shimmer (Demo)":
+                self.display_demo_image()
+            else:
+                self.display_image(self.currently_selected_benchmark_name)
+
             self.display_image(self.currently_selected_benchmark_name)
 
     # --------------------------------------------------------------------------
