@@ -5,6 +5,9 @@ OpenGL 3.3+ compatible GPU) and **Raspberry Pi 4 and above** (tested on
 *Bookworm*/*Bullseye*). It utilizes **OpenGL** (via *PyOpenGL* and *Pygame*) to stress-test hardware performance,
 featuring a **clean graphical interface** and multiple **benchmark modes**.
 
+Built primarily with **'vibe coding'** techniques
+using **ChatGPT** and other AI/ML tools for **code assistance** and **asset generation**.
+
 📖 *Read the full write-up on:*  
 🔗 [Hackster](https://www.hackster.io/314reactor/fragment-opengl-benchmark-for-pc-pi-f877b8) |
 🔗 [Electromaker](https://www.electromaker.io/profile/314Reactor)
