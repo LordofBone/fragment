@@ -122,6 +122,24 @@ chmod +x setup/rpi_bashrc_setup.sh && ./setup/rpi_bashrc_setup.sh
 💡 *In most cases, running `rpi_setup.sh` is enough. However, if you encounter issues, try running `rpi_bashrc_setup.sh`
 as well. (May need a reboot).*
 
+### 🐳 Docker / noVNC
+
+Prefer a containerized workflow or need to run Fragment on a headless machine? A
+step-by-step Docker/noVNC guide is available in
+[`docs/docker.md`](docs/docker.md). It covers:
+
+- ✅ **Prerequisites** such as Docker 24+, NVIDIA drivers, and the NVIDIA Container
+  Toolkit.
+- 🖥️ **Supported host platforms** (Linux, Windows 11 via WSL2, and GPU-enabled cloud
+  VMs), plus platform-specific caveats.
+- 🛠️ **Building or pulling the noVNC image**, along with example `docker compose` and
+  `docker run` commands that expose the web UI at `http://localhost:8080/vnc.html`.
+- 🎛️ **Runtime customization**, including GPU pass-through flags, optional volume mounts
+  for benchmark results, and environment toggles such as `PYOPENGL_PLATFORM` and
+  `MESA_GL_VERSION_OVERRIDE`.
+
+Head over to the guide to get started with the containerised setup in minutes.
+
 ## 🚀 Usage
 
 > ⚠️ **Caution:**  
