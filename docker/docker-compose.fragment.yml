@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  fragment:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.fragment
+    image: fragment:latest
+    container_name: fragment
+    ports:
+      - "8080:8080"
+    environment:
+      # Forward desktop/audio session details when available
+      - DISPLAY=${DISPLAY:-}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-}
+      - PULSE_SERVER=${PULSE_SERVER:-}
+      # Fragment specific runtime toggles
+      - FRAGMENT_FULLSCREEN=${FRAGMENT_FULLSCREEN:-}
+      - FRAGMENT_AUDIO_ENABLED=${FRAGMENT_AUDIO_ENABLED:-}
+      - FRAGMENT_DEBUG_MODE=${FRAGMENT_DEBUG_MODE:-}
+    volumes:
+      # Persist benchmark artefacts generated inside the container
+      - type: bind
+        source: ../screenshots
+        target: /app/screenshots
+      - type: bind
+        source: ../report
+        target: /app/report
+    device_requests:
+      - driver: nvidia
+        count: -1
+        capabilities:
+          - gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+                - gpu
+    shm_size: "2g"
+    restart: unless-stopped

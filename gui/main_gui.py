@@ -27,6 +27,7 @@ from benchmarks.treadlock import run_benchmark as run_tyre_benchmark
 from benchmarks.ætherial import run_benchmark as run_pyramid_benchmark
 from components.benchmark_manager import BenchmarkManager
 from config.path_config import images_dir, themes_dir
+from utils.env import get_bool_env
 from version import __version__
 
 # ------------------------------------------------------------------------------
@@ -259,6 +260,9 @@ class App(customtkinter.CTk):
         self.particle_render_mode_optionmenu.set("Transform Feedback")
         self.sound_enabled_checkbox.select()
 
+        # Allow environment variables to pre-configure the UI defaults
+        self.apply_environment_defaults()
+
         # Chart references
         self.fig = None
         self.axs = None
@@ -305,6 +309,26 @@ class App(customtkinter.CTk):
             "4096x4096": 4096,
         }
         self.bind("<Configure>", self.on_window_resize)
+
+    def apply_environment_defaults(self):
+        """Update default UI selections based on optional environment variables."""
+
+        fullscreen_override = get_bool_env("FRAGMENT_FULLSCREEN")
+        if fullscreen_override:
+            self.resolution_optionmenu.set("Fullscreen")
+
+        audio_override = get_bool_env("FRAGMENT_AUDIO_ENABLED")
+        if audio_override is not None:
+            if audio_override:
+                self.sound_enabled_checkbox.select()
+            else:
+                self.sound_enabled_checkbox.deselect()
+
+        # Debug mode is handled deeper in the renderer configuration via the
+        # same environment variable. The GUI does not expose an explicit toggle
+        # but we still cache the override so other components can introspect it
+        # if required in the future.
+        self.debug_mode_override = get_bool_env("FRAGMENT_DEBUG_MODE")
 
     # --------------------------------------------------------------------------
     # Settings Tab Setup

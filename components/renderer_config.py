@@ -1,6 +1,8 @@
 import copy
 import os
 
+from utils.env import get_bool_env
+
 
 class RendererConfig:
     """
@@ -236,6 +238,23 @@ class RendererConfig:
         # ------------------------------------------------------------------------------
         self.debug_mode = debug_mode
 
+        # ------------------------------------------------------------------------------
+        # Environment Overrides
+        # ------------------------------------------------------------------------------
+        fullscreen_override = get_bool_env("FRAGMENT_FULLSCREEN")
+        if fullscreen_override is not None:
+            self.fullscreen = fullscreen_override
+
+        audio_override = get_bool_env("FRAGMENT_AUDIO_ENABLED")
+        if audio_override is not None:
+            self.sound_enabled = audio_override
+
+        debug_override = get_bool_env("FRAGMENT_DEBUG_MODE")
+        if debug_override is not None:
+            self.debug_mode = debug_override
+        elif self.debug_mode is None:
+            self.debug_mode = False
+
         # Placeholder for external shader references
         self.shaders = {}
 
@@ -379,6 +398,9 @@ class RendererConfig:
         Create and return a config dict for a model within this renderer configuration.
         The returned dict is a deep copy of the base config with model-specific overrides applied.
         """
+
+        if debug_mode is None:
+            debug_mode = self.debug_mode
 
         # Validate pbr_extension_overrides keys if present
         if pbr_extension_overrides is not None:
@@ -526,6 +548,9 @@ class RendererConfig:
         Create and return a config dict for a surface within this renderer configuration.
         The returned dict is a copy of the base config with surface-specific overrides.
         """
+        if debug_mode is None:
+            debug_mode = self.debug_mode
+
         surface_config = self.unpack()
 
         surface_specifics = {
@@ -681,6 +706,9 @@ class RendererConfig:
         Create and return a config dict for a particle renderer within this configuration.
         The returned dict is a copy of the base config with particle-specific overrides.
         """
+        if debug_mode is None:
+            debug_mode = self.debug_mode
+
         particle_config = self.unpack()
 
         particle_specifics = {
