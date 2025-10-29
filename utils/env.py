@@ -1,9 +1,9 @@
 """Utility helpers for reading environment variables used by Fragment."""
+
 from __future__ import annotations
 
 import os
 from typing import Optional
-
 
 _TRUE_VALUES = {"1", "true", "t", "yes", "y", "on", "enable", "enabled"}
 _FALSE_VALUES = {"0", "false", "f", "no", "n", "off", "disable", "disabled"}
