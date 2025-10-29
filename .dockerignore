@@ -1,0 +1,51 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Test and coverage artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.tox/
+reports/
+report/coverage/
+report/html/
+
+# Editor and tooling noise
+*.swp
+*.swo
+.idea/
+.vscode/
+.DS_Store
+
+# Generated media snapshots
+screenshots/
+report/screenshots/
+
+# Node/npm caches if present
+node_modules/
+
+# Git metadata
+.git
+.gitignore
+
+# Pip cache
+pip-wheel-metadata/
+
+# Misc caches
+.cache/
