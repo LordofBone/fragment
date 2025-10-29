@@ -45,18 +45,25 @@ Replace `latest` with a released tag if you need a specific build.
 
 ### Build locally
 
-Clone this repository and build the image (requires the Dockerfile that ships with the
-project releases):
+Clone this repository and copy the Docker assets from a release tarball before
+building. The Dockerfile is not tracked in `main`, so fetch it from the
+<https://github.com/LordofBone/fragment/releases> page and place the extracted
+`docker/` directory alongside the repository checkout:
 
 ```sh
 git clone https://github.com/LordofBone/fragment.git
 cd fragment
+# Download the release archive that contains docker/Dockerfile.novnc
+# (replace RELEASE_TAG and ARCHIVE_NAME with the values published on the release page)
+wget https://github.com/LordofBone/fragment/releases/download/RELEASE_TAG/ARCHIVE_NAME
+tar -xzf ARCHIVE_NAME
+cp -r path-from-archive/docker ./
 docker build -t fragment-novnc -f docker/Dockerfile.novnc .
 ```
 
-> If you track the repository without the optional Docker assets, download the release
-> tarball or copy the Dockerfile from the `docker/` directory of the main branch before
-> running the build command above.
+> Replace the placeholders with the archive name from the release you intend to use.
+> If you already downloaded the tarball elsewhere, copy the `docker/` directory into
+> the repository root before running `docker build`.
 
 ## Runtime configuration
 
@@ -99,13 +106,10 @@ services:
     #   dockerfile: docker/Dockerfile.novnc
     ports:
       - "8080:8080"  # noVNC web UI
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [compute, graphics, utility]
+    device_requests:
+      - driver: nvidia
+        count: all
+        capabilities: [gpu]
     environment:
       PYOPENGL_PLATFORM: egl
       MESA_GL_VERSION_OVERRIDE: "3.3"
@@ -116,6 +120,9 @@ services:
 ```sh
 docker compose -f compose.novnc.yaml up --pull=missing
 ```
+
+The `device_requests` block mirrors `docker run --gpus all`, so the container receives
+GPU access even when using the `docker compose` CLI (outside of Swarm mode).
 
 Once the stack reports that `websockify` and `novnc` are ready, open
 `http://localhost:8080/vnc.html` in a browser, click **Connect**, and you will see the
